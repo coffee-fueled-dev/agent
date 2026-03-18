@@ -1,0 +1,73 @@
+import type { Doc } from "../_generated/dataModel";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
+
+type EventsCtx = MutationCtx | QueryCtx;
+
+export async function loadStream(
+  ctx: EventsCtx,
+  args: {
+    streamType: string;
+    streamId: string;
+  },
+) {
+  return await ctx.db
+    .query("event_streams")
+    .withIndex("by_stream", (q) =>
+      q.eq("streamType", args.streamType).eq("streamId", args.streamId),
+    )
+    .first();
+}
+
+export async function loadEvent(
+  ctx: EventsCtx,
+  args: {
+    streamType: string;
+    streamId: string;
+    eventId: string;
+  },
+) {
+  return await ctx.db
+    .query("event_entries")
+    .withIndex("by_stream_event", (q) =>
+      q
+        .eq("streamType", args.streamType)
+        .eq("streamId", args.streamId)
+        .eq("eventId", args.eventId),
+    )
+    .first();
+}
+
+export async function loadCheckpoint(
+  ctx: EventsCtx,
+  args: {
+    projector: string;
+    streamType: string;
+  },
+) {
+  return await ctx.db
+    .query("event_projector_checkpoints")
+    .withIndex("by_projector_stream", (q) =>
+      q.eq("projector", args.projector).eq("streamType", args.streamType),
+    )
+    .first();
+}
+
+export async function readLatestGlobalSequence(ctx: MutationCtx) {
+  const latest = await ctx.db
+    .query("event_entries")
+    .withIndex("by_global_sequence")
+    .order("desc")
+    .first();
+  return latest?.globalSequence ?? 0;
+}
+
+export function hasActiveLease(
+  checkpoint: Doc<"event_projector_checkpoints"> | null | undefined,
+  now: number,
+) {
+  return (
+    checkpoint?.leaseOwner != null &&
+    checkpoint.leaseExpiresAt != null &&
+    checkpoint.leaseExpiresAt > now
+  );
+}

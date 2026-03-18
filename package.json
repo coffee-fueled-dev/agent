@@ -1,0 +1,27 @@
+{
+  "name": "agent",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "scripts": {
+    "typecheck": "bun run typecheck:convex",
+    "typecheck:convex": "bunx tsc --noEmit -p convex/tsconfig.json",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write ."
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@biomejs/biome": "^2.4.6",
+    "@convex-dev/aggregate": "^0.2.1",
+    "@convex-dev/geospatial": "^0.2.1",
+    "convex": "^1.33.1",
+    "convex-helpers": "^0.1.114",
+    "zod": "^4.3.6"
+  }
+}
