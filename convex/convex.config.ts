@@ -5,6 +5,7 @@ import events from "./components/events/convex.config.js";
 import facts from "./components/facts/convex.config.js";
 import history from "./components/history/convex.config.js";
 import policy from "./components/policy/convex.config.js";
+import agent from "@convex-dev/agent/convex.config";
 
 const app = defineApp();
 
@@ -13,5 +14,6 @@ app.use(facts);
 app.use(events);
 app.use(history);
 app.use(policy);
+app.use(agent);
 
 export default app;

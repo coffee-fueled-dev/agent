@@ -1,0 +1,248 @@
+import { createTool } from "@convex-dev/agent";
+import type { Tool } from "ai";
+import type { FunctionReference } from "convex/server";
+import type {
+  ToolExecutionContext,
+  ToolkitContext,
+  ToolPolicyArgs,
+} from "./customFunctions";
+
+export type ToolErrorOutput = {
+  ok: false;
+  error: string;
+};
+
+export type ToolSuccessOutput<
+  DATA extends Record<string, unknown> | undefined = undefined,
+> = {
+  ok: true;
+  data?: DATA;
+};
+
+export type ToolOutput<
+  DATA extends Record<string, unknown> | undefined = undefined,
+> = ToolErrorOutput | ToolSuccessOutput<DATA>;
+
+export type ToolkitResult = {
+  tools: Record<string, Tool>;
+  instructions: string;
+};
+
+export function sharedPolicy(
+  query: FunctionReference<"query", "internal", ToolPolicyArgs, boolean>,
+) {
+  return { query };
+}
+
+export type SharedPolicy = ReturnType<typeof sharedPolicy>;
+
+type PolicyResultMap = Map<SharedPolicy, boolean>;
+
+export type DynamicToolDef<NAME extends string = string, ARGS = unknown> = {
+  staticProps: {
+    name: NAME;
+    description: string;
+    args: ARGS;
+    policies: SharedPolicy[];
+    instructions: string[] | undefined;
+  };
+  policies: SharedPolicy[];
+  evaluate: (
+    ctx: ToolkitContext,
+    resolvedPolicies?: PolicyResultMap,
+  ) => Promise<ToolkitResult>;
+};
+
+export type Composable = {
+  staticProps: { name: string };
+  policies: SharedPolicy[];
+  evaluate: (
+    ctx: ToolkitContext,
+    resolvedPolicies?: PolicyResultMap,
+  ) => Promise<ToolkitResult>;
+};
+
+type KeyedStaticProps<MEMBERS extends readonly Composable[]> = {
+  [M in MEMBERS[number] as M["staticProps"] extends {
+    name: infer N extends string;
+  }
+    ? N
+    : never]: M["staticProps"];
+};
+
+export function dynamicTool<NAME extends string, INPUT, OUTPUT, ARGS>({
+  name,
+  policies: policiesConfig,
+  description,
+  args,
+  instructions,
+  ...toolArgs
+}: Parameters<typeof createTool<INPUT, OUTPUT, ToolExecutionContext>>[0] & {
+  name: NAME;
+  args: ARGS;
+  policies?: SharedPolicy[];
+  instructions?: string[];
+}) {
+  const policies = policiesConfig ?? [];
+  const tool = createTool({ description, args, ...toolArgs });
+
+  async function evaluate(
+    ctx: ToolkitContext,
+    resolvedPolicies?: PolicyResultMap,
+  ): Promise<ToolkitResult> {
+    for (const policy of policies) {
+      const ok =
+        resolvedPolicies?.get(policy) ??
+        (await ctx.runPolicyQuery(policy.query));
+      if (!ok) return { tools: {}, instructions: "" };
+    }
+    return {
+      tools: { [name]: tool } as Record<NAME, Tool<INPUT, OUTPUT>>,
+      instructions: (instructions ?? []).join("\n\n"),
+    };
+  }
+
+  return {
+    staticProps: { name, description, args, policies, instructions } as {
+      name: NAME;
+      description: string;
+      args: ARGS;
+      policies: SharedPolicy[];
+      instructions: string[] | undefined;
+    },
+    policies,
+    evaluate,
+  };
+}
+
+export function toolkit<
+  const NAME extends string,
+  const MEMBERS extends readonly Composable[],
+>(members: MEMBERS, options: { name: NAME; instructions?: string[] }) {
+  const policies = members.flatMap((m) => m.policies);
+
+  const staticProps = {
+    name: options.name as NAME,
+    instructions: options.instructions,
+    members: Object.fromEntries(
+      members.map((m) => [m.staticProps.name, m.staticProps]),
+    ) as KeyedStaticProps<MEMBERS>,
+  };
+
+  async function evaluate(
+    ctx: ToolkitContext,
+    resolvedPolicies?: PolicyResultMap,
+  ): Promise<ToolkitResult> {
+    const resolved = resolvedPolicies ?? new Map<SharedPolicy, boolean>();
+
+    const unresolved = policies.filter((p) => !resolved.has(p));
+    const unique = [...new Set(unresolved)];
+    await Promise.all(
+      unique.map(async (p) => {
+        resolved.set(p, await ctx.runPolicyQuery(p.query));
+      }),
+    );
+
+    const results = await Promise.all(
+      members.map((m) => m.evaluate(ctx, resolved)),
+    );
+    const mergedTools = Object.assign(
+      {} as Record<string, Tool>,
+      ...results.map((r) => r.tools),
+    );
+    const hasAnyTool = results.some((r) => Object.keys(r.tools).length > 0);
+    return {
+      tools: mergedTools,
+      instructions: hasAnyTool
+        ? [
+            ...(options?.instructions ?? []),
+            ...results.map((r) => r.instructions),
+          ]
+            .filter(Boolean)
+            .join("\n\n")
+        : "",
+    };
+  }
+
+  return { staticProps, policies, evaluate };
+}
+
+export function dynamicToolkit<const NAME extends string>({
+  name,
+  policies: policiesConfig,
+  instructions,
+  create,
+}: {
+  name: NAME;
+  policies?: SharedPolicy[];
+  instructions?: string[];
+  create: (ctx: ToolkitContext) => Promise<Composable[]>;
+}) {
+  const policies = policiesConfig ?? [];
+
+  const staticProps = { name, instructions, policies } as {
+    name: NAME;
+    instructions: string[] | undefined;
+    policies: SharedPolicy[];
+  };
+
+  async function evaluate(
+    ctx: ToolkitContext,
+    resolvedPolicies?: PolicyResultMap,
+  ): Promise<ToolkitResult> {
+    const resolved = resolvedPolicies ?? new Map<SharedPolicy, boolean>();
+
+    for (const policy of policies) {
+      const ok =
+        resolved.get(policy) ?? (await ctx.runPolicyQuery(policy.query));
+      if (!ok) return { tools: {}, instructions: "" };
+    }
+
+    const members = await create(ctx);
+
+    const memberPolicies = members.flatMap((m) => m.policies);
+    const unresolved = memberPolicies.filter((p) => !resolved.has(p));
+    const unique = [...new Set(unresolved)];
+    await Promise.all(
+      unique.map(async (p) => {
+        resolved.set(p, await ctx.runPolicyQuery(p.query));
+      }),
+    );
+
+    const results = await Promise.all(
+      members.map((m) => m.evaluate(ctx, resolved)),
+    );
+    const mergedTools = Object.assign(
+      {} as Record<string, Tool>,
+      ...results.map((r) => r.tools),
+    );
+    const hasAnyTool = results.some((r) => Object.keys(r.tools).length > 0);
+    return {
+      tools: mergedTools,
+      instructions: hasAnyTool
+        ? [...(instructions ?? []), ...results.map((r) => r.instructions)]
+            .filter(Boolean)
+            .join("\n\n")
+        : "",
+    };
+  }
+
+  return { staticProps, policies, evaluate };
+}
+
+export async function withFormattedResults<
+  DATA extends Record<string, unknown> | undefined = undefined,
+>(promise: Promise<DATA>): Promise<ToolOutput<DATA>> {
+  try {
+    const data = await promise;
+    return {
+      ok: true,
+      data,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
