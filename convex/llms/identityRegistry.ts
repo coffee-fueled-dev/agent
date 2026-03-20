@@ -8,6 +8,7 @@ import {
 } from "../aggregate";
 import { events } from "../events";
 import { history } from "../history";
+import { ensureMachineAccount, grantThreadAccessToAccount } from "../lib/auth";
 
 async function appendMachineAgentHistory(
   ctx: MutationCtx,
@@ -379,6 +380,10 @@ export const recordTurnIdentity = internalMutation({
   },
   handler: async (ctx, args) => {
     const now = Date.now();
+    const machineAccount = await ensureMachineAccount(ctx, {
+      codeId: args.codeId,
+      name: args.name,
+    });
     const previousBinding = await ctx.db
       .query("machineAgentTurnBindings")
       .withIndex("by_threadId_recordedAt", (q) =>
@@ -394,6 +399,7 @@ export const recordTurnIdentity = internalMutation({
     let registrationCreated = false;
     if (!registration) {
       const registrationId = await ctx.db.insert("machineAgentRegistrations", {
+        account: machineAccount._id,
         codeId: args.codeId,
         name: args.name,
         createdAt: now,
@@ -409,6 +415,7 @@ export const recordTurnIdentity = internalMutation({
     }
     if (!registrationCreated) {
       await ctx.db.patch(registration._id, {
+        account: machineAccount._id,
         name: args.name,
         lastSeenAt: now,
         latestStaticHash: args.staticHash,
@@ -491,6 +498,7 @@ export const recordTurnIdentity = internalMutation({
     let bindingCreated = false;
     if (!binding) {
       await ctx.db.insert("machineAgentTurnBindings", {
+        account: machineAccount._id,
         codeId: args.codeId,
         registrationId: registration._id,
         staticVersionId: staticVersion._id,
@@ -503,6 +511,7 @@ export const recordTurnIdentity = internalMutation({
       bindingCreated = true;
     } else {
       await ctx.db.patch(binding._id, {
+        account: machineAccount._id,
         codeId: args.codeId,
         registrationId: registration._id,
         staticVersionId: staticVersion._id,
@@ -512,6 +521,12 @@ export const recordTurnIdentity = internalMutation({
         recordedAt: now,
       });
     }
+
+    await grantThreadAccessToAccount(ctx, {
+      account: machineAccount._id,
+      threadId: args.threadId,
+      actions: ["read", "write"],
+    });
 
     const created = {
       registration: registrationCreated,

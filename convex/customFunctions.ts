@@ -20,26 +20,33 @@ import {
   zCustomMutation,
   zCustomQuery,
 } from "convex-helpers/server/zod4";
+import { ensureSessionAccount, resolveAccount } from "./lib/auth";
 import { Session } from "./resolvers/auth";
 
 export interface SessionQueryCtx extends QueryCtx {
   convexSessionId: SessionId;
   session: Doc<"sessions"> | null;
+  account: Doc<"accounts"> | null;
 }
 
 export interface SessionMutationCtx extends MutationCtx {
   convexSessionId: SessionId;
   session: Doc<"sessions">;
+  account: Doc<"accounts">;
 }
 
 export interface SessionActionCtx extends ActionCtx, RunSessionFunctions {}
 
 async function resolveSession(ctx: QueryCtx, convexSessionId: SessionId) {
-  return Session.query(ctx)
+  const session = await Session.query(ctx)
     .withIndex("by_convexSessionId", (q) =>
       q.eq("convexSessionId", convexSessionId),
     )
     .first();
+  const account = session?.account
+    ? await resolveAccount(ctx, session.account)
+    : null;
+  return { session, account };
 }
 
 async function resolveOrCreateSession(
@@ -51,14 +58,31 @@ async function resolveOrCreateSession(
       q.eq("convexSessionId", convexSessionId),
     )
     .first();
-  if (existing) return existing;
-  const id = await ctx.db.insert("sessions", {
-    convexSessionId,
-    data: { status: "active" },
-  });
-  const session = await ctx.db.get(id);
-  if (!session) throw new Error("Failed to create session");
-  return session;
+  const session =
+    existing ??
+    (await (async () => {
+      const id = await ctx.db.insert("sessions", {
+        convexSessionId,
+        account: null,
+        data: { status: "active" },
+      });
+      const created = await ctx.db.get(id);
+      if (!created) throw new Error("Failed to create session");
+      return created;
+    })());
+
+  const account =
+    session.account && (await resolveAccount(ctx, session.account));
+  if (account) {
+    return { session, account };
+  }
+
+  const linkedAccount = await ensureSessionAccount(ctx, convexSessionId);
+  await ctx.db.patch(session._id, { account: linkedAccount._id });
+  return {
+    session: { ...session, account: linkedAccount._id },
+    account: linkedAccount,
+  };
 }
 
 export const sessionQuery = zCustomQuery(query, {
@@ -67,8 +91,8 @@ export const sessionQuery = zCustomQuery(query, {
     ctx,
     { sessionId: convexSessionId },
   ): Promise<{ ctx: SessionQueryCtx; args: Record<string, never> }> => {
-    const session = await resolveSession(ctx, convexSessionId);
-    return { ctx: { ...ctx, session, convexSessionId }, args: {} };
+    const { session, account } = await resolveSession(ctx, convexSessionId);
+    return { ctx: { ...ctx, session, account, convexSessionId }, args: {} };
   },
 });
 
@@ -84,9 +108,9 @@ export const sessionPaginatedQuery = zCustomQuery(query, {
     ctx: SessionQueryCtx;
     args: { paginationOpts: PaginationOptions };
   }> => {
-    const session = await resolveSession(ctx, convexSessionId);
+    const { session, account } = await resolveSession(ctx, convexSessionId);
     return {
-      ctx: { ...ctx, session, convexSessionId },
+      ctx: { ...ctx, session, account, convexSessionId },
       args: {
         paginationOpts: paginationOpts ?? { numItems: 10, cursor: null },
       },
@@ -100,8 +124,11 @@ export const sessionMutation = zCustomMutation(mutation, {
     ctx,
     { sessionId: convexSessionId },
   ): Promise<{ ctx: SessionMutationCtx; args: Record<string, never> }> => {
-    const session = await resolveOrCreateSession(ctx, convexSessionId);
-    return { ctx: { ...ctx, session, convexSessionId }, args: {} };
+    const { session, account } = await resolveOrCreateSession(
+      ctx,
+      convexSessionId,
+    );
+    return { ctx: { ...ctx, session, account, convexSessionId }, args: {} };
   },
 });
 

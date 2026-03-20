@@ -4,6 +4,12 @@ import { v } from "convex/values";
 import { components } from "./_generated/api";
 import { action, mutation, query } from "./_generated/server";
 import {
+  ensureLocalHumanAccount,
+  ensureMachineAccount,
+  grantThreadAccessToAccount,
+  resolveAccount,
+} from "./lib/auth";
+import {
   createTerminalChatAgent,
   terminalChatAgentDefinition,
 } from "./llms/agents/terminalChat";
@@ -12,13 +18,36 @@ import type { UIMessage } from "./llms/uiMessage";
 
 export const createThread = mutation({
   args: {
+    account: v.optional(v.id("accounts")),
     title: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const agent = createTerminalChatAgent();
-    return await agent.createThread(ctx, {
-      title: args.title,
+    const owner = args.account
+      ? await resolveAccount(ctx, args.account)
+      : await ensureLocalHumanAccount(ctx);
+    if (!owner) {
+      throw new Error("Account not found");
+    }
+    const machine = await ensureMachineAccount(ctx, {
+      codeId: terminalChatAgentDefinition.agentId,
+      name: terminalChatAgentDefinition.name,
     });
+    const thread = await agent.createThread(ctx, {
+      title: args.title,
+      userId: owner._id,
+    });
+    await grantThreadAccessToAccount(ctx, {
+      account: owner._id,
+      threadId: thread.threadId,
+      actions: ["read", "write", "own"],
+    });
+    await grantThreadAccessToAccount(ctx, {
+      account: machine._id,
+      threadId: thread.threadId,
+      actions: ["read", "write"],
+    });
+    return thread;
   },
 });
 

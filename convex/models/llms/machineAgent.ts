@@ -1,8 +1,9 @@
 import { defineTable } from "convex/server";
-import { zodOutputToConvex } from "convex-helpers/server/zod4";
+import { zid, zodOutputToConvex } from "convex-helpers/server/zod4";
 import { z } from "zod";
 
 export const zMachineAgentRegistration = z.object({
+  account: zid("accounts").optional(),
   codeId: z.string(),
   name: z.string(),
   createdAt: z.number(),
@@ -13,7 +14,9 @@ export const zMachineAgentRegistration = z.object({
 
 export const machineAgentRegistrations = defineTable(
   zodOutputToConvex(zMachineAgentRegistration),
-).index("by_codeId", ["codeId"]);
+)
+  .index("by_codeId", ["codeId"])
+  .index("by_account", ["account"]);
 
 export const zMachineAgentStaticVersion = z.object({
   registrationId: z.string(),
@@ -47,6 +50,7 @@ export const machineAgentRuntimeVersions = defineTable(
   .index("by_codeId_createdAt", ["codeId", "createdAt"]);
 
 export const zMachineAgentTurnBinding = z.object({
+  account: zid("accounts").optional(),
   codeId: z.string(),
   registrationId: z.string(),
   staticVersionId: z.string(),
@@ -61,5 +65,6 @@ export const machineAgentTurnBindings = defineTable(
   zodOutputToConvex(zMachineAgentTurnBinding),
 )
   .index("by_messageId", ["messageId"])
+  .index("by_account_recordedAt", ["account", "recordedAt"])
   .index("by_threadId_recordedAt", ["threadId", "recordedAt"])
   .index("by_codeId_recordedAt", ["codeId", "recordedAt"]);
