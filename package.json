@@ -3,11 +3,15 @@
   "module": "index.ts",
   "type": "module",
   "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
   "devDependencies": {
     "@types/bun": "latest"
   },
   "scripts": {
-    "start": "bun run index.ts",
+    "dev:chat": "bun run index.ts",
+    "dev:convex": "bunx convex dev",
     "typecheck": "bun run typecheck:convex",
     "typecheck:convex": "bunx tsc --noEmit -p convex/tsconfig.json",
     "lint": "biome check .",
@@ -23,6 +27,7 @@
     "@convex-dev/agent": "^0.3.2",
     "@convex-dev/aggregate": "^0.2.1",
     "@convex-dev/geospatial": "^0.2.1",
+    "ai": "^5.0.82",
     "convex": "^1.33.1",
     "convex-helpers": "^0.1.114",
     "zod": "^4.3.6"

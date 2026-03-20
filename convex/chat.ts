@@ -1,7 +1,4 @@
-import {
-  vStreamArgs,
-  vStreamMessagesReturnValue,
-} from "@convex-dev/agent";
+import { vStreamArgs } from "@convex-dev/agent";
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { action, mutation, query } from "./_generated/server";
@@ -15,9 +12,6 @@ export const createThread = mutation({
   args: {
     title: v.optional(v.string()),
   },
-  returns: v.object({
-    threadId: v.string(),
-  }),
   handler: async (ctx, args) => {
     const agent = createTerminalChatAgent();
     return await agent.createThread(ctx, {
@@ -31,11 +25,6 @@ export const sendMessage = action({
     threadId: v.string(),
     prompt: v.string(),
   },
-  returns: v.object({
-    order: v.number(),
-    promptMessageId: v.optional(v.string()),
-    text: v.string(),
-  }),
   handler: async (ctx, args) => {
     const agent = createTerminalChatAgent();
     const { messageId: promptMessageId } = await agent.saveMessage(ctx, {
@@ -53,7 +42,7 @@ export const sendMessage = action({
       threadId: args.threadId,
     });
     const result = await thread.streamText(
-      { promptMessageId },
+      { promptMessageId } as unknown as Parameters<typeof thread.streamText>[0],
       {
         saveStreamDeltas: { throttleMs: 50 },
       },
@@ -73,7 +62,6 @@ export const listThreadMessages = query({
     paginationOpts: paginationOptsValidator,
     streamArgs: vStreamArgs,
   },
-  returns: vStreamMessagesReturnValue,
   handler: async (ctx, args) => {
     const agent = createTerminalChatAgent();
     const paginated = await agent.listMessages(ctx, {

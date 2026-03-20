@@ -204,7 +204,12 @@ export function dynamicToolkit<const NAME extends string>({
 }) {
   const policies = policiesConfig ?? [];
 
-  const staticProps = { kind: "dynamicToolkit" as const, name, instructions, policies } as {
+  const staticProps = {
+    kind: "dynamicToolkit" as const,
+    name,
+    instructions,
+    policies,
+  } as {
     kind: "dynamicToolkit";
     name: NAME;
     instructions: string[] | undefined;

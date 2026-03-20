@@ -4,7 +4,7 @@ import "./auth";
 import { Session } from "./auth";
 import { Location } from "./geo";
 
-export { Session, Location };
+export { Location, Session };
 
 declare module "../lib/resolvers" {
   interface ResolverRegistry {

@@ -1,5 +1,6 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
+import { paginator } from "convex-helpers/server/pagination";
 import { query } from "../_generated/server";
 import {
   eventEntryValidator,
@@ -7,6 +8,7 @@ import {
   streamRefFields,
 } from "../internal/shared";
 import { loadEvent } from "../internal/store";
+import schema from "../schema";
 
 export const getEvent = query({
   args: eventRefFields,
@@ -21,9 +23,8 @@ export const listStreamEvents = query({
     ...streamRefFields,
     paginationOpts: paginationOptsValidator,
   },
-  returns: v.any(),
   handler: async (ctx, args) => {
-    return await ctx.db
+    return await paginator(ctx.db, schema)
       .query("event_entries")
       .withIndex("by_stream_version", (q) =>
         q.eq("streamType", args.streamType).eq("streamId", args.streamId),
@@ -37,9 +38,8 @@ export const listCategoryEvents = query({
     streamType: v.string(),
     paginationOpts: paginationOptsValidator,
   },
-  returns: v.any(),
   handler: async (ctx, args) => {
-    return await ctx.db
+    return await paginator(ctx.db, schema)
       .query("event_entries")
       .withIndex("by_type_sequence", (q) => q.eq("streamType", args.streamType))
       .paginate(args.paginationOpts);

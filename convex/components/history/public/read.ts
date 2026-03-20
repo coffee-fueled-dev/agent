@@ -1,5 +1,6 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
+import { paginator } from "convex-helpers/server/pagination";
 import { query } from "../_generated/server";
 import {
   getPrimaryPathToRoot,
@@ -14,6 +15,7 @@ import {
   historyEntryValidator,
   streamRefFields,
 } from "../internal/shared";
+import schema from "../schema";
 
 export const getEntry = query({
   args: entryRefFields,
@@ -30,7 +32,7 @@ export const listEntries = query({
   },
   returns: v.any(),
   handler: async (ctx, args) => {
-    return await ctx.db
+    return await paginator(ctx.db, schema)
       .query("history_entries")
       .withIndex("by_stream_time", (q) =>
         q.eq("streamType", args.streamType).eq("streamId", args.streamId),

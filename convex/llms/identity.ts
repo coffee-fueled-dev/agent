@@ -1,11 +1,8 @@
 import { z } from "zod/v4";
-import { components, internal } from "../_generated/api";
+import { internal } from "../_generated/api";
 import type { ActionCtx } from "../_generated/server";
-import { HistoryClient } from "../components/history/client";
-import { historyConfig } from "../history.config";
 
 type IdentityRunner = Pick<ActionCtx, "runMutation" | "runQuery">;
-type MutationRef = Parameters<IdentityRunner["runMutation"]>[0];
 
 type JsonValue =
   | null
@@ -23,10 +20,7 @@ export type RegisteredMachineAgent<STATIC_PROPS = unknown> = {
   getRuntimeIdentityInput: (runtimeStaticProps?: unknown) => unknown;
 };
 
-const machineAgentHistory = new HistoryClient(components.history, historyConfig);
-const identityRegistryApi = (internal as unknown as {
-  llms: { identityRegistry: { recordTurnIdentity: MutationRef } };
-}).llms.identityRegistry;
+const identityRegistryApi = internal.llms.identityRegistry;
 
 export function defineRegisteredMachineAgent<STATIC_PROPS>(args: {
   agentId: string;
@@ -99,71 +93,6 @@ export async function hashIdentityInput(value: unknown) {
   return await sha256Hex(JSON.stringify(normalizeStaticProps(value)));
 }
 
-async function appendMachineAgentHistory(
-  ctx: IdentityRunner,
-  args: {
-    agentId: string;
-    staticHash: string;
-    runtimeHash: string;
-    created: {
-      registration: boolean;
-      staticVersion: boolean;
-      runtimeVersion: boolean;
-    };
-  },
-) {
-  if (
-    !args.created.registration &&
-    !args.created.staticVersion &&
-    !args.created.runtimeVersion
-  ) {
-    return;
-  }
-
-  let parentEntryIds = (
-    await machineAgentHistory.heads.listHeads(ctx, {
-      streamType: "machineAgent",
-      streamId: args.agentId,
-    })
-  ).map((head) => head.entryId);
-
-  if (args.created.registration) {
-    await machineAgentHistory.append.append(ctx, {
-      streamType: "machineAgent",
-      streamId: args.agentId,
-      entryId: `registered:${args.agentId}`,
-      kind: "registered",
-      parentEntryIds,
-    });
-    parentEntryIds = [`registered:${args.agentId}`];
-  }
-
-  if (args.created.staticVersion) {
-    const entryId = `static:${args.staticHash}`;
-    await machineAgentHistory.append.append(ctx, {
-      streamType: "machineAgent",
-      streamId: args.agentId,
-      entryId,
-      kind: "static_version_added",
-      parentEntryIds,
-      payload: { staticHash: args.staticHash },
-    });
-    parentEntryIds = [entryId];
-  }
-
-  if (args.created.runtimeVersion) {
-    const entryId = `runtime:${args.runtimeHash}`;
-    await machineAgentHistory.append.append(ctx, {
-      streamType: "machineAgent",
-      streamId: args.agentId,
-      entryId,
-      kind: "runtime_version_seen",
-      parentEntryIds,
-      payload: { runtimeHash: args.runtimeHash },
-    });
-  }
-}
-
 export async function recordRegisteredMachineAgentTurn(
   ctx: IdentityRunner,
   args: {
@@ -197,13 +126,6 @@ export async function recordRegisteredMachineAgentTurn(
       sessionId: args.sessionId,
     },
   );
-
-  await appendMachineAgentHistory(ctx, {
-    agentId: args.definition.agentId,
-    staticHash,
-    runtimeHash,
-    created: recorded.created,
-  });
 
   return {
     ...recorded,

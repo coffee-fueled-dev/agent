@@ -30,9 +30,7 @@ export const exampleAgentDefinition = defineRegisteredMachineAgent({
 
 export const exampleAgent = async (ctx: ToolBuilderContext) => {
   const { tools, instructions, effectiveStaticProps } =
-    await exampleAgentComposed.evaluate(
-    createToolkitContext(ctx),
-    );
+    await exampleAgentComposed.evaluate(createToolkitContext(ctx));
 
   await recordRegisteredMachineAgentTurn(ctx, {
     definition: exampleAgentDefinition,

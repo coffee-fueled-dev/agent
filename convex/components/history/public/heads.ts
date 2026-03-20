@@ -9,11 +9,18 @@ export const listHeads = query({
   },
   returns: v.array(historyHeadValidator),
   handler: async (ctx, args) => {
-    return await ctx.db
+    const heads = await ctx.db
       .query("history_heads")
       .withIndex("by_stream_entry", (q) =>
         q.eq("streamType", args.streamType).eq("streamId", args.streamId),
       )
       .collect();
+
+    return heads.map((head) => ({
+      streamType: head.streamType,
+      streamId: head.streamId,
+      entryId: head.entryId,
+      headKind: head.headKind,
+    }));
   },
 });
