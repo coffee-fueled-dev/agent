@@ -10,7 +10,11 @@
     "@types/bun": "latest"
   },
   "scripts": {
-    "dev:convex": "bunx convex dev",
+    "dev:convex": "bun run scripts/dev-convex.ts",
+    "dev:convex:raw": "bunx convex dev",
+    "dev:chat": "bun --filter @agent/chat dev",
+    "dev:telemetry": "bun --filter @agent/telemetry dev",
+    "seed:chat-token": "bun run scripts/seed-chat-token.ts",
     "typecheck": "bun run typecheck:convex",
     "typecheck:convex": "bunx tsc --noEmit -p convex/tsconfig.json",
     "lint": "biome check .",

@@ -4,10 +4,9 @@ import { v } from "convex/values";
 import { components } from "./_generated/api";
 import { action, mutation, query } from "./_generated/server";
 import {
-  ensureLocalHumanAccount,
   ensureMachineAccount,
+  ensureTokenAccount,
   grantThreadAccessToAccount,
-  resolveAccount,
 } from "./lib/auth";
 import {
   createTerminalChatAgent,
@@ -18,17 +17,12 @@ import type { UIMessage } from "./llms/uiMessage";
 
 export const createThread = mutation({
   args: {
-    account: v.optional(v.id("accounts")),
+    token: v.string(),
     title: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const agent = createTerminalChatAgent();
-    const owner = args.account
-      ? await resolveAccount(ctx, args.account)
-      : await ensureLocalHumanAccount(ctx);
-    if (!owner) {
-      throw new Error("Account not found");
-    }
+    const owner = await ensureTokenAccount(ctx, args.token);
     const machine = await ensureMachineAccount(ctx, {
       codeId: terminalChatAgentDefinition.agentId,
       name: terminalChatAgentDefinition.name,

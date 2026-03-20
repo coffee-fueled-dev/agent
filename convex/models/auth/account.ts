@@ -3,7 +3,7 @@ import { zid, zodOutputToConvex } from "convex-helpers/server/zod4";
 import z from "zod";
 
 export const accountKinds = ["human", "machine"] as const;
-export const accountAliasKinds = ["session", "machineAgent", "local"] as const;
+export const accountAliasKinds = ["session", "machineAgent", "token"] as const;
 
 export const zAccount = z.object({
   kind: z.enum(accountKinds),
@@ -28,6 +28,7 @@ export const zAccountAlias = z.object({
   normalizedValue: z.string(),
   createdAt: z.number(),
   lastSeenAt: z.number(),
+  expiredAt: z.number().nullable(),
   verifiedAt: z.number().optional(),
 });
 

@@ -14,13 +14,14 @@ import type * as customFunctions from "../customFunctions.js";
 import type * as events from "../events.js";
 import type * as history from "../history.js";
 import type * as http from "../http.js";
+import type * as lib_auth from "../lib/auth.js";
 import type * as lib_resolvers_index from "../lib/resolvers/index.js";
 import type * as lib_status_index from "../lib/status/index.js";
 import type * as llms_agents__instructions_goal from "../llms/agents/_instructions/goal.js";
 import type * as llms_agents_exampleAgent__instructions_goal from "../llms/agents/exampleAgent/_instructions/goal.js";
 import type * as llms_agents_exampleAgent__instructions_index from "../llms/agents/exampleAgent/_instructions/index.js";
+import type * as llms_agents_exampleAgent__toolkits__instructions_example from "../llms/agents/exampleAgent/_toolkits/_instructions/example.js";
 import type * as llms_agents_exampleAgent__toolkits__instructions_index from "../llms/agents/exampleAgent/_toolkits/_instructions/index.js";
-import type * as llms_agents_exampleAgent__toolkits__instructions_product from "../llms/agents/exampleAgent/_toolkits/_instructions/example.js";
 import type * as llms_agents_exampleAgent__toolkits_example from "../llms/agents/exampleAgent/_toolkits/example.js";
 import type * as llms_agents_exampleAgent_agent from "../llms/agents/exampleAgent/agent.js";
 import type * as llms_agents_terminalChat from "../llms/agents/terminalChat.js";
@@ -33,6 +34,8 @@ import type * as llms_tools__libs_toolkit from "../llms/tools/_libs/toolkit.js";
 import type * as llms_tools__policies_examplePolicy from "../llms/tools/_policies/examplePolicy.js";
 import type * as llms_tools_example_tool from "../llms/tools/example/tool.js";
 import type * as llms_tools_index from "../llms/tools/index.js";
+import type * as llms_uiMessage from "../llms/uiMessage.js";
+import type * as models_auth_account from "../models/auth/account.js";
 import type * as models_auth_index from "../models/auth/index.js";
 import type * as models_auth_session from "../models/auth/session.js";
 import type * as models_geo_index from "../models/geo/index.js";
@@ -41,9 +44,11 @@ import type * as models_geo_location from "../models/geo/location.js";
 import type * as models_index from "../models/index.js";
 import type * as models_llms_index from "../models/llms/index.js";
 import type * as models_llms_machineAgent from "../models/llms/machineAgent.js";
+import type * as policy from "../policy.js";
 import type * as resolvers_auth from "../resolvers/auth.js";
 import type * as resolvers_geo from "../resolvers/geo.js";
 import type * as resolvers_index from "../resolvers/index.js";
+import type * as seeds from "../seeds.js";
 
 import type {
   ApiFromModules,
@@ -58,13 +63,14 @@ declare const fullApi: ApiFromModules<{
   events: typeof events;
   history: typeof history;
   http: typeof http;
+  "lib/auth": typeof lib_auth;
   "lib/resolvers/index": typeof lib_resolvers_index;
   "lib/status/index": typeof lib_status_index;
   "llms/agents/_instructions/goal": typeof llms_agents__instructions_goal;
   "llms/agents/exampleAgent/_instructions/goal": typeof llms_agents_exampleAgent__instructions_goal;
   "llms/agents/exampleAgent/_instructions/index": typeof llms_agents_exampleAgent__instructions_index;
+  "llms/agents/exampleAgent/_toolkits/_instructions/example": typeof llms_agents_exampleAgent__toolkits__instructions_example;
   "llms/agents/exampleAgent/_toolkits/_instructions/index": typeof llms_agents_exampleAgent__toolkits__instructions_index;
-  "llms/agents/exampleAgent/_toolkits/_instructions/product": typeof llms_agents_exampleAgent__toolkits__instructions_product;
   "llms/agents/exampleAgent/_toolkits/example": typeof llms_agents_exampleAgent__toolkits_example;
   "llms/agents/exampleAgent/agent": typeof llms_agents_exampleAgent_agent;
   "llms/agents/terminalChat": typeof llms_agents_terminalChat;
@@ -77,6 +83,8 @@ declare const fullApi: ApiFromModules<{
   "llms/tools/_policies/examplePolicy": typeof llms_tools__policies_examplePolicy;
   "llms/tools/example/tool": typeof llms_tools_example_tool;
   "llms/tools/index": typeof llms_tools_index;
+  "llms/uiMessage": typeof llms_uiMessage;
+  "models/auth/account": typeof models_auth_account;
   "models/auth/index": typeof models_auth_index;
   "models/auth/session": typeof models_auth_session;
   "models/geo/index": typeof models_geo_index;
@@ -85,9 +93,11 @@ declare const fullApi: ApiFromModules<{
   "models/index": typeof models_index;
   "models/llms/index": typeof models_llms_index;
   "models/llms/machineAgent": typeof models_llms_machineAgent;
+  policy: typeof policy;
   "resolvers/auth": typeof resolvers_auth;
   "resolvers/geo": typeof resolvers_geo;
   "resolvers/index": typeof resolvers_index;
+  seeds: typeof seeds;
 }>;
 
 /**

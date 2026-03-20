@@ -9,6 +9,10 @@ const convexUrl = process.env.CONVEX_URL;
 if (!convexUrl) {
   throw new Error("CONVEX_URL is not set");
 }
+const accountToken = process.env.ACCOUNT_TOKEN;
+if (!accountToken) {
+  throw new Error("ACCOUNT_TOKEN is not set");
+}
 
 const client = new ConvexClient(convexUrl);
 
@@ -105,6 +109,7 @@ async function closeClient() {
 }
 
 const { threadId } = await client.mutation(chatApi.createThread, {
+  token: accountToken,
   title: "Terminal Chat",
 });
 

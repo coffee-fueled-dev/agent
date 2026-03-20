@@ -13,8 +13,26 @@ const localUpdate = {
   source: "local-auth",
 };
 
-export function normalizeAccountAliasValue(value: string) {
-  return value.trim().toLowerCase();
+export function normalizeAccountAliasValue(
+  kind: AccountAliasKind,
+  value: string,
+) {
+  const trimmed = value.trim();
+  switch (kind) {
+    case "session":
+    case "machineAgent":
+    case "token":
+      return trimmed;
+  }
+}
+
+function ensureAliasNotExpired(
+  alias: Pick<Doc<"accountAliases">, "expiredAt">,
+  now: number,
+) {
+  if (alias.expiredAt !== null && alias.expiredAt <= now) {
+    throw new Error("Account alias has expired");
+  }
 }
 
 export function accountScope(account: AccountId) {
@@ -37,12 +55,16 @@ export async function resolveAccountByAlias(
     .withIndex("by_kind_normalizedValue", (q) =>
       q
         .eq("kind", args.kind)
-        .eq("normalizedValue", normalizeAccountAliasValue(args.value)),
+        .eq(
+          "normalizedValue",
+          normalizeAccountAliasValue(args.kind, args.value),
+        ),
     )
     .unique();
   if (!alias) {
     return null;
   }
+  ensureAliasNotExpired(alias, Date.now());
   return await resolveAccount(ctx, alias.account as AccountId);
 }
 
@@ -60,6 +82,49 @@ export async function ensureAccountScope(
   });
 }
 
+export async function ensureHumanAccount(
+  ctx: MutationCtx,
+  args: { displayName: string },
+) {
+  const now = Date.now();
+  const existing = await ctx.db
+    .query("accounts")
+    .withIndex("by_kind", (q) => q.eq("kind", "human"))
+    .collect()
+    .then(
+      (rows) =>
+        rows.find((row) => row.displayName === args.displayName) ?? null,
+    );
+
+  if (existing) {
+    await ctx.db.patch(existing._id, {
+      displayName: args.displayName,
+      lastSeenAt: now,
+    });
+    const account = {
+      ...existing,
+      displayName: args.displayName,
+      lastSeenAt: now,
+    };
+    await ensureAccountScope(ctx, account);
+    return account;
+  }
+
+  const id = await ctx.db.insert("accounts", {
+    kind: "human",
+    displayName: args.displayName,
+    createdAt: now,
+    lastSeenAt: now,
+    data: { status: "active" },
+  });
+  const account = await ctx.db.get(id);
+  if (!account) {
+    throw new Error("Failed to create account");
+  }
+  await ensureAccountScope(ctx, account);
+  return account;
+}
+
 export async function ensureAccountForAlias(
   ctx: MutationCtx,
   args: {
@@ -70,7 +135,10 @@ export async function ensureAccountForAlias(
   },
 ) {
   const now = Date.now();
-  const normalizedValue = normalizeAccountAliasValue(args.aliasValue);
+  const normalizedValue = normalizeAccountAliasValue(
+    args.aliasKind,
+    args.aliasValue,
+  );
   const existingAlias = await ctx.db
     .query("accountAliases")
     .withIndex("by_kind_normalizedValue", (q) =>
@@ -79,6 +147,7 @@ export async function ensureAccountForAlias(
     .unique();
 
   if (existingAlias) {
+    ensureAliasNotExpired(existingAlias, now);
     const existingAccount = await resolveAccount(
       ctx,
       existingAlias.account as AccountId,
@@ -118,6 +187,7 @@ export async function ensureAccountForAlias(
     normalizedValue,
     createdAt: now,
     lastSeenAt: now,
+    expiredAt: null,
   });
   const account = await ctx.db.get(id);
   if (!account) {
@@ -125,6 +195,59 @@ export async function ensureAccountForAlias(
   }
   await ensureAccountScope(ctx, account);
   return account;
+}
+
+export async function issueAccountToken(
+  ctx: MutationCtx,
+  args: { account: AccountId; token?: string },
+) {
+  const now = Date.now();
+  const aliases = await ctx.db
+    .query("accountAliases")
+    .withIndex("by_account", (q) => q.eq("account", args.account))
+    .collect();
+  const existing = aliases.find(
+    (alias) =>
+      alias.kind === "token" &&
+      (alias.expiredAt === null || alias.expiredAt > now),
+  );
+  if (existing) {
+    await ctx.db.patch(existing._id, { lastSeenAt: now });
+    return existing.value;
+  }
+
+  const token = args.token ?? `agt_${crypto.randomUUID()}`;
+  const normalizedValue = normalizeAccountAliasValue("token", token);
+  const aliasByValue = await ctx.db
+    .query("accountAliases")
+    .withIndex("by_kind_normalizedValue", (q) =>
+      q.eq("kind", "token").eq("normalizedValue", normalizedValue),
+    )
+    .unique();
+
+  if (aliasByValue) {
+    if (aliasByValue.account !== args.account) {
+      throw new Error("Token alias already belongs to a different account");
+    }
+    await ctx.db.patch(aliasByValue._id, {
+      value: token,
+      normalizedValue,
+      lastSeenAt: now,
+      expiredAt: null,
+    });
+    return aliasByValue.value;
+  }
+
+  await ctx.db.insert("accountAliases", {
+    account: args.account,
+    kind: "token",
+    value: token,
+    normalizedValue,
+    createdAt: now,
+    lastSeenAt: now,
+    expiredAt: null,
+  });
+  return token;
 }
 
 export async function ensureSessionAccount(
@@ -140,10 +263,14 @@ export async function ensureSessionAccount(
 }
 
 export async function ensureLocalHumanAccount(ctx: MutationCtx) {
+  return await ensureTokenAccount(ctx, "local-dev-token");
+}
+
+export async function ensureTokenAccount(ctx: MutationCtx, token: string) {
   return await ensureAccountForAlias(ctx, {
     accountKind: "human",
-    aliasKind: "local",
-    aliasValue: "local-human",
+    aliasKind: "token",
+    aliasValue: token,
     displayName: "Local Human",
   });
 }

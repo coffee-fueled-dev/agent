@@ -1,0 +1,10 @@
+{
+  "name": "@agent/chat",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun index.ts",
+    "start": "bun index.ts"
+  }
+}
