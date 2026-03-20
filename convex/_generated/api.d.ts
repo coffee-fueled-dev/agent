@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as chat from "../chat.js";
 import type * as customFunctions from "../customFunctions.js";
 import type * as http from "../http.js";
 import type * as lib_resolvers_index from "../lib/resolvers/index.js";
@@ -19,6 +20,7 @@ import type * as llms_agents_exampleAgent__toolkits__instructions_index from "..
 import type * as llms_agents_exampleAgent__toolkits__instructions_product from "../llms/agents/exampleAgent/_toolkits/_instructions/product.js";
 import type * as llms_agents_exampleAgent__toolkits_example from "../llms/agents/exampleAgent/_toolkits/example.js";
 import type * as llms_agents_exampleAgent_agent from "../llms/agents/exampleAgent/agent.js";
+import type * as llms_agents_terminalChat from "../llms/agents/terminalChat.js";
 import type * as llms_models from "../llms/models.js";
 import type * as llms_tools__libs_customFunctions from "../llms/tools/_libs/customFunctions.js";
 import type * as llms_tools__libs_toolkit from "../llms/tools/_libs/toolkit.js";
@@ -42,6 +44,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  chat: typeof chat;
   customFunctions: typeof customFunctions;
   http: typeof http;
   "lib/resolvers/index": typeof lib_resolvers_index;
@@ -53,6 +56,7 @@ declare const fullApi: ApiFromModules<{
   "llms/agents/exampleAgent/_toolkits/_instructions/product": typeof llms_agents_exampleAgent__toolkits__instructions_product;
   "llms/agents/exampleAgent/_toolkits/example": typeof llms_agents_exampleAgent__toolkits_example;
   "llms/agents/exampleAgent/agent": typeof llms_agents_exampleAgent_agent;
+  "llms/agents/terminalChat": typeof llms_agents_terminalChat;
   "llms/models": typeof llms_models;
   "llms/tools/_libs/customFunctions": typeof llms_tools__libs_customFunctions;
   "llms/tools/_libs/toolkit": typeof llms_tools__libs_toolkit;

@@ -7,6 +7,7 @@
     "@types/bun": "latest"
   },
   "scripts": {
+    "start": "bun run index.ts",
     "typecheck": "bun run typecheck:convex",
     "typecheck:convex": "bunx tsc --noEmit -p convex/tsconfig.json",
     "lint": "biome check .",
