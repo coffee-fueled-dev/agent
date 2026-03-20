@@ -25,8 +25,10 @@ export type ToolOutput<
 
 export type EffectiveStaticProps = Record<string, unknown>;
 
-export type ToolkitResult = {
-  tools: Record<string, Tool>;
+export type ToolkitResult<
+  TOOLS extends Record<string, Tool> = Record<string, Tool>,
+> = {
+  tools: TOOLS;
   instructions: string;
   effectiveStaticProps?: EffectiveStaticProps;
 };
@@ -42,11 +44,15 @@ export type SharedPolicy = ReturnType<typeof sharedPolicy>;
 
 type PolicyResultMap = Map<SharedPolicy, boolean>;
 
-export type DynamicToolDef<NAME extends string = string, ARGS = unknown> = {
+export type DynamicToolDef<
+  NAME extends string = string,
+  ARGS = unknown,
+  TOOL extends Tool = Tool,
+> = {
   staticProps: {
     kind: "tool";
     name: NAME;
-    description: string;
+    description: string | undefined;
     args: ARGS;
     policies: SharedPolicy[];
     instructions: string[] | undefined;
@@ -55,17 +61,50 @@ export type DynamicToolDef<NAME extends string = string, ARGS = unknown> = {
   evaluate: (
     ctx: ToolkitContext,
     resolvedPolicies?: PolicyResultMap,
-  ) => Promise<ToolkitResult>;
+  ) => Promise<ToolkitResult<Record<NAME, TOOL>>>;
 };
 
-export type Composable = {
-  staticProps: { kind: string; name: string };
+export type Composable<
+  STATIC_PROPS extends { kind: string; name: string } = {
+    kind: string;
+    name: string;
+  },
+  TOOLS extends Record<string, Tool> = Record<string, Tool>,
+> = {
+  staticProps: STATIC_PROPS;
   policies: SharedPolicy[];
   evaluate: (
     ctx: ToolkitContext,
     resolvedPolicies?: PolicyResultMap,
-  ) => Promise<ToolkitResult>;
+  ) => Promise<ToolkitResult<TOOLS>>;
 };
+
+type Simplify<T> = { [K in keyof T]: T[K] } & {};
+
+type UnionToIntersection<T> = (
+  T extends unknown
+    ? (value: T) => void
+    : never
+) extends (value: infer I) => void
+  ? I
+  : never;
+
+export type ExtractComposableTools<T> =
+  T extends Composable<infer _, infer TOOLS> ? TOOLS : never;
+
+type ExactToolMap<T> = {
+  [K in keyof T]: Extract<T[K], Tool>;
+};
+
+type MergeToolMaps<T> = [T] extends [never]
+  ? Record<never, never>
+  : Simplify<ExactToolMap<UnionToIntersection<T>>>;
+
+export type ToolMapFromMembers<MEMBERS extends readonly Composable[]> =
+  MergeToolMaps<ExtractComposableTools<MEMBERS[number]>>;
+
+export type ToolMapFromRegistry<REGISTRY extends Record<string, Composable>> =
+  MergeToolMaps<ExtractComposableTools<REGISTRY[keyof REGISTRY]>>;
 
 type KeyedStaticProps<MEMBERS extends readonly Composable[]> = {
   [M in MEMBERS[number] as M["staticProps"] extends {
@@ -73,6 +112,16 @@ type KeyedStaticProps<MEMBERS extends readonly Composable[]> = {
   }
     ? N
     : never]: M["staticProps"];
+};
+
+type ToolkitStaticProps<
+  NAME extends string,
+  MEMBERS extends readonly Composable[],
+> = {
+  kind: "toolkit";
+  name: NAME;
+  instructions: string[] | undefined;
+  members: KeyedStaticProps<MEMBERS>;
 };
 
 export function dynamicTool<NAME extends string, INPUT, OUTPUT, ARGS>({
@@ -87,19 +136,23 @@ export function dynamicTool<NAME extends string, INPUT, OUTPUT, ARGS>({
   args: ARGS;
   policies?: SharedPolicy[];
   instructions?: string[];
-}) {
+}): DynamicToolDef<NAME, ARGS, Tool<INPUT, OUTPUT>> {
   const policies = policiesConfig ?? [];
   const tool = createTool({ description, args, ...toolArgs });
 
   async function evaluate(
     ctx: ToolkitContext,
     resolvedPolicies?: PolicyResultMap,
-  ): Promise<ToolkitResult> {
+  ): Promise<ToolkitResult<Record<NAME, Tool<INPUT, OUTPUT>>>> {
     for (const policy of policies) {
       const ok =
         resolvedPolicies?.get(policy) ??
         (await ctx.runPolicyQuery(policy.query));
-      if (!ok) return { tools: {}, instructions: "" };
+      if (!ok)
+        return {
+          tools: {} as Record<NAME, Tool<INPUT, OUTPUT>>,
+          instructions: "",
+        };
     }
     return {
       tools: { [name]: tool } as Record<NAME, Tool<INPUT, OUTPUT>>,
@@ -127,7 +180,10 @@ export function dynamicTool<NAME extends string, INPUT, OUTPUT, ARGS>({
 export function toolkit<
   const NAME extends string,
   const MEMBERS extends readonly Composable[],
->(members: MEMBERS, options: { name: NAME; instructions?: string[] }) {
+>(
+  members: MEMBERS,
+  options: { name: NAME; instructions?: string[] },
+): Composable<ToolkitStaticProps<NAME, MEMBERS>, ToolMapFromMembers<MEMBERS>> {
   const policies = members.flatMap((m) => m.policies);
 
   const staticProps = {
@@ -142,7 +198,7 @@ export function toolkit<
   async function evaluate(
     ctx: ToolkitContext,
     resolvedPolicies?: PolicyResultMap,
-  ): Promise<ToolkitResult> {
+  ): Promise<ToolkitResult<ToolMapFromMembers<MEMBERS>>> {
     const resolved = resolvedPolicies ?? new Map<SharedPolicy, boolean>();
 
     const unresolved = policies.filter((p) => !resolved.has(p));
@@ -157,16 +213,20 @@ export function toolkit<
       members.map((m) => m.evaluate(ctx, resolved)),
     );
     const mergedTools = Object.assign(
-      {} as Record<string, Tool>,
+      {} as ToolMapFromMembers<MEMBERS>,
       ...results.map((r) => r.tools),
     );
     const effectiveMembers = Object.fromEntries(
-      results
-        .filter((result) => result.effectiveStaticProps)
-        .map((result) => [
-          result.effectiveStaticProps!.name as string,
-          result.effectiveStaticProps!,
-        ]),
+      results.flatMap((result) =>
+        result.effectiveStaticProps
+          ? [
+              [
+                result.effectiveStaticProps.name as string,
+                result.effectiveStaticProps,
+              ] as const,
+            ]
+          : [],
+      ),
     );
     const hasAnyTool = results.some((r) => Object.keys(r.tools).length > 0);
     return {
@@ -219,7 +279,7 @@ export function dynamicToolkit<const NAME extends string>({
   async function evaluate(
     ctx: ToolkitContext,
     resolvedPolicies?: PolicyResultMap,
-  ): Promise<ToolkitResult> {
+  ): Promise<ToolkitResult<Record<string, Tool>>> {
     const resolved = resolvedPolicies ?? new Map<SharedPolicy, boolean>();
 
     for (const policy of policies) {
@@ -247,12 +307,16 @@ export function dynamicToolkit<const NAME extends string>({
       ...results.map((r) => r.tools),
     );
     const effectiveMembers = Object.fromEntries(
-      results
-        .filter((result) => result.effectiveStaticProps)
-        .map((result) => [
-          result.effectiveStaticProps!.name as string,
-          result.effectiveStaticProps!,
-        ]),
+      results.flatMap((result) =>
+        result.effectiveStaticProps
+          ? [
+              [
+                result.effectiveStaticProps.name as string,
+                result.effectiveStaticProps,
+              ] as const,
+            ]
+          : [],
+      ),
     );
     const hasAnyTool = results.some((r) => Object.keys(r.tools).length > 0);
     return {

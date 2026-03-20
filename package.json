@@ -1,5 +1,5 @@
 {
-  "name": "agent",
+  "name": "@agent/monorepo",
   "module": "index.ts",
   "type": "module",
   "private": true,
@@ -10,7 +10,6 @@
     "@types/bun": "latest"
   },
   "scripts": {
-    "dev:chat": "bun run index.ts",
     "dev:convex": "bunx convex dev",
     "typecheck": "bun run typecheck:convex",
     "typecheck:convex": "bunx tsc --noEmit -p convex/tsconfig.json",

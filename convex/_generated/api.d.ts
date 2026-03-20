@@ -20,7 +20,7 @@ import type * as llms_agents__instructions_goal from "../llms/agents/_instructio
 import type * as llms_agents_exampleAgent__instructions_goal from "../llms/agents/exampleAgent/_instructions/goal.js";
 import type * as llms_agents_exampleAgent__instructions_index from "../llms/agents/exampleAgent/_instructions/index.js";
 import type * as llms_agents_exampleAgent__toolkits__instructions_index from "../llms/agents/exampleAgent/_toolkits/_instructions/index.js";
-import type * as llms_agents_exampleAgent__toolkits__instructions_product from "../llms/agents/exampleAgent/_toolkits/_instructions/product.js";
+import type * as llms_agents_exampleAgent__toolkits__instructions_product from "../llms/agents/exampleAgent/_toolkits/_instructions/example.js";
 import type * as llms_agents_exampleAgent__toolkits_example from "../llms/agents/exampleAgent/_toolkits/example.js";
 import type * as llms_agents_exampleAgent_agent from "../llms/agents/exampleAgent/agent.js";
 import type * as llms_agents_terminalChat from "../llms/agents/terminalChat.js";

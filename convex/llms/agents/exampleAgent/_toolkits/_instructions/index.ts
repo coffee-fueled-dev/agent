@@ -1,5 +1,5 @@
-import * as product from "./product";
+import * as example from "./example";
 
-const productInstructions = product.default;
+const exampleInstructions = example.default;
 
-export default productInstructions;
+export default exampleInstructions;

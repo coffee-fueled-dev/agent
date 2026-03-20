@@ -1,12 +1,14 @@
-import { vStreamArgs } from "@convex-dev/agent";
-import { paginationOptsValidator } from "convex/server";
+import { listUIMessages, vStreamArgs } from "@convex-dev/agent";
+import { type PaginationResult, paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
+import { components } from "./_generated/api";
 import { action, mutation, query } from "./_generated/server";
 import {
   createTerminalChatAgent,
   terminalChatAgentDefinition,
 } from "./llms/agents/terminalChat";
 import { recordRegisteredMachineAgentTurn } from "./llms/identity";
+import type { UIMessage } from "./llms/uiMessage";
 
 export const createThread = mutation({
   args: {
@@ -41,6 +43,7 @@ export const sendMessage = action({
     const { thread } = await agent.continueThread(ctx, {
       threadId: args.threadId,
     });
+
     const result = await thread.streamText(
       { promptMessageId } as unknown as Parameters<typeof thread.streamText>[0],
       {
@@ -62,20 +65,12 @@ export const listThreadMessages = query({
     paginationOpts: paginationOptsValidator,
     streamArgs: vStreamArgs,
   },
-  handler: async (ctx, args) => {
-    const agent = createTerminalChatAgent();
-    const paginated = await agent.listMessages(ctx, {
-      threadId: args.threadId,
-      paginationOpts: args.paginationOpts,
-      excludeToolMessages: true,
-      statuses: ["success", "failed", "pending"],
-    });
-    const streams = await agent.syncStreams(ctx, {
-      threadId: args.threadId,
-      streamArgs: args.streamArgs,
-      includeStatuses: ["streaming", "finished", "aborted"],
-    });
+  handler: async (ctx, args): Promise<PaginationResult<UIMessage>> => {
+    const paginated = await listUIMessages(ctx, components.agent, args);
 
-    return { ...paginated, streams };
+    // The component returns the broad library UIMessage type, but this app
+    // treats it as the backend-owned message contract specialized with the
+    // registered tool library.
+    return paginated as PaginationResult<UIMessage>;
   },
 });
