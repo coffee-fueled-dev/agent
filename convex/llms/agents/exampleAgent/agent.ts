@@ -1,5 +1,9 @@
 import { Agent } from "@convex-dev/agent";
 import { components } from "../../../_generated/api";
+import {
+  defineRegisteredMachineAgent,
+  recordRegisteredMachineAgentTurn,
+} from "../../identity";
 import { languageModels } from "../../models";
 import {
   createToolkitContext,
@@ -14,17 +18,32 @@ export const exampleAgentToolkit = toolkit([example], {
   instructions: [staticInstructions],
 });
 
+export const exampleAgentComposed = toolkit([exampleAgentToolkit], {
+  name: "exampleAgent",
+});
+
+export const exampleAgentDefinition = defineRegisteredMachineAgent({
+  agentId: "example-agent",
+  name: "Example Agent",
+  staticProps: exampleAgentComposed.staticProps,
+});
+
 export const exampleAgent = async (ctx: ToolBuilderContext) => {
-  const composed = toolkit([exampleAgentToolkit], {
-    name: "exampleAgent",
+  const { tools, instructions, effectiveStaticProps } =
+    await exampleAgentComposed.evaluate(
+    createToolkitContext(ctx),
+    );
+
+  await recordRegisteredMachineAgentTurn(ctx, {
+    definition: exampleAgentDefinition,
+    runtimeStaticProps: effectiveStaticProps,
+    threadId: ctx.threadId,
+    messageId: ctx.messageId,
+    sessionId: ctx.sessionId,
   });
 
-  const { tools, instructions } = await composed.evaluate(
-    createToolkitContext(ctx),
-  );
-
   return new Agent(components.agent, {
-    name: "Example Agent",
+    name: exampleAgentDefinition.name,
     languageModel: languageModels.chat,
     textEmbeddingModel: languageModels.textEmbedding,
     maxSteps: 15,

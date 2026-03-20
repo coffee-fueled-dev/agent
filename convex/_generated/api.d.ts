@@ -21,6 +21,8 @@ import type * as llms_agents_exampleAgent__toolkits__instructions_product from "
 import type * as llms_agents_exampleAgent__toolkits_example from "../llms/agents/exampleAgent/_toolkits/example.js";
 import type * as llms_agents_exampleAgent_agent from "../llms/agents/exampleAgent/agent.js";
 import type * as llms_agents_terminalChat from "../llms/agents/terminalChat.js";
+import type * as llms_identity from "../llms/identity.js";
+import type * as llms_identityRegistry from "../llms/identityRegistry.js";
 import type * as llms_models from "../llms/models.js";
 import type * as llms_tools__libs_customFunctions from "../llms/tools/_libs/customFunctions.js";
 import type * as llms_tools__libs_toolkit from "../llms/tools/_libs/toolkit.js";
@@ -33,6 +35,8 @@ import type * as models_geo_index from "../models/geo/index.js";
 import type * as models_geo_libs_upsert_index from "../models/geo/libs/upsert/index.js";
 import type * as models_geo_location from "../models/geo/location.js";
 import type * as models_index from "../models/index.js";
+import type * as models_llms_index from "../models/llms/index.js";
+import type * as models_llms_machineAgent from "../models/llms/machineAgent.js";
 import type * as resolvers_auth from "../resolvers/auth.js";
 import type * as resolvers_geo from "../resolvers/geo.js";
 import type * as resolvers_index from "../resolvers/index.js";
@@ -57,6 +61,8 @@ declare const fullApi: ApiFromModules<{
   "llms/agents/exampleAgent/_toolkits/example": typeof llms_agents_exampleAgent__toolkits_example;
   "llms/agents/exampleAgent/agent": typeof llms_agents_exampleAgent_agent;
   "llms/agents/terminalChat": typeof llms_agents_terminalChat;
+  "llms/identity": typeof llms_identity;
+  "llms/identityRegistry": typeof llms_identityRegistry;
   "llms/models": typeof llms_models;
   "llms/tools/_libs/customFunctions": typeof llms_tools__libs_customFunctions;
   "llms/tools/_libs/toolkit": typeof llms_tools__libs_toolkit;
@@ -69,6 +75,8 @@ declare const fullApi: ApiFromModules<{
   "models/geo/libs/upsert/index": typeof models_geo_libs_upsert_index;
   "models/geo/location": typeof models_geo_location;
   "models/index": typeof models_index;
+  "models/llms/index": typeof models_llms_index;
+  "models/llms/machineAgent": typeof models_llms_machineAgent;
   "resolvers/auth": typeof resolvers_auth;
   "resolvers/geo": typeof resolvers_geo;
   "resolvers/index": typeof resolvers_index;

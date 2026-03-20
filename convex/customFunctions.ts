@@ -8,6 +8,7 @@ import {
 import type { Doc } from "./_generated/dataModel";
 import {
   action,
+  type ActionCtx,
   type MutationCtx,
   mutation,
   type QueryCtx,
@@ -31,7 +32,7 @@ export interface SessionMutationCtx extends MutationCtx {
   session: Doc<"sessions">;
 }
 
-export interface SessionActionCtx extends RunSessionFunctions {}
+export interface SessionActionCtx extends ActionCtx, RunSessionFunctions {}
 
 async function resolveSession(ctx: QueryCtx, convexSessionId: SessionId) {
   return Session.query(ctx)

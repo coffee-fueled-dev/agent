@@ -5,7 +5,11 @@ import {
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { action, mutation, query } from "./_generated/server";
-import { createTerminalChatAgent } from "./llms/agents/terminalChat";
+import {
+  createTerminalChatAgent,
+  terminalChatAgentDefinition,
+} from "./llms/agents/terminalChat";
+import { recordRegisteredMachineAgentTurn } from "./llms/identity";
 
 export const createThread = mutation({
   args: {
@@ -34,11 +38,22 @@ export const sendMessage = action({
   }),
   handler: async (ctx, args) => {
     const agent = createTerminalChatAgent();
+    const { messageId: promptMessageId } = await agent.saveMessage(ctx, {
+      threadId: args.threadId,
+      prompt: args.prompt,
+    });
+
+    await recordRegisteredMachineAgentTurn(ctx, {
+      definition: terminalChatAgentDefinition,
+      threadId: args.threadId,
+      messageId: promptMessageId,
+    });
+
     const { thread } = await agent.continueThread(ctx, {
       threadId: args.threadId,
     });
     const result = await thread.streamText(
-      { prompt: args.prompt },
+      { promptMessageId },
       {
         saveStreamDeltas: { throttleMs: 50 },
       },

@@ -11,4 +11,5 @@ export const evaluate = toolPolicyQuery({
 
 export const examplePolicy = sharedPolicy(
   internal.llms.tools._policies.examplePolicy.evaluate,
+  "llms.tools._policies.examplePolicy.evaluate",
 );

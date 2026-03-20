@@ -23,15 +23,19 @@ export type ToolOutput<
   DATA extends Record<string, unknown> | undefined = undefined,
 > = ToolErrorOutput | ToolSuccessOutput<DATA>;
 
+export type EffectiveStaticProps = Record<string, unknown>;
+
 export type ToolkitResult = {
   tools: Record<string, Tool>;
   instructions: string;
+  effectiveStaticProps?: EffectiveStaticProps;
 };
 
 export function sharedPolicy(
   query: FunctionReference<"query", "internal", ToolPolicyArgs, boolean>,
+  id = "unknown-policy",
 ) {
-  return { query };
+  return { id, query };
 }
 
 export type SharedPolicy = ReturnType<typeof sharedPolicy>;
@@ -40,6 +44,7 @@ type PolicyResultMap = Map<SharedPolicy, boolean>;
 
 export type DynamicToolDef<NAME extends string = string, ARGS = unknown> = {
   staticProps: {
+    kind: "tool";
     name: NAME;
     description: string;
     args: ARGS;
@@ -54,7 +59,7 @@ export type DynamicToolDef<NAME extends string = string, ARGS = unknown> = {
 };
 
 export type Composable = {
-  staticProps: { name: string };
+  staticProps: { kind: string; name: string };
   policies: SharedPolicy[];
   evaluate: (
     ctx: ToolkitContext,
@@ -99,17 +104,21 @@ export function dynamicTool<NAME extends string, INPUT, OUTPUT, ARGS>({
     return {
       tools: { [name]: tool } as Record<NAME, Tool<INPUT, OUTPUT>>,
       instructions: (instructions ?? []).join("\n\n"),
+      effectiveStaticProps: staticProps,
     };
   }
 
+  const staticProps = {
+    kind: "tool" as const,
+    name,
+    description,
+    args,
+    policies,
+    instructions,
+  };
+
   return {
-    staticProps: { name, description, args, policies, instructions } as {
-      name: NAME;
-      description: string;
-      args: ARGS;
-      policies: SharedPolicy[];
-      instructions: string[] | undefined;
-    },
+    staticProps,
     policies,
     evaluate,
   };
@@ -122,6 +131,7 @@ export function toolkit<
   const policies = members.flatMap((m) => m.policies);
 
   const staticProps = {
+    kind: "toolkit" as const,
     name: options.name as NAME,
     instructions: options.instructions,
     members: Object.fromEntries(
@@ -150,6 +160,14 @@ export function toolkit<
       {} as Record<string, Tool>,
       ...results.map((r) => r.tools),
     );
+    const effectiveMembers = Object.fromEntries(
+      results
+        .filter((result) => result.effectiveStaticProps)
+        .map((result) => [
+          result.effectiveStaticProps!.name as string,
+          result.effectiveStaticProps!,
+        ]),
+    );
     const hasAnyTool = results.some((r) => Object.keys(r.tools).length > 0);
     return {
       tools: mergedTools,
@@ -161,6 +179,12 @@ export function toolkit<
             .filter(Boolean)
             .join("\n\n")
         : "",
+      effectiveStaticProps: {
+        kind: "toolkit",
+        name: options.name,
+        instructions: options.instructions,
+        members: effectiveMembers,
+      },
     };
   }
 
@@ -180,7 +204,8 @@ export function dynamicToolkit<const NAME extends string>({
 }) {
   const policies = policiesConfig ?? [];
 
-  const staticProps = { name, instructions, policies } as {
+  const staticProps = { kind: "dynamicToolkit" as const, name, instructions, policies } as {
+    kind: "dynamicToolkit";
     name: NAME;
     instructions: string[] | undefined;
     policies: SharedPolicy[];
@@ -216,6 +241,14 @@ export function dynamicToolkit<const NAME extends string>({
       {} as Record<string, Tool>,
       ...results.map((r) => r.tools),
     );
+    const effectiveMembers = Object.fromEntries(
+      results
+        .filter((result) => result.effectiveStaticProps)
+        .map((result) => [
+          result.effectiveStaticProps!.name as string,
+          result.effectiveStaticProps!,
+        ]),
+    );
     const hasAnyTool = results.some((r) => Object.keys(r.tools).length > 0);
     return {
       tools: mergedTools,
@@ -224,6 +257,13 @@ export function dynamicToolkit<const NAME extends string>({
             .filter(Boolean)
             .join("\n\n")
         : "",
+      effectiveStaticProps: {
+        kind: "dynamicToolkit",
+        name,
+        instructions,
+        policies,
+        members: effectiveMembers,
+      },
     };
   }
 
