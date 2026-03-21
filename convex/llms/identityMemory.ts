@@ -6,11 +6,11 @@ import type {
 } from "convex/server";
 import { api, components } from "../_generated/api";
 import { AgentMemoryClient } from "../components/agentMemory/client";
-import type { AgentMemorySearchResult } from "../components/agentMemory/public/search";
 import type {
   RuntimeCurrentView,
   RuntimeEpisodeCommitArgs,
 } from "../components/agentMemory/internal/runtime";
+import type { AgentMemorySearchResult } from "../components/agentMemory/public/search";
 
 type ActionCtx = Pick<
   GenericActionCtx<GenericDataModel>,

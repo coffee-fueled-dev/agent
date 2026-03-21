@@ -5,13 +5,13 @@ import {
 } from "@google/genai";
 import type { Id } from "../_generated/dataModel";
 import {
-  resolveGoogleApiKey,
-  buildEntryMetadata,
-  defaultBinaryRetrievalText,
-  detectModality,
   type AgentMemoryEntryMetadata,
   type AgentMemoryGoogleConfig,
   type AgentMemoryMetadataRecord,
+  buildEntryMetadata,
+  defaultBinaryRetrievalText,
+  detectModality,
+  resolveGoogleApiKey,
 } from "./shared";
 
 const geminiEmbeddingModel = "gemini-embedding-2-preview";
@@ -86,6 +86,24 @@ export async function embedStoredBinaryFile(
     text: retrievalText,
     metadata,
   });
+}
+
+export async function embedTextVector(
+  args: {
+    text: string;
+  } & AgentMemoryGoogleConfig,
+) {
+  const response = await createGenAIClient(
+    args.googleApiKey,
+  ).models.embedContent({
+    model: geminiEmbeddingModel,
+    contents: [createPartFromText(args.text)],
+  });
+  const values = response.embeddings?.[0]?.values;
+  if (!values?.length) {
+    throw new Error("Failed to embed text for memory charting");
+  }
+  return values;
 }
 
 export function* geminiEmbeddingsToRagChunks(

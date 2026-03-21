@@ -1,5 +1,5 @@
 import { ConvexProvider, ConvexReactClient } from "convex/react";
-import { StrictMode, type ReactNode, useMemo } from "react";
+import { type ReactNode, StrictMode, useMemo } from "react";
 import { createRoot } from "react-dom/client";
 import "../styles/globals.css";
 

@@ -2,7 +2,7 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { RAG } from "@convex-dev/rag";
 import type { ComponentApi as RagComponentApi } from "@convex-dev/rag/_generated/component.js";
 import { components } from "../_generated/api";
-import { resolveGoogleApiKey, type AgentMemoryGoogleConfig } from "./shared";
+import { type AgentMemoryGoogleConfig, resolveGoogleApiKey } from "./shared";
 
 const ragComponent = (components as { rag: RagComponentApi<"rag"> }).rag;
 

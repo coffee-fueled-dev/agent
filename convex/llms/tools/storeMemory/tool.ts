@@ -1,6 +1,6 @@
 import { z } from "zod/v4";
-import type { DynamicToolDef, ToolOutput } from "../_libs/toolkit";
 import { storeThreadOwnerMemory } from "../../chatMemory";
+import type { DynamicToolDef, ToolOutput } from "../_libs/toolkit";
 import { dynamicTool, withFormattedResults } from "../_libs/toolkit";
 
 export const storeMemoryTool: DynamicToolDef<"storeMemory"> = dynamicTool({

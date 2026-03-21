@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import type { Id } from "../_generated/dataModel";
-import { action } from "../_generated/server";
+import { type ActionCtx, action } from "../_generated/server";
 import { createAgentMemoryRag } from "../internal/rag";
 import type {
   AgentMemoryEntryMetadata,
@@ -203,7 +203,7 @@ export const search = action({
 });
 
 export async function runSearch(
-  ctx: any,
+  ctx: ActionCtx,
   args: SearchArgs,
 ): Promise<AgentMemorySearchResult[]> {
   const { entries, results: searchResults } = await createAgentMemoryRag({

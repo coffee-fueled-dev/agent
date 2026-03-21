@@ -1,7 +1,7 @@
 import { contentHashFromArrayBuffer } from "@convex-dev/rag";
 import { v } from "convex/values";
 import type { Id } from "../_generated/dataModel";
-import { action, mutation } from "../_generated/server";
+import { type ActionCtx, action, mutation } from "../_generated/server";
 import { embedStoredBinaryFile, loadStoredFile } from "../internal/embed";
 import { createAgentMemoryRag } from "../internal/rag";
 import {
@@ -30,7 +30,7 @@ const sharedAddArgs = {
   googleApiKey: v.optional(v.string()),
 };
 
-export async function addTextEntry(ctx: any, args: AddTextArgs) {
+export async function addTextEntry(ctx: ActionCtx, args: AddTextArgs) {
   return await createAgentMemoryRag({
     googleApiKey: args.googleApiKey,
   }).add(ctx, {

@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { type Infer, v } from "convex/values";
 import type { Doc } from "../_generated/dataModel";
 import type { AgentMemoryMetadataRecord } from "./shared";
 
@@ -46,29 +46,9 @@ export const runtimeRegistrationValidator = v.object({
   ),
 });
 
-export type RuntimeRegistrationArgs = {
-  runtime: string;
-  description?: string;
-  historyStreamType: string;
-  facts: {
-    entities: Array<{
-      entityType: string;
-      states: string[];
-      attrs: Record<string, "string" | "number" | "boolean">;
-    }>;
-    edgeKinds: string[];
-    partitions: string[];
-  };
-  namespaces?: {
-    facts?: string;
-    current?: string;
-    historical?: string;
-  };
-  searchProfiles?: {
-    current?: { sourceKinds?: string[] };
-    historical?: { sourceKinds?: string[] };
-  };
-};
+export type RuntimeRegistrationArgs = Infer<
+  typeof runtimeRegistrationValidator
+>;
 
 export const factAttrsValidator = v.optional(
   v.record(v.string(), v.union(v.string(), v.number(), v.boolean())),
@@ -142,62 +122,11 @@ export const runtimeEpisodeCommitValidator = v.object({
   historical: v.optional(runtimeMemoryEntryValidator),
 });
 
-export type RuntimeEpisodeCommitArgs = {
-  runtime: string;
-  streamId: string;
-  commitKey: string;
-  workId?: string;
-  entryTime?: number;
-  latestEntity?: string;
-  history: {
-    entryId: string;
-    kind: string;
-    parentEntryIds?: string[];
-    payload?: unknown;
-  };
-  facts: {
-    items: Array<{
-      entity: string;
-      entityType: string;
-      scope?: string;
-      state?: string;
-      order: number[];
-      labels?: string[];
-      attrs?: Record<string, string | number | boolean>;
-    }>;
-    edges?: Array<{
-      kind: string;
-      from: string;
-      to: string;
-      scope?: string;
-    }>;
-    partitions?: Array<{
-      partition: string;
-      scope?: string;
-      head?: string;
-      tail?: string;
-      count: number;
-      membersVersion?: number;
-    }>;
-    projector?: string;
-    mode?: "direct" | "event";
-  };
-  current?: RuntimeMemoryEntry;
-  historical?: RuntimeMemoryEntry;
-};
+export type RuntimeEpisodeCommitArgs = Infer<
+  typeof runtimeEpisodeCommitValidator
+>;
 
-export type RuntimeMemoryEntry = {
-  key: string;
-  title?: string;
-  text: string;
-  sourceKind?: string;
-  entity?: string;
-  entityType?: string;
-  scope?: string;
-  validFrom?: number;
-  validTo?: number | null;
-  metadata?: AgentMemoryMetadataRecord;
-};
+export type RuntimeMemoryEntry = Infer<typeof runtimeMemoryEntryValidator>;
 
 export type RuntimeSearchArgs = {
   runtime: string;
@@ -241,6 +170,148 @@ export type RuntimeStreamState = {
   latestEntity: string | null;
   lastCommitKey: string | null;
   lastWorkId: string | null;
+};
+
+export const memoryChartSourceTypeValidator = v.union(
+  v.literal("text"),
+  v.literal("textFile"),
+  v.literal("binaryFile"),
+);
+
+export const memoryChartUpdateValidator = v.object({
+  namespace: v.string(),
+  entryId: v.string(),
+  key: v.string(),
+  title: v.optional(v.string()),
+  summary: v.string(),
+  sourceType: memoryChartSourceTypeValidator,
+  sourceKind: v.optional(v.string()),
+  storageId: v.optional(v.string()),
+  mimeType: v.optional(v.string()),
+  fileName: v.optional(v.union(v.string(), v.null())),
+  metadata: v.optional(
+    v.record(
+      v.string(),
+      v.union(v.string(), v.number(), v.boolean(), v.null()),
+    ),
+  ),
+  entryTime: v.number(),
+  embedding: v.array(v.number()),
+});
+
+export type MemoryChartSourceType = Infer<
+  typeof memoryChartSourceTypeValidator
+>;
+
+export type MemoryChartUpdateArgs = Infer<typeof memoryChartUpdateValidator>;
+
+export type MemoryChartSummary = {
+  chartId: string;
+  namespace: string;
+  chartKey: string;
+  memberCount: number;
+  assignmentCount: number;
+  boundaryCount: number;
+  ambiguityCount: number;
+  radius: number;
+  centroidNorm: number;
+  meanVariance: number;
+  tangentVariance: number;
+  meanGeodesicResidual: number;
+  negativeLogLikelihoodSum: number;
+  descriptionLength: number;
+  posteriorEvidence: number;
+  compressionLoss: number;
+  supportCoverageLoss: number;
+  overlapPenalty: number;
+  coverageEntropy: number;
+  preservedInformation: number;
+  repartitionEpoch: number;
+  repartitionCount: number;
+  lastRepartitionAt: number | null;
+  lastEvaluationAt: number | null;
+  lastDeltaDescriptionLength: number | null;
+  lastPosteriorEvidence: number | null;
+  sampleKey: string | null;
+  sampleTitle: string | null;
+  sampleSummary: string | null;
+  lastAssignedAt: number;
+  createdAt: number;
+  updatedAt: number;
+};
+
+export type MemoryChartMember = {
+  chartMemberId: string;
+  chartId: string;
+  namespace: string;
+  entryId: string;
+  key: string;
+  title: string | null;
+  summary: string;
+  sourceType: MemoryChartSourceType;
+  sourceKind: string | null;
+  storageId: string | null;
+  mimeType: string | null;
+  fileName: string | null;
+  metadata: AgentMemoryMetadataRecord;
+  embedding: number[];
+  geodesicResidual: number;
+  localNegativeLogLikelihood: number;
+  posteriorProbability: number;
+  assignmentEntropy: number;
+  supportCoverageLoss: number;
+  preservedInformation: number;
+  mahalanobisDistance: number;
+  ambiguityScore: number | null;
+  boundaryScore: number | null;
+  repartitionEpoch: number;
+  assignedAt: number;
+};
+
+export type MemoryChartMetrics = {
+  chartCount: number;
+  memberCount: number;
+  boundaryCount: number;
+  ambiguityCount: number;
+  negativeLogLikelihoodSum: number;
+  descriptionLength: number;
+  compressionLoss: number;
+  supportCoverageLoss: number;
+  overlapPenalty: number;
+  coverageEntropy: number;
+  preservedInformation: number;
+  repartitionCount: number;
+  splitCount: number;
+  mergeCount: number;
+  pendingMaintenanceCount: number;
+};
+
+export type MemoryChartSupportEdge = {
+  edgeId: string;
+  namespace: string;
+  chartPairKey: string;
+  fromChartId: string;
+  toChartId: string;
+  supportCount: number;
+  overlapMass: number;
+  coverageEntropySum: number;
+  updatedAt: number;
+};
+
+export type MemoryChartRepartitionEvent = {
+  eventId: string;
+  namespace: string;
+  kind: "split" | "merge" | "evaluate";
+  accepted: boolean;
+  targetChartIds: string[];
+  resultChartIds: string[];
+  deltaDescriptionLength: number;
+  posteriorEvidence: number;
+  compressionDelta: number;
+  supportCoverageDelta: number;
+  overlapDelta: number;
+  details: AgentMemoryMetadataRecord;
+  entryTime: number;
 };
 
 export type RuntimeCurrentView = RuntimeStreamState & {

@@ -14,6 +14,20 @@ export type MachineAgentMetricNamespace =
   | ["agent", string, MachineAgentMetric]
   | ["thread", string, Exclude<MachineAgentMetric, "threads">];
 
+export type MemoryChartMetric =
+  | "charts"
+  | "members"
+  | "boundaries"
+  | "ambiguities"
+  | "repartitions"
+  | "splits"
+  | "merges"
+  | "pendingMaintenance";
+
+export type MemoryChartMetricNamespace =
+  | ["memoryCharts", "namespace", string, MemoryChartMetric]
+  | ["memoryCharts", "chart", string, Exclude<MemoryChartMetric, "charts">];
+
 const aggregateComponent = (
   components as unknown as {
     aggregate: ConstructorParameters<
@@ -30,6 +44,12 @@ export const machineAgentTelemetry = new DirectAggregate<{
   Key: null;
   Id: string;
   Namespace: MachineAgentMetricNamespace;
+}>(aggregateComponent);
+
+export const memoryChartTelemetry = new DirectAggregate<{
+  Key: null;
+  Id: string;
+  Namespace: MemoryChartMetricNamespace;
 }>(aggregateComponent);
 
 export function globalMetricNamespace(
@@ -50,4 +70,18 @@ export function threadMetricNamespace(
   metric: Exclude<MachineAgentMetric, "threads">,
 ): ["thread", string, Exclude<MachineAgentMetric, "threads">] {
   return ["thread", threadId, metric];
+}
+
+export function memoryChartNamespaceMetric(
+  namespace: string,
+  metric: MemoryChartMetric,
+): ["memoryCharts", "namespace", string, MemoryChartMetric] {
+  return ["memoryCharts", "namespace", namespace, metric];
+}
+
+export function memoryChartMetricNamespace(
+  chartId: string,
+  metric: Exclude<MemoryChartMetric, "charts">,
+): ["memoryCharts", "chart", string, Exclude<MemoryChartMetric, "charts">] {
+  return ["memoryCharts", "chart", chartId, metric];
 }

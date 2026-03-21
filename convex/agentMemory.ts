@@ -1,29 +1,53 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
-import { components } from "./_generated/api";
-import { action, internalAction, mutation, query } from "./_generated/server";
-import { AgentMemoryClient } from "./components/agentMemory/client";
-import { metadataRecordValidator } from "./components/agentMemory/internal/shared";
+import { components, internal } from "./_generated/api";
 import {
+  type ActionCtx,
+  action,
+  internalAction,
+  internalMutation,
+  mutation,
+  query,
+} from "./_generated/server";
+import { agentMemoryEpisodicPool } from "./agentMemoryWorkpool";
+import {
+  memoryChartMetricNamespace,
+  memoryChartNamespaceMetric,
+  memoryChartTelemetry,
+} from "./aggregate";
+import { AgentMemoryClient } from "./components/agentMemory/client";
+import {
+  embedTextVector,
+  loadStoredFile,
+} from "./components/agentMemory/internal/embed";
+import {
+  type MemoryChartMember,
+  type MemoryChartMetrics,
+  type MemoryChartRepartitionEvent,
+  type MemoryChartSummary,
+  type MemoryChartSupportEdge,
   runtimeEpisodeCommitValidator,
   runtimeRegistrationValidator,
   runtimeSearchArgsValidator,
 } from "./components/agentMemory/internal/runtime";
+import { metadataRecordValidator } from "./components/agentMemory/internal/shared";
 import {
+  type AgentMemorySearchResult,
   searchOptionsValidator,
   searchQueryValidator,
-  type AgentMemorySearchResult,
 } from "./components/agentMemory/public/search";
-import { agentMemoryEpisodicPool } from "./agentMemoryWorkpool";
-import { internal } from "./_generated/api";
 import {
-  getThreadIdentityCurrent as getThreadIdentityCurrentImpl,
   enqueueThreadIdentityEpisode as enqueueThreadIdentityEpisodeImpl,
+  getThreadIdentityCurrent as getThreadIdentityCurrentImpl,
   listThreadIdentityEvolution as listThreadIdentityEvolutionImpl,
   recordThreadIdentityEpisode as recordThreadIdentityEpisodeImpl,
   searchThreadIdentityAsOf as searchThreadIdentityAsOfImpl,
   searchThreadIdentityCurrent as searchThreadIdentityCurrentImpl,
 } from "./llms/identityMemory";
+import {
+  buildPublicMemoryFileUrl,
+  isProviderAccessibleUrl,
+} from "./llms/memoryFiles";
 
 const sharedArgs = {
   namespace: v.string(),
@@ -65,6 +89,98 @@ const runtimeSearchOptionArgs = {
   entity: v.optional(v.string()),
   entityType: v.optional(v.string()),
 };
+
+const chartSidecarArgs = {
+  namespace: v.string(),
+  entryId: v.string(),
+  key: v.string(),
+  title: v.optional(v.string()),
+  summary: v.string(),
+  chartText: v.string(),
+  sourceType: v.union(
+    v.literal("text"),
+    v.literal("textFile"),
+    v.literal("binaryFile"),
+  ),
+  sourceKind: v.optional(v.string()),
+  storageId: v.optional(v.string()),
+  mimeType: v.optional(v.string()),
+  fileName: v.optional(v.union(v.string(), v.null())),
+  metadata: metadataRecordValidator,
+  entryTime: v.number(),
+};
+
+const chartMaintenanceArgs = {
+  namespace: v.string(),
+  requestId: v.string(),
+  requestedAt: v.number(),
+};
+
+function compactSummary(value: string) {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function shorten(value: string, max = 280) {
+  if (value.length <= max) {
+    return value;
+  }
+  return `${value.slice(0, max - 1).trimEnd()}...`;
+}
+
+function defaultChartText(args: {
+  text?: string;
+  title?: string;
+  fileName?: string | null;
+  mimeType?: string;
+}) {
+  const text = args.text?.trim();
+  if (text) {
+    return text;
+  }
+  return [args.title, args.fileName, args.mimeType]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+}
+
+async function enqueueMemoryChartSidecar(
+  ctx: ActionCtx,
+  args: {
+    namespace: string;
+    entryId: string;
+    key: string;
+    title?: string;
+    summary: string;
+    chartText: string;
+    sourceType: "text" | "textFile" | "binaryFile";
+    sourceKind?: string;
+    storageId?: string;
+    mimeType?: string;
+    fileName?: string | null;
+    metadata?: Record<string, string | number | boolean | null>;
+    entryTime?: number;
+  },
+) {
+  const chartText = compactSummary(args.chartText);
+  if (!chartText) {
+    return;
+  }
+  await ctx.runMutation(internal.agentMemory.enqueueMemoryChartUpdate, {
+    namespace: args.namespace,
+    entryId: args.entryId,
+    key: args.key,
+    title: args.title,
+    summary: shorten(compactSummary(args.summary || chartText)),
+    chartText: shorten(chartText, 4_000),
+    sourceType: args.sourceType,
+    sourceKind: args.sourceKind,
+    storageId: args.storageId,
+    mimeType: args.mimeType,
+    fileName: args.fileName,
+    metadata: args.metadata,
+    entryTime: args.entryTime ?? Date.now(),
+  });
+}
 
 export function createAgentMemoryClient() {
   return new AgentMemoryClient(components.agentMemory, {
@@ -112,7 +228,7 @@ export const searchRuntimeCurrent = action({
   handler: async (ctx, args): Promise<AgentMemorySearchResult[]> => {
     const streamId = args.streamId as string;
     const registration = await ctx.runQuery(
-      components.agentMemory.public.runtime.getRuntimeRegistration,
+      components.agentMemory.public.runtimeApi.getRuntimeRegistration,
       { runtime: args.runtime },
     );
     const state = await createAgentMemoryClient().getRuntimeStreamState(ctx, {
@@ -140,7 +256,7 @@ export const searchRuntimeHistorical = action({
   handler: async (ctx, args): Promise<AgentMemorySearchResult[]> => {
     const streamId = args.streamId as string;
     const registration = await ctx.runQuery(
-      components.agentMemory.public.runtime.getRuntimeRegistration,
+      components.agentMemory.public.runtimeApi.getRuntimeRegistration,
       { runtime: args.runtime },
     );
     const state = await createAgentMemoryClient().getRuntimeStreamState(ctx, {
@@ -163,7 +279,7 @@ export const commitRuntimeEpisodeWork = internalAction({
   args: runtimeEpisodeCommitValidator,
   handler: async (ctx, args) => {
     const started = await ctx.runMutation(
-      components.agentMemory.public.runtime.startRuntimeCommit,
+      components.agentMemory.public.runtimeApi.startRuntimeCommit,
       {
         runtime: args.runtime,
         streamId: args.streamId,
@@ -185,7 +301,7 @@ export const commitRuntimeEpisodeWork = internalAction({
 
     const { registration, stream, sourceVersion, entryTime } = started;
     const historyEntry = await ctx.runMutation(
-      components.agentMemory.public.runtime.appendRuntimeHistory,
+      components.agentMemory.public.runtimeApi.appendRuntimeHistory,
       {
         runtime: args.runtime,
         streamId: args.streamId,
@@ -203,7 +319,7 @@ export const commitRuntimeEpisodeWork = internalAction({
       (args.facts.partitions?.length ?? 0) > 0
     ) {
       await ctx.runMutation(
-        components.agentMemory.public.runtime.applyRuntimeFacts,
+        components.agentMemory.public.runtimeApi.applyRuntimeFacts,
         {
           runtime: args.runtime,
           streamId: args.streamId,
@@ -260,7 +376,7 @@ export const commitRuntimeEpisodeWork = internalAction({
     }
 
     await ctx.runMutation(
-      components.agentMemory.public.runtime.completeRuntimeCommit,
+      components.agentMemory.public.runtimeApi.completeRuntimeCommit,
       {
         runtime: args.runtime,
         streamId: args.streamId,
@@ -314,6 +430,378 @@ export const enqueueRuntimeEpisode = mutation({
   },
 });
 
+export const processMemoryChartUpdateWork = internalAction({
+  args: chartSidecarArgs,
+  handler: async (ctx, args) => {
+    const embedding = await embedTextVector({
+      text: args.chartText,
+      googleApiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+    });
+    const result = await ctx.runMutation(
+      components.agentMemory.public.runtimeApi.upsertMemoryChartAssignment,
+      {
+        namespace: args.namespace,
+        entryId: args.entryId,
+        key: args.key,
+        title: args.title,
+        summary: args.summary,
+        sourceType: args.sourceType,
+        sourceKind: args.sourceKind,
+        storageId: args.storageId,
+        mimeType: args.mimeType,
+        fileName: args.fileName,
+        metadata: args.metadata,
+        entryTime: args.entryTime,
+        embedding,
+      },
+    );
+
+    if (result.createdChart) {
+      await memoryChartTelemetry.insertIfDoesNotExist(ctx, {
+        namespace: memoryChartNamespaceMetric(args.namespace, "charts"),
+        key: null,
+        id: String(result.chartId),
+      });
+    }
+    if (result.createdMember) {
+      await memoryChartTelemetry.insertIfDoesNotExist(ctx, {
+        namespace: memoryChartNamespaceMetric(args.namespace, "members"),
+        key: null,
+        id: args.entryId,
+      });
+      await memoryChartTelemetry.insertIfDoesNotExist(ctx, {
+        namespace: memoryChartMetricNamespace(
+          String(result.chartId),
+          "members",
+        ),
+        key: null,
+        id: `${result.chartId}:${args.entryId}`,
+      });
+    }
+    if (result.boundary) {
+      await memoryChartTelemetry.insertIfDoesNotExist(ctx, {
+        namespace: memoryChartNamespaceMetric(args.namespace, "boundaries"),
+        key: null,
+        id: `${result.chartId}:${args.entryId}`,
+      });
+      await memoryChartTelemetry.insertIfDoesNotExist(ctx, {
+        namespace: memoryChartMetricNamespace(
+          String(result.chartId),
+          "boundaries",
+        ),
+        key: null,
+        id: `${result.chartId}:${args.entryId}`,
+      });
+    }
+    if (result.ambiguous) {
+      await memoryChartTelemetry.insertIfDoesNotExist(ctx, {
+        namespace: memoryChartNamespaceMetric(args.namespace, "ambiguities"),
+        key: null,
+        id: `${result.chartId}:${args.entryId}`,
+      });
+      await memoryChartTelemetry.insertIfDoesNotExist(ctx, {
+        namespace: memoryChartMetricNamespace(
+          String(result.chartId),
+          "ambiguities",
+        ),
+        key: null,
+        id: `${result.chartId}:${args.entryId}`,
+      });
+    }
+
+    await ctx.runMutation(internal.agentMemory.enqueueMemoryChartMaintenance, {
+      namespace: args.namespace,
+      requestedAt: args.entryTime,
+      requestId: crypto.randomUUID(),
+    });
+
+    return result;
+  },
+});
+
+export const enqueueMemoryChartUpdate = internalMutation({
+  args: chartSidecarArgs,
+  handler: async (ctx, args): Promise<string> => {
+    return await agentMemoryEpisodicPool.enqueueAction(
+      ctx,
+      internal.agentMemory.processMemoryChartUpdateWork,
+      args,
+      { retry: false },
+    );
+  },
+});
+
+export const processMemoryChartMaintenanceWork = internalAction({
+  args: chartMaintenanceArgs,
+  handler: async (ctx, args) => {
+    const result = await ctx.runMutation(
+      components.agentMemory.public.runtimeApi.maintainMemoryChartNamespace,
+      {
+        namespace: args.namespace,
+        entryTime: args.requestedAt,
+      },
+    );
+    await ctx.runMutation(
+      components.agentMemory.public.runtimeApi.completeMemoryChartMaintenance,
+      {
+        namespace: args.namespace,
+        entryTime: Date.now(),
+      },
+    );
+    await memoryChartTelemetry.delete(ctx, {
+      namespace: memoryChartNamespaceMetric(
+        args.namespace,
+        "pendingMaintenance",
+      ),
+      key: null,
+      id: args.requestId,
+    });
+    if (result.accepted) {
+      await memoryChartTelemetry.insertIfDoesNotExist(ctx, {
+        namespace: memoryChartNamespaceMetric(args.namespace, "repartitions"),
+        key: null,
+        id: args.requestId,
+      });
+      if (result.kind === "split") {
+        await memoryChartTelemetry.insertIfDoesNotExist(ctx, {
+          namespace: memoryChartNamespaceMetric(args.namespace, "splits"),
+          key: null,
+          id: args.requestId,
+        });
+      }
+      if (result.kind === "merge") {
+        await memoryChartTelemetry.insertIfDoesNotExist(ctx, {
+          namespace: memoryChartNamespaceMetric(args.namespace, "merges"),
+          key: null,
+          id: args.requestId,
+        });
+      }
+    }
+    for (const chartId of result.createdChartIds ?? []) {
+      await memoryChartTelemetry.insertIfDoesNotExist(ctx, {
+        namespace: memoryChartNamespaceMetric(args.namespace, "charts"),
+        key: null,
+        id: chartId,
+      });
+    }
+    for (const chartId of result.deletedChartIds ?? []) {
+      await memoryChartTelemetry.delete(ctx, {
+        namespace: memoryChartNamespaceMetric(args.namespace, "charts"),
+        key: null,
+        id: chartId,
+      });
+    }
+    return result;
+  },
+});
+
+export const enqueueMemoryChartMaintenance = internalMutation({
+  args: chartMaintenanceArgs,
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{ workId: string; requestId: string }> => {
+    await ctx.runMutation(
+      components.agentMemory.public.runtimeApi.markMemoryChartMaintenanceQueued,
+      {
+        namespace: args.namespace,
+        entryTime: args.requestedAt,
+      },
+    );
+    await memoryChartTelemetry.insertIfDoesNotExist(ctx, {
+      namespace: memoryChartNamespaceMetric(
+        args.namespace,
+        "pendingMaintenance",
+      ),
+      key: null,
+      id: args.requestId,
+    });
+    const workId = await agentMemoryEpisodicPool.enqueueAction(
+      ctx,
+      internal.agentMemory.processMemoryChartMaintenanceWork,
+      args,
+      {
+        retry: false,
+        onComplete: internal.agentMemoryWorkpool.chartMaintenanceCompleted,
+        context: {
+          namespace: args.namespace,
+          requestId: args.requestId,
+        },
+      },
+    );
+    return { workId, requestId: args.requestId };
+  },
+});
+
+export const getMemoryChartMetrics = query({
+  args: {
+    namespace: v.string(),
+  },
+  handler: async (ctx, args): Promise<MemoryChartMetrics> => {
+    const componentMetrics: MemoryChartMetrics = await ctx.runQuery(
+      components.agentMemory.public.runtimeApi.getMemoryChartNamespaceMetrics,
+      { namespace: args.namespace },
+    );
+    return {
+      ...componentMetrics,
+      chartCount: await memoryChartTelemetry.count(ctx, {
+        namespace: memoryChartNamespaceMetric(args.namespace, "charts"),
+      }),
+      memberCount: await memoryChartTelemetry.count(ctx, {
+        namespace: memoryChartNamespaceMetric(args.namespace, "members"),
+      }),
+      boundaryCount: await memoryChartTelemetry.count(ctx, {
+        namespace: memoryChartNamespaceMetric(args.namespace, "boundaries"),
+      }),
+      ambiguityCount: await memoryChartTelemetry.count(ctx, {
+        namespace: memoryChartNamespaceMetric(args.namespace, "ambiguities"),
+      }),
+      repartitionCount: await memoryChartTelemetry.count(ctx, {
+        namespace: memoryChartNamespaceMetric(args.namespace, "repartitions"),
+      }),
+      splitCount: await memoryChartTelemetry.count(ctx, {
+        namespace: memoryChartNamespaceMetric(args.namespace, "splits"),
+      }),
+      mergeCount: await memoryChartTelemetry.count(ctx, {
+        namespace: memoryChartNamespaceMetric(args.namespace, "merges"),
+      }),
+      pendingMaintenanceCount: await memoryChartTelemetry.count(ctx, {
+        namespace: memoryChartNamespaceMetric(
+          args.namespace,
+          "pendingMaintenance",
+        ),
+      }),
+    };
+  },
+});
+
+export const listMemoryCharts = query({
+  args: {
+    namespace: v.string(),
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{
+    page: MemoryChartSummary[];
+    isDone: boolean;
+    continueCursor: string;
+    splitCursor?: string | null;
+    pageStatus?: "SplitRecommended" | "SplitRequired" | null;
+  }> => {
+    return await ctx.runQuery(
+      components.agentMemory.public.runtimeApi.listMemoryCharts,
+      args,
+    );
+  },
+});
+
+export const getMemoryChart = query({
+  args: {
+    chartId: v.string(),
+  },
+  handler: async (ctx, args): Promise<MemoryChartSummary | null> => {
+    return await ctx.runQuery(
+      components.agentMemory.public.runtimeApi.getMemoryChart,
+      {
+        chartId: args.chartId as never,
+      },
+    );
+  },
+});
+
+export const listMemoryChartMembers = query({
+  args: {
+    chartId: v.string(),
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{
+    page: Array<MemoryChartMember & { fileUrl?: string | null }>;
+    isDone: boolean;
+    continueCursor: string;
+    splitCursor?: string | null;
+    pageStatus?: "SplitRecommended" | "SplitRequired" | null;
+  }> => {
+    const results = await ctx.runQuery(
+      components.agentMemory.public.runtimeApi.listMemoryChartMembers,
+      { chartId: args.chartId as never, paginationOpts: args.paginationOpts },
+    );
+    return {
+      ...results,
+      page: await Promise.all(
+        results.page.map(async (member: MemoryChartMember) => {
+          let fileUrl: string | null | undefined;
+          if (member.storageId) {
+            fileUrl =
+              buildPublicMemoryFileUrl({
+                storageId: member.storageId,
+                fileName: member.fileName,
+              }) ??
+              ((await ctx.storage.getUrl(member.storageId as never)) &&
+              isProviderAccessibleUrl(
+                await ctx.storage.getUrl(member.storageId as never),
+              )
+                ? await ctx.storage.getUrl(member.storageId as never)
+                : null);
+          }
+          return {
+            ...member,
+            fileUrl,
+          };
+        }),
+      ),
+    };
+  },
+});
+
+export const listMemoryChartSupportEdges = query({
+  args: {
+    namespace: v.string(),
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{
+    page: MemoryChartSupportEdge[];
+    isDone: boolean;
+    continueCursor: string;
+    splitCursor?: string | null;
+    pageStatus?: "SplitRecommended" | "SplitRequired" | null;
+  }> => {
+    return await ctx.runQuery(
+      components.agentMemory.public.runtimeApi.listMemoryChartSupportEdges,
+      args,
+    );
+  },
+});
+
+export const listMemoryChartRepartitionEvents = query({
+  args: {
+    namespace: v.string(),
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{
+    page: MemoryChartRepartitionEvent[];
+    isDone: boolean;
+    continueCursor: string;
+    splitCursor?: string | null;
+    pageStatus?: "SplitRecommended" | "SplitRequired" | null;
+  }> => {
+    return await ctx.runQuery(
+      components.agentMemory.public.runtimeApi.listMemoryChartRepartitionEvents,
+      args,
+    );
+  },
+});
+
 export const generateUploadUrl = mutation({
   args: {},
   handler: async (ctx) => {
@@ -327,7 +815,24 @@ export const addText = action({
     text: v.string(),
   },
   handler: async (ctx, args) => {
-    return await createAgentMemoryClient().addText(ctx, args);
+    const result = await createAgentMemoryClient().addText(ctx, args);
+    try {
+      await enqueueMemoryChartSidecar(ctx, {
+        namespace: args.namespace,
+        entryId: result.entryId,
+        key: args.key,
+        title: args.title,
+        summary: args.text,
+        chartText: args.text,
+        sourceType: "text",
+        sourceKind: args.sourceKind,
+        metadata: args.metadata,
+        entryTime: args.entryTime,
+      });
+    } catch (error) {
+      console.error("Failed to enqueue memory chart update", error);
+    }
+    return result;
   },
 });
 
@@ -339,7 +844,29 @@ export const addStoredTextFile = action({
     fileName: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    return await createAgentMemoryClient().addStoredTextFile(ctx, args);
+    const result = await createAgentMemoryClient().addStoredTextFile(ctx, args);
+    try {
+      const file = await loadStoredFile(ctx, args.storageId);
+      const text = new TextDecoder().decode(await file.arrayBuffer());
+      await enqueueMemoryChartSidecar(ctx, {
+        namespace: args.namespace,
+        entryId: result.entryId,
+        key: args.key,
+        title: args.title,
+        summary: text,
+        chartText: text,
+        sourceType: "textFile",
+        sourceKind: args.sourceKind,
+        storageId: String(args.storageId),
+        mimeType: args.mimeType,
+        fileName: args.fileName ?? null,
+        metadata: args.metadata,
+        entryTime: args.entryTime,
+      });
+    } catch (error) {
+      console.error("Failed to enqueue memory chart update", error);
+    }
+    return result;
   },
 });
 
@@ -352,7 +879,36 @@ export const addStoredBinaryFile = action({
     text: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    return await createAgentMemoryClient().addStoredBinaryFile(ctx, args);
+    const result = await createAgentMemoryClient().addStoredBinaryFile(
+      ctx,
+      args,
+    );
+    try {
+      const chartText = defaultChartText({
+        text: args.text,
+        title: args.title,
+        fileName: args.fileName ?? null,
+        mimeType: args.mimeType,
+      });
+      await enqueueMemoryChartSidecar(ctx, {
+        namespace: args.namespace,
+        entryId: result.entryId,
+        key: args.key,
+        title: args.title,
+        summary: chartText,
+        chartText,
+        sourceType: "binaryFile",
+        sourceKind: args.sourceKind,
+        storageId: String(args.storageId),
+        mimeType: args.mimeType,
+        fileName: args.fileName ?? null,
+        metadata: args.metadata,
+        entryTime: args.entryTime,
+      });
+    } catch (error) {
+      console.error("Failed to enqueue memory chart update", error);
+    }
+    return result;
   },
 });
 

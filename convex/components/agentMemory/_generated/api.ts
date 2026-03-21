@@ -9,12 +9,21 @@
  */
 
 import type * as client_index from "../client/index.js";
+import type * as internal_chartAtlas from "../internal/chartAtlas.js";
 import type * as internal_embed from "../internal/embed.js";
 import type * as internal_rag from "../internal/rag.js";
 import type * as internal_runtime from "../internal/runtime.js";
 import type * as internal_shared from "../internal/shared.js";
 import type * as public_add from "../public/add.js";
 import type * as public_runtime from "../public/runtime.js";
+import type * as public_runtime_agentRuntime from "../public/runtime/agentRuntime.js";
+import type * as public_runtime_index from "../public/runtime/index.js";
+import type * as public_runtime_memoryChartInternals from "../public/runtime/memoryChartInternals.js";
+import type * as public_runtime_memoryChartMutations from "../public/runtime/memoryChartMutations.js";
+import type * as public_runtime_memoryChartQueries from "../public/runtime/memoryChartQueries.js";
+import type * as public_runtime_shared from "../public/runtime/shared.js";
+import type * as public_runtime_state from "../public/runtime/state.js";
+import type * as public_runtimeApi from "../public/runtimeApi.js";
 import type * as public_search from "../public/search.js";
 
 import type {
@@ -26,12 +35,21 @@ import { anyApi, componentsGeneric } from "convex/server";
 
 const fullApi: ApiFromModules<{
   "client/index": typeof client_index;
+  "internal/chartAtlas": typeof internal_chartAtlas;
   "internal/embed": typeof internal_embed;
   "internal/rag": typeof internal_rag;
   "internal/runtime": typeof internal_runtime;
   "internal/shared": typeof internal_shared;
   "public/add": typeof public_add;
   "public/runtime": typeof public_runtime;
+  "public/runtime/agentRuntime": typeof public_runtime_agentRuntime;
+  "public/runtime/index": typeof public_runtime_index;
+  "public/runtime/memoryChartInternals": typeof public_runtime_memoryChartInternals;
+  "public/runtime/memoryChartMutations": typeof public_runtime_memoryChartMutations;
+  "public/runtime/memoryChartQueries": typeof public_runtime_memoryChartQueries;
+  "public/runtime/shared": typeof public_runtime_shared;
+  "public/runtime/state": typeof public_runtime_state;
+  "public/runtimeApi": typeof public_runtimeApi;
   "public/search": typeof public_search;
 }> = anyApi as any;
 

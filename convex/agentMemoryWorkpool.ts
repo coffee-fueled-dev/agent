@@ -32,3 +32,23 @@ export const episodicCommitCompleted = agentMemoryEpisodicPool.defineOnComplete(
     },
   },
 );
+
+export const chartMaintenanceCompleted =
+  agentMemoryEpisodicPool.defineOnComplete({
+    context: v.object({
+      namespace: v.string(),
+      requestId: v.string(),
+    }),
+    handler: async (ctx, { result, context }) => {
+      if (result.kind === "success") {
+        return;
+      }
+      await ctx.runMutation(
+        components.agentMemory.public.runtimeApi.completeMemoryChartMaintenance,
+        {
+          namespace: context.namespace,
+          entryTime: Date.now(),
+        },
+      );
+    },
+  });

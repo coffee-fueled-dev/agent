@@ -117,77 +117,88 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         >;
       };
       runtime: {
-        appendRuntimeHistory: FunctionReference<
-          "mutation",
-          "internal",
-          {
-            entryId: string;
-            entryTime: number;
-            kind: string;
-            parentEntryIds?: Array<string>;
-            payload?: any;
-            runtime: string;
-            streamId: string;
-          },
-          any,
-          Name
-        >;
-        applyRuntimeFacts: FunctionReference<
-          "mutation",
-          "internal",
-          {
-            facts: {
-              edges?: Array<{
-                from: string;
-                kind: string;
-                scope?: string;
-                to: string;
-              }>;
-              items: Array<{
-                attrs?: Record<string, string | number | boolean>;
-                entity: string;
-                entityType: string;
-                labels?: Array<string>;
-                order: Array<number>;
-                scope?: string;
-                state?: string;
-              }>;
-              mode?: "direct" | "event";
-              partitions?: Array<{
-                count: number;
-                head?: string;
-                membersVersion?: number;
-                partition: string;
-                scope?: string;
-                tail?: string;
-              }>;
-              projector?: string;
-            };
-            runtime: string;
-            sourceVersion: number;
-            streamId: string;
-          },
-          any,
-          Name
-        >;
-        completeRuntimeCommit: FunctionReference<
-          "mutation",
-          "internal",
-          {
-            commitKey: string;
-            currentKey?: string;
-            entryId: string;
-            entryTime: number;
-            historicalKey?: string;
-            latestEntity?: string;
-            runtime: string;
-            sourceVersion: number;
-            streamId: string;
-            workId?: string;
-          },
-          any,
-          Name
-        >;
+        agentRuntime: {
+          finalizeRuntimeCommit: FunctionReference<
+            "mutation",
+            "internal",
+            { error?: string; state: "failed" | "canceled"; workId: string },
+            any,
+            Name
+          >;
+          getRuntimeCurrent: FunctionReference<
+            "query",
+            "internal",
+            { runtime: string; streamId: string },
+            any,
+            Name
+          >;
+          getRuntimeStreamState: FunctionReference<
+            "query",
+            "internal",
+            { runtime: string; streamId: string },
+            any,
+            Name
+          >;
+          listRuntimeEvolution: FunctionReference<
+            "query",
+            "internal",
+            {
+              paginationOpts: {
+                cursor: string | null;
+                endCursor?: string | null;
+                id?: number;
+                maximumBytesRead?: number;
+                maximumRowsRead?: number;
+                numItems: number;
+              };
+              runtime: string;
+              streamId: string;
+            },
+            any,
+            Name
+          >;
+          markRuntimeCommitQueued: FunctionReference<
+            "mutation",
+            "internal",
+            {
+              commitKey: string;
+              runtime: string;
+              streamId: string;
+              workId: string;
+            },
+            any,
+            Name
+          >;
+          registerRuntime: FunctionReference<
+            "mutation",
+            "internal",
+            {
+              description?: string;
+              facts: {
+                edgeKinds: Array<string>;
+                entities: Array<{
+                  attrs: Record<string, "string" | "number" | "boolean">;
+                  entityType: string;
+                  states: Array<string>;
+                }>;
+                partitions: Array<string>;
+              };
+              historyStreamType: string;
+              namespaces?: {
+                current?: string;
+                facts?: string;
+                historical?: string;
+              };
+              runtime: string;
+              searchProfiles?: {
+                current?: { sourceKinds?: Array<string> };
+                historical?: { sourceKinds?: Array<string> };
+              };
+            },
+            any,
+            Name
+          >;
+        };
         finalizeRuntimeCommit: FunctionReference<
           "mutation",
           "internal",
@@ -202,13 +213,6 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           any,
           Name
         >;
-        getRuntimeRegistration: FunctionReference<
-          "query",
-          "internal",
-          { runtime: string },
-          any,
-          Name
-        >;
         getRuntimeStreamState: FunctionReference<
           "query",
           "internal",
@@ -216,6 +220,88 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           any,
           Name
         >;
+        index: {
+          finalizeRuntimeCommit: FunctionReference<
+            "mutation",
+            "internal",
+            { error?: string; state: "failed" | "canceled"; workId: string },
+            any,
+            Name
+          >;
+          getRuntimeCurrent: FunctionReference<
+            "query",
+            "internal",
+            { runtime: string; streamId: string },
+            any,
+            Name
+          >;
+          getRuntimeStreamState: FunctionReference<
+            "query",
+            "internal",
+            { runtime: string; streamId: string },
+            any,
+            Name
+          >;
+          listRuntimeEvolution: FunctionReference<
+            "query",
+            "internal",
+            {
+              paginationOpts: {
+                cursor: string | null;
+                endCursor?: string | null;
+                id?: number;
+                maximumBytesRead?: number;
+                maximumRowsRead?: number;
+                numItems: number;
+              };
+              runtime: string;
+              streamId: string;
+            },
+            any,
+            Name
+          >;
+          markRuntimeCommitQueued: FunctionReference<
+            "mutation",
+            "internal",
+            {
+              commitKey: string;
+              runtime: string;
+              streamId: string;
+              workId: string;
+            },
+            any,
+            Name
+          >;
+          registerRuntime: FunctionReference<
+            "mutation",
+            "internal",
+            {
+              description?: string;
+              facts: {
+                edgeKinds: Array<string>;
+                entities: Array<{
+                  attrs: Record<string, "string" | "number" | "boolean">;
+                  entityType: string;
+                  states: Array<string>;
+                }>;
+                partitions: Array<string>;
+              };
+              historyStreamType: string;
+              namespaces?: {
+                current?: string;
+                facts?: string;
+                historical?: string;
+              };
+              runtime: string;
+              searchProfiles?: {
+                current?: { sourceKinds?: Array<string> };
+                historical?: { sourceKinds?: Array<string> };
+              };
+            },
+            any,
+            Name
+          >;
+        };
         listRuntimeEvolution: FunctionReference<
           "query",
           "internal",
@@ -275,6 +361,189 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           any,
           Name
         >;
+      };
+      runtimeApi: {
+        appendRuntimeHistory: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            entryId: string;
+            entryTime: number;
+            kind: string;
+            parentEntryIds?: Array<string>;
+            payload?: any;
+            runtime: string;
+            streamId: string;
+          },
+          any,
+          Name
+        >;
+        applyRuntimeFacts: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            facts: {
+              edges?: Array<{
+                from: string;
+                kind: string;
+                scope?: string;
+                to: string;
+              }>;
+              items: Array<{
+                attrs?: Record<string, string | number | boolean>;
+                entity: string;
+                entityType: string;
+                labels?: Array<string>;
+                order: Array<number>;
+                scope?: string;
+                state?: string;
+              }>;
+              mode?: "direct" | "event";
+              partitions?: Array<{
+                count: number;
+                head?: string;
+                membersVersion?: number;
+                partition: string;
+                scope?: string;
+                tail?: string;
+              }>;
+              projector?: string;
+            };
+            runtime: string;
+            sourceVersion: number;
+            streamId: string;
+          },
+          any,
+          Name
+        >;
+        completeMemoryChartMaintenance: FunctionReference<
+          "mutation",
+          "internal",
+          { entryTime: number; namespace: string },
+          any,
+          Name
+        >;
+        completeRuntimeCommit: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            commitKey: string;
+            currentKey?: string;
+            entryId: string;
+            entryTime: number;
+            historicalKey?: string;
+            latestEntity?: string;
+            runtime: string;
+            sourceVersion: number;
+            streamId: string;
+            workId?: string;
+          },
+          any,
+          Name
+        >;
+        getMemoryChart: FunctionReference<
+          "query",
+          "internal",
+          { chartId: string },
+          any,
+          Name
+        >;
+        getMemoryChartNamespaceMetrics: FunctionReference<
+          "query",
+          "internal",
+          { namespace: string },
+          any,
+          Name
+        >;
+        getRuntimeRegistration: FunctionReference<
+          "query",
+          "internal",
+          { runtime: string },
+          any,
+          Name
+        >;
+        listMemoryChartMembers: FunctionReference<
+          "query",
+          "internal",
+          {
+            chartId: string;
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
+          },
+          any,
+          Name
+        >;
+        listMemoryChartRepartitionEvents: FunctionReference<
+          "query",
+          "internal",
+          {
+            namespace: string;
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
+          },
+          any,
+          Name
+        >;
+        listMemoryCharts: FunctionReference<
+          "query",
+          "internal",
+          {
+            namespace: string;
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
+          },
+          any,
+          Name
+        >;
+        listMemoryChartSupportEdges: FunctionReference<
+          "query",
+          "internal",
+          {
+            namespace: string;
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
+          },
+          any,
+          Name
+        >;
+        maintainMemoryChartNamespace: FunctionReference<
+          "mutation",
+          "internal",
+          { entryTime: number; namespace: string },
+          any,
+          Name
+        >;
+        markMemoryChartMaintenanceQueued: FunctionReference<
+          "mutation",
+          "internal",
+          { entryTime: number; namespace: string },
+          any,
+          Name
+        >;
         startRuntimeCommit: FunctionReference<
           "mutation",
           "internal",
@@ -286,6 +555,27 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             runtime: string;
             streamId: string;
             workId?: string;
+          },
+          any,
+          Name
+        >;
+        upsertMemoryChartAssignment: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            embedding: Array<number>;
+            entryId: string;
+            entryTime: number;
+            fileName?: string | null;
+            key: string;
+            metadata?: Record<string, string | number | boolean | null>;
+            mimeType?: string;
+            namespace: string;
+            sourceKind?: string;
+            sourceType: "text" | "textFile" | "binaryFile";
+            storageId?: string;
+            summary: string;
+            title?: string;
           },
           any,
           Name
