@@ -29,6 +29,26 @@ const derivedValidator = v.object({
   ),
 });
 
+function stripOrderedFact(row: {
+  entity: string;
+  entityType: string;
+  scope?: string;
+  state?: string;
+  order: number[];
+  labels: string[];
+  attrs?: unknown;
+}) {
+  return {
+    entity: row.entity,
+    entityType: row.entityType,
+    scope: row.scope,
+    state: row.state,
+    order: row.order,
+    labels: row.labels,
+    attrs: row.attrs,
+  };
+}
+
 export const getPartitionTail = query({
   args: {
     namespace: v.string(),
@@ -95,7 +115,7 @@ export const getOrderedFacts = query({
           if (left !== right) return left - right;
         }
         return 0;
-      });
+      }).map(stripOrderedFact);
     }
 
     if (args.entityType != null) {
@@ -114,7 +134,7 @@ export const getOrderedFacts = query({
           if (left !== right) return left - right;
         }
         return 0;
-      });
+      }).map(stripOrderedFact);
     }
 
     const rows = await ctx.db
@@ -131,7 +151,7 @@ export const getOrderedFacts = query({
         if (left !== right) return left - right;
       }
       return 0;
-    });
+    }).map(stripOrderedFact);
   },
 });
 

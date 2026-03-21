@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { api } from "../_generated/api";
 import { internalMutation, type MutationCtx } from "../_generated/server";
 import {
   agentMetricNamespace,
@@ -590,6 +591,18 @@ export const recordTurnIdentity = internalMutation({
           }
         : undefined,
     });
+
+    if (bindingCreated) {
+      await ctx.scheduler.runAfter(0, api.agentMemory.recordThreadIdentityEpisode, {
+        threadId: args.threadId,
+        messageId: args.messageId,
+        codeId: args.codeId,
+        staticHash: args.staticHash,
+        runtimeHash: args.runtimeHash,
+        previousCodeId: previousBinding?.codeId,
+        entryTime: now,
+      });
+    }
 
     return {
       registrationId: registration._id,

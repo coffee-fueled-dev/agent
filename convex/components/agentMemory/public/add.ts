@@ -15,6 +15,18 @@ const sharedAddArgs = {
   key: v.string(),
   title: v.optional(v.string()),
   metadata: metadataRecordValidator,
+  indexKind: v.optional(v.union(v.literal("current"), v.literal("historical"))),
+  sourceKind: v.optional(v.string()),
+  streamType: v.optional(v.string()),
+  streamId: v.optional(v.string()),
+  sourceEntryId: v.optional(v.string()),
+  entity: v.optional(v.string()),
+  entityType: v.optional(v.string()),
+  sourceVersion: v.optional(v.number()),
+  entryTime: v.optional(v.number()),
+  validFrom: v.optional(v.number()),
+  validTo: v.optional(v.union(v.number(), v.null())),
+  scope: v.optional(v.string()),
   googleApiKey: v.optional(v.string()),
 };
 
@@ -24,6 +36,18 @@ export type AddTextArgs = AgentMemoryGoogleConfig & {
   title?: string;
   text: string;
   metadata?: Record<string, string | number | boolean | null>;
+  indexKind?: "current" | "historical";
+  sourceKind?: string;
+  streamType?: string;
+  streamId?: string;
+  sourceEntryId?: string;
+  entity?: string;
+  entityType?: string;
+  sourceVersion?: number;
+  entryTime?: number;
+  validFrom?: number;
+  validTo?: number | null;
+  scope?: string;
 };
 
 export type AddStoredTextFileArgs = AgentMemoryGoogleConfig & {
@@ -34,6 +58,18 @@ export type AddStoredTextFileArgs = AgentMemoryGoogleConfig & {
   mimeType: string;
   fileName?: string;
   metadata?: Record<string, string | number | boolean | null>;
+  indexKind?: "current" | "historical";
+  sourceKind?: string;
+  streamType?: string;
+  streamId?: string;
+  sourceEntryId?: string;
+  entity?: string;
+  entityType?: string;
+  sourceVersion?: number;
+  entryTime?: number;
+  validFrom?: number;
+  validTo?: number | null;
+  scope?: string;
 };
 
 export type AddStoredBinaryFileArgs = AgentMemoryGoogleConfig & {
@@ -45,6 +81,18 @@ export type AddStoredBinaryFileArgs = AgentMemoryGoogleConfig & {
   fileName?: string;
   text?: string;
   metadata?: Record<string, string | number | boolean | null>;
+  indexKind?: "current" | "historical";
+  sourceKind?: string;
+  streamType?: string;
+  streamId?: string;
+  sourceEntryId?: string;
+  entity?: string;
+  entityType?: string;
+  sourceVersion?: number;
+  entryTime?: number;
+  validFrom?: number;
+  validTo?: number | null;
+  scope?: string;
 };
 
 export const generateUploadUrl = mutation({
@@ -71,6 +119,18 @@ export const addText = action({
         namespace: args.namespace,
         sourceType: "text",
         modality: "text",
+        indexKind: args.indexKind,
+        sourceKind: args.sourceKind,
+        streamType: args.streamType,
+        streamId: args.streamId,
+        sourceEntryId: args.sourceEntryId,
+        entity: args.entity,
+        entityType: args.entityType,
+        sourceVersion: args.sourceVersion,
+        entryTime: args.entryTime,
+        validFrom: args.validFrom,
+        validTo: args.validTo,
+        scope: args.scope,
         metadata: args.metadata,
       }),
     });
@@ -93,6 +153,18 @@ export const addStoredTextFile = action({
       namespace: args.namespace,
       sourceType: "textFile",
       modality: "text",
+      indexKind: args.indexKind,
+      sourceKind: args.sourceKind,
+      streamType: args.streamType,
+      streamId: args.streamId,
+      sourceEntryId: args.sourceEntryId,
+      entity: args.entity,
+      entityType: args.entityType,
+      sourceVersion: args.sourceVersion,
+      entryTime: args.entryTime,
+      validFrom: args.validFrom,
+      validTo: args.validTo,
+      scope: args.scope,
       metadata: args.metadata,
       mimeType: args.mimeType,
       storageId: args.storageId,
@@ -143,6 +215,18 @@ export const addStoredBinaryFile = action({
       metadata: buildEntryMetadata({
         namespace: args.namespace,
         sourceType: "binaryFile",
+        indexKind: args.indexKind,
+        sourceKind: args.sourceKind,
+        streamType: args.streamType,
+        streamId: args.streamId,
+        sourceEntryId: args.sourceEntryId,
+        entity: args.entity,
+        entityType: args.entityType,
+        sourceVersion: args.sourceVersion,
+        entryTime: args.entryTime,
+        validFrom: args.validFrom,
+        validTo: args.validTo,
+        scope: args.scope,
         modality: args.mimeType.startsWith("image/")
           ? "image"
           : args.mimeType.startsWith("audio/")

@@ -3,6 +3,9 @@ import { v } from "convex/values";
 export const sourceTypes = ["text", "textFile", "binaryFile"] as const;
 export type AgentMemorySourceType = (typeof sourceTypes)[number];
 
+export const indexKinds = ["current", "historical"] as const;
+export type AgentMemoryIndexKind = (typeof indexKinds)[number];
+
 export const modalities = [
   "text",
   "image",
@@ -26,6 +29,18 @@ export type AgentMemoryEntryMetadata = AgentMemoryMetadataRecord & {
   sourceType: AgentMemorySourceType;
   modality: AgentMemoryModality;
   namespace: string;
+  indexKind?: AgentMemoryIndexKind;
+  sourceKind?: string;
+  streamType?: string;
+  streamId?: string;
+  sourceEntryId?: string;
+  entity?: string;
+  entityType?: string;
+  sourceVersion?: number;
+  entryTime?: number;
+  validFrom?: number;
+  validTo?: number | null;
+  scope?: string;
   mimeType?: string;
   storageId?: string;
   fileName?: string | null;
@@ -71,6 +86,18 @@ export function buildEntryMetadata(args: {
   namespace: string;
   sourceType: AgentMemorySourceType;
   modality: AgentMemoryModality;
+  indexKind?: AgentMemoryIndexKind;
+  sourceKind?: string;
+  streamType?: string;
+  streamId?: string;
+  sourceEntryId?: string;
+  entity?: string;
+  entityType?: string;
+  sourceVersion?: number;
+  entryTime?: number;
+  validFrom?: number;
+  validTo?: number | null;
+  scope?: string;
   metadata?: AgentMemoryMetadataRecord;
   mimeType?: string;
   storageId?: string;
@@ -81,6 +108,20 @@ export function buildEntryMetadata(args: {
     namespace: args.namespace,
     sourceType: args.sourceType,
     modality: args.modality,
+    ...(args.indexKind ? { indexKind: args.indexKind } : {}),
+    ...(args.sourceKind ? { sourceKind: args.sourceKind } : {}),
+    ...(args.streamType ? { streamType: args.streamType } : {}),
+    ...(args.streamId ? { streamId: args.streamId } : {}),
+    ...(args.sourceEntryId ? { sourceEntryId: args.sourceEntryId } : {}),
+    ...(args.entity ? { entity: args.entity } : {}),
+    ...(args.entityType ? { entityType: args.entityType } : {}),
+    ...(args.sourceVersion !== undefined
+      ? { sourceVersion: args.sourceVersion }
+      : {}),
+    ...(args.entryTime !== undefined ? { entryTime: args.entryTime } : {}),
+    ...(args.validFrom !== undefined ? { validFrom: args.validFrom } : {}),
+    ...(args.validTo !== undefined ? { validTo: args.validTo } : {}),
+    ...(args.scope ? { scope: args.scope } : {}),
     ...(args.mimeType ? { mimeType: args.mimeType } : {}),
     ...(args.storageId ? { storageId: args.storageId } : {}),
     ...(args.fileName !== undefined ? { fileName: args.fileName } : {}),

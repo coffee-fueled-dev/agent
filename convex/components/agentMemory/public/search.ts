@@ -3,7 +3,9 @@ import type { Id } from "../_generated/dataModel";
 import { action } from "../_generated/server";
 import { createAgentMemoryRag } from "../internal/rag";
 import type {
+  AgentMemoryEntryMetadata,
   AgentMemoryGoogleConfig,
+  AgentMemoryIndexKind,
   AgentMemorySourceType,
 } from "../internal/shared";
 
@@ -34,9 +36,11 @@ type SearchResultBase = {
   title?: string;
   importance: number;
   score: number;
+  metadata: SearchableMetadata;
 };
 
-type SearchableMetadata = {
+export type SearchableMetadata = Partial<AgentMemoryEntryMetadata> & {
+  indexKind?: AgentMemoryIndexKind;
   sourceType?: AgentMemorySourceType;
   storageId?: string;
   mimeType?: string;
@@ -56,6 +60,13 @@ export type SearchArgs = AgentMemoryGoogleConfig & {
   searchType?: "vector" | "text" | "hybrid";
   textWeight?: number;
   vectorWeight?: number;
+  asOfTime?: number;
+  includeHistorical?: boolean;
+  sourceKinds?: string[];
+  entity?: string;
+  entityType?: string;
+  streamType?: string;
+  streamId?: string;
 };
 
 export const searchQueryValidator = v.union(v.string(), v.array(v.number()));
@@ -75,12 +86,24 @@ export const searchOptionsValidator = {
   ),
   textWeight: v.optional(v.number()),
   vectorWeight: v.optional(v.number()),
+  asOfTime: v.optional(v.number()),
+  includeHistorical: v.optional(v.boolean()),
+  sourceKinds: v.optional(v.array(v.string())),
+  entity: v.optional(v.string()),
+  entityType: v.optional(v.string()),
+  streamType: v.optional(v.string()),
+  streamId: v.optional(v.string()),
 };
 
 function readMetadata(
   metadata: Record<string, unknown> | undefined,
 ): SearchableMetadata {
   return {
+    ...(metadata as AgentMemoryEntryMetadata | undefined),
+    indexKind:
+      metadata?.indexKind === "current" || metadata?.indexKind === "historical"
+        ? metadata.indexKind
+        : undefined,
     sourceType:
       metadata?.sourceType === "text" ||
       metadata?.sourceType === "textFile" ||
@@ -115,6 +138,48 @@ function entryScore(
   return Number.isFinite(score) ? score : 0;
 }
 
+function matchesSearchFilters(
+  metadata: SearchableMetadata,
+  args: SearchArgs,
+) {
+  if (args.includeHistorical === false && metadata.indexKind === "historical") {
+    return false;
+  }
+  if (
+    args.sourceKinds &&
+    (metadata.sourceKind == null || !args.sourceKinds.includes(metadata.sourceKind))
+  ) {
+    return false;
+  }
+  if (args.entity && metadata.entity !== args.entity) {
+    return false;
+  }
+  if (args.entityType && metadata.entityType !== args.entityType) {
+    return false;
+  }
+  if (args.streamType && metadata.streamType !== args.streamType) {
+    return false;
+  }
+  if (args.streamId && metadata.streamId !== args.streamId) {
+    return false;
+  }
+  if (args.asOfTime !== undefined) {
+    if (metadata.indexKind === "current") {
+      return false;
+    }
+    if (metadata.entryTime !== undefined && metadata.entryTime > args.asOfTime) {
+      return false;
+    }
+    if (metadata.validFrom !== undefined && metadata.validFrom > args.asOfTime) {
+      return false;
+    }
+    if (metadata.validTo != null && metadata.validTo <= args.asOfTime) {
+      return false;
+    }
+  }
+  return true;
+}
+
 export const search = action({
   args: {
     namespace: v.string(),
@@ -143,12 +208,16 @@ export const search = action({
     const results = await Promise.all(
       entries.map(async (entry): Promise<AgentMemorySearchResult | null> => {
         const metadata = readMetadata(entry.metadata);
+        if (!matchesSearchFilters(metadata, args)) {
+          return null;
+        }
         const base = {
           entryId: entry.entryId,
           key: entryKey(entry),
           title: entry.title,
           importance: entry.importance,
           score: entryScore(searchResults, entry.entryId),
+          metadata,
         };
         if (metadata.sourceType === "textFile") {
           if (!metadata.storageId || !metadata.mimeType) {

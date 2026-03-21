@@ -911,15 +911,27 @@ export declare const components: {
           "action",
           "internal",
           {
+            entity?: string;
+            entityType?: string;
+            entryTime?: number;
             fileName?: string;
             googleApiKey?: string;
+            indexKind?: "current" | "historical";
             key: string;
             metadata?: Record<string, string | number | boolean | null>;
             mimeType: string;
             namespace: string;
+            scope?: string;
+            sourceEntryId?: string;
+            sourceKind?: string;
+            sourceVersion?: number;
             storageId: string;
+            streamId?: string;
+            streamType?: string;
             text?: string;
             title?: string;
+            validFrom?: number;
+            validTo?: number | null;
           },
           any
         >;
@@ -927,14 +939,26 @@ export declare const components: {
           "action",
           "internal",
           {
+            entity?: string;
+            entityType?: string;
+            entryTime?: number;
             fileName?: string;
             googleApiKey?: string;
+            indexKind?: "current" | "historical";
             key: string;
             metadata?: Record<string, string | number | boolean | null>;
             mimeType: string;
             namespace: string;
+            scope?: string;
+            sourceEntryId?: string;
+            sourceKind?: string;
+            sourceVersion?: number;
             storageId: string;
+            streamId?: string;
+            streamType?: string;
             title?: string;
+            validFrom?: number;
+            validTo?: number | null;
           },
           any
         >;
@@ -942,12 +966,24 @@ export declare const components: {
           "action",
           "internal",
           {
+            entity?: string;
+            entityType?: string;
+            entryTime?: number;
             googleApiKey?: string;
+            indexKind?: "current" | "historical";
             key: string;
             metadata?: Record<string, string | number | boolean | null>;
             namespace: string;
+            scope?: string;
+            sourceEntryId?: string;
+            sourceKind?: string;
+            sourceVersion?: number;
+            streamId?: string;
+            streamType?: string;
             text: string;
             title?: string;
+            validFrom?: number;
+            validTo?: number | null;
           },
           any
         >;
@@ -958,14 +994,100 @@ export declare const components: {
           "action",
           "internal",
           {
+            asOfTime?: number;
             chunkContext?: { after: number; before: number };
+            entity?: string;
+            entityType?: string;
             filters?: Array<any>;
             googleApiKey?: string;
+            includeHistorical?: boolean;
             limit?: number;
             namespace: string;
             query: string | Array<number>;
             searchType?: "vector" | "text" | "hybrid";
+            sourceKinds?: Array<string>;
+            streamId?: string;
+            streamType?: string;
             textWeight?: number;
+            vectorScoreThreshold?: number;
+            vectorWeight?: number;
+          },
+          any
+        >;
+      };
+      temporal: {
+        getThreadIdentityCurrent: FunctionReference<
+          "query",
+          "internal",
+          { threadId: string },
+          any
+        >;
+        listThreadIdentityEvolution: FunctionReference<
+          "query",
+          "internal",
+          { limit?: number; threadId: string },
+          any
+        >;
+        recordThreadIdentityEpisode: FunctionReference<
+          "action",
+          "internal",
+          {
+            codeId: string;
+            entryTime?: number;
+            googleApiKey?: string;
+            messageId: string;
+            previousCodeId?: string;
+            previousRuntimeHash?: string;
+            previousStaticHash?: string;
+            runtimeHash: string;
+            staticHash: string;
+            threadId: string;
+          },
+          any
+        >;
+        searchThreadIdentityAsOf: FunctionReference<
+          "action",
+          "internal",
+          {
+            asOfTime: number;
+            chunkContext?: { after: number; before: number };
+            entity?: string;
+            entityType?: string;
+            filters?: Array<any>;
+            googleApiKey?: string;
+            includeHistorical?: boolean;
+            limit?: number;
+            query: string | Array<number>;
+            searchType?: "vector" | "text" | "hybrid";
+            sourceKinds?: Array<string>;
+            streamId?: string;
+            streamType?: string;
+            textWeight?: number;
+            threadId: string;
+            vectorScoreThreshold?: number;
+            vectorWeight?: number;
+          },
+          any
+        >;
+        searchThreadIdentityCurrent: FunctionReference<
+          "action",
+          "internal",
+          {
+            asOfTime?: number;
+            chunkContext?: { after: number; before: number };
+            entity?: string;
+            entityType?: string;
+            filters?: Array<any>;
+            googleApiKey?: string;
+            includeHistorical?: boolean;
+            limit?: number;
+            query: string | Array<number>;
+            searchType?: "vector" | "text" | "hybrid";
+            sourceKinds?: Array<string>;
+            streamId?: string;
+            streamType?: string;
+            textWeight?: number;
+            threadId: string;
             vectorScoreThreshold?: number;
             vectorWeight?: number;
           },
