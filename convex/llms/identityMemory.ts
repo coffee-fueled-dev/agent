@@ -1,39 +1,28 @@
 import type {
   GenericActionCtx,
   GenericDataModel,
+  GenericMutationCtx,
   GenericQueryCtx,
 } from "convex/server";
-import { components } from "../_generated/api";
+import { api, components } from "../_generated/api";
 import { AgentMemoryClient } from "../components/agentMemory/client";
 import type { AgentMemorySearchResult } from "../components/agentMemory/public/search";
-import { FactsClient } from "../components/facts/client";
-import { history } from "../history";
+import type {
+  RuntimeCurrentView,
+  RuntimeEpisodeCommitArgs,
+} from "../components/agentMemory/internal/runtime";
 
 type ActionCtx = Pick<
   GenericActionCtx<GenericDataModel>,
   "runAction" | "runMutation" | "runQuery"
 >;
+type MutationCtx = Pick<
+  GenericMutationCtx<GenericDataModel>,
+  "runMutation" | "runQuery"
+>;
 type QueryCtx = Pick<GenericQueryCtx<GenericDataModel>, "runQuery">;
 
-const threadIdentityProjector = "agentMemory:threadIdentity";
-
-const threadIdentityFacts = new FactsClient(components.facts, {
-  entities: [
-    {
-      entityType: "turn",
-      states: ["stable", "changed"],
-      attrs: {
-        messageId: "string",
-        codeId: "string",
-        staticHash: "string",
-        runtimeHash: "string",
-        entryTime: "number",
-      },
-    },
-  ],
-  edgeKinds: ["next_turn"],
-  partitions: ["latest_turn"],
-} as const);
+const threadIdentityRuntime = "threadIdentity";
 
 function createAgentMemoryClient() {
   return new AgentMemoryClient(components.agentMemory, {
@@ -116,18 +105,6 @@ export type ThreadIdentityAsOfSearchArgs = ThreadIdentitySearchArgs & {
   asOfTime: number;
 };
 
-function threadIdentityFactsNamespace(threadId: string) {
-  return `threadIdentity:${threadId}:facts`;
-}
-
-function threadIdentityCurrentNamespace(threadId: string) {
-  return `threadIdentity:${threadId}:current`;
-}
-
-function threadIdentityHistoryNamespace(threadId: string) {
-  return `threadIdentity:${threadId}:history`;
-}
-
 function turnEntity(messageId: string) {
   return `turn:${messageId}`;
 }
@@ -198,236 +175,320 @@ function coerceTurnAttrs(value: unknown): ThreadIdentityTurnAttrs | undefined {
   };
 }
 
+function isUnknownRuntimeError(error: unknown) {
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === "string"
+        ? error
+        : JSON.stringify(error);
+  return message.includes("Unknown agentMemory runtime:");
+}
+
 export async function recordThreadIdentityEpisode(
   ctx: ActionCtx,
   args: ThreadIdentityEpisodeArgs,
-) {
-  const entryTime = args.entryTime ?? Date.now();
-  const historyEntryId = `turn:${args.messageId}`;
-  const factsNamespace = threadIdentityFactsNamespace(args.threadId);
-  const currentNamespace = threadIdentityCurrentNamespace(args.threadId);
-  const historyNamespace = threadIdentityHistoryNamespace(args.threadId);
-  const entity = turnEntity(args.messageId);
-  const identityChanged =
-    args.previousCodeId == null ||
-    args.previousCodeId !== args.codeId ||
-    args.previousStaticHash !== args.staticHash ||
-    args.previousRuntimeHash !== args.runtimeHash;
-  const parentEntryIds = (
-    await history.heads.listHeads(ctx, {
-      streamType: "threadIdentity",
-      streamId: args.threadId,
-    })
-  ).map((head) => head.entryId);
-
-  await history.append.append(ctx, {
-    streamType: "threadIdentity",
-    streamId: args.threadId,
-    entryId: historyEntryId,
-    kind: "turn_bound",
-    parentEntryIds,
-    entryTime,
-    payload: {
-      messageId: args.messageId,
-      codeId: args.codeId,
-      staticHash: args.staticHash,
-      runtimeHash: args.runtimeHash,
-      previousCodeId: args.previousCodeId,
-      previousStaticHash: args.previousStaticHash,
-      previousRuntimeHash: args.previousRuntimeHash,
-      identityChanged,
-    },
-  });
-
-  const existingTurns = await threadIdentityFacts.eval.orderedFacts(ctx, {
-    namespace: factsNamespace,
-    entityType: "turn",
-  });
-  const previousTurn = existingTurns.at(-1);
-  const totalTurns =
-    previousTurn?.entity === entity ? existingTurns.length : existingTurns.length + 1;
-  const batch = threadIdentityFacts.batch(factsNamespace);
-
-  batch.item("turn", entity, {
-    state: identityChanged ? "changed" : "stable",
-    order: [entryTime],
-    labels: [args.codeId],
-    attrs: {
-      messageId: args.messageId,
-      codeId: args.codeId,
-      staticHash: args.staticHash,
-      runtimeHash: args.runtimeHash,
-      entryTime,
-    },
-  });
-  if (previousTurn && previousTurn.entity !== entity) {
-    batch.edge("next_turn", previousTurn.entity, entity);
-  }
-  batch.partition("latest_turn", {
-    head: existingTurns[0]?.entity,
-    tail: entity,
-    count: totalTurns,
-    membersVersion: totalTurns,
-  });
-  await batch.commit(ctx, {
-    version: totalTurns,
-    projector: threadIdentityProjector,
-    mode: "event",
-  });
-
-  const memory = createAgentMemoryClient();
-  await memory.addText(ctx, {
-    namespace: currentNamespace,
-    key: `thread:${args.threadId}:current`,
-    title: `Current thread identity ${args.threadId}`,
-    indexKind: "current",
-    sourceKind: "fact",
-    streamType: "threadIdentity",
-    streamId: args.threadId,
-    sourceEntryId: historyEntryId,
-    entity: args.threadId,
-    entityType: "thread",
-    sourceVersion: totalTurns,
-    entryTime,
-    validFrom: entryTime,
-    scope: args.threadId,
-    text: summarizeCurrentThreadIdentity({
-      threadId: args.threadId,
-      messageId: args.messageId,
-      codeId: args.codeId,
-      staticHash: args.staticHash,
-      runtimeHash: args.runtimeHash,
-      totalTurns,
-      entryTime,
-      identityChanged,
-    }),
-  });
-  await memory.addText(ctx, {
-    namespace: historyNamespace,
-    key: `thread:${args.threadId}:turn:${args.messageId}`,
-    title: `Thread identity turn ${args.messageId}`,
-    indexKind: "historical",
-    sourceKind: "episode",
-    streamType: "threadIdentity",
-    streamId: args.threadId,
-    sourceEntryId: historyEntryId,
-    entity,
-    entityType: "turn",
-    sourceVersion: totalTurns,
-    entryTime,
-    validFrom: entryTime,
-    scope: args.threadId,
-    text: summarizeHistoricalThreadIdentity({
-      threadId: args.threadId,
-      messageId: args.messageId,
-      codeId: args.codeId,
-      staticHash: args.staticHash,
-      runtimeHash: args.runtimeHash,
-      previousCodeId: args.previousCodeId,
-      previousStaticHash: args.previousStaticHash,
-      previousRuntimeHash: args.previousRuntimeHash,
-      entryTime,
-      sourceVersion: totalTurns,
-      identityChanged,
-    }),
-  });
-
-  return {
-    entryId: historyEntryId,
-    identityChanged,
-    totalTurns,
-  };
+): Promise<{ workId: string }> {
+  return await enqueueThreadIdentityEpisode(ctx, args);
 }
 
 export async function searchThreadIdentityCurrent(
-  ctx: Pick<GenericActionCtx<GenericDataModel>, "runAction">,
+  ctx: Pick<GenericActionCtx<GenericDataModel>, "runAction" | "runQuery">,
   args: ThreadIdentitySearchArgs,
 ): Promise<AgentMemorySearchResult[]> {
   const { threadId, ...searchArgs } = args;
-  return await createAgentMemoryClient().search(ctx, {
-    ...searchArgs,
-    namespace: threadIdentityCurrentNamespace(threadId),
-    includeHistorical: false,
-    streamType: "threadIdentity",
-    streamId: threadId,
-  });
+  try {
+    const state = await createAgentMemoryClient().getRuntimeStreamState(ctx, {
+      runtime: threadIdentityRuntime,
+      streamId: threadId,
+    });
+    return await createAgentMemoryClient().search(ctx, {
+      ...searchArgs,
+      namespace: state.currentNamespace,
+      includeHistorical: false,
+      sourceKinds: ["fact"],
+      streamType: threadIdentityRuntime,
+      streamId: threadId,
+    });
+  } catch (error) {
+    if (isUnknownRuntimeError(error)) {
+      return [];
+    }
+    throw error;
+  }
 }
 
 export async function searchThreadIdentityAsOf(
-  ctx: Pick<GenericActionCtx<GenericDataModel>, "runAction">,
+  ctx: Pick<GenericActionCtx<GenericDataModel>, "runAction" | "runQuery">,
   args: ThreadIdentityAsOfSearchArgs,
 ): Promise<AgentMemorySearchResult[]> {
   const { threadId, ...searchArgs } = args;
-  return await createAgentMemoryClient().search(ctx, {
-    ...searchArgs,
-    namespace: threadIdentityHistoryNamespace(threadId),
-    includeHistorical: true,
-    sourceKinds: ["episode"],
-    streamType: "threadIdentity",
-    streamId: threadId,
-  });
+  try {
+    const state = await createAgentMemoryClient().getRuntimeStreamState(ctx, {
+      runtime: threadIdentityRuntime,
+      streamId: threadId,
+    });
+    return await createAgentMemoryClient().search(ctx, {
+      ...searchArgs,
+      namespace: state.historicalNamespace,
+      includeHistorical: true,
+      sourceKinds: ["episode"],
+      streamType: threadIdentityRuntime,
+      streamId: threadId,
+    });
+  } catch (error) {
+    if (isUnknownRuntimeError(error)) {
+      return [];
+    }
+    throw error;
+  }
 }
 
 export async function getThreadIdentityCurrent(
   ctx: QueryCtx,
   args: { threadId: string },
 ): Promise<ThreadIdentityCurrentView> {
-  const turns = await threadIdentityFacts.eval.orderedFacts(ctx, {
-    namespace: threadIdentityFactsNamespace(args.threadId),
-    entityType: "turn",
-  });
-  const latest = turns.at(-1);
-  const latestAttrs = coerceTurnAttrs(latest?.attrs);
-  const heads = await history.heads.listHeads(ctx, {
-    streamType: "threadIdentity",
-    streamId: args.threadId,
-  });
-  return {
-    threadId: args.threadId,
-    totalTurns: turns.length,
-    latestMessageId: latestAttrs?.messageId ?? null,
-    latestCodeId: latestAttrs?.codeId ?? null,
-    latestStaticHash: latestAttrs?.staticHash ?? null,
-    latestRuntimeHash: latestAttrs?.runtimeHash ?? null,
-    latestEntryTime: latestAttrs?.entryTime ?? null,
-    latestEntryId: heads.at(0)?.entryId ?? null,
-  };
+  try {
+    const current = await createAgentMemoryClient().getRuntimeCurrent(ctx, {
+      runtime: threadIdentityRuntime,
+      streamId: args.threadId,
+    });
+    const latestAttrs = coerceTurnAttrs(current.latestFact?.attrs);
+    return {
+      threadId: args.threadId,
+      totalTurns: current.latestVersion,
+      latestMessageId: latestAttrs?.messageId ?? null,
+      latestCodeId: latestAttrs?.codeId ?? null,
+      latestStaticHash: latestAttrs?.staticHash ?? null,
+      latestRuntimeHash: latestAttrs?.runtimeHash ?? null,
+      latestEntryTime: latestAttrs?.entryTime ?? null,
+      latestEntryId: current.latestEntryId,
+    };
+  } catch (error) {
+    if (!isUnknownRuntimeError(error)) {
+      throw error;
+    }
+    return {
+      threadId: args.threadId,
+      totalTurns: 0,
+      latestMessageId: null,
+      latestCodeId: null,
+      latestStaticHash: null,
+      latestRuntimeHash: null,
+      latestEntryTime: null,
+      latestEntryId: null,
+    };
+  }
 }
 
 export async function listThreadIdentityEvolution(
   ctx: QueryCtx,
   args: { threadId: string; limit?: number },
 ): Promise<ThreadIdentityEvolutionView> {
-  const turns = await threadIdentityFacts.eval.orderedFacts(ctx, {
-    namespace: threadIdentityFactsNamespace(args.threadId),
-    entityType: "turn",
-  });
-  const historyPage = await history.read.listEntries(ctx, {
-    streamType: "threadIdentity",
-    streamId: args.threadId,
-    paginationOpts: {
-      cursor: null,
-      numItems: args.limit ?? 25,
+  try {
+    const evolution = await createAgentMemoryClient().listRuntimeEvolution(
+      ctx,
+      {
+        runtime: threadIdentityRuntime,
+        streamId: args.threadId,
+        paginationOpts: {
+          cursor: null,
+          numItems: args.limit ?? 25,
+        },
+      },
+    );
+    return {
+      threadId: args.threadId,
+      turns: evolution.facts.map((turn) => ({
+        entity: turn.entity,
+        state: turn.state,
+        order: turn.order,
+        labels: turn.labels,
+        attrs: coerceTurnAttrs(turn.attrs),
+      })),
+      history: evolution.history
+        .slice()
+        .reverse()
+        .map((entry) => ({
+          entryId: entry.entryId,
+          kind: entry.kind,
+          entryTime: entry.entryTime,
+          parentEntryIds: entry.parentEntryIds,
+          payload: entry.payload,
+        })),
+    };
+  } catch (error) {
+    if (!isUnknownRuntimeError(error)) {
+      throw error;
+    }
+    return {
+      threadId: args.threadId,
+      turns: [],
+      history: [],
+    };
+  }
+}
+
+async function ensureThreadIdentityRuntime(
+  ctx: Pick<MutationCtx, "runMutation">,
+) {
+  await createAgentMemoryClient().registerRuntime(ctx, {
+    runtime: threadIdentityRuntime,
+    description: "Thread identity episodic runtime.",
+    historyStreamType: threadIdentityRuntime,
+    facts: {
+      entities: [
+        {
+          entityType: "turn",
+          states: ["stable", "changed"],
+          attrs: {
+            messageId: "string",
+            codeId: "string",
+            staticHash: "string",
+            runtimeHash: "string",
+            entryTime: "number",
+          },
+        },
+      ],
+      edgeKinds: ["next_turn"],
+      partitions: ["latest_turn"],
+    },
+    namespaces: {
+      facts: "facts",
+      current: "current",
+      historical: "history",
+    },
+    searchProfiles: {
+      current: { sourceKinds: ["fact"] },
+      historical: { sourceKinds: ["episode"] },
     },
   });
+}
+
+function buildThreadIdentityCommit(
+  current: RuntimeCurrentView,
+  args: ThreadIdentityEpisodeArgs,
+): RuntimeEpisodeCommitArgs {
+  const entryTime = args.entryTime ?? Date.now();
+  const entity = turnEntity(args.messageId);
+  const totalTurns = current.latestVersion + 1;
+  const identityChanged =
+    args.previousCodeId == null ||
+    args.previousCodeId !== args.codeId ||
+    args.previousStaticHash !== args.staticHash ||
+    args.previousRuntimeHash !== args.runtimeHash;
+
   return {
-    threadId: args.threadId,
-    turns: turns.map((turn) => ({
-      entity: turn.entity,
-      state: turn.state,
-      order: turn.order,
-      labels: turn.labels,
-      attrs: coerceTurnAttrs(turn.attrs),
-    })),
-    history: historyPage.page
-      .slice()
-      .reverse()
-      .map((entry) => ({
-        entryId: entry.entryId,
-        kind: entry.kind,
-        entryTime: entry.entryTime,
-        parentEntryIds: entry.parentEntryIds,
-        payload: entry.payload,
-      })),
+    runtime: threadIdentityRuntime,
+    streamId: args.threadId,
+    commitKey: `threadIdentity:${args.threadId}:${args.messageId}`,
+    entryTime,
+    latestEntity: entity,
+    history: {
+      entryId: `turn:${args.messageId}`,
+      kind: "turn_bound",
+      payload: {
+        messageId: args.messageId,
+        codeId: args.codeId,
+        staticHash: args.staticHash,
+        runtimeHash: args.runtimeHash,
+        previousCodeId: args.previousCodeId,
+        previousStaticHash: args.previousStaticHash,
+        previousRuntimeHash: args.previousRuntimeHash,
+        identityChanged,
+      },
+    },
+    facts: {
+      items: [
+        {
+          entity,
+          entityType: "turn",
+          state: identityChanged ? "changed" : "stable",
+          order: [entryTime],
+          labels: [args.codeId],
+          attrs: {
+            messageId: args.messageId,
+            codeId: args.codeId,
+            staticHash: args.staticHash,
+            runtimeHash: args.runtimeHash,
+            entryTime,
+          },
+        },
+      ],
+      edges: current.latestFact
+        ? [
+            {
+              kind: "next_turn",
+              from: current.latestFact.entity,
+              to: entity,
+            },
+          ]
+        : undefined,
+      partitions: [
+        {
+          partition: "latest_turn",
+          head: current.latestEntity ?? undefined,
+          tail: entity,
+          count: totalTurns,
+          membersVersion: totalTurns,
+        },
+      ],
+      projector: "agentMemory:threadIdentity",
+      mode: "event",
+    },
+    current: {
+      key: `thread:${args.threadId}:current`,
+      title: `Current thread identity ${args.threadId}`,
+      text: summarizeCurrentThreadIdentity({
+        threadId: args.threadId,
+        messageId: args.messageId,
+        codeId: args.codeId,
+        staticHash: args.staticHash,
+        runtimeHash: args.runtimeHash,
+        totalTurns,
+        entryTime,
+        identityChanged,
+      }),
+      sourceKind: "fact",
+      entity: args.threadId,
+      entityType: "thread",
+      scope: args.threadId,
+      validFrom: entryTime,
+    },
+    historical: {
+      key: `thread:${args.threadId}:turn:${args.messageId}`,
+      title: `Thread identity turn ${args.messageId}`,
+      text: summarizeHistoricalThreadIdentity({
+        threadId: args.threadId,
+        messageId: args.messageId,
+        codeId: args.codeId,
+        staticHash: args.staticHash,
+        runtimeHash: args.runtimeHash,
+        previousCodeId: args.previousCodeId,
+        previousStaticHash: args.previousStaticHash,
+        previousRuntimeHash: args.previousRuntimeHash,
+        entryTime,
+        sourceVersion: totalTurns,
+        identityChanged,
+      }),
+      sourceKind: "episode",
+      entity,
+      entityType: "turn",
+      scope: args.threadId,
+      validFrom: entryTime,
+    },
   };
+}
+
+export async function enqueueThreadIdentityEpisode(
+  ctx: MutationCtx | ActionCtx,
+  args: ThreadIdentityEpisodeArgs,
+): Promise<{ workId: string }> {
+  await ensureThreadIdentityRuntime(ctx);
+  const current = await createAgentMemoryClient().getRuntimeCurrent(ctx, {
+    runtime: threadIdentityRuntime,
+    streamId: args.threadId,
+  });
+  const commit = buildThreadIdentityCommit(current, args);
+  return await ctx.runMutation(api.agentMemory.enqueueRuntimeEpisode, commit);
 }

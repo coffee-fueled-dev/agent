@@ -69,7 +69,9 @@ function normalizeValue(value: unknown): JsonValue {
       return String(value.id);
     }
     const entries = Object.entries(value)
-      .filter(([, entryValue]) => entryValue !== undefined)
+      .filter(
+        ([key, entryValue]) => entryValue !== undefined && !key.startsWith("$"),
+      )
       .sort(([left], [right]) => left.localeCompare(right))
       .map(([key, entryValue]) => [key, normalizeValue(entryValue)] as const);
     return Object.fromEntries(entries);

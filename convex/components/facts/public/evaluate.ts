@@ -107,15 +107,17 @@ export const getOrderedFacts = query({
             .eq("entityType", entityType),
         )
         .collect();
-      return rows.sort((a, b) => {
-        const length = Math.max(a.order.length, b.order.length);
-        for (let index = 0; index < length; index += 1) {
-          const left = a.order[index] ?? 0;
-          const right = b.order[index] ?? 0;
-          if (left !== right) return left - right;
-        }
-        return 0;
-      }).map(stripOrderedFact);
+      return rows
+        .sort((a, b) => {
+          const length = Math.max(a.order.length, b.order.length);
+          for (let index = 0; index < length; index += 1) {
+            const left = a.order[index] ?? 0;
+            const right = b.order[index] ?? 0;
+            if (left !== right) return left - right;
+          }
+          return 0;
+        })
+        .map(stripOrderedFact);
     }
 
     if (args.entityType != null) {
@@ -126,15 +128,17 @@ export const getOrderedFacts = query({
           q.eq("namespace", args.namespace).eq("entityType", entityType),
         )
         .collect();
-      return rows.sort((a, b) => {
-        const length = Math.max(a.order.length, b.order.length);
-        for (let index = 0; index < length; index += 1) {
-          const left = a.order[index] ?? 0;
-          const right = b.order[index] ?? 0;
-          if (left !== right) return left - right;
-        }
-        return 0;
-      }).map(stripOrderedFact);
+      return rows
+        .sort((a, b) => {
+          const length = Math.max(a.order.length, b.order.length);
+          for (let index = 0; index < length; index += 1) {
+            const left = a.order[index] ?? 0;
+            const right = b.order[index] ?? 0;
+            if (left !== right) return left - right;
+          }
+          return 0;
+        })
+        .map(stripOrderedFact);
     }
 
     const rows = await ctx.db
@@ -143,15 +147,17 @@ export const getOrderedFacts = query({
         q.eq("namespace", args.namespace),
       )
       .collect();
-    return rows.sort((a, b) => {
-      const length = Math.max(a.order.length, b.order.length);
-      for (let index = 0; index < length; index += 1) {
-        const left = a.order[index] ?? 0;
-        const right = b.order[index] ?? 0;
-        if (left !== right) return left - right;
-      }
-      return 0;
-    }).map(stripOrderedFact);
+    return rows
+      .sort((a, b) => {
+        const length = Math.max(a.order.length, b.order.length);
+        for (let index = 0; index < length; index += 1) {
+          const left = a.order[index] ?? 0;
+          const right = b.order[index] ?? 0;
+          if (left !== right) return left - right;
+        }
+        return 0;
+      })
+      .map(stripOrderedFact);
   },
 });
 

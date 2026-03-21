@@ -12,7 +12,11 @@ import {
   createTerminalChatAgent,
   terminalChatAgentDefinition,
 } from "./llms/agents/terminalChat";
-import { recordRegisteredMachineAgentTurn } from "./llms/identity";
+import {
+  buildInjectedMemoryContext,
+  resolveThreadOwnerMemoryScope,
+  searchThreadOwnerMemories,
+} from "./llms/chatMemory";
 import type { UIMessage } from "./llms/uiMessage";
 
 export const createThread = mutation({
@@ -21,7 +25,7 @@ export const createThread = mutation({
     title: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const agent = createTerminalChatAgent();
+    const agent = await createTerminalChatAgent();
     const owner = await ensureTokenAccount(ctx, args.token);
     const machine = await ensureMachineAccount(ctx, {
       codeId: terminalChatAgentDefinition.agentId,
@@ -51,24 +55,41 @@ export const sendMessage = action({
     prompt: v.string(),
   },
   handler: async (ctx, args) => {
-    const agent = createTerminalChatAgent();
-    const { messageId: promptMessageId } = await agent.saveMessage(ctx, {
+    const memoryScope = await resolveThreadOwnerMemoryScope(ctx, args.threadId);
+    const baseAgent = await createTerminalChatAgent();
+    const { messageId: promptMessageId } = await baseAgent.saveMessage(ctx, {
       threadId: args.threadId,
       prompt: args.prompt,
     });
 
-    await recordRegisteredMachineAgentTurn(ctx, {
-      definition: terminalChatAgentDefinition,
+    const toolCtx = {
+      ...ctx,
       threadId: args.threadId,
       messageId: promptMessageId,
-    });
+    };
+    const agent = await createTerminalChatAgent(toolCtx);
 
-    const { thread } = await agent.continueThread(ctx, {
+    const retrieved = await searchThreadOwnerMemories(ctx, {
       threadId: args.threadId,
+      query: args.prompt,
+      searchType: "vector",
+      limit: 10,
+      vectorScoreThreshold: 0.8,
+    });
+    const injectedMemoryContext = buildInjectedMemoryContext(
+      retrieved.memories.slice(0, 3),
+    );
+
+    const { thread } = await agent.continueThread(toolCtx, {
+      threadId: args.threadId,
+      userId: String(memoryScope.ownerAccountId),
     });
 
     const result = await thread.streamText(
-      { promptMessageId } as unknown as Parameters<typeof thread.streamText>[0],
+      {
+        promptMessageId,
+        system: injectedMemoryContext ?? undefined,
+      } as unknown as Parameters<typeof thread.streamText>[0],
       {
         saveStreamDeltas: { throttleMs: 50 },
         contextOptions: {

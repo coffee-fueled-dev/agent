@@ -9,6 +9,7 @@
  */
 
 import type * as agentMemory from "../agentMemory.js";
+import type * as agentMemoryWorkpool from "../agentMemoryWorkpool.js";
 import type * as aggregate from "../aggregate.js";
 import type * as chat from "../chat.js";
 import type * as customFunctions from "../customFunctions.js";
@@ -26,16 +27,20 @@ import type * as llms_agents_exampleAgent__toolkits__instructions_index from "..
 import type * as llms_agents_exampleAgent__toolkits_example from "../llms/agents/exampleAgent/_toolkits/example.js";
 import type * as llms_agents_exampleAgent_agent from "../llms/agents/exampleAgent/agent.js";
 import type * as llms_agents_terminalChat from "../llms/agents/terminalChat.js";
+import type * as llms_chatMemory from "../llms/chatMemory.js";
 import type * as llms_identity from "../llms/identity.js";
 import type * as llms_identityMemory from "../llms/identityMemory.js";
 import type * as llms_identityRegistry from "../llms/identityRegistry.js";
 import type * as llms_identityTelemetry from "../llms/identityTelemetry.js";
+import type * as llms_memoryFiles from "../llms/memoryFiles.js";
 import type * as llms_models from "../llms/models.js";
 import type * as llms_tools__libs_customFunctions from "../llms/tools/_libs/customFunctions.js";
 import type * as llms_tools__libs_toolkit from "../llms/tools/_libs/toolkit.js";
 import type * as llms_tools__policies_examplePolicy from "../llms/tools/_policies/examplePolicy.js";
 import type * as llms_tools_example_tool from "../llms/tools/example/tool.js";
 import type * as llms_tools_index from "../llms/tools/index.js";
+import type * as llms_tools_searchMemory_tool from "../llms/tools/searchMemory/tool.js";
+import type * as llms_tools_storeMemory_tool from "../llms/tools/storeMemory/tool.js";
 import type * as llms_uiMessage from "../llms/uiMessage.js";
 import type * as models_auth_account from "../models/auth/account.js";
 import type * as models_auth_index from "../models/auth/index.js";
@@ -61,6 +66,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   agentMemory: typeof agentMemory;
+  agentMemoryWorkpool: typeof agentMemoryWorkpool;
   aggregate: typeof aggregate;
   chat: typeof chat;
   customFunctions: typeof customFunctions;
@@ -78,16 +84,20 @@ declare const fullApi: ApiFromModules<{
   "llms/agents/exampleAgent/_toolkits/example": typeof llms_agents_exampleAgent__toolkits_example;
   "llms/agents/exampleAgent/agent": typeof llms_agents_exampleAgent_agent;
   "llms/agents/terminalChat": typeof llms_agents_terminalChat;
+  "llms/chatMemory": typeof llms_chatMemory;
   "llms/identity": typeof llms_identity;
   "llms/identityMemory": typeof llms_identityMemory;
   "llms/identityRegistry": typeof llms_identityRegistry;
   "llms/identityTelemetry": typeof llms_identityTelemetry;
+  "llms/memoryFiles": typeof llms_memoryFiles;
   "llms/models": typeof llms_models;
   "llms/tools/_libs/customFunctions": typeof llms_tools__libs_customFunctions;
   "llms/tools/_libs/toolkit": typeof llms_tools__libs_toolkit;
   "llms/tools/_policies/examplePolicy": typeof llms_tools__policies_examplePolicy;
   "llms/tools/example/tool": typeof llms_tools_example_tool;
   "llms/tools/index": typeof llms_tools_index;
+  "llms/tools/searchMemory/tool": typeof llms_tools_searchMemory_tool;
+  "llms/tools/storeMemory/tool": typeof llms_tools_storeMemory_tool;
   "llms/uiMessage": typeof llms_uiMessage;
   "models/auth/account": typeof models_auth_account;
   "models/auth/index": typeof models_auth_index;
@@ -991,6 +1001,170 @@ export declare const components: {
         >;
         generateUploadUrl: FunctionReference<"mutation", "internal", {}, any>;
       };
+      runtime: {
+        appendRuntimeHistory: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            entryId: string;
+            entryTime: number;
+            kind: string;
+            parentEntryIds?: Array<string>;
+            payload?: any;
+            runtime: string;
+            streamId: string;
+          },
+          any
+        >;
+        applyRuntimeFacts: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            facts: {
+              edges?: Array<{
+                from: string;
+                kind: string;
+                scope?: string;
+                to: string;
+              }>;
+              items: Array<{
+                attrs?: Record<string, string | number | boolean>;
+                entity: string;
+                entityType: string;
+                labels?: Array<string>;
+                order: Array<number>;
+                scope?: string;
+                state?: string;
+              }>;
+              mode?: "direct" | "event";
+              partitions?: Array<{
+                count: number;
+                head?: string;
+                membersVersion?: number;
+                partition: string;
+                scope?: string;
+                tail?: string;
+              }>;
+              projector?: string;
+            };
+            runtime: string;
+            sourceVersion: number;
+            streamId: string;
+          },
+          any
+        >;
+        completeRuntimeCommit: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            commitKey: string;
+            currentKey?: string;
+            entryId: string;
+            entryTime: number;
+            historicalKey?: string;
+            latestEntity?: string;
+            runtime: string;
+            sourceVersion: number;
+            streamId: string;
+            workId?: string;
+          },
+          any
+        >;
+        finalizeRuntimeCommit: FunctionReference<
+          "mutation",
+          "internal",
+          { error?: string; state: "failed" | "canceled"; workId: string },
+          any
+        >;
+        getRuntimeCurrent: FunctionReference<
+          "query",
+          "internal",
+          { runtime: string; streamId: string },
+          any
+        >;
+        getRuntimeRegistration: FunctionReference<
+          "query",
+          "internal",
+          { runtime: string },
+          any
+        >;
+        getRuntimeStreamState: FunctionReference<
+          "query",
+          "internal",
+          { runtime: string; streamId: string },
+          any
+        >;
+        listRuntimeEvolution: FunctionReference<
+          "query",
+          "internal",
+          {
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
+            runtime: string;
+            streamId: string;
+          },
+          any
+        >;
+        markRuntimeCommitQueued: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            commitKey: string;
+            runtime: string;
+            streamId: string;
+            workId: string;
+          },
+          any
+        >;
+        registerRuntime: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            description?: string;
+            facts: {
+              edgeKinds: Array<string>;
+              entities: Array<{
+                attrs: Record<string, "string" | "number" | "boolean">;
+                entityType: string;
+                states: Array<string>;
+              }>;
+              partitions: Array<string>;
+            };
+            historyStreamType: string;
+            namespaces?: {
+              current?: string;
+              facts?: string;
+              historical?: string;
+            };
+            runtime: string;
+            searchProfiles?: {
+              current?: { sourceKinds?: Array<string> };
+              historical?: { sourceKinds?: Array<string> };
+            };
+          },
+          any
+        >;
+        startRuntimeCommit: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            commitKey: string;
+            currentKey?: string;
+            entryTime?: number;
+            historicalKey?: string;
+            runtime: string;
+            streamId: string;
+            workId?: string;
+          },
+          any
+        >;
+      };
       search: {
         search: FunctionReference<
           "action",
@@ -1017,6 +1191,104 @@ export declare const components: {
           any
         >;
       };
+    };
+  };
+  agentMemoryWorkpool: {
+    config: {
+      update: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          logLevel?: "DEBUG" | "TRACE" | "INFO" | "REPORT" | "WARN" | "ERROR";
+          maxParallelism?: number;
+        },
+        any
+      >;
+    };
+    lib: {
+      cancel: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          id: string;
+          logLevel?: "DEBUG" | "TRACE" | "INFO" | "REPORT" | "WARN" | "ERROR";
+        },
+        any
+      >;
+      cancelAll: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          before?: number;
+          limit?: number;
+          logLevel?: "DEBUG" | "TRACE" | "INFO" | "REPORT" | "WARN" | "ERROR";
+        },
+        any
+      >;
+      enqueue: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          config: {
+            logLevel?: "DEBUG" | "TRACE" | "INFO" | "REPORT" | "WARN" | "ERROR";
+            maxParallelism?: number;
+          };
+          fnArgs: any;
+          fnHandle: string;
+          fnName: string;
+          fnType: "action" | "mutation" | "query";
+          onComplete?: { context?: any; fnHandle: string };
+          retryBehavior?: {
+            base: number;
+            initialBackoffMs: number;
+            maxAttempts: number;
+          };
+          runAt: number;
+        },
+        string
+      >;
+      enqueueBatch: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          config: {
+            logLevel?: "DEBUG" | "TRACE" | "INFO" | "REPORT" | "WARN" | "ERROR";
+            maxParallelism?: number;
+          };
+          items: Array<{
+            fnArgs: any;
+            fnHandle: string;
+            fnName: string;
+            fnType: "action" | "mutation" | "query";
+            onComplete?: { context?: any; fnHandle: string };
+            retryBehavior?: {
+              base: number;
+              initialBackoffMs: number;
+              maxAttempts: number;
+            };
+            runAt: number;
+          }>;
+        },
+        Array<string>
+      >;
+      status: FunctionReference<
+        "query",
+        "internal",
+        { id: string },
+        | { previousAttempts: number; state: "pending" }
+        | { previousAttempts: number; state: "running" }
+        | { state: "finished" }
+      >;
+      statusBatch: FunctionReference<
+        "query",
+        "internal",
+        { ids: Array<string> },
+        Array<
+          | { previousAttempts: number; state: "pending" }
+          | { previousAttempts: number; state: "running" }
+          | { state: "finished" }
+        >
+      >;
     };
   };
   policy: {

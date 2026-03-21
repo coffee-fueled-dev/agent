@@ -30,6 +30,35 @@ const sharedAddArgs = {
   googleApiKey: v.optional(v.string()),
 };
 
+export async function addTextEntry(ctx: any, args: AddTextArgs) {
+  return await createAgentMemoryRag({
+    googleApiKey: args.googleApiKey,
+  }).add(ctx, {
+    namespace: args.namespace,
+    key: args.key,
+    title: args.title,
+    text: args.text,
+    metadata: buildEntryMetadata({
+      namespace: args.namespace,
+      sourceType: "text",
+      modality: "text",
+      indexKind: args.indexKind,
+      sourceKind: args.sourceKind,
+      streamType: args.streamType,
+      streamId: args.streamId,
+      sourceEntryId: args.sourceEntryId,
+      entity: args.entity,
+      entityType: args.entityType,
+      sourceVersion: args.sourceVersion,
+      entryTime: args.entryTime,
+      validFrom: args.validFrom,
+      validTo: args.validTo,
+      scope: args.scope,
+      metadata: args.metadata,
+    }),
+  });
+}
+
 export type AddTextArgs = AgentMemoryGoogleConfig & {
   namespace: string;
   key: string;
@@ -108,32 +137,7 @@ export const addText = action({
     text: v.string(),
   },
   handler: async (ctx, args) => {
-    return await createAgentMemoryRag({
-      googleApiKey: args.googleApiKey,
-    }).add(ctx, {
-      namespace: args.namespace,
-      key: args.key,
-      title: args.title,
-      text: args.text,
-      metadata: buildEntryMetadata({
-        namespace: args.namespace,
-        sourceType: "text",
-        modality: "text",
-        indexKind: args.indexKind,
-        sourceKind: args.sourceKind,
-        streamType: args.streamType,
-        streamId: args.streamId,
-        sourceEntryId: args.sourceEntryId,
-        entity: args.entity,
-        entityType: args.entityType,
-        sourceVersion: args.sourceVersion,
-        entryTime: args.entryTime,
-        validFrom: args.validFrom,
-        validTo: args.validTo,
-        scope: args.scope,
-        metadata: args.metadata,
-      }),
-    });
+    return await addTextEntry(ctx, args);
   },
 });
 

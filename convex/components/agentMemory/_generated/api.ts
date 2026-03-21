@@ -11,8 +11,10 @@
 import type * as client_index from "../client/index.js";
 import type * as internal_embed from "../internal/embed.js";
 import type * as internal_rag from "../internal/rag.js";
+import type * as internal_runtime from "../internal/runtime.js";
 import type * as internal_shared from "../internal/shared.js";
 import type * as public_add from "../public/add.js";
+import type * as public_runtime from "../public/runtime.js";
 import type * as public_search from "../public/search.js";
 
 import type {
@@ -26,8 +28,10 @@ const fullApi: ApiFromModules<{
   "client/index": typeof client_index;
   "internal/embed": typeof internal_embed;
   "internal/rag": typeof internal_rag;
+  "internal/runtime": typeof internal_runtime;
   "internal/shared": typeof internal_shared;
   "public/add": typeof public_add;
+  "public/runtime": typeof public_runtime;
   "public/search": typeof public_search;
 }> = anyApi as any;
 
@@ -58,6 +62,262 @@ export const internal: FilterApi<
 > = anyApi as any;
 
 export const components = componentsGeneric() as unknown as {
+  facts: {
+    public: {
+      evaluate: {
+        deriveSelection: FunctionReference<
+          "query",
+          "internal",
+          {
+            entityType: string;
+            namespace: string;
+            partitions: Array<string>;
+            scope?: string;
+            selected: string;
+          },
+          {
+            lastIndex: number | null;
+            partitionTails: Array<{
+              index: number | null;
+              partition: string;
+              tail: string | null;
+            }>;
+            selectedIndex: number | null;
+          }
+        >;
+        getOrderedFacts: FunctionReference<
+          "query",
+          "internal",
+          { entityType?: string; namespace: string; scope?: string },
+          Array<{
+            attrs?: any;
+            entity: string;
+            entityType: string;
+            labels: Array<string>;
+            order: Array<number>;
+            scope?: string;
+            state?: string;
+          }>
+        >;
+        getPartitionTail: FunctionReference<
+          "query",
+          "internal",
+          { namespace: string; partition: string; scope?: string },
+          { partition: string; tail: string | null } | null
+        >;
+        getReachableFacts: FunctionReference<
+          "query",
+          "internal",
+          { edgeKinds: Array<string>; from: string; namespace: string },
+          Array<string>
+        >;
+      };
+      sync: {
+        removeFacts: FunctionReference<
+          "mutation",
+          "internal",
+          { entities: Array<string>; namespace: string },
+          null
+        >;
+        upsertFacts: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            edges: Array<{
+              attrs?: any;
+              from: string;
+              kind: string;
+              scope?: string;
+              to: string;
+            }>;
+            items: Array<{
+              attrs?: any;
+              entity: string;
+              entityType: string;
+              labels: Array<string>;
+              order: Array<number>;
+              scope?: string;
+              state?: string;
+            }>;
+            mode?: "direct" | "event";
+            namespace: string;
+            partitions?: Array<{
+              attrs?: any;
+              count: number;
+              head?: string;
+              membersVersion?: number;
+              partition: string;
+              scope?: string;
+              tail?: string;
+            }>;
+            projector?: string;
+            version?: number;
+          },
+          null
+        >;
+      };
+    };
+  };
+  history: {
+    public: {
+      append: {
+        append: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            attrs?: Record<string, string | number | boolean | null>;
+            author?: { byId: string; byType: string };
+            entryId: string;
+            entryTime?: number;
+            kind: string;
+            parentEntryIds?: Array<string>;
+            payload?: any;
+            streamId: string;
+            streamType: string;
+          },
+          {
+            attrs?: Record<string, string | number | boolean | null>;
+            author?: { byId: string; byType: string };
+            entryId: string;
+            entryTime: number;
+            kind: string;
+            parentEntryIds: Array<string>;
+            payload?: any;
+            streamId: string;
+            streamType: string;
+          }
+        >;
+      };
+      heads: {
+        listHeads: FunctionReference<
+          "query",
+          "internal",
+          { streamId: string; streamType: string },
+          Array<{
+            entryId: string;
+            headKind?: string;
+            streamId: string;
+            streamType: string;
+          }>
+        >;
+      };
+      read: {
+        getChildren: FunctionReference<
+          "query",
+          "internal",
+          { entryId: string; streamId: string; streamType: string },
+          Array<{
+            attrs?: Record<string, string | number | boolean | null>;
+            author?: { byId: string; byType: string };
+            entryId: string;
+            entryTime: number;
+            kind: string;
+            parentEntryIds: Array<string>;
+            payload?: any;
+            streamId: string;
+            streamType: string;
+          }>
+        >;
+        getEntry: FunctionReference<
+          "query",
+          "internal",
+          { entryId: string; streamId: string; streamType: string },
+          {
+            attrs?: Record<string, string | number | boolean | null>;
+            author?: { byId: string; byType: string };
+            entryId: string;
+            entryTime: number;
+            kind: string;
+            parentEntryIds: Array<string>;
+            payload?: any;
+            streamId: string;
+            streamType: string;
+          } | null
+        >;
+        getLatestCommonAncestor: FunctionReference<
+          "query",
+          "internal",
+          {
+            leftEntryId: string;
+            rightEntryId: string;
+            streamId: string;
+            streamType: string;
+          },
+          {
+            attrs?: Record<string, string | number | boolean | null>;
+            author?: { byId: string; byType: string };
+            entryId: string;
+            entryTime: number;
+            kind: string;
+            parentEntryIds: Array<string>;
+            payload?: any;
+            streamId: string;
+            streamType: string;
+          } | null
+        >;
+        getParents: FunctionReference<
+          "query",
+          "internal",
+          { entryId: string; streamId: string; streamType: string },
+          Array<{
+            attrs?: Record<string, string | number | boolean | null>;
+            author?: { byId: string; byType: string };
+            entryId: string;
+            entryTime: number;
+            kind: string;
+            parentEntryIds: Array<string>;
+            payload?: any;
+            streamId: string;
+            streamType: string;
+          }>
+        >;
+        getPathToRoot: FunctionReference<
+          "query",
+          "internal",
+          { entryId: string; streamId: string; streamType: string },
+          Array<{
+            attrs?: Record<string, string | number | boolean | null>;
+            author?: { byId: string; byType: string };
+            entryId: string;
+            entryTime: number;
+            kind: string;
+            parentEntryIds: Array<string>;
+            payload?: any;
+            streamId: string;
+            streamType: string;
+          }>
+        >;
+        isAncestor: FunctionReference<
+          "query",
+          "internal",
+          {
+            ancestorEntryId: string;
+            descendantEntryId: string;
+            streamId: string;
+            streamType: string;
+          },
+          boolean
+        >;
+        listEntries: FunctionReference<
+          "query",
+          "internal",
+          {
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
+            streamId: string;
+            streamType: string;
+          },
+          any
+        >;
+      };
+    };
+  };
   rag: {
     chunks: {
       insert: FunctionReference<

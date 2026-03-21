@@ -116,6 +116,181 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           Name
         >;
       };
+      runtime: {
+        appendRuntimeHistory: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            entryId: string;
+            entryTime: number;
+            kind: string;
+            parentEntryIds?: Array<string>;
+            payload?: any;
+            runtime: string;
+            streamId: string;
+          },
+          any,
+          Name
+        >;
+        applyRuntimeFacts: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            facts: {
+              edges?: Array<{
+                from: string;
+                kind: string;
+                scope?: string;
+                to: string;
+              }>;
+              items: Array<{
+                attrs?: Record<string, string | number | boolean>;
+                entity: string;
+                entityType: string;
+                labels?: Array<string>;
+                order: Array<number>;
+                scope?: string;
+                state?: string;
+              }>;
+              mode?: "direct" | "event";
+              partitions?: Array<{
+                count: number;
+                head?: string;
+                membersVersion?: number;
+                partition: string;
+                scope?: string;
+                tail?: string;
+              }>;
+              projector?: string;
+            };
+            runtime: string;
+            sourceVersion: number;
+            streamId: string;
+          },
+          any,
+          Name
+        >;
+        completeRuntimeCommit: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            commitKey: string;
+            currentKey?: string;
+            entryId: string;
+            entryTime: number;
+            historicalKey?: string;
+            latestEntity?: string;
+            runtime: string;
+            sourceVersion: number;
+            streamId: string;
+            workId?: string;
+          },
+          any,
+          Name
+        >;
+        finalizeRuntimeCommit: FunctionReference<
+          "mutation",
+          "internal",
+          { error?: string; state: "failed" | "canceled"; workId: string },
+          any,
+          Name
+        >;
+        getRuntimeCurrent: FunctionReference<
+          "query",
+          "internal",
+          { runtime: string; streamId: string },
+          any,
+          Name
+        >;
+        getRuntimeRegistration: FunctionReference<
+          "query",
+          "internal",
+          { runtime: string },
+          any,
+          Name
+        >;
+        getRuntimeStreamState: FunctionReference<
+          "query",
+          "internal",
+          { runtime: string; streamId: string },
+          any,
+          Name
+        >;
+        listRuntimeEvolution: FunctionReference<
+          "query",
+          "internal",
+          {
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
+            runtime: string;
+            streamId: string;
+          },
+          any,
+          Name
+        >;
+        markRuntimeCommitQueued: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            commitKey: string;
+            runtime: string;
+            streamId: string;
+            workId: string;
+          },
+          any,
+          Name
+        >;
+        registerRuntime: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            description?: string;
+            facts: {
+              edgeKinds: Array<string>;
+              entities: Array<{
+                attrs: Record<string, "string" | "number" | "boolean">;
+                entityType: string;
+                states: Array<string>;
+              }>;
+              partitions: Array<string>;
+            };
+            historyStreamType: string;
+            namespaces?: {
+              current?: string;
+              facts?: string;
+              historical?: string;
+            };
+            runtime: string;
+            searchProfiles?: {
+              current?: { sourceKinds?: Array<string> };
+              historical?: { sourceKinds?: Array<string> };
+            };
+          },
+          any,
+          Name
+        >;
+        startRuntimeCommit: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            commitKey: string;
+            currentKey?: string;
+            entryTime?: number;
+            historicalKey?: string;
+            runtime: string;
+            streamId: string;
+            workId?: string;
+          },
+          any,
+          Name
+        >;
+      };
       search: {
         search: FunctionReference<
           "action",

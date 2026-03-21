@@ -134,20 +134,21 @@ function entryScore(
 ) {
   const score = searchResults
     .filter((result) => result.entryId === entryId)
-    .reduce((max, result) => Math.max(max, result.score), Number.NEGATIVE_INFINITY);
+    .reduce(
+      (max, result) => Math.max(max, result.score),
+      Number.NEGATIVE_INFINITY,
+    );
   return Number.isFinite(score) ? score : 0;
 }
 
-function matchesSearchFilters(
-  metadata: SearchableMetadata,
-  args: SearchArgs,
-) {
+function matchesSearchFilters(metadata: SearchableMetadata, args: SearchArgs) {
   if (args.includeHistorical === false && metadata.indexKind === "historical") {
     return false;
   }
   if (
     args.sourceKinds &&
-    (metadata.sourceKind == null || !args.sourceKinds.includes(metadata.sourceKind))
+    (metadata.sourceKind == null ||
+      !args.sourceKinds.includes(metadata.sourceKind))
   ) {
     return false;
   }
@@ -167,10 +168,16 @@ function matchesSearchFilters(
     if (metadata.indexKind === "current") {
       return false;
     }
-    if (metadata.entryTime !== undefined && metadata.entryTime > args.asOfTime) {
+    if (
+      metadata.entryTime !== undefined &&
+      metadata.entryTime > args.asOfTime
+    ) {
       return false;
     }
-    if (metadata.validFrom !== undefined && metadata.validFrom > args.asOfTime) {
+    if (
+      metadata.validFrom !== undefined &&
+      metadata.validFrom > args.asOfTime
+    ) {
       return false;
     }
     if (metadata.validTo != null && metadata.validTo <= args.asOfTime) {
@@ -191,81 +198,88 @@ export const search = action({
     ctx,
     args: SearchArgs,
   ): Promise<AgentMemorySearchResult[]> => {
-    const { entries, results: searchResults } = await createAgentMemoryRag({
-      googleApiKey: args.googleApiKey,
-    }).search(ctx, {
-      namespace: args.namespace,
-      query: args.query,
-      filters: args.filters as never,
-      limit: args.limit,
-      chunkContext: args.chunkContext,
-      vectorScoreThreshold: args.vectorScoreThreshold,
-      searchType: args.searchType,
-      textWeight: args.textWeight,
-      vectorWeight: args.vectorWeight,
-    });
+    return await runSearch(ctx, args);
+  },
+});
 
-    const results = await Promise.all(
-      entries.map(async (entry): Promise<AgentMemorySearchResult | null> => {
-        const metadata = readMetadata(entry.metadata);
-        if (!matchesSearchFilters(metadata, args)) {
+export async function runSearch(
+  ctx: any,
+  args: SearchArgs,
+): Promise<AgentMemorySearchResult[]> {
+  const { entries, results: searchResults } = await createAgentMemoryRag({
+    googleApiKey: args.googleApiKey,
+  }).search(ctx, {
+    namespace: args.namespace,
+    query: args.query,
+    filters: args.filters as never,
+    limit: args.limit,
+    chunkContext: args.chunkContext,
+    vectorScoreThreshold: args.vectorScoreThreshold,
+    searchType: args.searchType,
+    textWeight: args.textWeight,
+    vectorWeight: args.vectorWeight,
+  });
+
+  const results = await Promise.all(
+    entries.map(async (entry): Promise<AgentMemorySearchResult | null> => {
+      const metadata = readMetadata(entry.metadata);
+      if (!matchesSearchFilters(metadata, args)) {
+        return null;
+      }
+      const base = {
+        entryId: entry.entryId,
+        key: entryKey(entry),
+        title: entry.title,
+        importance: entry.importance,
+        score: entryScore(searchResults, entry.entryId),
+        metadata,
+      };
+      if (metadata.sourceType === "textFile") {
+        if (!metadata.storageId || !metadata.mimeType) {
           return null;
         }
-        const base = {
-          entryId: entry.entryId,
-          key: entryKey(entry),
-          title: entry.title,
-          importance: entry.importance,
-          score: entryScore(searchResults, entry.entryId),
-          metadata,
-        };
-        if (metadata.sourceType === "textFile") {
-          if (!metadata.storageId || !metadata.mimeType) {
-            return null;
-          }
-          const url = await ctx.storage.getUrl(
-            metadata.storageId as Id<"_storage">,
-          );
-          if (!url) {
-            return null;
-          }
-          return {
-            ...base,
-            type: "textFile",
-            text: entry.text,
-            url,
-            storageId: metadata.storageId as Id<"_storage">,
-            mimeType: metadata.mimeType,
-            fileName: metadata.fileName,
-          };
-        }
-        if (metadata.sourceType === "binaryFile") {
-          if (!metadata.storageId || !metadata.mimeType) {
-            return null;
-          }
-          const url = await ctx.storage.getUrl(
-            metadata.storageId as Id<"_storage">,
-          );
-          if (!url) {
-            return null;
-          }
-          return {
-            ...base,
-            type: "binaryFile",
-            url,
-            storageId: metadata.storageId as Id<"_storage">,
-            mimeType: metadata.mimeType,
-            fileName: metadata.fileName,
-          };
+        const url = await ctx.storage.getUrl(
+          metadata.storageId as Id<"_storage">,
+        );
+        if (!url) {
+          return null;
         }
         return {
           ...base,
-          type: "text",
+          type: "textFile",
           text: entry.text,
+          url,
+          storageId: metadata.storageId as Id<"_storage">,
+          mimeType: metadata.mimeType,
+          fileName: metadata.fileName,
         };
-      }),
-    );
+      }
+      if (metadata.sourceType === "binaryFile") {
+        if (!metadata.storageId || !metadata.mimeType) {
+          return null;
+        }
+        const url = await ctx.storage.getUrl(
+          metadata.storageId as Id<"_storage">,
+        );
+        if (!url) {
+          return null;
+        }
+        return {
+          ...base,
+          type: "binaryFile",
+          url,
+          storageId: metadata.storageId as Id<"_storage">,
+          mimeType: metadata.mimeType,
+          fileName: metadata.fileName,
+        };
+      }
+      return {
+        ...base,
+        type: "text",
+        text: entry.text,
+      };
+    }),
+  );
 
-    return results.filter((result) => result !== null);
-  },
-});
+  return results.filter((result) => result !== null);
+}

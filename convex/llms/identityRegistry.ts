@@ -593,7 +593,7 @@ export const recordTurnIdentity = internalMutation({
     });
 
     if (bindingCreated) {
-      await ctx.scheduler.runAfter(0, api.agentMemory.recordThreadIdentityEpisode, {
+      await ctx.runMutation(api.agentMemory.enqueueThreadIdentityEpisode, {
         threadId: args.threadId,
         messageId: args.messageId,
         codeId: args.codeId,
