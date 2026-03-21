@@ -8,6 +8,13 @@ import {
   searchQueryValidator,
   type AgentMemorySearchResult,
 } from "./components/agentMemory/public/search";
+import {
+  getThreadIdentityCurrent as getThreadIdentityCurrentImpl,
+  listThreadIdentityEvolution as listThreadIdentityEvolutionImpl,
+  recordThreadIdentityEpisode as recordThreadIdentityEpisodeImpl,
+  searchThreadIdentityAsOf as searchThreadIdentityAsOfImpl,
+  searchThreadIdentityCurrent as searchThreadIdentityCurrentImpl,
+} from "./llms/identityMemory";
 
 const sharedArgs = {
   namespace: v.string(),
@@ -100,7 +107,7 @@ export const recordThreadIdentityEpisode = action({
     entryTime: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    return await createAgentMemoryClient().recordThreadIdentityEpisode(ctx, args);
+    return await recordThreadIdentityEpisodeImpl(ctx, args);
   },
 });
 
@@ -111,7 +118,7 @@ export const searchThreadIdentityCurrent = action({
     ...searchOptionsValidator,
   },
   handler: async (ctx, args): Promise<AgentMemorySearchResult[]> => {
-    return await createAgentMemoryClient().searchThreadIdentityCurrent(ctx, args);
+    return await searchThreadIdentityCurrentImpl(ctx, args);
   },
 });
 
@@ -142,7 +149,7 @@ export const searchThreadIdentityAsOf = action({
     streamId: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<AgentMemorySearchResult[]> => {
-    return await createAgentMemoryClient().searchThreadIdentityAsOf(ctx, args);
+    return await searchThreadIdentityAsOfImpl(ctx, args);
   },
 });
 
@@ -151,7 +158,7 @@ export const getThreadIdentityCurrent = query({
     threadId: v.string(),
   },
   handler: async (ctx, args) => {
-    return await createAgentMemoryClient().getThreadIdentityCurrent(ctx, args);
+    return await getThreadIdentityCurrentImpl(ctx, args);
   },
 });
 
@@ -161,6 +168,6 @@ export const listThreadIdentityEvolution = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    return await createAgentMemoryClient().listThreadIdentityEvolution(ctx, args);
+    return await listThreadIdentityEvolutionImpl(ctx, args);
   },
 });

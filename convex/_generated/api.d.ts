@@ -27,6 +27,7 @@ import type * as llms_agents_exampleAgent__toolkits_example from "../llms/agents
 import type * as llms_agents_exampleAgent_agent from "../llms/agents/exampleAgent/agent.js";
 import type * as llms_agents_terminalChat from "../llms/agents/terminalChat.js";
 import type * as llms_identity from "../llms/identity.js";
+import type * as llms_identityMemory from "../llms/identityMemory.js";
 import type * as llms_identityRegistry from "../llms/identityRegistry.js";
 import type * as llms_identityTelemetry from "../llms/identityTelemetry.js";
 import type * as llms_models from "../llms/models.js";
@@ -78,6 +79,7 @@ declare const fullApi: ApiFromModules<{
   "llms/agents/exampleAgent/agent": typeof llms_agents_exampleAgent_agent;
   "llms/agents/terminalChat": typeof llms_agents_terminalChat;
   "llms/identity": typeof llms_identity;
+  "llms/identityMemory": typeof llms_identityMemory;
   "llms/identityRegistry": typeof llms_identityRegistry;
   "llms/identityTelemetry": typeof llms_identityTelemetry;
   "llms/models": typeof llms_models;
@@ -1009,85 +1011,6 @@ export declare const components: {
             streamId?: string;
             streamType?: string;
             textWeight?: number;
-            vectorScoreThreshold?: number;
-            vectorWeight?: number;
-          },
-          any
-        >;
-      };
-      temporal: {
-        getThreadIdentityCurrent: FunctionReference<
-          "query",
-          "internal",
-          { threadId: string },
-          any
-        >;
-        listThreadIdentityEvolution: FunctionReference<
-          "query",
-          "internal",
-          { limit?: number; threadId: string },
-          any
-        >;
-        recordThreadIdentityEpisode: FunctionReference<
-          "action",
-          "internal",
-          {
-            codeId: string;
-            entryTime?: number;
-            googleApiKey?: string;
-            messageId: string;
-            previousCodeId?: string;
-            previousRuntimeHash?: string;
-            previousStaticHash?: string;
-            runtimeHash: string;
-            staticHash: string;
-            threadId: string;
-          },
-          any
-        >;
-        searchThreadIdentityAsOf: FunctionReference<
-          "action",
-          "internal",
-          {
-            asOfTime: number;
-            chunkContext?: { after: number; before: number };
-            entity?: string;
-            entityType?: string;
-            filters?: Array<any>;
-            googleApiKey?: string;
-            includeHistorical?: boolean;
-            limit?: number;
-            query: string | Array<number>;
-            searchType?: "vector" | "text" | "hybrid";
-            sourceKinds?: Array<string>;
-            streamId?: string;
-            streamType?: string;
-            textWeight?: number;
-            threadId: string;
-            vectorScoreThreshold?: number;
-            vectorWeight?: number;
-          },
-          any
-        >;
-        searchThreadIdentityCurrent: FunctionReference<
-          "action",
-          "internal",
-          {
-            asOfTime?: number;
-            chunkContext?: { after: number; before: number };
-            entity?: string;
-            entityType?: string;
-            filters?: Array<any>;
-            googleApiKey?: string;
-            includeHistorical?: boolean;
-            limit?: number;
-            query: string | Array<number>;
-            searchType?: "vector" | "text" | "hybrid";
-            sourceKinds?: Array<string>;
-            streamId?: string;
-            streamType?: string;
-            textWeight?: number;
-            threadId: string;
             vectorScoreThreshold?: number;
             vectorWeight?: number;
           },
