@@ -140,6 +140,11 @@ const result = await Bun.build({
   outdir,
   plugins: [plugin],
   minify: true,
+  naming: {
+    entry: "[dir]/[name].[ext]",
+    chunk: "chunks/[name]-[hash].[ext]",
+    asset: "assets/[name]-[hash].[ext]",
+  },
   target: "browser",
   sourcemap: "linked",
   define: {

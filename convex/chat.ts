@@ -71,6 +71,9 @@ export const sendMessage = action({
       { promptMessageId } as unknown as Parameters<typeof thread.streamText>[0],
       {
         saveStreamDeltas: { throttleMs: 50 },
+        contextOptions: {
+          searchOtherThreads: true,
+        },
       },
     );
 

@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { AppShell } from "@/components/layout/app-shell";
 import { IdentityMetricsView } from "@/components/telemetry/identity-metrics-view";
 import { ScopeThreadSidebar } from "@/components/telemetry/scope-thread-sidebar";
 import { TelemetryDetailSheet } from "@/components/telemetry/telemetry-detail-sheet";
@@ -24,22 +25,13 @@ export function App() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-muted/30">
-      <div className="mx-auto flex max-w-6xl flex-col gap-8 px-6 py-10">
-        <section className="flex flex-col gap-3">
-          <p className="text-sm font-medium text-muted-foreground">
-            Machine-agent telemetry
-          </p>
-          <h1 className="text-4xl font-semibold tracking-tight">
-            A simple view into identity counts and thread activity
-          </h1>
-          <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-            This keeps the dashboard intentionally small: top-level counts,
-            agent scope, recent threads, and the latest thread-local events and
-            history.
-          </p>
-        </section>
-
+    <>
+      <AppShell
+        current="telemetry"
+        eyebrow="Machine-agent telemetry"
+        title="A simple view into identity counts and thread activity"
+        description="This keeps the dashboard intentionally small: top-level counts, agent scope, recent threads, and the latest thread-local events and history."
+      >
         <IdentityMetricsView selectedCodeId={selectedCodeId} />
 
         <section className="grid gap-6 lg:grid-cols-[20rem_minmax(0,1fr)]">
@@ -54,13 +46,13 @@ export function App() {
             onSelectDetail={handleSelectDetail}
           />
         </section>
-      </div>
+      </AppShell>
       <TelemetryDetailSheet
         item={selectedDetailItem}
         open={detailSheetOpen}
         onOpenChange={setDetailSheetOpen}
       />
-    </main>
+    </>
   );
 }
 

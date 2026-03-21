@@ -12,8 +12,8 @@
   "scripts": {
     "dev:convex": "bun run scripts/dev-convex.ts",
     "dev:convex:raw": "bunx convex dev",
-    "dev:chat": "bun --filter @agent/chat dev",
-    "dev:telemetry": "bun --filter @agent/telemetry dev",
+    "dev:chat": "bun --env-file=.env.local --filter @agent/chat dev",
+    "dev:telemetry": "bun --env-file=.env.local --filter @agent/telemetry dev",
     "seed:chat-token": "bun run scripts/seed-chat-token.ts",
     "typecheck": "bun run typecheck:convex",
     "typecheck:convex": "bunx tsc --noEmit -p convex/tsconfig.json",
@@ -25,11 +25,14 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@ai-sdk/google": "^3.0.43",
     "@ai-sdk/openai": "^2",
     "@biomejs/biome": "^2.4.6",
     "@convex-dev/agent": "^0.3.2",
     "@convex-dev/aggregate": "^0.2.1",
     "@convex-dev/geospatial": "^0.2.1",
+    "@convex-dev/rag": "^0.7.2",
+    "@google/genai": "^1.46.0",
     "ai": "^5.0.82",
     "convex": "^1.33.1",
     "convex-helpers": "^0.1.114",
