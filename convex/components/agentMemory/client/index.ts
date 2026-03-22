@@ -63,12 +63,12 @@ export class AgentMemoryClient {
   };
 
   addStoredBinaryFile = async (
-    ctx: RunActionCtx,
+    _ctx: RunActionCtx,
     args: AddStoredBinaryFileArgs,
   ) => {
-    return await ctx.runAction(
-      this.component.public.add.addStoredBinaryFile,
-      this.withConfig(args),
+    void args;
+    throw new Error(
+      "Binary file ingestion must be called through an app-level Node action.",
     );
   };
 

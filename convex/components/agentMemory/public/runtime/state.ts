@@ -1,7 +1,7 @@
 import type { MutationCtx, QueryCtx } from "../../_generated/server";
 import {
-  normalizeRuntimeState,
   type MemoryChartMetrics,
+  normalizeRuntimeState,
   type RuntimeStreamState,
 } from "../../internal/runtime";
 
@@ -54,7 +54,10 @@ export async function getRuntimeCommitRow(
   return await ctx.db
     .query("runtimeCommitLog")
     .withIndex("by_runtime_stream_commitKey", (q) =>
-      q.eq("runtime", runtime).eq("streamId", streamId).eq("commitKey", commitKey),
+      q
+        .eq("runtime", runtime)
+        .eq("streamId", streamId)
+        .eq("commitKey", commitKey),
     )
     .unique();
 }
@@ -82,9 +85,11 @@ export function toRuntimeStreamState(
     runtime: registration.runtime,
     streamId,
     factsNamespace:
-      stream?.factsNamespace ?? runtimeNamespace(registration, streamId, "facts"),
+      stream?.factsNamespace ??
+      runtimeNamespace(registration, streamId, "facts"),
     currentNamespace:
-      stream?.currentNamespace ?? runtimeNamespace(registration, streamId, "current"),
+      stream?.currentNamespace ??
+      runtimeNamespace(registration, streamId, "current"),
     historicalNamespace:
       stream?.historicalNamespace ??
       runtimeNamespace(registration, streamId, "historical"),

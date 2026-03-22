@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import type { MutationCtx } from "../../_generated/server";
 import {
   buildChartStatistics,
   chartDescriptionLength,
@@ -8,10 +9,9 @@ import {
   sphericalPointMetrics,
 } from "../../internal/chartAtlas";
 import {
-  memoryChartUpdateValidator,
   type MemoryChartUpdateArgs,
+  memoryChartUpdateValidator,
 } from "../../internal/runtime";
-import type { MutationCtx } from "../../_generated/server";
 import {
   chartObjective,
   deleteSupportEdgesForChart,
@@ -19,14 +19,13 @@ import {
   syncMemoryChartNamespaceMetrics,
   upsertMemoryChartSupportEdge,
 } from "./memoryChartInternals";
-import { getMemoryChartNamespaceRow } from "./state";
 import {
   MAINTENANCE_MIN_MEMBERS,
   MAX_CHART_CANDIDATES,
-  PRIOR_TANGENT_VARIANCE,
   type MemoryChartDoc,
   type MemoryChartSupportEdgeDoc,
 } from "./shared";
+import { getMemoryChartNamespaceRow } from "./state";
 
 export const memoryChartMaintenanceArgs = {
   namespace: v.string(),
@@ -58,7 +57,9 @@ export async function upsertMemoryChartAssignmentImpl(
 
   const candidates = await ctx.db
     .query("memoryCharts")
-    .withIndex("by_namespace_updatedAt", (q) => q.eq("namespace", args.namespace))
+    .withIndex("by_namespace_updatedAt", (q) =>
+      q.eq("namespace", args.namespace),
+    )
     .order("desc")
     .take(MAX_CHART_CANDIDATES);
   const assignment = softAssignments(
@@ -74,22 +75,14 @@ export async function upsertMemoryChartAssignmentImpl(
     ? candidates.find((chart) => String(chart._id) === assignment.best?.chartId)
     : null;
   const second = assignment.second
-    ? candidates.find((chart) => String(chart._id) === assignment.second?.chartId)
+    ? candidates.find(
+        (chart) => String(chart._id) === assignment.second?.chartId,
+      )
     : null;
-  const assignObjective =
-    assignment.best == null
-      ? Number.POSITIVE_INFINITY
-      : assignment.best.localNegativeLogLikelihood +
-        assignment.supportCoverageLoss +
-        assignment.overlapPenalty +
-        assignment.compressionLoss -
-        assignment.preservedInformation;
-  const spawnObjective = chartDescriptionLength(
-    0.5 * Math.log(Math.PI * 2 * PRIOR_TANGENT_VARIANCE),
-    1,
-    candidates.length + 1,
-  );
-  const shouldSpawn = !best || spawnObjective < assignObjective;
+  // Coarse-first policy: chart birth happens from later maintenance splits,
+  // not routine foreground writes. Foreground spawning is reserved for the
+  // first point in an empty namespace.
+  const shouldSpawn = candidates.length === 0 || best == null;
   const ambiguous = (assignment.second?.posteriorProbability ?? 0) > 0.15;
 
   let chartId: MemoryChartDoc["_id"];
@@ -312,7 +305,9 @@ export async function maintainMemoryChartNamespaceImpl(
 ) {
   const charts = await ctx.db
     .query("memoryCharts")
-    .withIndex("by_namespace_updatedAt", (q) => q.eq("namespace", args.namespace))
+    .withIndex("by_namespace_updatedAt", (q) =>
+      q.eq("namespace", args.namespace),
+    )
     .collect();
   if (charts.length === 0) {
     await syncMemoryChartNamespaceMetrics(ctx, args.namespace);
@@ -326,7 +321,9 @@ export async function maintainMemoryChartNamespaceImpl(
   if (splitCandidate) {
     const members = await ctx.db
       .query("memoryChartMembers")
-      .withIndex("by_chart_assignedAt", (q) => q.eq("chartId", splitCandidate._id))
+      .withIndex("by_chart_assignedAt", (q) =>
+        q.eq("chartId", splitCandidate._id),
+      )
       .collect();
     const split = farthestPointSplit(members.map((member) => member.embedding));
     if (split && split.clusterA.length > 0 && split.clusterB.length > 0) {
@@ -589,7 +586,9 @@ export async function maintainMemoryChartNamespaceImpl(
 
   const supportEdges = await ctx.db
     .query("memoryChartSupportEdges")
-    .withIndex("by_namespace_updatedAt", (q) => q.eq("namespace", args.namespace))
+    .withIndex("by_namespace_updatedAt", (q) =>
+      q.eq("namespace", args.namespace),
+    )
     .collect();
   const mergeCandidate = supportEdges.sort(
     (left: MemoryChartSupportEdgeDoc, right: MemoryChartSupportEdgeDoc) =>
@@ -613,7 +612,8 @@ export async function maintainMemoryChartNamespaceImpl(
         ...toMembers.map((member) => member.embedding),
       ];
       const merged = buildChartStatistics(allPoints);
-      const currentObjective = chartObjective(fromChart) + chartObjective(toChart);
+      const currentObjective =
+        chartObjective(fromChart) + chartObjective(toChart);
       const mergedObjective = merged.descriptionLength;
       const deltaDescriptionLength =
         merged.descriptionLength -
@@ -643,8 +643,10 @@ export async function maintainMemoryChartNamespaceImpl(
             (toChart.assignmentCount ?? toChart.memberCount),
           recentAssignmentCount: allPoints.length,
           repartitionEpoch:
-            Math.max(fromChart.repartitionEpoch ?? 0, toChart.repartitionEpoch ?? 0) +
-            1,
+            Math.max(
+              fromChart.repartitionEpoch ?? 0,
+              toChart.repartitionEpoch ?? 0,
+            ) + 1,
           repartitionCount:
             Math.max(fromChart.repartitionCount, toChart.repartitionCount) + 1,
           lastRepartitionAt: args.entryTime,
@@ -689,7 +691,8 @@ export async function maintainMemoryChartNamespaceImpl(
           resultChartIds: [String(fromChart._id)],
           deltaDescriptionLength,
           posteriorEvidence,
-          compressionDelta: 0 - (fromChart.compressionLoss + toChart.compressionLoss),
+          compressionDelta:
+            0 - (fromChart.compressionLoss + toChart.compressionLoss),
           supportCoverageDelta:
             0 - (fromChart.supportCoverageLoss + toChart.supportCoverageLoss),
           overlapDelta: 0 - (fromChart.overlapPenalty + toChart.overlapPenalty),

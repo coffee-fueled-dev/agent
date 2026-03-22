@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { execPath, exit } from "node:process";
+import { exit } from "node:process";
 import { readRootEnv } from "./_lib/chatEnv";
 import { withConvexNodeEnv } from "./_lib/convexNode";
 
@@ -10,8 +10,13 @@ const env = withConvexNodeEnv({
   ...vars,
 });
 const cwd = new URL("../", import.meta.url).pathname;
+const args = process.argv.slice(2);
 
-const convexDev = Bun.spawn(["bunx", "convex", "dev"], {
+if (args.length === 0) {
+  throw new Error("Expected convex CLI arguments, e.g. `bun run scripts/convex.ts dev`");
+}
+
+const convex = Bun.spawn(["bunx", "convex", ...args], {
   cwd,
   env,
   stdin: "inherit",
@@ -21,22 +26,8 @@ const convexDev = Bun.spawn(["bunx", "convex", "dev"], {
 
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.on(signal, () => {
-    convexDev.kill(signal);
+    convex.kill(signal);
   });
 }
 
-const seedProcess = Bun.spawn([execPath, "run", "scripts/seed-chat-token.ts"], {
-  cwd,
-  env,
-  stdin: "inherit",
-  stdout: "inherit",
-  stderr: "inherit",
-});
-
-const seedExitCode = await seedProcess.exited;
-if (seedExitCode !== 0) {
-  convexDev.kill();
-  exit(seedExitCode);
-}
-
-exit(await convexDev.exited);
+exit(await convex.exited);

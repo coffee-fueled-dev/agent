@@ -58,6 +58,31 @@ export async function getMemoryChartNamespaceMetricsImpl(
   };
 }
 
+export async function getMemoryEntryIdsForChartsImpl(
+  ctx: QueryCtx,
+  args: {
+    namespace: string;
+    chartIds: MemoryChartDoc["_id"][];
+  },
+): Promise<string[]> {
+  const entryIds = new Set<string>();
+
+  for (const chartId of args.chartIds) {
+    const members = await ctx.db
+      .query("memoryChartMembers")
+      .withIndex("by_chart_assignedAt", (q) => q.eq("chartId", chartId))
+      .collect();
+
+    for (const member of members) {
+      if (member.namespace === args.namespace) {
+        entryIds.add(member.entryId);
+      }
+    }
+  }
+
+  return [...entryIds];
+}
+
 export async function listMemoryChartMembersImpl(
   ctx: QueryCtx,
   args: {

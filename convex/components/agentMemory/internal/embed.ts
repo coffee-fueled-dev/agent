@@ -1,5 +1,5 @@
 import {
-  createPartFromBase64,
+  createPartFromUri,
   createPartFromText,
   GoogleGenAI,
 } from "@google/genai";
@@ -21,15 +21,6 @@ function createGenAIClient(googleApiKey?: string) {
   return new GoogleGenAI(apiKey ? { apiKey } : {});
 }
 
-function arrayBufferToBase64(buffer: ArrayBuffer) {
-  const bytes = new Uint8Array(buffer);
-  let binary = "";
-  for (const byte of bytes) {
-    binary += String.fromCharCode(byte);
-  }
-  return btoa(binary);
-}
-
 export async function loadStoredFile(
   ctx: {
     storage: {
@@ -47,7 +38,7 @@ export async function loadStoredFile(
 
 export async function embedStoredBinaryFile(
   args: {
-    bytes: ArrayBuffer;
+    file: Blob;
     namespace: string;
     storageId: Id<"_storage">;
     mimeType: string;
@@ -56,7 +47,6 @@ export async function embedStoredBinaryFile(
     metadata?: AgentMemoryMetadataRecord;
   } & AgentMemoryGoogleConfig,
 ) {
-  const fileBytes = arrayBufferToBase64(args.bytes);
   const retrievalText =
     args.text?.trim() ||
     defaultBinaryRetrievalText({
@@ -73,19 +63,36 @@ export async function embedStoredBinaryFile(
     storageId: args.storageId,
     fileName: args.fileName ?? null,
   });
-  const response = await createGenAIClient(
-    args.googleApiKey,
-  ).models.embedContent({
-    model: geminiEmbeddingModel,
-    contents: [
-      createPartFromBase64(fileBytes, args.mimeType),
-      createPartFromText(retrievalText),
-    ],
+  const client = createGenAIClient(args.googleApiKey);
+  const uploadedFile = await client.files.upload({
+    file: args.file,
+    config: {
+      mimeType: args.mimeType,
+      displayName: args.fileName ?? "memory-binary",
+    },
   });
-  return geminiEmbeddingsToRagChunks(response.embeddings, {
-    text: retrievalText,
-    metadata,
-  });
+  try {
+    if (!uploadedFile.uri) {
+      throw new Error("Gemini file upload did not return a file URI");
+    }
+    const response = await client.models.embedContent({
+      model: geminiEmbeddingModel,
+      contents: [
+        createPartFromUri(uploadedFile.uri, uploadedFile.mimeType ?? args.mimeType),
+        createPartFromText(retrievalText),
+      ],
+    });
+    return geminiEmbeddingsToRagChunks(response.embeddings, {
+      text: retrievalText,
+      metadata,
+    });
+  } finally {
+    if (uploadedFile.name) {
+      await client.files.delete({ name: uploadedFile.name }).catch((error) => {
+        console.warn("Failed to delete uploaded Gemini file", error);
+      });
+    }
+  }
 }
 
 export async function embedTextVector(

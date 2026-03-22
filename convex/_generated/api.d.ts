@@ -12,6 +12,10 @@ import type * as agentMemory from "../agentMemory.js";
 import type * as agentMemoryWorkpool from "../agentMemoryWorkpool.js";
 import type * as aggregate from "../aggregate.js";
 import type * as chat from "../chat.js";
+import type * as context_binaryEmbeddingStore from "../context/binaryEmbeddingStore.js";
+import type * as context_binaryEmbeddings from "../context/binaryEmbeddings.js";
+import type * as context_http from "../context/http.js";
+import type * as context_shared from "../context/shared.js";
 import type * as customFunctions from "../customFunctions.js";
 import type * as events from "../events.js";
 import type * as history from "../history.js";
@@ -45,6 +49,8 @@ import type * as llms_uiMessage from "../llms/uiMessage.js";
 import type * as models_auth_account from "../models/auth/account.js";
 import type * as models_auth_index from "../models/auth/index.js";
 import type * as models_auth_session from "../models/auth/session.js";
+import type * as models_context_binaryEmbeddingProcess from "../models/context/binaryEmbeddingProcess.js";
+import type * as models_context_index from "../models/context/index.js";
 import type * as models_geo_index from "../models/geo/index.js";
 import type * as models_geo_libs_upsert_index from "../models/geo/libs/upsert/index.js";
 import type * as models_geo_location from "../models/geo/location.js";
@@ -69,6 +75,10 @@ declare const fullApi: ApiFromModules<{
   agentMemoryWorkpool: typeof agentMemoryWorkpool;
   aggregate: typeof aggregate;
   chat: typeof chat;
+  "context/binaryEmbeddingStore": typeof context_binaryEmbeddingStore;
+  "context/binaryEmbeddings": typeof context_binaryEmbeddings;
+  "context/http": typeof context_http;
+  "context/shared": typeof context_shared;
   customFunctions: typeof customFunctions;
   events: typeof events;
   history: typeof history;
@@ -102,6 +112,8 @@ declare const fullApi: ApiFromModules<{
   "models/auth/account": typeof models_auth_account;
   "models/auth/index": typeof models_auth_index;
   "models/auth/session": typeof models_auth_session;
+  "models/context/binaryEmbeddingProcess": typeof models_context_binaryEmbeddingProcess;
+  "models/context/index": typeof models_context_index;
   "models/geo/index": typeof models_geo_index;
   "models/geo/libs/upsert/index": typeof models_geo_libs_upsert_index;
   "models/geo/location": typeof models_geo_location;
@@ -919,34 +931,6 @@ export declare const components: {
   agentMemory: {
     public: {
       add: {
-        addStoredBinaryFile: FunctionReference<
-          "action",
-          "internal",
-          {
-            entity?: string;
-            entityType?: string;
-            entryTime?: number;
-            fileName?: string;
-            googleApiKey?: string;
-            indexKind?: "current" | "historical";
-            key: string;
-            metadata?: Record<string, string | number | boolean | null>;
-            mimeType: string;
-            namespace: string;
-            scope?: string;
-            sourceEntryId?: string;
-            sourceKind?: string;
-            sourceVersion?: number;
-            storageId: string;
-            streamId?: string;
-            streamType?: string;
-            text?: string;
-            title?: string;
-            validFrom?: number;
-            validTo?: number | null;
-          },
-          any
-        >;
         addStoredTextFile: FunctionReference<
           "action",
           "internal",
@@ -1314,6 +1298,12 @@ export declare const components: {
           "query",
           "internal",
           { namespace: string },
+          any
+        >;
+        getMemoryEntryIdsForCharts: FunctionReference<
+          "query",
+          "internal",
+          { chartIds: Array<string>; namespace: string },
           any
         >;
         getRuntimeRegistration: FunctionReference<

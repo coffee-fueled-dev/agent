@@ -25,35 +25,6 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
   {
     public: {
       add: {
-        addStoredBinaryFile: FunctionReference<
-          "action",
-          "internal",
-          {
-            entity?: string;
-            entityType?: string;
-            entryTime?: number;
-            fileName?: string;
-            googleApiKey?: string;
-            indexKind?: "current" | "historical";
-            key: string;
-            metadata?: Record<string, string | number | boolean | null>;
-            mimeType: string;
-            namespace: string;
-            scope?: string;
-            sourceEntryId?: string;
-            sourceKind?: string;
-            sourceVersion?: number;
-            storageId: string;
-            streamId?: string;
-            streamType?: string;
-            text?: string;
-            title?: string;
-            validFrom?: number;
-            validTo?: number | null;
-          },
-          any,
-          Name
-        >;
         addStoredTextFile: FunctionReference<
           "action",
           "internal",
@@ -452,6 +423,13 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           "query",
           "internal",
           { namespace: string },
+          any,
+          Name
+        >;
+        getMemoryEntryIdsForCharts: FunctionReference<
+          "query",
+          "internal",
+          { chartIds: Array<string>; namespace: string },
           any,
           Name
         >;

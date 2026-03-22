@@ -127,22 +127,6 @@ function shorten(value: string, max = 280) {
   return `${value.slice(0, max - 1).trimEnd()}...`;
 }
 
-function defaultChartText(args: {
-  text?: string;
-  title?: string;
-  fileName?: string | null;
-  mimeType?: string;
-}) {
-  const text = args.text?.trim();
-  if (text) {
-    return text;
-  }
-  return [args.title, args.fileName, args.mimeType]
-    .filter(Boolean)
-    .join(" ")
-    .trim();
-}
-
 async function enqueueMemoryChartSidecar(
   ctx: ActionCtx,
   args: {
@@ -870,48 +854,6 @@ export const addStoredTextFile = action({
   },
 });
 
-export const addStoredBinaryFile = action({
-  args: {
-    ...sharedArgs,
-    storageId: v.id("_storage"),
-    mimeType: v.string(),
-    fileName: v.optional(v.string()),
-    text: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    const result = await createAgentMemoryClient().addStoredBinaryFile(
-      ctx,
-      args,
-    );
-    try {
-      const chartText = defaultChartText({
-        text: args.text,
-        title: args.title,
-        fileName: args.fileName ?? null,
-        mimeType: args.mimeType,
-      });
-      await enqueueMemoryChartSidecar(ctx, {
-        namespace: args.namespace,
-        entryId: result.entryId,
-        key: args.key,
-        title: args.title,
-        summary: chartText,
-        chartText,
-        sourceType: "binaryFile",
-        sourceKind: args.sourceKind,
-        storageId: String(args.storageId),
-        mimeType: args.mimeType,
-        fileName: args.fileName ?? null,
-        metadata: args.metadata,
-        entryTime: args.entryTime,
-      });
-    } catch (error) {
-      console.error("Failed to enqueue memory chart update", error);
-    }
-    return result;
-  },
-});
-
 export const search = action({
   args: {
     namespace: v.string(),
@@ -920,6 +862,32 @@ export const search = action({
   },
   handler: async (ctx, args): Promise<AgentMemorySearchResult[]> => {
     return await createAgentMemoryClient().search(ctx, args);
+  },
+});
+
+export const searchContextMemories = action({
+  args: {
+    namespace: v.string(),
+    query: searchQueryValidator,
+    chartIds: v.optional(v.array(v.string())),
+    ...searchOptionsValidator,
+  },
+  handler: async (ctx, args): Promise<AgentMemorySearchResult[]> => {
+    const { chartIds, ...searchArgs } = args;
+    const results = await createAgentMemoryClient().search(ctx, searchArgs);
+    if (!chartIds || chartIds.length === 0) {
+      return results;
+    }
+
+    const entryIds = await ctx.runQuery(
+      components.agentMemory.public.runtimeApi.getMemoryEntryIdsForCharts,
+      {
+        namespace: args.namespace,
+        chartIds: chartIds,
+      },
+    );
+    const selectedEntryIds = new Set(entryIds);
+    return results.filter((result) => selectedEntryIds.has(result.entryId));
   },
 });
 

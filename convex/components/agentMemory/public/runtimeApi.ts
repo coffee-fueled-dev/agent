@@ -14,6 +14,7 @@ import {
   startRuntimeCommitImpl,
 } from "./runtime/agentRuntime";
 import {
+  getMemoryEntryIdsForChartsImpl,
   getMemoryChartImpl,
   getMemoryChartNamespaceMetricsImpl,
   listMemoryChartMembersImpl,
@@ -95,6 +96,14 @@ export const getMemoryChartNamespaceMetrics = query({
     namespace: v.string(),
   },
   handler: getMemoryChartNamespaceMetricsImpl,
+});
+
+export const getMemoryEntryIdsForCharts = query({
+  args: {
+    namespace: v.string(),
+    chartIds: v.array(v.id("memoryCharts")),
+  },
+  handler: getMemoryEntryIdsForChartsImpl,
 });
 
 export const listMemoryChartMembers = query({
