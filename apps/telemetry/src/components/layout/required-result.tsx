@@ -1,6 +1,11 @@
 "use client";
 
-import type { UsePaginatedQueryReturnType } from "convex/react";
+import {
+  type PaginatedQueryArgs,
+  type UsePaginatedQueryReturnType,
+  usePaginatedQuery,
+  useQuery,
+} from "convex/react";
 import type {
   FunctionArgs,
   FunctionReference,
@@ -9,12 +14,6 @@ import type {
   PaginationResult,
 } from "convex/server";
 import type { BetterOmit } from "convex-helpers";
-import {
-  type SessionPaginatedQueryArgs,
-  useSessionPaginatedQuery,
-  useSessionQuery,
-} from "convex-helpers/react/sessions";
-import type { SessionId } from "convex-helpers/server/sessions";
 import type React from "react";
 import { Empty } from "../ui/empty";
 import { Spinner } from "../ui/spinner";
@@ -41,7 +40,7 @@ export function RequiredResult<Query extends FunctionReference<"query">>({
   fallback?: React.ReactNode;
   children: (result: NonNullable<FunctionReturnType<Query>>) => React.ReactNode;
 }) {
-  const result = useSessionQuery(query, args as never);
+  const result = useQuery(query, args as never);
 
   if (result === null) throw new Error("Not found");
   if (!result) return fallback;
@@ -49,14 +48,14 @@ export function RequiredResult<Query extends FunctionReference<"query">>({
   return <>{children(result)}</>;
 }
 
-type SessionPaginatedQuery = FunctionReference<
+type PaginatedQuery = FunctionReference<
   "query",
   "public",
-  { sessionId: SessionId } & { paginationOpts: PaginationOptions },
+  { paginationOpts: PaginationOptions },
   PaginationResult<unknown>
 >;
 
-export function RequiredPaginatedResult<QUERY extends SessionPaginatedQuery>({
+export function RequiredPaginatedResult<QUERY extends PaginatedQuery>({
   query,
   args,
   initialNumItems = 10,
@@ -64,12 +63,12 @@ export function RequiredPaginatedResult<QUERY extends SessionPaginatedQuery>({
   children,
 }: {
   query: QUERY;
-  args: SessionPaginatedQueryArgs<QUERY>;
+  args: PaginatedQueryArgs<QUERY>;
   initialNumItems?: number;
   fallback?: React.ReactNode;
   children: (result: UsePaginatedQueryReturnType<QUERY>) => React.ReactNode;
 }) {
-  const result = useSessionPaginatedQuery(query, args, { initialNumItems });
+  const result = usePaginatedQuery(query, args, { initialNumItems });
 
   if (!result) return fallback;
 

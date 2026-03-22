@@ -1302,6 +1302,12 @@ export declare const components: {
           { chartId: string },
           any
         >;
+        getMemoryChartMemberByEntryId: FunctionReference<
+          "query",
+          "internal",
+          { entryId: string; namespace: string },
+          any
+        >;
         getMemoryChartNamespaceMetrics: FunctionReference<
           "query",
           "internal",

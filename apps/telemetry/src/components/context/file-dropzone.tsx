@@ -87,7 +87,7 @@ export function FileDropzoneInner({
           aria-hidden="true"
           className="pointer-events-none fixed inset-0 z-[60] bg-muted/50 backdrop-blur-sm flex justify-center items-center"
         >
-          <Skeleton className="flex items-center gap-2">
+          <Skeleton className="flex items-center gap-2 p-4 rounded-full">
             <FilePlusIcon size={30} className="text-green-600" />
           </Skeleton>
         </div>

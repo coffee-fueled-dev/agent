@@ -1,10 +1,22 @@
-import { Canvas } from "@react-three/fiber";
 import { Html, OrbitControls } from "@react-three/drei";
+import { Canvas } from "@react-three/fiber";
 import { useAction, useQuery } from "convex/react";
 import { FileTextIcon, LinkIcon, LoaderCircleIcon } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { cn } from "@/lib/utils.js";
 import { api } from "../../../../../convex/_generated/api.js";
 import { PageSection } from "../layout/page-section";
+import { RequiredResult } from "../layout/required-result.js";
+import { Button } from "../ui/button.js";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../ui/dialog";
 import {
   Select,
   SelectContent,
@@ -12,6 +24,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../ui/tooltip.js";
 import { useContextFilters } from "./use-context-filters";
 
 const LIMIT_OPTIONS = ["48", "96", "144", "240"];
@@ -30,50 +48,21 @@ type ProjectionPoint = {
   z: number;
 };
 
-function hashString(seed: string) {
-  let hash = 2166136261;
-  for (let index = 0; index < seed.length; index += 1) {
-    hash ^= seed.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
+function formatDate(value: number) {
+  return new Date(value).toLocaleString();
+}
+
+function formatIcon(sourceType: ProjectionPoint["sourceType"]) {
+  if (sourceType === "binaryFile") {
+    return LinkIcon;
   }
-  return hash >>> 0;
+  return FileTextIcon;
 }
 
-function clamp01(value: number) {
-  return Math.max(0, Math.min(1, value));
-}
-
-function srgbToHex(value: number) {
-  return Math.round(clamp01(value) * 255)
-    .toString(16)
-    .padStart(2, "0");
-}
-
-function oklchToHex(seed: string) {
-  const a = hashString(seed);
-  const b = hashString(`${seed}:light`);
-  const c = hashString(`${seed}:chroma`);
-  const lightness = 0.62 + (b % 18) / 100;
-  const chroma = 0.1 + (c % 7) / 100;
-  const hue = ((a % 360) * Math.PI) / 180;
-  const A = chroma * Math.cos(hue);
-  const B = chroma * Math.sin(hue);
-  const l = lightness + 0.3963377774 * A + 0.2158037573 * B;
-  const m = lightness - 0.1055613458 * A - 0.0638541728 * B;
-  const s = lightness - 0.0894841775 * A - 1.291485548 * B;
-  const l3 = l ** 3;
-  const m3 = m ** 3;
-  const s3 = s ** 3;
-  const r =
-    4.0767416621 * l3 - 3.3077115913 * m3 + 0.2309699292 * s3;
-  const g =
-    -1.2684380046 * l3 + 2.6097574011 * m3 - 0.3413193965 * s3;
-  const blue =
-    -0.0041960863 * l3 - 0.7034186147 * m3 + 1.707614701 * s3;
-  return `#${srgbToHex(r)}${srgbToHex(g)}${srgbToHex(blue)}`;
-}
-
-function pointLabel(point: ProjectionPoint) {
+function pointLabel(point: {
+  sourceType: ProjectionPoint["sourceType"];
+  mimeType?: string | null;
+}) {
   if (point.sourceType === "binaryFile") {
     return point.mimeType || "binary file";
   }
@@ -82,81 +71,47 @@ function pointLabel(point: ProjectionPoint) {
 
 function ProjectionMarker({
   point,
-  selected,
   onSelect,
 }: {
   point: ProjectionPoint;
-  selected: boolean;
   onSelect: (entryId: string) => void;
 }) {
-  const [hovered, setHovered] = useState(false);
-  const color = oklchToHex(point.chartId || point.chartKey);
-  const scale = selected ? 1.25 : hovered ? 1.15 : 1;
-  const Icon = point.sourceType === "binaryFile" ? LinkIcon : FileTextIcon;
+  const Icon = formatIcon(point.sourceType);
 
   return (
     <group position={[point.x * 7, point.y * 7, point.z * 7]}>
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: react-three-fiber meshes use pointer events inside the canvas. */}
-      <mesh
-        scale={scale}
-        onClick={() => onSelect(point.entryId)}
-        onPointerEnter={() => setHovered(true)}
-        onPointerLeave={() => setHovered(false)}
-      >
-        <sphereGeometry args={[0.14, 20, 20]} />
-        <meshStandardMaterial
-          color={color}
-          emissive={color}
-          emissiveIntensity={selected || hovered ? 0.45 : 0.18}
-        />
-      </mesh>
-      <Html center distanceFactor={14}>
-        <div
-          className="pointer-events-none flex size-5 items-center justify-center rounded-full border bg-background/85 text-foreground shadow-sm"
-          style={{
-            borderColor: color,
-            boxShadow: selected ? `0 0 0 1px ${color}` : undefined,
-          }}
-        >
-          <Icon className="size-3" />
-        </div>
-      </Html>
-      {(hovered || selected) && (
-        <Html position={[0, 0.38, 0]} center>
-          <div className="rounded-md border bg-background/95 px-2 py-1 text-xs shadow-lg">
-            <div className="font-medium">
-              {point.title || point.key}
-            </div>
-            <div className="text-muted-foreground">{pointLabel(point)}</div>
-            {point.fileUrl ? (
-              <a
-                className="pointer-events-auto text-primary underline-offset-4 hover:underline"
-                href={point.fileUrl}
-                rel="noreferrer"
-                target="_blank"
+      <Html center>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon-sm"
+                className={cn("rounded-full")}
+                onClick={() => onSelect(point.entryId)}
               >
-                Open file
-              </a>
-            ) : null}
-          </div>
-        </Html>
-      )}
+                <Icon className="size-3" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              <span>{point.title || point.key}</span>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </Html>
     </group>
   );
 }
 
 function ExploreScene({
   points,
-  selectedEntryId,
   onSelect,
 }: {
   points: ProjectionPoint[];
-  selectedEntryId: string | null;
   onSelect: (entryId: string) => void;
 }) {
   return (
     <Canvas camera={{ position: [0, 0, 4.8], fov: 50 }}>
-      <color attach="background" args={["#050816"]} />
+      <color attach="background" args={["var(--card)"]} />
       <ambientLight intensity={0.8} />
       <pointLight position={[8, 8, 8]} intensity={40} />
       <pointLight position={[-8, -8, -4]} intensity={12} color="#8ab4ff" />
@@ -164,7 +119,6 @@ function ExploreScene({
         <ProjectionMarker
           key={point.entryId}
           point={point}
-          selected={selectedEntryId === point.entryId}
           onSelect={onSelect}
         />
       ))}
@@ -179,13 +133,19 @@ export function MemoryExplore() {
   const [jobId, setJobId] = useState<string | null>(null);
   const [startError, setStartError] = useState<string | null>(null);
   const [isStarting, setIsStarting] = useState(false);
-  const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
-  const startProjection = useAction(api.context.memoryProjections.startMemoryProjection);
+  const startProjection = useAction(
+    api.context.memoryProjections.startMemoryProjection,
+  );
   const status = useQuery(
     api.context.memoryProjections.getMemoryProjectionStatus,
     jobId ? { jobId: jobId as never } : "skip",
   );
   const requestRef = useRef(0);
+  const chartIdsKey = useMemo(() => chartIds.join(","), [chartIds]);
+  const stableChartIds = useMemo(
+    () => (chartIdsKey ? chartIdsKey.split(",") : []),
+    [chartIdsKey],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -193,11 +153,10 @@ export function MemoryExplore() {
     requestRef.current = requestId;
     setIsStarting(true);
     setStartError(null);
-    setSelectedEntryId(null);
     setJobId(null);
     void startProjection({
       namespace,
-      chartIds: chartIds.length > 0 ? chartIds : undefined,
+      chartIds: stableChartIds.length > 0 ? stableChartIds : undefined,
       query,
       limit: Number(limit),
     })
@@ -212,7 +171,9 @@ export function MemoryExplore() {
           return;
         }
         setStartError(
-          error instanceof Error ? error.message : "Failed to start projection.",
+          error instanceof Error
+            ? error.message
+            : "Failed to start projection.",
         );
       })
       .finally(() => {
@@ -223,7 +184,7 @@ export function MemoryExplore() {
     return () => {
       cancelled = true;
     };
-  }, [chartIds, limit, namespace, query, startProjection]);
+  }, [limit, namespace, query, stableChartIds, startProjection]);
 
   const points = status?.points ?? [];
   const isWorking =
@@ -232,6 +193,14 @@ export function MemoryExplore() {
     status?.status === "running" ||
     status === undefined;
 
+  const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
+  function handleOpenChange(open: boolean) {
+    if (!open) setSelectedEntryId(null);
+  }
+  function handleSelect(entryId: string | null) {
+    setSelectedEntryId(entryId);
+  }
+
   return (
     <PageSection.Body variant="card" className="gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -239,7 +208,9 @@ export function MemoryExplore() {
           <PageSection.Title size="lg">Explore</PageSection.Title>
           <PageSection.Description>
             {namespace}
-            {chartIds.length > 0 ? ` · ${chartIds.length} charts` : " · all charts"}
+            {chartIds.length > 0
+              ? ` · ${chartIds.length} charts`
+              : " · all charts"}
             {query.trim() ? " · query synced" : ""}
           </PageSection.Description>
         </div>
@@ -261,12 +232,17 @@ export function MemoryExplore() {
       </div>
       <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
         <span>
-          Status: {startError ? "failed" : status?.status ?? "starting"}
+          Status: {startError ? "failed" : (status?.status ?? "starting")}
         </span>
         <span>Charts: {status?.resolvedChartCount ?? 0}</span>
         <span>Points: {status?.loadedPointCount ?? 0}</span>
       </div>
-      <div className="relative h-[40rem] overflow-hidden rounded-xl border bg-muted/20">
+      <div
+        className="relative h-[40rem] overflow-hidden rounded-xl border bg-muted/20"
+        style={
+          selectedEntryId ? { zIndex: 0, isolation: "isolate" } : undefined
+        }
+      >
         {startError ? (
           <div className="flex h-full items-center justify-center p-6 text-center text-sm text-destructive">
             {startError}
@@ -282,17 +258,56 @@ export function MemoryExplore() {
           </div>
         ) : points.length === 0 ? (
           <div className="flex h-full items-center justify-center p-6 text-center text-sm text-muted-foreground">
-            No projected points are available for the current namespace and chart
-            filters.
+            No projected points are available for the current namespace and
+            chart filters.
           </div>
         ) : (
-          <ExploreScene
-            points={points}
-            selectedEntryId={selectedEntryId}
-            onSelect={setSelectedEntryId}
-          />
+          <ExploreScene points={points} onSelect={handleSelect} />
         )}
       </div>
+
+      <Dialog open={!!selectedEntryId} onOpenChange={handleOpenChange}>
+        {selectedEntryId && (
+          <DialogContent>
+            <RequiredResult
+              query={api.agentMemory.getMemoryChartMemberByEntryId}
+              args={{ namespace, entryId: selectedEntryId }}
+            >
+              {(detail) => {
+                const Icon = formatIcon(detail.sourceType);
+                return (
+                  <>
+                    <DialogHeader>
+                      <span className="flex items-center gap-2">
+                        <div className="flex items-center justify-center gap-2 rounded-md bg-muted p-2 border border-border">
+                          <Icon className="size-5" />
+                        </div>
+                        <span>
+                          <DialogTitle>
+                            {detail.title || detail.key}
+                          </DialogTitle>
+                          <DialogDescription>
+                            {pointLabel(detail)}
+                          </DialogDescription>
+                        </span>
+                      </span>
+                      <DialogDescription>
+                        {formatDate(detail.assignedAt)}
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="text-sm bg-muted p-4 rounded-lg">
+                      <DialogDescription>{detail.summary}</DialogDescription>
+                    </div>
+                    <DialogFooter>
+                      <DialogClose>Close</DialogClose>
+                    </DialogFooter>
+                  </>
+                );
+              }}
+            </RequiredResult>
+          </DialogContent>
+        )}
+      </Dialog>
     </PageSection.Body>
   );
 }

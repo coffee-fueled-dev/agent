@@ -83,6 +83,22 @@ export async function getMemoryEntryIdsForChartsImpl(
   return [...entryIds];
 }
 
+export async function getMemoryChartMemberByEntryIdImpl(
+  ctx: QueryCtx,
+  args: {
+    namespace: string;
+    entryId: string;
+  },
+) {
+  const member = await ctx.db
+    .query("memoryChartMembers")
+    .withIndex("by_namespace_entryId", (q) =>
+      q.eq("namespace", args.namespace).eq("entryId", args.entryId),
+    )
+    .unique();
+  return member ? chartMemberSummary(member) : null;
+}
+
 export async function listMemoryChartMembersImpl(
   ctx: QueryCtx,
   args: {

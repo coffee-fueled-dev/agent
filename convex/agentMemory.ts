@@ -7,6 +7,7 @@ import {
   internalAction,
   internalMutation,
   mutation,
+  type QueryCtx,
   query,
 } from "./_generated/server";
 import { agentMemoryEpisodicPool } from "./agentMemoryWorkpool";
@@ -164,6 +165,36 @@ async function enqueueMemoryChartSidecar(
     metadata: args.metadata,
     entryTime: args.entryTime ?? Date.now(),
   });
+}
+
+async function resolveMemoryMemberFileUrl(
+  ctx: Pick<QueryCtx, "storage">,
+  member: MemoryChartMember,
+) {
+  if (!member.storageId) {
+    return null;
+  }
+  const publicUrl = buildPublicMemoryFileUrl({
+    storageId: member.storageId,
+    fileName: member.fileName,
+  });
+  if (publicUrl) {
+    return publicUrl;
+  }
+  const providerUrl = await ctx.storage.getUrl(member.storageId as never);
+  return providerUrl && isProviderAccessibleUrl(providerUrl)
+    ? providerUrl
+    : null;
+}
+
+async function withMemoryMemberFileUrl(
+  ctx: Pick<QueryCtx, "storage">,
+  member: MemoryChartMember,
+) {
+  return {
+    ...member,
+    fileUrl: await resolveMemoryMemberFileUrl(ctx, member),
+  };
 }
 
 export function createAgentMemoryClient() {
@@ -717,28 +748,31 @@ export const listMemoryChartMembers = query({
     return {
       ...results,
       page: await Promise.all(
-        results.page.map(async (member: MemoryChartMember) => {
-          let fileUrl: string | null | undefined;
-          if (member.storageId) {
-            fileUrl =
-              buildPublicMemoryFileUrl({
-                storageId: member.storageId,
-                fileName: member.fileName,
-              }) ??
-              ((await ctx.storage.getUrl(member.storageId as never)) &&
-              isProviderAccessibleUrl(
-                await ctx.storage.getUrl(member.storageId as never),
-              )
-                ? await ctx.storage.getUrl(member.storageId as never)
-                : null);
-          }
-          return {
-            ...member,
-            fileUrl,
-          };
-        }),
+        results.page.map((member: MemoryChartMember) =>
+          withMemoryMemberFileUrl(ctx, member),
+        ),
       ),
     };
+  },
+});
+
+export const getMemoryChartMemberByEntryId = query({
+  args: {
+    namespace: v.string(),
+    entryId: v.string(),
+  },
+  handler: async (
+    ctx,
+    args,
+  ): Promise<(MemoryChartMember & { fileUrl?: string | null }) | null> => {
+    const member = await ctx.runQuery(
+      components.agentMemory.public.runtimeApi.getMemoryChartMemberByEntryId,
+      args,
+    );
+    if (!member) {
+      return null;
+    }
+    return await withMemoryMemberFileUrl(ctx, member);
   },
 });
 

@@ -15,6 +15,7 @@ import {
 } from "./runtime/agentRuntime";
 import {
   getMemoryEntryIdsForChartsImpl,
+  getMemoryChartMemberByEntryIdImpl,
   getMemoryChartImpl,
   getMemoryChartNamespaceMetricsImpl,
   listMemoryChartMembersImpl,
@@ -104,6 +105,14 @@ export const getMemoryEntryIdsForCharts = query({
     chartIds: v.array(v.id("memoryCharts")),
   },
   handler: getMemoryEntryIdsForChartsImpl,
+});
+
+export const getMemoryChartMemberByEntryId = query({
+  args: {
+    namespace: v.string(),
+    entryId: v.string(),
+  },
+  handler: getMemoryChartMemberByEntryIdImpl,
 });
 
 export const listMemoryChartMembers = query({

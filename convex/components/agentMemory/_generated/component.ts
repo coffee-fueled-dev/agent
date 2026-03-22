@@ -419,6 +419,13 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           any,
           Name
         >;
+        getMemoryChartMemberByEntryId: FunctionReference<
+          "query",
+          "internal",
+          { entryId: string; namespace: string },
+          any,
+          Name
+        >;
         getMemoryChartNamespaceMetrics: FunctionReference<
           "query",
           "internal",
