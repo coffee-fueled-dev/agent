@@ -3,8 +3,8 @@ import {
   type PropsWithChildren,
   useContext,
   useMemo,
-  useState,
 } from "react";
+import { useContextFilters } from "./use-context-filters";
 
 type NamespaceContextValue = {
   namespace: string;
@@ -14,33 +14,20 @@ type NamespaceContextValue = {
 
 const NamespaceContext = createContext<NamespaceContextValue | null>(null);
 
-function getInitialNamespace() {
-  if (typeof window === "undefined") {
-    return "default";
-  }
-  const namespace = new URLSearchParams(window.location.search).get(
-    "namespace",
-  );
-  return namespace?.trim() || "default";
-}
-
 export function NamespaceProvider({
   children,
-  namespace: initialNamespace,
 }: PropsWithChildren<{
   namespace?: string;
 }>) {
-  const [namespace, setNamespace] = useState(
-    initialNamespace ?? getInitialNamespace,
-  );
+  const filters = useContextFilters();
 
   const value = useMemo(
     () => ({
-      namespace,
-      setNamespace,
-      displayName: namespace,
+      namespace: filters.namespace,
+      setNamespace: filters.setNamespace,
+      displayName: filters.displayName,
     }),
-    [namespace],
+    [filters.displayName, filters.namespace, filters.setNamespace],
   );
 
   return (

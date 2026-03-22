@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { AddMemoryDialog } from "./add-memory-dialog";
 import { ChartList } from "./chart-list";
 import { FileDropzone, useFiles } from "./file-dropzone";
+import { MemoryExplore } from "./memory-explore";
 import { MemoryList } from "./memory-list";
 import { SearchMemories } from "./search-memories";
 import { ChartProvider, useChart } from "./use-chart";
@@ -93,7 +94,7 @@ function ContextPageContent({
         </PageSection.HeaderRow>
       </PageSection.Header>
       <PageSection.Content>
-        <Tabs>
+        <Tabs defaultValue="search" className="flex flex-col gap-4">
           <TabsList>
             <TabsTrigger value="search">Search</TabsTrigger>
             <TabsTrigger value="explore">Explore</TabsTrigger>
@@ -119,7 +120,7 @@ function ContextPageContent({
             </div>
           </TabsContent>
           <TabsContent value="explore">
-            {/* Visualization goes here */}
+            <MemoryExplore />
           </TabsContent>
         </Tabs>
       </PageSection.Content>

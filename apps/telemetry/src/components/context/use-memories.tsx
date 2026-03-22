@@ -1,7 +1,6 @@
 import { useAction } from "convex/react";
 import {
   createContext,
-  createElement,
   type PropsWithChildren,
   useCallback,
   useContext,
@@ -13,6 +12,7 @@ import { api } from "../../../../../convex/_generated/api.js";
 import type { AgentMemorySearchResult } from "../../../../../convex/components/agentMemory/public/search.js";
 import { useChart } from "./use-chart.js";
 import { useNamespace } from "./use-namespace.js";
+import { useContextFilters } from "./use-context-filters.js";
 
 type MemoriesContextValue = {
   memories: AgentMemorySearchResult[];
@@ -32,14 +32,16 @@ const SEARCH_LIMIT = 20;
 export function MemoriesProvider({ children }: PropsWithChildren) {
   const { namespace } = useNamespace();
   const { selectedChartIds } = useChart();
+  const filters = useContextFilters();
   const searchContextMemories = useAction(
     api.agentMemory.searchContextMemories,
   );
-  const [query, setQuery] = useState("");
   const [memories, setMemories] = useState<AgentMemorySearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
+  const query = filters.query;
+  const setQuery = filters.setQuery;
 
   const search = useCallback(
     async (value?: string) => {
@@ -100,7 +102,7 @@ export function MemoriesProvider({ children }: PropsWithChildren) {
       error,
       hasSearched,
     }),
-    [error, hasSearched, isSearching, memories, query, refresh, search],
+    [error, hasSearched, isSearching, memories, query, refresh, search, setQuery],
   );
 
   return (

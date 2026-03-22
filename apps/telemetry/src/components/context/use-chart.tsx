@@ -4,8 +4,8 @@ import {
   useCallback,
   useContext,
   useMemo,
-  useState,
 } from "react";
+import { useContextFilters } from "./use-context-filters";
 
 type ChartContextValue = {
   selectedChartIds: string[];
@@ -19,28 +19,27 @@ const ChartContext = createContext<ChartContextValue | null>(null);
 
 export function ChartProvider({
   children,
-  initialChartIds = [],
 }: PropsWithChildren<{
   initialChartIds?: string[];
 }>) {
-  const [selectedChartIds, setSelectedChartIds] = useState(initialChartIds);
+  const filters = useContextFilters();
+  const selectedChartIds = filters.chartIds;
 
   const isSelected = useCallback(
     (chartId: string) => selectedChartIds.includes(chartId),
     [selectedChartIds],
   );
 
-  const toggleChart = useCallback((chartId: string) => {
-    setSelectedChartIds((current) =>
-      current.includes(chartId)
-        ? current.filter((value) => value !== chartId)
-        : [...current, chartId],
-    );
-  }, []);
+  const toggleChart = useCallback(
+    (chartId: string) => {
+      filters.toggleChartId(chartId);
+    },
+    [filters],
+  );
 
   const clearCharts = useCallback(() => {
-    setSelectedChartIds([]);
-  }, []);
+    filters.clearChartIds();
+  }, [filters]);
 
   const value = useMemo(
     () => ({
