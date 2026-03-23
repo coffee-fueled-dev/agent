@@ -1,12 +1,11 @@
 import type { WorkflowCtx } from "@convex-dev/workflow";
-import { v } from "convex/values";
+import { type Infer, v } from "convex/values";
 import { UMAP } from "umap-js";
 import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { action, internalAction, query } from "../_generated/server";
 import type {
   MemoryChartMember,
-  MemoryChartSourceType,
   MemoryChartSummary,
 } from "../components/agentMemory/internal/runtime";
 import { workflow as workflowManager } from "../workflow";
@@ -34,17 +33,7 @@ const projectionSeedValidator = v.object({
 
 type ProjectionChart = Pick<MemoryChartSummary, "chartId" | "chartKey">;
 type ProjectionWorkflowStep = Pick<WorkflowCtx, "runQuery">;
-type ProjectionSeed = {
-  entryId: string;
-  chartId: string;
-  chartKey: string;
-  key: string;
-  title: string | null;
-  sourceType: MemoryChartSourceType;
-  mimeType?: string | null;
-  fileUrl?: string | null;
-  embedding: number[];
-};
+type ProjectionSeed = Infer<typeof projectionSeedValidator>;
 type ProjectionPoint = Omit<ProjectionSeed, "embedding"> & {
   x: number;
   y: number;

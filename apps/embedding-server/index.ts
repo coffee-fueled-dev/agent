@@ -1,9 +1,9 @@
-import { $ } from "bun";
 import {
-  createPartFromText,
   createPartFromBase64,
+  createPartFromText,
   GoogleGenAI,
 } from "@google/genai";
+import { $ } from "bun";
 
 const embeddingModel = "gemini-embedding-2-preview";
 const port = Number(process.env.EMBEDDING_SERVER_PORT ?? "3031");
@@ -41,8 +41,10 @@ function buildRetrievalText(args: {
     return text;
   }
   return (
-    [args.title, args.fileName, args.mimeType].filter(Boolean).join(" ").trim() ||
-    "binary file"
+    [args.title, args.fileName, args.mimeType]
+      .filter(Boolean)
+      .join(" ")
+      .trim() || "binary file"
   );
 }
 
@@ -73,12 +75,12 @@ async function postJson(url: string, body: unknown) {
   }
 }
 
-async function reportFailure(processId: string, error: unknown) {
+async function reportFailure(job: EmbedJob, error: unknown) {
   const message =
     error instanceof Error ? error.message : "Binary embedding worker failed";
   try {
-    await postJson(failUrl(), {
-      processId,
+    await postJson(job.failUrl ?? failUrl(), {
+      processId: job.processId,
       error: message,
     });
   } catch (reportError) {
@@ -94,6 +96,8 @@ type EmbedJob = {
   text?: string;
   mimeType: string;
   fileName?: string | null;
+  completeUrl?: string;
+  failUrl?: string;
 };
 
 function tempDownloadPath(job: EmbedJob) {
@@ -103,9 +107,10 @@ function tempDownloadPath(job: EmbedJob) {
 
 async function downloadFileWithCurl(job: EmbedJob) {
   const path = tempDownloadPath(job);
-  const result = await $`curl -fsSL --retry 3 --retry-connrefused ${job.fileUrl} > ${Bun.file(path)}`
-    .nothrow()
-    .quiet();
+  const result =
+    await $`curl -fsSL --retry 3 --retry-connrefused ${job.fileUrl} > ${Bun.file(path)}`
+      .nothrow()
+      .quiet();
   if (result.exitCode !== 0) {
     const errorText =
       new TextDecoder().decode(result.stderr).trim() ||
@@ -143,14 +148,14 @@ async function processEmbeddingJob(job: EmbedJob) {
     if (chunks.length === 0) {
       throw new Error("Google did not return any embeddings");
     }
-    await postJson(completeUrl(), {
+    await postJson(job.completeUrl ?? completeUrl(), {
       processId: job.processId,
       retrievalText,
       chunks,
     });
   } catch (error) {
     console.error("Embedding job failed", error);
-    await reportFailure(job.processId, error);
+    await reportFailure(job, error);
   } finally {
     if (tempFilePath) {
       await $`rm -f ${tempFilePath}`.nothrow().quiet();
@@ -170,6 +175,8 @@ function readJob(payload: unknown): EmbedJob {
     text,
     mimeType,
     fileName,
+    completeUrl: jobCompleteUrl,
+    failUrl: jobFailUrl,
   } = payload as Record<string, unknown>;
   if (
     typeof processId !== "string" ||
@@ -187,6 +194,9 @@ function readJob(payload: unknown): EmbedJob {
     mimeType,
     fileName:
       typeof fileName === "string" || fileName === null ? fileName : undefined,
+    completeUrl:
+      typeof jobCompleteUrl === "string" ? jobCompleteUrl : undefined,
+    failUrl: typeof jobFailUrl === "string" ? jobFailUrl : undefined,
   };
 }
 
@@ -196,9 +206,7 @@ const server = Bun.serve({
     "/health": () => Response.json({ ok: true }),
     "/embed": {
       POST: async (request) => {
-        if (
-          request.headers.get("x-binary-embedding-secret") !== sharedSecret
-        ) {
+        if (request.headers.get("x-binary-embedding-secret") !== sharedSecret) {
           return new Response("Unauthorized", { status: 401 });
         }
         try {

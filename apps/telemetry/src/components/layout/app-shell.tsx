@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { AppNav } from "@/components/layout/app-nav";
 
 type AppShellProps = {
-  current: "telemetry" | "context";
+  current: "telemetry" | "context" | "memory";
   eyebrow: string;
   title: string;
   description: string;

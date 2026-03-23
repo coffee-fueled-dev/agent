@@ -2,6 +2,7 @@ import { ConvexProvider, ConvexReactClient } from "convex/react";
 import { type ReactNode, StrictMode, useMemo } from "react";
 import { createRoot } from "react-dom/client";
 import "../styles/globals.css";
+import { TooltipProvider } from "./components/ui/tooltip";
 
 function Root({ children }: { children: ReactNode }) {
   const convexUrl = process.env.BUN_PUBLIC_CONVEX_URL;
@@ -22,7 +23,11 @@ function Root({ children }: { children: ReactNode }) {
     );
   }
 
-  return <ConvexProvider client={client}>{children}</ConvexProvider>;
+  return (
+    <ConvexProvider client={client}>
+      <TooltipProvider>{children}</TooltipProvider>
+    </ConvexProvider>
+  );
 }
 
 export function renderApp(children: ReactNode) {

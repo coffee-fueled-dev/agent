@@ -87,7 +87,7 @@ export class AgentMemoryClient {
     args: RuntimeRegistrationArgs,
   ) => {
     return await ctx.runMutation(
-      this.component.public.runtime.registerRuntime,
+      this.component.public.runtime.index.registerRuntime,
       args,
     );
   };
@@ -97,7 +97,7 @@ export class AgentMemoryClient {
     args: { runtime: string; streamId: string },
   ): Promise<RuntimeStreamState> => {
     return await ctx.runQuery(
-      this.component.public.runtime.getRuntimeStreamState,
+      this.component.public.runtime.index.getRuntimeStreamState,
       args,
     );
   };
@@ -112,7 +112,7 @@ export class AgentMemoryClient {
     },
   ) => {
     return await ctx.runMutation(
-      this.component.public.runtime.markRuntimeCommitQueued,
+      this.component.public.runtime.index.markRuntimeCommitQueued,
       args,
     );
   };
@@ -122,7 +122,7 @@ export class AgentMemoryClient {
     args: { workId: string; state: "failed" | "canceled"; error?: string },
   ) => {
     return await ctx.runMutation(
-      this.component.public.runtime.finalizeRuntimeCommit,
+      this.component.public.runtime.index.finalizeRuntimeCommit,
       args,
     );
   };
@@ -132,7 +132,7 @@ export class AgentMemoryClient {
     args: { runtime: string; streamId: string },
   ): Promise<RuntimeCurrentView> => {
     return await ctx.runQuery(
-      this.component.public.runtime.getRuntimeCurrent,
+      this.component.public.runtime.index.getRuntimeCurrent,
       args,
     );
   };
@@ -149,7 +149,7 @@ export class AgentMemoryClient {
     },
   ): Promise<RuntimeEvolutionView> => {
     return await ctx.runQuery(
-      this.component.public.runtime.listRuntimeEvolution,
+      this.component.public.runtime.index.listRuntimeEvolution,
       args,
     );
   };

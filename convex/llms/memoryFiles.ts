@@ -1,3 +1,4 @@
+import { components } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { httpAction } from "../_generated/server";
 
@@ -28,21 +29,24 @@ export function isProviderAccessibleUrl(url: string | null | undefined) {
   if (!url) {
     return false;
   }
-  try {
-    const parsed = new URL(url);
-    if (parsed.protocol !== "https:") {
-      return false;
-    }
-    const host = parsed.hostname.toLowerCase();
-    return !(
-      host === "localhost" ||
-      host === "127.0.0.1" ||
-      host === "0.0.0.0" ||
-      host.endsWith(".local")
-    );
-  } catch {
-    return false;
-  }
+  // TODO: Enable if serving over internet
+  // try {
+  //   const parsed = new URL(url);
+  //   if (parsed.protocol !== "https:") {
+  //     return false;
+  //   }
+  //   const host = parsed.hostname.toLowerCase();
+  //   return !(
+  //     host === "localhost" ||
+  //     host === "127.0.0.1" ||
+  //     host === "0.0.0.0" ||
+  //     host.endsWith(".local")
+  //   );
+  // } catch {
+  //   return false;
+  // }
+
+  return true;
 }
 
 export function buildPublicMemoryFileUrl(args: {
@@ -61,14 +65,6 @@ export function buildPublicMemoryFileUrl(args: {
   return url.toString();
 }
 
-function contentDisposition(fileName: string | null) {
-  if (!fileName) {
-    return "inline";
-  }
-  const safeName = fileName.replace(/[\r\n"]/g, "_");
-  return `inline; filename="${safeName}"`;
-}
-
 export const servePublicMemoryFile = httpAction(async (ctx, request) => {
   const url = new URL(request.url);
   const storageId = url.searchParams.get("storageId");
@@ -76,19 +72,13 @@ export const servePublicMemoryFile = httpAction(async (ctx, request) => {
     return new Response("Missing storageId", { status: 400 });
   }
 
-  const file = await ctx.storage.get(storageId as Id<"_storage">);
-  if (!file) {
+  const componentUrl = await ctx.runQuery(
+    components.agentMemory.public.runtimeApi.getStorageUrl,
+    { storageId },
+  );
+  if (!componentUrl) {
     return new Response("Not found", { status: 404 });
   }
 
-  return new Response(await file.arrayBuffer(), {
-    status: 200,
-    headers: {
-      "cache-control": "public, max-age=3600",
-      "content-disposition": contentDisposition(
-        url.searchParams.get("fileName"),
-      ),
-      "content-type": file.type || "application/octet-stream",
-    },
-  });
+  return Response.redirect(componentUrl, 302);
 });

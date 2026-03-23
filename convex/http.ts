@@ -1,5 +1,11 @@
 import { httpRouter } from "convex/server";
 import {
+  completeFileProcessHttp,
+  contextFileCompletePath,
+  contextFileFailPath,
+  failFileProcessHttp,
+} from "./context/fileHttp";
+import {
   binaryEmbeddingCompletePath,
   binaryEmbeddingFailPath,
   completeBinaryEmbeddingProcessHttp,
@@ -28,6 +34,18 @@ http.route({
   path: binaryEmbeddingFailPath,
   method: "POST",
   handler: failBinaryEmbeddingProcessHttp,
+});
+
+http.route({
+  path: contextFileCompletePath,
+  method: "POST",
+  handler: completeFileProcessHttp,
+});
+
+http.route({
+  path: contextFileFailPath,
+  method: "POST",
+  handler: failFileProcessHttp,
 });
 
 export default http;

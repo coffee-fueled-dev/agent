@@ -14,6 +14,11 @@ import type * as aggregate from "../aggregate.js";
 import type * as chat from "../chat.js";
 import type * as context_binaryEmbeddingStore from "../context/binaryEmbeddingStore.js";
 import type * as context_binaryEmbeddings from "../context/binaryEmbeddings.js";
+import type * as context_contextApi from "../context/contextApi.js";
+import type * as context_fileHttp from "../context/fileHttp.js";
+import type * as context_fileHttpActions from "../context/fileHttpActions.js";
+import type * as context_fileStore from "../context/fileStore.js";
+import type * as context_files from "../context/files.js";
 import type * as context_http from "../context/http.js";
 import type * as context_memoryProjectionStore from "../context/memoryProjectionStore.js";
 import type * as context_memoryProjections from "../context/memoryProjections.js";
@@ -52,6 +57,8 @@ import type * as models_auth_account from "../models/auth/account.js";
 import type * as models_auth_index from "../models/auth/index.js";
 import type * as models_auth_session from "../models/auth/session.js";
 import type * as models_context_binaryEmbeddingProcess from "../models/context/binaryEmbeddingProcess.js";
+import type * as models_context_contextFile from "../models/context/contextFile.js";
+import type * as models_context_contextFileProcess from "../models/context/contextFileProcess.js";
 import type * as models_context_index from "../models/context/index.js";
 import type * as models_context_memoryProjectionJob from "../models/context/memoryProjectionJob.js";
 import type * as models_geo_index from "../models/geo/index.js";
@@ -81,6 +88,11 @@ declare const fullApi: ApiFromModules<{
   chat: typeof chat;
   "context/binaryEmbeddingStore": typeof context_binaryEmbeddingStore;
   "context/binaryEmbeddings": typeof context_binaryEmbeddings;
+  "context/contextApi": typeof context_contextApi;
+  "context/fileHttp": typeof context_fileHttp;
+  "context/fileHttpActions": typeof context_fileHttpActions;
+  "context/fileStore": typeof context_fileStore;
+  "context/files": typeof context_files;
   "context/http": typeof context_http;
   "context/memoryProjectionStore": typeof context_memoryProjectionStore;
   "context/memoryProjections": typeof context_memoryProjections;
@@ -119,6 +131,8 @@ declare const fullApi: ApiFromModules<{
   "models/auth/index": typeof models_auth_index;
   "models/auth/session": typeof models_auth_session;
   "models/context/binaryEmbeddingProcess": typeof models_context_binaryEmbeddingProcess;
+  "models/context/contextFile": typeof models_context_contextFile;
+  "models/context/contextFileProcess": typeof models_context_contextFileProcess;
   "models/context/index": typeof models_context_index;
   "models/context/memoryProjectionJob": typeof models_context_memoryProjectionJob;
   "models/geo/index": typeof models_geo_index;
@@ -1070,24 +1084,6 @@ export declare const components: {
             any
           >;
         };
-        finalizeRuntimeCommit: FunctionReference<
-          "mutation",
-          "internal",
-          { error?: string; state: "failed" | "canceled"; workId: string },
-          any
-        >;
-        getRuntimeCurrent: FunctionReference<
-          "query",
-          "internal",
-          { runtime: string; streamId: string },
-          any
-        >;
-        getRuntimeStreamState: FunctionReference<
-          "query",
-          "internal",
-          { runtime: string; streamId: string },
-          any
-        >;
         index: {
           finalizeRuntimeCommit: FunctionReference<
             "mutation",
@@ -1164,62 +1160,6 @@ export declare const components: {
             any
           >;
         };
-        listRuntimeEvolution: FunctionReference<
-          "query",
-          "internal",
-          {
-            paginationOpts: {
-              cursor: string | null;
-              endCursor?: string | null;
-              id?: number;
-              maximumBytesRead?: number;
-              maximumRowsRead?: number;
-              numItems: number;
-            };
-            runtime: string;
-            streamId: string;
-          },
-          any
-        >;
-        markRuntimeCommitQueued: FunctionReference<
-          "mutation",
-          "internal",
-          {
-            commitKey: string;
-            runtime: string;
-            streamId: string;
-            workId: string;
-          },
-          any
-        >;
-        registerRuntime: FunctionReference<
-          "mutation",
-          "internal",
-          {
-            description?: string;
-            facts: {
-              edgeKinds: Array<string>;
-              entities: Array<{
-                attrs: Record<string, "string" | "number" | "boolean">;
-                entityType: string;
-                states: Array<string>;
-              }>;
-              partitions: Array<string>;
-            };
-            historyStreamType: string;
-            namespaces?: {
-              current?: string;
-              facts?: string;
-              historical?: string;
-            };
-            runtime: string;
-            searchProfiles?: {
-              current?: { sourceKinds?: Array<string> };
-              historical?: { sourceKinds?: Array<string> };
-            };
-          },
-          any
-        >;
       };
       runtimeApi: {
         appendRuntimeHistory: FunctionReference<
@@ -1324,6 +1264,12 @@ export declare const components: {
           "query",
           "internal",
           { runtime: string },
+          any
+        >;
+        getStorageUrl: FunctionReference<
+          "query",
+          "internal",
+          { storageId: string },
           any
         >;
         listMemoryChartMembers: FunctionReference<
@@ -1459,6 +1405,43 @@ export declare const components: {
             textWeight?: number;
             vectorScoreThreshold?: number;
             vectorWeight?: number;
+          },
+          any
+        >;
+      };
+    };
+  };
+  context: {
+    public: {
+      add: {
+        insertEntry: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            createdAt: number;
+            entryId: string;
+            key: string;
+            namespace: string;
+            textPreview: string;
+            title?: string;
+          },
+          any
+        >;
+      };
+      list: {
+        listEntries: FunctionReference<
+          "query",
+          "internal",
+          {
+            namespace: string;
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
           },
           any
         >;

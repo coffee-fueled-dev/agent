@@ -33,7 +33,7 @@ function ContextPageInner() {
 
   return (
     <AppShell
-      current="context"
+      current="memory"
       eyebrow="Memory context"
       title="Search and refine a namespace"
       description="Searches stay namespace-oriented. Selecting charts narrows the visible memories without changing the namespace scope."
@@ -74,25 +74,6 @@ function ContextPageContent({
 
   return (
     <PageSection>
-      <PageSection.Header>
-        <PageSection.HeaderRow>
-          <PageSection.HeaderMedia>
-            <BrainIcon size={16} />
-          </PageSection.HeaderMedia>
-          <PageSection.HeaderColumn>
-            <PageSection.Title>Memories</PageSection.Title>
-            <PageSection.Description>{displayName}</PageSection.Description>
-          </PageSection.HeaderColumn>
-          <PageSection.HeaderActions>
-            {selectedCount > 0 ? (
-              <Button variant="ghost" onClick={clearCharts}>
-                Clear {selectedCount} chart
-                {selectedCount === 1 ? "" : "s"}
-              </Button>
-            ) : null}
-          </PageSection.HeaderActions>
-        </PageSection.HeaderRow>
-      </PageSection.Header>
       <PageSection.Content>
         <Tabs defaultValue="search" className="flex flex-col gap-4">
           <TabsList>

@@ -168,7 +168,7 @@ async function enqueueMemoryChartSidecar(
 }
 
 async function resolveMemoryMemberFileUrl(
-  ctx: Pick<QueryCtx, "storage">,
+  ctx: Pick<QueryCtx, "runQuery">,
   member: MemoryChartMember,
 ) {
   if (!member.storageId) {
@@ -181,14 +181,17 @@ async function resolveMemoryMemberFileUrl(
   if (publicUrl) {
     return publicUrl;
   }
-  const providerUrl = await ctx.storage.getUrl(member.storageId as never);
+  const providerUrl = await ctx.runQuery(
+    components.agentMemory.public.runtimeApi.getStorageUrl,
+    { storageId: member.storageId },
+  );
   return providerUrl && isProviderAccessibleUrl(providerUrl)
     ? providerUrl
     : null;
 }
 
 async function withMemoryMemberFileUrl(
-  ctx: Pick<QueryCtx, "storage">,
+  ctx: Pick<QueryCtx, "runQuery">,
   member: MemoryChartMember,
 ) {
   return {

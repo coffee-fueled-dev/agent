@@ -277,27 +277,26 @@ export function MemoryExplore() {
                 const Icon = formatIcon(detail.sourceType);
                 return (
                   <>
-                    <DialogHeader>
-                      <span className="flex items-center gap-2">
-                        <div className="flex items-center justify-center gap-2 rounded-md bg-muted p-2 border border-border">
-                          <Icon className="size-5" />
-                        </div>
-                        <span>
-                          <DialogTitle>
-                            {detail.title || detail.key}
-                          </DialogTitle>
-                          <DialogDescription>
-                            {pointLabel(detail)}
-                          </DialogDescription>
-                        </span>
-                      </span>
-                      <DialogDescription>
-                        {formatDate(detail.assignedAt)}
-                      </DialogDescription>
+                    <DialogHeader className="flex flex-row items-center gap-2">
+                      <div className="flex items-center justify-center gap-2 rounded-md bg-muted p-2 border border-border">
+                        <Icon className="size-4" />
+                        <p className="sr-only">{pointLabel(detail)}</p>
+                      </div>
+                      <DialogTitle>{detail.title || detail.key}</DialogTitle>
                     </DialogHeader>
+                    <DialogDescription>
+                      {formatDate(detail.assignedAt)}
+                    </DialogDescription>
                     <div className="text-sm bg-muted p-4 rounded-lg">
                       <DialogDescription>{detail.summary}</DialogDescription>
                     </div>
+                    {detail.mimeType?.startsWith("image/") && detail.fileUrl ? (
+                      <img
+                        src={detail.fileUrl}
+                        alt={detail.title || detail.key}
+                        className="max-h-64 rounded-lg border object-contain"
+                      />
+                    ) : null}
                     <DialogFooter>
                       <DialogClose>Close</DialogClose>
                     </DialogFooter>

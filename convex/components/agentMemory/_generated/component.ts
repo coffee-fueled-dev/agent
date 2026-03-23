@@ -170,27 +170,6 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             Name
           >;
         };
-        finalizeRuntimeCommit: FunctionReference<
-          "mutation",
-          "internal",
-          { error?: string; state: "failed" | "canceled"; workId: string },
-          any,
-          Name
-        >;
-        getRuntimeCurrent: FunctionReference<
-          "query",
-          "internal",
-          { runtime: string; streamId: string },
-          any,
-          Name
-        >;
-        getRuntimeStreamState: FunctionReference<
-          "query",
-          "internal",
-          { runtime: string; streamId: string },
-          any,
-          Name
-        >;
         index: {
           finalizeRuntimeCommit: FunctionReference<
             "mutation",
@@ -273,65 +252,6 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             Name
           >;
         };
-        listRuntimeEvolution: FunctionReference<
-          "query",
-          "internal",
-          {
-            paginationOpts: {
-              cursor: string | null;
-              endCursor?: string | null;
-              id?: number;
-              maximumBytesRead?: number;
-              maximumRowsRead?: number;
-              numItems: number;
-            };
-            runtime: string;
-            streamId: string;
-          },
-          any,
-          Name
-        >;
-        markRuntimeCommitQueued: FunctionReference<
-          "mutation",
-          "internal",
-          {
-            commitKey: string;
-            runtime: string;
-            streamId: string;
-            workId: string;
-          },
-          any,
-          Name
-        >;
-        registerRuntime: FunctionReference<
-          "mutation",
-          "internal",
-          {
-            description?: string;
-            facts: {
-              edgeKinds: Array<string>;
-              entities: Array<{
-                attrs: Record<string, "string" | "number" | "boolean">;
-                entityType: string;
-                states: Array<string>;
-              }>;
-              partitions: Array<string>;
-            };
-            historyStreamType: string;
-            namespaces?: {
-              current?: string;
-              facts?: string;
-              historical?: string;
-            };
-            runtime: string;
-            searchProfiles?: {
-              current?: { sourceKinds?: Array<string> };
-              historical?: { sourceKinds?: Array<string> };
-            };
-          },
-          any,
-          Name
-        >;
       };
       runtimeApi: {
         appendRuntimeHistory: FunctionReference<
@@ -444,6 +364,13 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           "query",
           "internal",
           { runtime: string },
+          any,
+          Name
+        >;
+        getStorageUrl: FunctionReference<
+          "query",
+          "internal",
+          { storageId: string },
           any,
           Name
         >;

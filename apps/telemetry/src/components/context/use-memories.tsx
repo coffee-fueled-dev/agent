@@ -11,8 +11,8 @@ import {
 import { api } from "../../../../../convex/_generated/api.js";
 import type { AgentMemorySearchResult } from "../../../../../convex/components/agentMemory/public/search.js";
 import { useChart } from "./use-chart.js";
-import { useNamespace } from "./use-namespace.js";
 import { useContextFilters } from "./use-context-filters.js";
+import { useNamespace } from "./use-namespace.js";
 
 type MemoriesContextValue = {
   memories: AgentMemorySearchResult[];
@@ -27,7 +27,7 @@ type MemoriesContextValue = {
 
 const MemoriesContext = createContext<MemoriesContextValue | null>(null);
 
-const SEARCH_LIMIT = 20;
+const SEARCH_LIMIT = 100;
 
 export function MemoriesProvider({ children }: PropsWithChildren) {
   const { namespace } = useNamespace();
@@ -102,7 +102,16 @@ export function MemoriesProvider({ children }: PropsWithChildren) {
       error,
       hasSearched,
     }),
-    [error, hasSearched, isSearching, memories, query, refresh, search, setQuery],
+    [
+      error,
+      hasSearched,
+      isSearching,
+      memories,
+      query,
+      refresh,
+      search,
+      setQuery,
+    ],
   );
 
   return (

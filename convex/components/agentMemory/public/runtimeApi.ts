@@ -1,5 +1,6 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
+import type { Id } from "../_generated/dataModel";
 import { mutation, query } from "../_generated/server";
 import {
   appendRuntimeHistoryArgs,
@@ -137,4 +138,11 @@ export const listMemoryChartRepartitionEvents = query({
     paginationOpts: paginationOptsValidator,
   },
   handler: listMemoryChartRepartitionEventsImpl,
+});
+
+export const getStorageUrl = query({
+  args: { storageId: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.storage.getUrl(args.storageId as Id<"_storage">);
+  },
 });
