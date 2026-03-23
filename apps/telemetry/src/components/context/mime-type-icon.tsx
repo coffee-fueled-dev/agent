@@ -4,7 +4,6 @@ import {
   FileIcon,
   FileImageIcon,
   FileTextIcon,
-  type LucideProps,
   ScanTextIcon,
 } from "lucide-react";
 import type { Accept } from "react-dropzone";
