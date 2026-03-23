@@ -8,24 +8,16 @@
  * @module
  */
 
-import type * as agentMemory from "../agentMemory.js";
-import type * as agentMemoryWorkpool from "../agentMemoryWorkpool.js";
 import type * as aggregate from "../aggregate.js";
 import type * as chat from "../chat.js";
-import type * as context_binaryEmbeddingStore from "../context/binaryEmbeddingStore.js";
-import type * as context_binaryEmbeddings from "../context/binaryEmbeddings.js";
 import type * as context_contextApi from "../context/contextApi.js";
 import type * as context_embedding from "../context/embedding.js";
 import type * as context_fileHttp from "../context/fileHttp.js";
 import type * as context_fileHttpActions from "../context/fileHttpActions.js";
 import type * as context_fileStore from "../context/fileStore.js";
 import type * as context_files from "../context/files.js";
-import type * as context_http from "../context/http.js";
-import type * as context_memoryProjectionStore from "../context/memoryProjectionStore.js";
-import type * as context_memoryProjections from "../context/memoryProjections.js";
 import type * as context_projectionStore from "../context/projectionStore.js";
 import type * as context_projections from "../context/projections.js";
-import type * as context_shared from "../context/shared.js";
 import type * as customFunctions from "../customFunctions.js";
 import type * as events from "../events.js";
 import type * as history from "../history.js";
@@ -65,7 +57,6 @@ import type * as models_context_contextFile from "../models/context/contextFile.
 import type * as models_context_contextFileProcess from "../models/context/contextFileProcess.js";
 import type * as models_context_contextProjectionJob from "../models/context/contextProjectionJob.js";
 import type * as models_context_index from "../models/context/index.js";
-import type * as models_context_memoryProjectionJob from "../models/context/memoryProjectionJob.js";
 import type * as models_geo_index from "../models/geo/index.js";
 import type * as models_geo_libs_upsert_index from "../models/geo/libs/upsert/index.js";
 import type * as models_geo_location from "../models/geo/location.js";
@@ -87,24 +78,16 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  agentMemory: typeof agentMemory;
-  agentMemoryWorkpool: typeof agentMemoryWorkpool;
   aggregate: typeof aggregate;
   chat: typeof chat;
-  "context/binaryEmbeddingStore": typeof context_binaryEmbeddingStore;
-  "context/binaryEmbeddings": typeof context_binaryEmbeddings;
   "context/contextApi": typeof context_contextApi;
   "context/embedding": typeof context_embedding;
   "context/fileHttp": typeof context_fileHttp;
   "context/fileHttpActions": typeof context_fileHttpActions;
   "context/fileStore": typeof context_fileStore;
   "context/files": typeof context_files;
-  "context/http": typeof context_http;
-  "context/memoryProjectionStore": typeof context_memoryProjectionStore;
-  "context/memoryProjections": typeof context_memoryProjections;
   "context/projectionStore": typeof context_projectionStore;
   "context/projections": typeof context_projections;
-  "context/shared": typeof context_shared;
   customFunctions: typeof customFunctions;
   events: typeof events;
   history: typeof history;
@@ -144,7 +127,6 @@ declare const fullApi: ApiFromModules<{
   "models/context/contextFileProcess": typeof models_context_contextFileProcess;
   "models/context/contextProjectionJob": typeof models_context_contextProjectionJob;
   "models/context/index": typeof models_context_index;
-  "models/context/memoryProjectionJob": typeof models_context_memoryProjectionJob;
   "models/geo/index": typeof models_geo_index;
   "models/geo/libs/upsert/index": typeof models_geo_libs_upsert_index;
   "models/geo/location": typeof models_geo_location;

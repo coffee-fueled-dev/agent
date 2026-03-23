@@ -53,7 +53,7 @@ function ProjectionMarker({
 }) {
   return (
     <group position={[point.x * 7, point.y * 7, point.z * 7]}>
-      <Html center zIndexRange={[10, 0]}>
+      <Html center zIndexRange={[250, -250]}>
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
