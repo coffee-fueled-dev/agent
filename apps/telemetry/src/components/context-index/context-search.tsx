@@ -59,7 +59,14 @@ export function ContextSearch() {
           <CommandEmpty>No results</CommandEmpty>
           <CommandGroup>
             {results.map((r) => (
-              <CommandItem key={r.entryId} value={r.entryId}>
+              <CommandItem
+                key={r.entryId}
+                value={r.entryId}
+                onSelect={() => {
+                  window.location.href = `/context/${encodeURIComponent(r.entryId)}?namespace=${encodeURIComponent(namespace)}`;
+                }}
+                className="cursor-pointer"
+              >
                 <div className="flex flex-col gap-0.5">
                   {r.title && (
                     <span className="text-sm font-medium">{r.title}</span>

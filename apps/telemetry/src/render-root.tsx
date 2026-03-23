@@ -1,7 +1,8 @@
+import "../styles/globals.css";
+
 import { ConvexProvider, ConvexReactClient } from "convex/react";
 import { type ReactNode, StrictMode, useMemo } from "react";
 import { createRoot } from "react-dom/client";
-import "../styles/globals.css";
 import { TooltipProvider } from "./components/ui/tooltip";
 
 function Root({ children }: { children: ReactNode }) {

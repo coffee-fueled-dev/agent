@@ -128,7 +128,7 @@ if (existsSync(outdir)) {
 
 const start = performance.now();
 
-const entrypoints = [...new Bun.Glob("**.html").scanSync("src")]
+const entrypoints = [...new Bun.Glob("**/page.html").scanSync("src")]
   .map((entry) => path.resolve("src", entry))
   .filter((dir) => !dir.includes("node_modules"));
 console.log(
@@ -142,8 +142,8 @@ const result = await Bun.build({
   minify: true,
   naming: {
     entry: "[dir]/[name].[ext]",
-    chunk: "chunks/[name]-[hash].[ext]",
-    asset: "assets/[name]-[hash].[ext]",
+    chunk: "chunks/[dir]/[name]-[hash].[ext]",
+    asset: "assets/[dir]/[name]-[hash].[ext]",
   },
   target: "browser",
   sourcemap: "linked",

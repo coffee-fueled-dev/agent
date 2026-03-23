@@ -96,6 +96,53 @@ export const getContextFile = query({
   },
 });
 
+export const getContextDetail = query({
+  args: {
+    namespace: v.string(),
+    entryId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    type ContextEntry = Awaited<ReturnType<ContextClient["list"]>>["page"][number];
+    let cursor: string | null = null;
+    let entry: ContextEntry | null = null;
+
+    for (let i = 0; i < 20; i++) {
+      const page = await createContextClient().list(ctx, {
+        namespace: args.namespace,
+        paginationOpts: {
+          cursor,
+          numItems: 100,
+        },
+      });
+      entry =
+        page.page.find((item: ContextEntry) => item.entryId === args.entryId) ??
+        null;
+      if (entry || page.isDone) break;
+      cursor = page.continueCursor;
+    }
+
+    if (!entry) return null;
+
+    const file = await ctx.db
+      .query("contextFiles")
+      .withIndex("by_entryId", (q) => q.eq("entryId", entry.entryId))
+      .first();
+    const url = file ? await ctx.storage.getUrl(file.storageId) : null;
+
+    return {
+      ...entry,
+      file: file
+        ? {
+            storageId: file.storageId,
+            mimeType: file.mimeType,
+            fileName: file.fileName,
+            url,
+          }
+        : null,
+    };
+  },
+});
+
 export const searchContext = action({
   args: {
     namespace: v.string(),

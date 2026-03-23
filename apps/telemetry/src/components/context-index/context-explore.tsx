@@ -4,7 +4,6 @@ import { useAction, useQuery } from "convex/react";
 import { LoaderCircleIcon, RefreshCwIcon } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { api } from "../../../../../convex/_generated/api.js";
-import { MimeTypeIcon } from "../context/mime-type-icon.js";
 import { PageSection } from "../layout/page-section";
 import { Button } from "../ui/button.js";
 import {
@@ -29,6 +28,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../ui/tooltip.js";
+import { MimeTypeIcon } from "./mime-type-icon.js";
 import { useNamespace } from "./use-namespace";
 
 const LIMIT_OPTIONS = ["48", "96", "144", "240"];
@@ -104,9 +104,11 @@ function ExploreScene({
 
 function PointDetailDialog({
   point,
+  namespace,
   onClose,
 }: {
   point: ProjectionPoint;
+  namespace: string;
   onClose: () => void;
 }) {
   const file = useQuery(api.context.contextApi.getContextFile, {
@@ -134,6 +136,13 @@ function PointDetailDialog({
           />
         )}
         <DialogFooter>
+          <Button asChild variant="outline">
+            <a
+              href={`/context/${encodeURIComponent(point.entryId)}?namespace=${encodeURIComponent(namespace)}`}
+            >
+              View details
+            </a>
+          </Button>
           <DialogClose>Close</DialogClose>
         </DialogFooter>
       </DialogContent>
@@ -275,7 +284,11 @@ export function ContextExplore({
       </div>
 
       {selected && (
-        <PointDetailDialog point={selected} onClose={() => setSelected(null)} />
+        <PointDetailDialog
+          point={selected}
+          namespace={namespace}
+          onClose={() => setSelected(null)}
+        />
       )}
     </PageSection.Body>
   );

@@ -7,7 +7,6 @@ import {
   useState,
 } from "react";
 import { api } from "../../../../../convex/_generated/api.js";
-import { FileDropzone, useFiles } from "../context/file-dropzone";
 import { Button } from "../ui/button";
 import {
   Dialog,
@@ -21,6 +20,7 @@ import {
 import { Field, FieldLabel } from "../ui/field";
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
+import { FileDropzone, useFiles } from "./file-dropzone.js";
 import { useNamespace } from "./use-namespace";
 
 function buildKey(title: string, file?: File | null) {
