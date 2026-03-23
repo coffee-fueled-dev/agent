@@ -3,6 +3,7 @@ import { components, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { action, mutation } from "../_generated/server";
 import { ContextClient } from "../components/context/client";
+import { embedText } from "./embedding";
 
 function createContextClient() {
   return new ContextClient(components.context, {
@@ -55,9 +56,12 @@ export const addFileContext = action({
     const { text, storageId, mimeType, fileName, ...entry } = args;
 
     if (text) {
+      const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+      const embedding = await embedText(text, apiKey);
       const result = await createContextClient().add(ctx, {
         ...entry,
         text,
+        chunks: [{ text, embedding }],
       });
       await ctx.runMutation(internal.context.fileStore.insertContextFile, {
         entryId: result.entryId,
@@ -65,6 +69,14 @@ export const addFileContext = action({
         storageId,
         mimeType,
         fileName,
+      });
+      await ctx.runMutation(internal.context.embedding.insertEmbedding, {
+        entryId: result.entryId,
+        namespace: args.namespace,
+        embedding,
+      });
+      await ctx.runMutation(internal.context.embedding.markProjectionsStale, {
+        namespace: args.namespace,
       });
       return { entryId: result.entryId, status: "completed" };
     }

@@ -7,7 +7,7 @@ import {
   useState,
 } from "react";
 import { api } from "../../../../../convex/_generated/api.js";
-import { FileDropzoneInner, useFiles } from "../context/file-dropzone";
+import { FileDropzone, useFiles } from "../context/file-dropzone";
 import { Button } from "../ui/button";
 import {
   Dialog,
@@ -150,18 +150,21 @@ export function AddContextDialog({
       }}
     >
       {children}
-      <FileDropzoneInner>
-        <DialogContent>
+      <DialogContent>
+        <FileDropzone className="space-y-4">
           <DialogHeader>
             <DialogTitle>Add context</DialogTitle>
           </DialogHeader>
 
-          <FileItem file={file} onRemove={() => removeFile(file?.name ?? "")} />
-
           <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-            {!file && (
-              <Field>
-                <FieldLabel htmlFor="ctx-file">File</FieldLabel>
+            <Field>
+              <FieldLabel htmlFor="ctx-file">File</FieldLabel>
+              {file ? (
+                <FileItem
+                  file={file}
+                  onRemove={() => removeFile(file?.name ?? "")}
+                />
+              ) : (
                 <Input
                   id="ctx-file"
                   type="file"
@@ -170,8 +173,8 @@ export function AddContextDialog({
                     if (f) addFiles([f]);
                   }}
                 />
-              </Field>
-            )}
+              )}
+            </Field>
 
             <Field>
               <FieldLabel htmlFor="ctx-title">Title</FieldLabel>
@@ -217,8 +220,8 @@ export function AddContextDialog({
               </Button>
             </DialogFooter>
           </form>
-        </DialogContent>
-      </FileDropzoneInner>
+        </FileDropzone>
+      </DialogContent>
     </Dialog>
   );
 }

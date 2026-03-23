@@ -1,12 +1,10 @@
 import { serve } from "bun";
 import context from "./context.html";
-import memory from "./memory.html";
 import index from "./index.html";
 
 const server = serve({
   routes: {
     "/context": context,
-    "/memory": memory,
     "/": index,
     "/*": index,
   },

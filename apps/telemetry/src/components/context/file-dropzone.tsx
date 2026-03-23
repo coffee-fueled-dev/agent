@@ -20,7 +20,7 @@ type FilesContextValue = {
 
 const FilesContext = createContext<FilesContextValue | null>(null);
 
-function FileDropzoneProvider({
+export function FileDropzoneProvider({
   children,
   limit = 1,
 }: PropsWithChildren<{
@@ -58,15 +58,7 @@ export function useFiles() {
   return context;
 }
 
-export function FileDropzone({ children }: PropsWithChildren) {
-  return (
-    <FileDropzoneProvider>
-      <FileDropzoneInner>{children}</FileDropzoneInner>
-    </FileDropzoneProvider>
-  );
-}
-
-export function FileDropzoneInner({
+export function FileDropzone({
   children,
   className,
   ...props
@@ -85,7 +77,7 @@ export function FileDropzoneInner({
       {isDragActive ? (
         <div
           aria-hidden="true"
-          className="pointer-events-none fixed inset-0 z-[60] bg-muted/50 backdrop-blur-sm flex justify-center items-center"
+          className="rounded-md pointer-events-none fixed inset-0 z-[1000] bg-muted/50 backdrop-blur-sm flex justify-center items-center"
         >
           <Skeleton className="flex items-center gap-2 p-4 rounded-full">
             <FilePlusIcon size={30} className="text-green-600" />

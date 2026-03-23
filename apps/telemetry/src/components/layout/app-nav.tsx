@@ -23,11 +23,6 @@ export function AppNav({ current }: AppNavProps) {
             <a href="/context">Context</a>
           </NavigationMenuLink>
         </NavigationMenuItem>
-        <NavigationMenuItem>
-          <NavigationMenuLink asChild active={current === "memory"}>
-            <a href="/memory">Memory</a>
-          </NavigationMenuLink>
-        </NavigationMenuItem>
       </NavigationMenuList>
     </NavigationMenu>
   );

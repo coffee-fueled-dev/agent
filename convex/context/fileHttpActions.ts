@@ -1,3 +1,4 @@
+import type { InputChunk } from "@convex-dev/rag";
 import { v } from "convex/values";
 import { components, internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
@@ -32,7 +33,7 @@ export const completeFileProcess = internalAction({
       key: args.key,
       title: args.title,
       text: args.retrievalText,
-      chunks: args.chunks,
+      chunks: args.chunks as InputChunk[],
     });
 
     await ctx.runMutation(internal.context.fileStore.insertContextFile, {
@@ -42,6 +43,18 @@ export const completeFileProcess = internalAction({
       mimeType: args.mimeType,
       fileName: args.fileName,
     });
+
+    const firstEmbedding = args.chunks[0]?.embedding;
+    if (firstEmbedding) {
+      await ctx.runMutation(internal.context.embedding.insertEmbedding, {
+        entryId: result.entryId,
+        namespace: args.namespace,
+        embedding: firstEmbedding,
+      });
+      await ctx.runMutation(internal.context.embedding.markProjectionsStale, {
+        namespace: args.namespace,
+      });
+    }
 
     await ctx.runMutation(internal.context.fileStore.markCompleted, {
       processId: args.processId as never,
