@@ -8,6 +8,9 @@ export default defineSchema({
     key: v.string(),
     title: v.optional(v.string()),
     textPreview: v.string(),
+    legacyEntryId: v.optional(v.string()),
     createdAt: v.number(),
-  }).index("by_namespace_createdAt", ["namespace", "createdAt"]),
+  })
+    .index("by_namespace_createdAt", ["namespace", "createdAt"])
+    .index("by_legacyEntryId", ["legacyEntryId"]),
 });

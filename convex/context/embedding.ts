@@ -1,6 +1,6 @@
 import { createPartFromText, GoogleGenAI } from "@google/genai";
 import { v } from "convex/values";
-import { internalMutation } from "../_generated/server";
+import { internalMutation, internalQuery } from "../_generated/server";
 
 function resolveApiKey(apiKey?: string) {
   return (
@@ -34,6 +34,41 @@ export const insertEmbedding = internalMutation({
       ...args,
       createdAt: Date.now(),
     });
+  },
+});
+
+export const deleteEmbedding = internalMutation({
+  args: { entryId: v.string() },
+  handler: async (ctx, args) => {
+    const embedding = await ctx.db
+      .query("contextEntryEmbeddings")
+      .withIndex("by_entryId", (q) => q.eq("entryId", args.entryId))
+      .first();
+    if (embedding) await ctx.db.delete(embedding._id);
+  },
+});
+
+export const getEmbedding = internalQuery({
+  args: { entryId: v.string() },
+  handler: async (ctx, args) => {
+    const row = await ctx.db
+      .query("contextEntryEmbeddings")
+      .withIndex("by_entryId", (q) => q.eq("entryId", args.entryId))
+      .first();
+    return row?.embedding ?? null;
+  },
+});
+
+export const updateEmbeddingEntryId = internalMutation({
+  args: { oldEntryId: v.string(), newEntryId: v.string() },
+  handler: async (ctx, args) => {
+    const embedding = await ctx.db
+      .query("contextEntryEmbeddings")
+      .withIndex("by_entryId", (q) => q.eq("entryId", args.oldEntryId))
+      .first();
+    if (embedding) {
+      await ctx.db.patch(embedding._id, { entryId: args.newEntryId });
+    }
   },
 });
 

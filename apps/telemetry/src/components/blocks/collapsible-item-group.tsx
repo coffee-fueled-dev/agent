@@ -84,6 +84,17 @@ CollapsibleItemGroup.ItemGroup = function CollapsibleItemGroupItemGroup({
 }: React.ComponentProps<typeof ItemGroup>) {
   return <ItemGroup className={cn("flex-1", className)} {...props} />;
 };
-CollapsibleItemGroup.Title = ({ children }: { children: string }) => children;
+CollapsibleItemGroup.Title = ({
+  children,
+  className,
+  ...props
+}: React.ComponentProps<"span">) => (
+  <span
+    className={cn("flex flex-row items-center gap-1.5", className)}
+    {...props}
+  >
+    {children}
+  </span>
+);
 CollapsibleItemGroup.Actions = ({ children }: React.PropsWithChildren) =>
   children;

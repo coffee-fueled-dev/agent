@@ -14,6 +14,7 @@ import {
   entryRefFields,
   historyEntryValidator,
   streamRefFields,
+  stripSystemFields,
 } from "../internal/shared";
 import schema from "../schema";
 
@@ -21,7 +22,8 @@ export const getEntry = query({
   args: entryRefFields,
   returns: v.union(historyEntryValidator, v.null()),
   handler: async (ctx, args) => {
-    return await loadEntryByRef(ctx, args);
+    const entry = await loadEntryByRef(ctx, args);
+    return entry ? stripSystemFields(entry) : null;
   },
 });
 
@@ -46,7 +48,7 @@ export const getParents = query({
   args: entryRefFields,
   returns: v.array(historyEntryValidator),
   handler: async (ctx, args) => {
-    return await loadParents(ctx, args);
+    return (await loadParents(ctx, args)).map(stripSystemFields);
   },
 });
 
@@ -54,7 +56,7 @@ export const getChildren = query({
   args: entryRefFields,
   returns: v.array(historyEntryValidator),
   handler: async (ctx, args) => {
-    return await loadChildren(ctx, args);
+    return (await loadChildren(ctx, args)).map(stripSystemFields);
   },
 });
 
@@ -62,7 +64,7 @@ export const getPathToRoot = query({
   args: entryRefFields,
   returns: v.array(historyEntryValidator),
   handler: async (ctx, args) => {
-    return await getPrimaryPathToRoot(ctx, args);
+    return (await getPrimaryPathToRoot(ctx, args)).map(stripSystemFields);
   },
 });
 
@@ -86,6 +88,7 @@ export const getLatestCommonAncestor = query({
   },
   returns: v.union(historyEntryValidator, v.null()),
   handler: async (ctx, args) => {
-    return await latestCommonAncestor(ctx, args);
+    const entry = await latestCommonAncestor(ctx, args);
+    return entry ? stripSystemFields(entry) : null;
   },
 });

@@ -1,4 +1,4 @@
-import type { InputChunk, RAG } from "@convex-dev/rag";
+import type { InputChunk } from "@convex-dev/rag";
 import type {
   GenericActionCtx,
   GenericDataModel,
@@ -9,27 +9,32 @@ import type {
 import type { ComponentApi } from "../_generated/component";
 import { createContextRag } from "../internal/rag";
 
-type RunMutationCtx = Pick<GenericMutationCtx<GenericDataModel>, "runMutation">;
+type RunMutationCtx = Pick<
+  GenericMutationCtx<GenericDataModel>,
+  "runMutation" | "runQuery"
+>;
 type RunActionCtx = Pick<GenericActionCtx<GenericDataModel>, "runAction"> &
   RunMutationCtx;
 type RunQueryCtx = Pick<GenericQueryCtx<GenericDataModel>, "runQuery">;
 
 const TEXT_PREVIEW_LENGTH = 280;
 
-type RagAddArgs = Parameters<RAG["add"]>[1];
+type ContextRag = ReturnType<typeof createContextRag>;
+type RagAddArgs = Parameters<ContextRag["add"]>[1];
 type RagEntryFields = Omit<
   RagAddArgs,
   "text" | "chunks" | "namespace" | "namespaceId"
 >;
-type RagSearchArgs = Parameters<RAG["search"]>[1];
+type RagSearchArgs = Parameters<ContextRag["search"]>[1];
 
 export type AddArgs = RagEntryFields & {
   namespace: string;
   namespaceId?: string;
   text: string;
   chunks?: Iterable<InputChunk> | AsyncIterable<InputChunk>;
+  legacyEntryId?: string;
 };
-export type AddResult = Awaited<ReturnType<RAG["add"]>>;
+export type AddResult = Awaited<ReturnType<ContextRag["add"]>>;
 export type SearchArgs = RagSearchArgs;
 
 export type ListArgs = {
@@ -62,7 +67,7 @@ export class ContextClient {
   }
 
   add = async (ctx: RunActionCtx, args: AddArgs): Promise<AddResult> => {
-    const { text, chunks: providedChunks, ...rest } = args;
+    const { text, chunks: providedChunks, legacyEntryId, ...rest } = args;
     const chunks = providedChunks ?? [
       text,
       ...(rest.title ? [rest.title] : []),
@@ -79,6 +84,7 @@ export class ContextClient {
       key: args.key ?? result.entryId,
       title: args.title,
       textPreview: text.slice(0, TEXT_PREVIEW_LENGTH),
+      legacyEntryId,
       createdAt: Date.now(),
     });
 
@@ -106,5 +112,52 @@ export class ContextClient {
 
   list = async (ctx: RunQueryCtx, args: ListArgs) => {
     return await ctx.runQuery(this.component.public.list.listEntries, args);
+  };
+
+  getEntryByLegacyId = async (
+    ctx: RunQueryCtx,
+    args: { namespace: string; legacyEntryId: string },
+  ) => {
+    return await ctx.runQuery(
+      this.component.public.list.getEntryByLegacyId,
+      args,
+    );
+  };
+
+  appendHistory = async (
+    ctx: RunMutationCtx,
+    args: {
+      streamId: string;
+      entryId: string;
+      kind: "created" | "edited";
+      payload?: unknown;
+      parentEntryIds?: string[];
+      entryTime?: number;
+    },
+  ) => {
+    return await ctx.runMutation(
+      this.component.public.history.appendHistoryEntry,
+      { streamType: "contextEntry", ...args },
+    );
+  };
+
+  getVersionChain = async (
+    ctx: RunQueryCtx,
+    args: { streamId: string; entryId: string },
+  ) => {
+    return await ctx.runQuery(
+      this.component.public.history.getVersionChain,
+      { streamType: "contextEntry", ...args },
+    );
+  };
+
+  listHistoryHeads = async (
+    ctx: RunQueryCtx,
+    args: { streamId: string },
+  ) => {
+    return await ctx.runQuery(
+      this.component.public.history.listHistoryHeads,
+      { streamType: "contextEntry", ...args },
+    );
   };
 }

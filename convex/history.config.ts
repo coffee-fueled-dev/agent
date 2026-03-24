@@ -10,5 +10,9 @@ export const historyConfig = {
       streamType: "threadIdentity",
       kinds: ["turn_bound", "identity_changed", "runtime_version_seen"],
     },
+    {
+      streamType: "contextEntry",
+      kinds: ["created", "edited"],
+    },
   ],
 } as const satisfies HistoryConfig;

@@ -19,3 +19,20 @@ export const listEntries = query({
       .paginate(args.paginationOpts);
   },
 });
+
+export const getEntryByLegacyId = query({
+  args: {
+    namespace: v.string(),
+    legacyEntryId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const entry = await ctx.db
+      .query("contextEntries")
+      .withIndex("by_legacyEntryId", (q) =>
+        q.eq("legacyEntryId", args.legacyEntryId),
+      )
+      .first();
+    if (!entry || entry.namespace !== args.namespace) return null;
+    return entry;
+  },
+});

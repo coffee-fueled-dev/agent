@@ -18,6 +18,7 @@ import type * as context_fileStore from "../context/fileStore.js";
 import type * as context_files from "../context/files.js";
 import type * as context_projectionStore from "../context/projectionStore.js";
 import type * as context_projections from "../context/projections.js";
+import type * as context_versionStore from "../context/versionStore.js";
 import type * as customFunctions from "../customFunctions.js";
 import type * as events from "../events.js";
 import type * as history from "../history.js";
@@ -53,6 +54,7 @@ import type * as models_auth_index from "../models/auth/index.js";
 import type * as models_auth_session from "../models/auth/session.js";
 import type * as models_context_binaryEmbeddingProcess from "../models/context/binaryEmbeddingProcess.js";
 import type * as models_context_contextEntryEmbedding from "../models/context/contextEntryEmbedding.js";
+import type * as models_context_contextEntryVersion from "../models/context/contextEntryVersion.js";
 import type * as models_context_contextFile from "../models/context/contextFile.js";
 import type * as models_context_contextFileProcess from "../models/context/contextFileProcess.js";
 import type * as models_context_contextProjectionJob from "../models/context/contextProjectionJob.js";
@@ -88,6 +90,7 @@ declare const fullApi: ApiFromModules<{
   "context/files": typeof context_files;
   "context/projectionStore": typeof context_projectionStore;
   "context/projections": typeof context_projections;
+  "context/versionStore": typeof context_versionStore;
   customFunctions: typeof customFunctions;
   events: typeof events;
   history: typeof history;
@@ -123,6 +126,7 @@ declare const fullApi: ApiFromModules<{
   "models/auth/session": typeof models_auth_session;
   "models/context/binaryEmbeddingProcess": typeof models_context_binaryEmbeddingProcess;
   "models/context/contextEntryEmbedding": typeof models_context_contextEntryEmbedding;
+  "models/context/contextEntryVersion": typeof models_context_contextEntryVersion;
   "models/context/contextFile": typeof models_context_contextFile;
   "models/context/contextFileProcess": typeof models_context_contextFileProcess;
   "models/context/contextProjectionJob": typeof models_context_contextProjectionJob;
@@ -1406,6 +1410,12 @@ export declare const components: {
   context: {
     public: {
       add: {
+        deleteEntry: FunctionReference<
+          "mutation",
+          "internal",
+          { entryId: string; namespace: string },
+          any
+        >;
         insertEntry: FunctionReference<
           "mutation",
           "internal",
@@ -1413,6 +1423,7 @@ export declare const components: {
             createdAt: number;
             entryId: string;
             key: string;
+            legacyEntryId?: string;
             namespace: string;
             textPreview: string;
             title?: string;
@@ -1420,7 +1431,41 @@ export declare const components: {
           any
         >;
       };
+      history: {
+        appendHistoryEntry: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            entryId: string;
+            entryTime?: number;
+            kind: string;
+            parentEntryIds?: Array<string>;
+            payload?: any;
+            streamId: string;
+            streamType: string;
+          },
+          any
+        >;
+        getVersionChain: FunctionReference<
+          "query",
+          "internal",
+          { entryId: string; streamId: string; streamType: string },
+          any
+        >;
+        listHistoryHeads: FunctionReference<
+          "query",
+          "internal",
+          { streamId: string; streamType: string },
+          any
+        >;
+      };
       list: {
+        getEntryByLegacyId: FunctionReference<
+          "query",
+          "internal",
+          { legacyEntryId: string; namespace: string },
+          any
+        >;
         listEntries: FunctionReference<
           "query",
           "internal",

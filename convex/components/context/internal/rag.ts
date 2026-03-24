@@ -18,8 +18,9 @@ export function createContextRag(googleApiKey?: string) {
   const apiKey = resolveGoogleApiKey(googleApiKey);
   const google = createGoogleGenerativeAI(apiKey ? { apiKey } : {});
 
-  return new RAG(ragComponent, {
+  return new RAG<{ status: string }>(ragComponent, {
     textEmbeddingModel: google.embedding("gemini-embedding-2-preview"),
     embeddingDimension: 3072,
+    filterNames: ["status"],
   });
 }

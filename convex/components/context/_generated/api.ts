@@ -9,8 +9,10 @@
  */
 
 import type * as client_index from "../client/index.js";
+import type * as history from "../history.js";
 import type * as internal_rag from "../internal/rag.js";
 import type * as public_add from "../public/add.js";
+import type * as public_history from "../public/history.js";
 import type * as public_list from "../public/list.js";
 
 import type {
@@ -22,8 +24,10 @@ import { anyApi, componentsGeneric } from "convex/server";
 
 const fullApi: ApiFromModules<{
   "client/index": typeof client_index;
+  history: typeof history;
   "internal/rag": typeof internal_rag;
   "public/add": typeof public_add;
+  "public/history": typeof public_history;
   "public/list": typeof public_list;
 }> = anyApi as any;
 
@@ -453,6 +457,166 @@ export const components = componentsGeneric() as unknown as {
           }>;
         }
       >;
+    };
+  };
+  history: {
+    public: {
+      append: {
+        append: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            attrs?: Record<string, string | number | boolean | null>;
+            author?: { byId: string; byType: string };
+            entryId: string;
+            entryTime?: number;
+            kind: string;
+            parentEntryIds?: Array<string>;
+            payload?: any;
+            streamId: string;
+            streamType: string;
+          },
+          {
+            attrs?: Record<string, string | number | boolean | null>;
+            author?: { byId: string; byType: string };
+            entryId: string;
+            entryTime: number;
+            kind: string;
+            parentEntryIds: Array<string>;
+            payload?: any;
+            streamId: string;
+            streamType: string;
+          }
+        >;
+      };
+      heads: {
+        listHeads: FunctionReference<
+          "query",
+          "internal",
+          { streamId: string; streamType: string },
+          Array<{
+            entryId: string;
+            headKind?: string;
+            streamId: string;
+            streamType: string;
+          }>
+        >;
+      };
+      read: {
+        getChildren: FunctionReference<
+          "query",
+          "internal",
+          { entryId: string; streamId: string; streamType: string },
+          Array<{
+            attrs?: Record<string, string | number | boolean | null>;
+            author?: { byId: string; byType: string };
+            entryId: string;
+            entryTime: number;
+            kind: string;
+            parentEntryIds: Array<string>;
+            payload?: any;
+            streamId: string;
+            streamType: string;
+          }>
+        >;
+        getEntry: FunctionReference<
+          "query",
+          "internal",
+          { entryId: string; streamId: string; streamType: string },
+          {
+            attrs?: Record<string, string | number | boolean | null>;
+            author?: { byId: string; byType: string };
+            entryId: string;
+            entryTime: number;
+            kind: string;
+            parentEntryIds: Array<string>;
+            payload?: any;
+            streamId: string;
+            streamType: string;
+          } | null
+        >;
+        getLatestCommonAncestor: FunctionReference<
+          "query",
+          "internal",
+          {
+            leftEntryId: string;
+            rightEntryId: string;
+            streamId: string;
+            streamType: string;
+          },
+          {
+            attrs?: Record<string, string | number | boolean | null>;
+            author?: { byId: string; byType: string };
+            entryId: string;
+            entryTime: number;
+            kind: string;
+            parentEntryIds: Array<string>;
+            payload?: any;
+            streamId: string;
+            streamType: string;
+          } | null
+        >;
+        getParents: FunctionReference<
+          "query",
+          "internal",
+          { entryId: string; streamId: string; streamType: string },
+          Array<{
+            attrs?: Record<string, string | number | boolean | null>;
+            author?: { byId: string; byType: string };
+            entryId: string;
+            entryTime: number;
+            kind: string;
+            parentEntryIds: Array<string>;
+            payload?: any;
+            streamId: string;
+            streamType: string;
+          }>
+        >;
+        getPathToRoot: FunctionReference<
+          "query",
+          "internal",
+          { entryId: string; streamId: string; streamType: string },
+          Array<{
+            attrs?: Record<string, string | number | boolean | null>;
+            author?: { byId: string; byType: string };
+            entryId: string;
+            entryTime: number;
+            kind: string;
+            parentEntryIds: Array<string>;
+            payload?: any;
+            streamId: string;
+            streamType: string;
+          }>
+        >;
+        isAncestor: FunctionReference<
+          "query",
+          "internal",
+          {
+            ancestorEntryId: string;
+            descendantEntryId: string;
+            streamId: string;
+            streamType: string;
+          },
+          boolean
+        >;
+        listEntries: FunctionReference<
+          "query",
+          "internal",
+          {
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
+            streamId: string;
+            streamType: string;
+          },
+          any
+        >;
+      };
     };
   };
 };

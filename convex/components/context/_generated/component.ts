@@ -25,6 +25,13 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
   {
     public: {
       add: {
+        deleteEntry: FunctionReference<
+          "mutation",
+          "internal",
+          { entryId: string; namespace: string },
+          any,
+          Name
+        >;
         insertEntry: FunctionReference<
           "mutation",
           "internal",
@@ -32,6 +39,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             createdAt: number;
             entryId: string;
             key: string;
+            legacyEntryId?: string;
             namespace: string;
             textPreview: string;
             title?: string;
@@ -40,7 +48,45 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           Name
         >;
       };
+      history: {
+        appendHistoryEntry: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            entryId: string;
+            entryTime?: number;
+            kind: string;
+            parentEntryIds?: Array<string>;
+            payload?: any;
+            streamId: string;
+            streamType: string;
+          },
+          any,
+          Name
+        >;
+        getVersionChain: FunctionReference<
+          "query",
+          "internal",
+          { entryId: string; streamId: string; streamType: string },
+          any,
+          Name
+        >;
+        listHistoryHeads: FunctionReference<
+          "query",
+          "internal",
+          { streamId: string; streamType: string },
+          any,
+          Name
+        >;
+      };
       list: {
+        getEntryByLegacyId: FunctionReference<
+          "query",
+          "internal",
+          { legacyEntryId: string; namespace: string },
+          any,
+          Name
+        >;
         listEntries: FunctionReference<
           "query",
           "internal",

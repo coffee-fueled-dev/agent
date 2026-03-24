@@ -35,92 +35,86 @@ export class HistoryClient<
     public config: HistoryConfig<Streams>,
   ) {}
 
-  append = {
-    append: async (
-      ctx: RunMutationCtx,
-      args: AppendArgs<Streams>,
-    ): Promise<HistoryEntry<Streams>> => {
-      return await ctx.runMutation(this.component.public.append.append, args);
-    },
-  };
+  async append(
+    ctx: RunMutationCtx,
+    args: AppendArgs<Streams>,
+  ): Promise<HistoryEntry<Streams>> {
+    return await ctx.runMutation(this.component.public.append.append, args);
+  }
 
-  read = {
-    getEntry: async (
-      ctx: RunQueryCtx,
-      args: EntryRefArgs<Streams>,
-    ): Promise<HistoryEntry<Streams> | null> => {
-      return await ctx.runQuery(this.component.public.read.getEntry, args);
-    },
+  async getEntry(
+    ctx: RunQueryCtx,
+    args: EntryRefArgs<Streams>,
+  ): Promise<HistoryEntry<Streams> | null> {
+    return await ctx.runQuery(this.component.public.read.getEntry, args);
+  }
 
-    listEntries: async (
-      ctx: RunQueryCtx,
-      args: {
-        streamType: StreamTypeFor<Streams>;
-        streamId: string;
-        paginationOpts: PaginationOptions;
-      },
-    ): Promise<PaginationResult<HistoryEntry<Streams>>> => {
-      return await ctx.runQuery(this.component.public.read.listEntries, args);
+  async listEntries(
+    ctx: RunQueryCtx,
+    args: {
+      streamType: StreamTypeFor<Streams>;
+      streamId: string;
+      paginationOpts: PaginationOptions;
     },
+  ): Promise<PaginationResult<HistoryEntry<Streams>>> {
+    return await ctx.runQuery(this.component.public.read.listEntries, args);
+  }
 
-    getParents: async (
-      ctx: RunQueryCtx,
-      args: EntryRefArgs<Streams>,
-    ): Promise<HistoryEntry<Streams>[]> => {
-      return await ctx.runQuery(this.component.public.read.getParents, args);
-    },
+  async getParents(
+    ctx: RunQueryCtx,
+    args: EntryRefArgs<Streams>,
+  ): Promise<HistoryEntry<Streams>[]> {
+    return await ctx.runQuery(this.component.public.read.getParents, args);
+  }
 
-    getChildren: async (
-      ctx: RunQueryCtx,
-      args: EntryRefArgs<Streams>,
-    ): Promise<HistoryEntry<Streams>[]> => {
-      return await ctx.runQuery(this.component.public.read.getChildren, args);
-    },
+  async getChildren(
+    ctx: RunQueryCtx,
+    args: EntryRefArgs<Streams>,
+  ): Promise<HistoryEntry<Streams>[]> {
+    return await ctx.runQuery(this.component.public.read.getChildren, args);
+  }
 
-    getPathToRoot: async (
-      ctx: RunQueryCtx,
-      args: EntryRefArgs<Streams>,
-    ): Promise<HistoryEntry<Streams>[]> => {
-      return await ctx.runQuery(this.component.public.read.getPathToRoot, args);
-    },
+  async getPathToRoot(
+    ctx: RunQueryCtx,
+    args: EntryRefArgs<Streams>,
+  ): Promise<HistoryEntry<Streams>[]> {
+    return await ctx.runQuery(this.component.public.read.getPathToRoot, args);
+  }
 
-    isAncestor: async (
-      ctx: RunQueryCtx,
-      args: {
-        streamType: StreamTypeFor<Streams>;
-        streamId: string;
-        ancestorEntryId: string;
-        descendantEntryId: string;
-      },
-    ) => {
-      return await ctx.runQuery(this.component.public.read.isAncestor, args);
+  async isAncestor(
+    ctx: RunQueryCtx,
+    args: {
+      streamType: StreamTypeFor<Streams>;
+      streamId: string;
+      ancestorEntryId: string;
+      descendantEntryId: string;
     },
+  ) {
+    return await ctx.runQuery(this.component.public.read.isAncestor, args);
+  }
 
-    latestCommonAncestor: async (
-      ctx: RunQueryCtx,
-      args: {
-        streamType: StreamTypeFor<Streams>;
-        streamId: string;
-        leftEntryId: string;
-        rightEntryId: string;
-      },
-    ): Promise<HistoryEntry<Streams> | null> => {
-      return await ctx.runQuery(
-        this.component.public.read.getLatestCommonAncestor,
-        args,
-      );
+  async latestCommonAncestor(
+    ctx: RunQueryCtx,
+    args: {
+      streamType: StreamTypeFor<Streams>;
+      streamId: string;
+      leftEntryId: string;
+      rightEntryId: string;
     },
-  };
+  ): Promise<HistoryEntry<Streams> | null> {
+    return await ctx.runQuery(
+      this.component.public.read.getLatestCommonAncestor,
+      args,
+    );
+  }
 
-  heads = {
-    listHeads: async (
-      ctx: RunQueryCtx,
-      args: {
-        streamType: StreamTypeFor<Streams>;
-        streamId: string;
-      },
-    ): Promise<HistoryHeadRef<StreamTypeFor<Streams>>[]> => {
-      return await ctx.runQuery(this.component.public.heads.listHeads, args);
+  async listHeads(
+    ctx: RunQueryCtx,
+    args: {
+      streamType: StreamTypeFor<Streams>;
+      streamId: string;
     },
-  };
+  ): Promise<HistoryHeadRef<StreamTypeFor<Streams>>[]> {
+    return await ctx.runQuery(this.component.public.heads.listHeads, args);
+  }
 }

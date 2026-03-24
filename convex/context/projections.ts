@@ -270,11 +270,20 @@ export const loadEmbeddingPage = internalQuery({
         cursor: (args.cursor ?? null) as never,
         numItems: args.limit,
       });
+
+    const items: Array<{ entryId: string; embedding: number[] }> = [];
+    for (const doc of result.page) {
+      const version = await ctx.db
+        .query("contextEntryVersions")
+        .withIndex("by_entryId", (q) => q.eq("entryId", doc.entryId))
+        .first();
+      if (!version || version.data.status === "current") {
+        items.push({ entryId: doc.entryId, embedding: doc.embedding });
+      }
+    }
+
     return {
-      items: result.page.map((doc) => ({
-        entryId: doc.entryId,
-        embedding: doc.embedding,
-      })),
+      items,
       cursor: result.continueCursor,
       isDone: result.isDone,
     };

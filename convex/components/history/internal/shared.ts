@@ -51,6 +51,13 @@ export const historyHeadValidator = v.object({
   headKind: v.optional(v.string()),
 });
 
+export function stripSystemFields<T extends Record<string, unknown>>(
+  doc: T,
+): Omit<T, "_id" | "_creationTime"> {
+  const { _id, _creationTime, ...rest } = doc;
+  return rest as Omit<T, "_id" | "_creationTime">;
+}
+
 export function normalizeParentEntryIds(parentEntryIds?: string[]) {
   const normalized = parentEntryIds ?? [];
   const seen = new Set<string>();

@@ -82,3 +82,30 @@ export const insertContextFile = internalMutation({
     });
   },
 });
+
+export const deleteContextFile = internalMutation({
+  args: { entryId: v.string() },
+  handler: async (ctx, args) => {
+    const file = await ctx.db
+      .query("contextFiles")
+      .withIndex("by_entryId", (q) => q.eq("entryId", args.entryId))
+      .first();
+    if (file) {
+      await ctx.storage.delete(file.storageId);
+      await ctx.db.delete(file._id);
+    }
+  },
+});
+
+export const updateContextFileEntryId = internalMutation({
+  args: { oldEntryId: v.string(), newEntryId: v.string() },
+  handler: async (ctx, args) => {
+    const file = await ctx.db
+      .query("contextFiles")
+      .withIndex("by_entryId", (q) => q.eq("entryId", args.oldEntryId))
+      .first();
+    if (file) {
+      await ctx.db.patch(file._id, { entryId: args.newEntryId });
+    }
+  },
+});
