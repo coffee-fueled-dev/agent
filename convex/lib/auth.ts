@@ -113,7 +113,6 @@ export async function ensureHumanAccount(
   const id = await ctx.db.insert("accounts", {
     kind: "human",
     displayName: args.displayName,
-    createdAt: now,
     lastSeenAt: now,
     data: { status: "active" },
   });
@@ -176,7 +175,6 @@ export async function ensureAccountForAlias(
   const id = await ctx.db.insert("accounts", {
     kind: args.accountKind,
     displayName: args.displayName,
-    createdAt: now,
     lastSeenAt: now,
     data: { status: "active" },
   });
@@ -185,7 +183,6 @@ export async function ensureAccountForAlias(
     kind: args.aliasKind,
     value: args.aliasValue,
     normalizedValue,
-    createdAt: now,
     lastSeenAt: now,
     expiredAt: null,
   });
@@ -243,7 +240,6 @@ export async function issueAccountToken(
     kind: "token",
     value: token,
     normalizedValue,
-    createdAt: now,
     lastSeenAt: now,
     expiredAt: null,
   });

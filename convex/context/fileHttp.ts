@@ -1,4 +1,5 @@
 import { internal } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
 import { httpAction } from "../_generated/server";
 
 export const contextFileCompletePath = "/context/file/complete";
@@ -31,7 +32,7 @@ function parseCompletionPayload(payload: unknown) {
     throw new Error("Missing required fields");
   }
   return {
-    processId,
+    processId: processId as Id<"contextFileProcesses">,
     retrievalText,
     lexicalText: typeof lexicalText === "string" ? lexicalText : undefined,
     chunks: chunks.map((c: unknown) => {
@@ -61,14 +62,14 @@ export const completeFileProcessHttp = httpAction(async (ctx, request) => {
     );
     const process = await ctx.runQuery(
       internal.context.fileStore.getFileProcess,
-      { processId: processId as never },
+      { processId: processId as Id<"contextFileProcesses"> },
     );
     if (!process) {
       return Response.json({ error: "Process not found" }, { status: 404 });
     }
-    if (process.entryId) {
+    if (process.data.status === "completed") {
       return Response.json({
-        entryId: process.entryId,
+        entryId: process.data.entryId,
         status: "already_completed",
       });
     }
@@ -111,7 +112,7 @@ export const failFileProcessHttp = httpAction(async (ctx, request) => {
     const errorMsg =
       typeof payload.error === "string" ? payload.error : "Embedding failed";
     await ctx.runMutation(internal.context.fileStore.markFailed, {
-      processId: payload.processId as never,
+      processId: payload.processId as Id<"contextFileProcesses">,
       error: errorMsg,
     });
     return new Response(null, { status: 204 });

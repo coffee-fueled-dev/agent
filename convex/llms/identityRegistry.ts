@@ -1,5 +1,4 @@
 import { v } from "convex/values";
-import { api } from "../_generated/api";
 import { internalMutation, type MutationCtx } from "../_generated/server";
 import {
   agentMetricNamespace,
@@ -33,14 +32,14 @@ async function appendMachineAgentHistory(
   }
 
   let parentEntryIds = (
-    await history.heads.listHeads(ctx, {
+    await history.listHeads(ctx, {
       streamType: "machineAgent",
       streamId: args.agentId,
     })
   ).map((head) => head.entryId);
 
   if (args.created.registration) {
-    await history.append.append(ctx, {
+    await history.append(ctx, {
       streamType: "machineAgent",
       streamId: args.agentId,
       entryId: `registered:${args.agentId}`,
@@ -52,7 +51,7 @@ async function appendMachineAgentHistory(
 
   if (args.created.staticVersion) {
     const entryId = `static:${args.staticHash}`;
-    await history.append.append(ctx, {
+    await history.append(ctx, {
       streamType: "machineAgent",
       streamId: args.agentId,
       entryId,
@@ -64,7 +63,7 @@ async function appendMachineAgentHistory(
   }
 
   if (args.created.runtimeVersion) {
-    await history.append.append(ctx, {
+    await history.append(ctx, {
       streamType: "machineAgent",
       streamId: args.agentId,
       entryId: `runtime:${args.runtimeHash}`,
@@ -103,13 +102,13 @@ async function appendThreadIdentityHistory(
 
   const turnEntryId = `turn:${args.messageId}`;
   const parentEntryIds = (
-    await history.heads.listHeads(ctx, {
+    await history.listHeads(ctx, {
       streamType: "threadIdentity",
       streamId: args.threadId,
     })
   ).map((head) => head.entryId);
 
-  await history.append.append(ctx, {
+  await history.append(ctx, {
     streamType: "threadIdentity",
     streamId: args.threadId,
     entryId: turnEntryId,
@@ -134,7 +133,7 @@ async function appendThreadIdentityHistory(
 
   if (identityChanged) {
     const identityEntryId = `identity:${args.messageId}`;
-    await history.append.append(ctx, {
+    await history.append(ctx, {
       streamType: "threadIdentity",
       streamId: args.threadId,
       entryId: identityEntryId,
@@ -149,7 +148,7 @@ async function appendThreadIdentityHistory(
     nextParents = [identityEntryId];
   }
 
-  await history.append.append(ctx, {
+  await history.append(ctx, {
     streamType: "threadIdentity",
     streamId: args.threadId,
     entryId: `runtime:${args.messageId}`,
@@ -387,9 +386,7 @@ export const recordTurnIdentity = internalMutation({
     });
     const previousBinding = await ctx.db
       .query("machineAgentTurnBindings")
-      .withIndex("by_threadId_recordedAt", (q) =>
-        q.eq("threadId", args.threadId),
-      )
+      .withIndex("by_threadId", (q) => q.eq("threadId", args.threadId))
       .order("desc")
       .first();
 
@@ -403,7 +400,6 @@ export const recordTurnIdentity = internalMutation({
         account: machineAccount._id,
         codeId: args.codeId,
         name: args.name,
-        createdAt: now,
         lastSeenAt: now,
         latestStaticHash: args.staticHash,
         latestRuntimeHash: args.runtimeHash,
@@ -441,7 +437,6 @@ export const recordTurnIdentity = internalMutation({
           codeId: args.codeId,
           staticHash: args.staticHash,
           snapshot: args.staticSnapshot,
-          createdAt: now,
           lastSeenAt: now,
         },
       );
@@ -475,7 +470,6 @@ export const recordTurnIdentity = internalMutation({
           codeId: args.codeId,
           runtimeHash: args.runtimeHash,
           snapshot: args.runtimeSnapshot,
-          createdAt: now,
           lastSeenAt: now,
         },
       );
@@ -507,7 +501,6 @@ export const recordTurnIdentity = internalMutation({
         threadId: args.threadId,
         messageId: args.messageId,
         sessionId: args.sessionId,
-        recordedAt: now,
       });
       bindingCreated = true;
     } else {
@@ -519,7 +512,6 @@ export const recordTurnIdentity = internalMutation({
         runtimeVersionId: runtimeVersion._id,
         threadId: args.threadId,
         sessionId: args.sessionId,
-        recordedAt: now,
       });
     }
 
@@ -591,18 +583,6 @@ export const recordTurnIdentity = internalMutation({
           }
         : undefined,
     });
-
-    if (bindingCreated) {
-      await ctx.runMutation(api.agentMemory.enqueueThreadIdentityEpisode, {
-        threadId: args.threadId,
-        messageId: args.messageId,
-        codeId: args.codeId,
-        staticHash: args.staticHash,
-        runtimeHash: args.runtimeHash,
-        previousCodeId: previousBinding?.codeId,
-        entryTime: now,
-      });
-    }
 
     return {
       registrationId: registration._id,

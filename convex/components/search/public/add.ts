@@ -1,32 +1,20 @@
 import { v } from "convex/values";
-import { type MutationCtx, mutation } from "../_generated/server";
+import { mutation } from "../_generated/server";
+import { sourceValidator, statusValidator } from "../schema";
 
 export const upsertFeature = mutation({
   args: {
     namespace: v.string(),
     featureId: v.string(),
     sourceSystem: v.string(),
-    source: v.union(
-      v.object({
-        kind: v.literal("document"),
-        document: v.string(),
-        documentId: v.string(),
-        entryId: v.string(),
-        key: v.string(),
-        sourceType: v.union(v.literal("text"), v.literal("binary")),
-      }),
-      v.object({
-        kind: v.literal("content"),
-        contentId: v.string(),
-        sourceType: v.union(v.literal("text"), v.literal("binary")),
-      }),
-    ),
+    source: sourceValidator,
     title: v.optional(v.string()),
     text: v.string(),
-    status: v.union(v.literal("current"), v.literal("historical")),
+    status: statusValidator,
     updatedAt: v.optional(v.number()),
   },
-  handler: async (ctx: MutationCtx, args) => {
+  returns: v.id("searchFeatures"),
+  handler: async (ctx, args) => {
     const existing = await ctx.db
       .query("searchFeatures")
       .withIndex("by_namespace_featureId", (q) =>
@@ -53,7 +41,8 @@ export const deleteFeature = mutation({
     namespace: v.string(),
     featureId: v.string(),
   },
-  handler: async (ctx: MutationCtx, args) => {
+  returns: v.null(),
+  handler: async (ctx, args) => {
     const existing = await ctx.db
       .query("searchFeatures")
       .withIndex("by_namespace_featureId", (q) =>

@@ -1,15 +1,7 @@
 import { v } from "convex/values";
 import { UMAP } from "umap-js";
 import { components, internal } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
-import {
-  action,
-  internalAction,
-  internalQuery,
-  query,
-} from "../_generated/server";
-import { ContextClient } from "../components/context/client";
-import { hasStatus } from "../lib/status";
+import { action, internalAction, internalQuery, query } from "../_generated/server";
 import { workflow as workflowManager } from "../workflow";
 
 const DEFAULT_LIMIT = 120;
@@ -126,12 +118,14 @@ type ProjectionPoint = {
   z: number;
 };
 
+const projectionApi = components.context.public.projection;
+
 export const runContextProjectionWorkflow = workflowManager.define({
-  args: { jobId: v.id("contextProjectionJobs") },
+  args: { jobId: v.string() },
   returns: v.object({ count: v.number() }),
   handler: async (step, args): Promise<{ count: number }> => {
     const job = await step.runQuery(
-      internal.context.projectionStore.getJob,
+      projectionApi.getJob,
       { jobId: args.jobId },
       { inline: true },
     );
@@ -143,7 +137,7 @@ export const runContextProjectionWorkflow = workflowManager.define({
       let isDone = false;
       while (!isDone && embeddings.length < job.limit) {
         const page: EmbeddingPage = await step.runQuery(
-          internal.context.projections.loadEmbeddingPage,
+          projectionApi.loadEmbeddingPage,
           {
             namespace: job.namespace,
             cursor,
@@ -157,7 +151,7 @@ export const runContextProjectionWorkflow = workflowManager.define({
       }
 
       await step.runMutation(
-        internal.context.projectionStore.updatePhase,
+        projectionApi.updatePhase,
         {
           jobId: args.jobId,
           phase: "loading",
@@ -174,7 +168,7 @@ export const runContextProjectionWorkflow = workflowManager.define({
       let entriesDone = false;
       while (!entriesDone) {
         const page: EntryPage = await step.runQuery(
-          internal.context.projections.loadEntryPage,
+          projectionApi.loadEntryPage,
           {
             namespace: job.namespace,
             cursor: entryCursor,
@@ -214,17 +208,10 @@ export const runContextProjectionWorkflow = workflowManager.define({
             embedding: emb.embedding,
           };
         })
-        .filter(Boolean) as Array<{
-        entryId: string;
-        key: string;
-        title?: string;
-        textPreview: string;
-        mimeType?: string;
-        embedding: number[];
-      }>;
+        .filter((s): s is NonNullable<typeof s> => s !== null);
 
       await step.runMutation(
-        internal.context.projectionStore.updatePhase,
+        projectionApi.updatePhase,
         { jobId: args.jobId, phase: "projecting", loadedCount: seeds.length },
         { inline: true },
       );
@@ -235,7 +222,7 @@ export const runContextProjectionWorkflow = workflowManager.define({
       );
 
       await step.runMutation(
-        internal.context.projectionStore.markCompleted,
+        projectionApi.markCompleted,
         { jobId: args.jobId, points },
         { inline: true },
       );
@@ -245,71 +232,12 @@ export const runContextProjectionWorkflow = workflowManager.define({
       const message =
         error instanceof Error ? error.message : "Projection failed";
       await step.runMutation(
-        internal.context.projectionStore.markFailed,
+        projectionApi.markFailed,
         { jobId: args.jobId, error: message },
         { inline: true },
       );
       throw error;
     }
-  },
-});
-
-export const loadEmbeddingPage = internalQuery({
-  args: {
-    namespace: v.string(),
-    cursor: v.union(v.string(), v.null()),
-    limit: v.number(),
-  },
-  handler: async (ctx, args) => {
-    const result = await ctx.db
-      .query("contextEntryEmbeddings")
-      .withIndex("by_namespace_createdAt", (q) =>
-        q.eq("namespace", args.namespace),
-      )
-      .paginate({
-        cursor: (args.cursor ?? null) as never,
-        numItems: args.limit,
-      });
-
-    const items: Array<{ entryId: string; embedding: number[] }> = [];
-    for (const doc of result.page) {
-      const version = await ctx.db
-        .query("contextEntryVersions")
-        .withIndex("by_entryId", (q) => q.eq("entryId", doc.entryId))
-        .first();
-      if (!version || version.data.status === "current") {
-        items.push({ entryId: doc.entryId, embedding: doc.embedding });
-      }
-    }
-
-    return {
-      items,
-      cursor: result.continueCursor,
-      isDone: result.isDone,
-    };
-  },
-});
-
-function createContextClient() {
-  return new ContextClient(components.context, {
-    googleApiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
-  });
-}
-
-export const loadEntryPage = internalQuery({
-  args: {
-    namespace: v.string(),
-    cursor: v.union(v.string(), v.null()),
-    numItems: v.number(),
-  },
-  handler: async (ctx, args) => {
-    return await createContextClient().list(ctx, {
-      namespace: args.namespace,
-      paginationOpts: {
-        cursor: (args.cursor ?? null) as never,
-        numItems: args.numItems,
-      },
-    });
   },
 });
 
@@ -333,18 +261,12 @@ export const startContextProjection = action({
     namespace: v.string(),
     limit: v.optional(v.number()),
   },
-  handler: async (
-    ctx,
-    args,
-  ): Promise<{
-    jobId: Id<"contextProjectionJobs">;
-    status: "running";
-  }> => {
+  handler: async (ctx, args) => {
     const limit = clampLimit(args.limit);
-    const jobId: Id<"contextProjectionJobs"> = await ctx.runMutation(
-      internal.context.projectionStore.createJob,
-      { namespace: args.namespace, limit },
-    );
+    const jobId = await ctx.runMutation(projectionApi.createJob, {
+      namespace: args.namespace,
+      limit,
+    });
     try {
       const workflowId = String(
         await workflowManager.start(
@@ -354,15 +276,15 @@ export const startContextProjection = action({
           { startAsync: true },
         ),
       );
-      await ctx.runMutation(internal.context.projectionStore.markRunning, {
+      await ctx.runMutation(projectionApi.markRunning, {
         jobId,
         workflowId,
       });
-      return { jobId, status: "running" };
+      return { jobId, status: "running" as const };
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Failed to start projection";
-      await ctx.runMutation(internal.context.projectionStore.markFailed, {
+      await ctx.runMutation(projectionApi.markFailed, {
         jobId,
         error: message,
       });
@@ -372,83 +294,15 @@ export const startContextProjection = action({
 });
 
 export const getContextProjectionStatus = query({
-  args: { jobId: v.id("contextProjectionJobs") },
+  args: { jobId: v.string() },
   handler: async (ctx, args) => {
-    const job = await ctx.db.get(args.jobId);
-    if (!job) return null;
-
-    if (hasStatus(job, "completed")) {
-      return {
-        status: "completed" as const,
-        points: job.data.points,
-        completedAt: job.data.completedAt,
-        stale: job.stale,
-        namespace: job.namespace,
-      };
-    }
-    if (hasStatus(job, "failed")) {
-      return {
-        status: "failed" as const,
-        error: job.data.error,
-        failedAt: job.data.failedAt,
-        stale: job.stale,
-        namespace: job.namespace,
-      };
-    }
-    if (hasStatus(job, "running")) {
-      return {
-        status: "running" as const,
-        phase: job.data.phase,
-        loadedCount: job.data.loadedCount,
-        stale: job.stale,
-        namespace: job.namespace,
-      };
-    }
-    return {
-      status: "pending" as const,
-      stale: job.stale,
-      namespace: job.namespace,
-    };
+    return await ctx.runQuery(projectionApi.getProjectionStatus, args);
   },
 });
 
 export const getLatestProjection = query({
   args: { namespace: v.string() },
   handler: async (ctx, args) => {
-    const job = await ctx.db
-      .query("contextProjectionJobs")
-      .withIndex("by_namespace_createdAt", (q) =>
-        q.eq("namespace", args.namespace),
-      )
-      .order("desc")
-      .first();
-    if (!job) return null;
-    if (hasStatus(job, "completed")) {
-      return {
-        jobId: job._id,
-        status: "completed" as const,
-        points: job.data.points,
-        completedAt: job.data.completedAt,
-        stale: job.stale,
-      };
-    }
-    if (hasStatus(job, "running")) {
-      return {
-        jobId: job._id,
-        status: "running" as const,
-        phase: job.data.phase,
-        loadedCount: job.data.loadedCount,
-        stale: job.stale,
-      };
-    }
-    if (hasStatus(job, "failed")) {
-      return {
-        jobId: job._id,
-        status: "failed" as const,
-        error: job.data.error,
-        stale: job.stale,
-      };
-    }
-    return { jobId: job._id, status: "pending" as const, stale: job.stale };
+    return await ctx.runQuery(projectionApi.getLatestProjection, args);
   },
 });

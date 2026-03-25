@@ -1,21 +1,30 @@
 import { defineTable } from "convex/server";
-import { v } from "convex/values";
+import { zid, zodOutputToConvex } from "convex-helpers/server/zod4";
+import z from "zod";
 
-export const contextFileProcesses = defineTable({
-  status: v.union(
-    v.literal("pending"),
-    v.literal("dispatched"),
-    v.literal("completed"),
-    v.literal("failed"),
-  ),
-  storageId: v.id("_storage"),
-  namespace: v.string(),
-  key: v.string(),
-  title: v.optional(v.string()),
-  mimeType: v.string(),
-  fileName: v.optional(v.string()),
-  entryId: v.optional(v.string()),
-  error: v.optional(v.string()),
-  createdAt: v.number(),
-  updatedAt: v.number(),
-}).index("by_status", ["status"]);
+export const contextFileProcessStatuses = [
+  "pending",
+  "dispatched",
+  "completed",
+  "failed",
+] as const;
+
+export const zContextFileProcess = z.object({
+  storageId: zid("_storage"),
+  namespace: z.string(),
+  key: z.string(),
+  title: z.string().optional(),
+  mimeType: z.string(),
+  fileName: z.string().optional(),
+  updatedAt: z.number(),
+  data: z.discriminatedUnion("status", [
+    z.object({ status: z.literal("pending") }),
+    z.object({ status: z.literal("dispatched") }),
+    z.object({ status: z.literal("completed"), entryId: z.string() }),
+    z.object({ status: z.literal("failed"), error: z.string() }),
+  ]),
+});
+
+export const contextFileProcesses = defineTable(
+  zodOutputToConvex(zContextFileProcess),
+);

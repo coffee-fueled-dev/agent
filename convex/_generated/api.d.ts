@@ -9,16 +9,12 @@
  */
 
 import type * as aggregate from "../aggregate.js";
-import type * as chat from "../chat.js";
 import type * as context_contextApi from "../context/contextApi.js";
-import type * as context_embedding from "../context/embedding.js";
 import type * as context_fileHttp from "../context/fileHttp.js";
 import type * as context_fileHttpActions from "../context/fileHttpActions.js";
 import type * as context_fileStore from "../context/fileStore.js";
 import type * as context_files from "../context/files.js";
-import type * as context_projectionStore from "../context/projectionStore.js";
 import type * as context_projections from "../context/projections.js";
-import type * as context_versionStore from "../context/versionStore.js";
 import type * as customFunctions from "../customFunctions.js";
 import type * as events from "../events.js";
 import type * as history from "../history.js";
@@ -34,7 +30,6 @@ import type * as llms_agents_exampleAgent__toolkits__instructions_index from "..
 import type * as llms_agents_exampleAgent__toolkits_example from "../llms/agents/exampleAgent/_toolkits/example.js";
 import type * as llms_agents_exampleAgent_agent from "../llms/agents/exampleAgent/agent.js";
 import type * as llms_agents_terminalChat from "../llms/agents/terminalChat.js";
-import type * as llms_chatMemory from "../llms/chatMemory.js";
 import type * as llms_identity from "../llms/identity.js";
 import type * as llms_identityMemory from "../llms/identityMemory.js";
 import type * as llms_identityRegistry from "../llms/identityRegistry.js";
@@ -46,18 +41,12 @@ import type * as llms_tools__libs_toolkit from "../llms/tools/_libs/toolkit.js";
 import type * as llms_tools__policies_examplePolicy from "../llms/tools/_policies/examplePolicy.js";
 import type * as llms_tools_example_tool from "../llms/tools/example/tool.js";
 import type * as llms_tools_index from "../llms/tools/index.js";
-import type * as llms_tools_searchMemory_tool from "../llms/tools/searchMemory/tool.js";
-import type * as llms_tools_storeMemory_tool from "../llms/tools/storeMemory/tool.js";
 import type * as llms_uiMessage from "../llms/uiMessage.js";
 import type * as models_auth_account from "../models/auth/account.js";
 import type * as models_auth_index from "../models/auth/index.js";
 import type * as models_auth_session from "../models/auth/session.js";
-import type * as models_context_binaryEmbeddingProcess from "../models/context/binaryEmbeddingProcess.js";
-import type * as models_context_contextEntryEmbedding from "../models/context/contextEntryEmbedding.js";
-import type * as models_context_contextEntryVersion from "../models/context/contextEntryVersion.js";
 import type * as models_context_contextFile from "../models/context/contextFile.js";
 import type * as models_context_contextFileProcess from "../models/context/contextFileProcess.js";
-import type * as models_context_contextProjectionJob from "../models/context/contextProjectionJob.js";
 import type * as models_context_index from "../models/context/index.js";
 import type * as models_geo_index from "../models/geo/index.js";
 import type * as models_geo_libs_upsert_index from "../models/geo/libs/upsert/index.js";
@@ -81,16 +70,12 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   aggregate: typeof aggregate;
-  chat: typeof chat;
   "context/contextApi": typeof context_contextApi;
-  "context/embedding": typeof context_embedding;
   "context/fileHttp": typeof context_fileHttp;
   "context/fileHttpActions": typeof context_fileHttpActions;
   "context/fileStore": typeof context_fileStore;
   "context/files": typeof context_files;
-  "context/projectionStore": typeof context_projectionStore;
   "context/projections": typeof context_projections;
-  "context/versionStore": typeof context_versionStore;
   customFunctions: typeof customFunctions;
   events: typeof events;
   history: typeof history;
@@ -106,7 +91,6 @@ declare const fullApi: ApiFromModules<{
   "llms/agents/exampleAgent/_toolkits/example": typeof llms_agents_exampleAgent__toolkits_example;
   "llms/agents/exampleAgent/agent": typeof llms_agents_exampleAgent_agent;
   "llms/agents/terminalChat": typeof llms_agents_terminalChat;
-  "llms/chatMemory": typeof llms_chatMemory;
   "llms/identity": typeof llms_identity;
   "llms/identityMemory": typeof llms_identityMemory;
   "llms/identityRegistry": typeof llms_identityRegistry;
@@ -118,18 +102,12 @@ declare const fullApi: ApiFromModules<{
   "llms/tools/_policies/examplePolicy": typeof llms_tools__policies_examplePolicy;
   "llms/tools/example/tool": typeof llms_tools_example_tool;
   "llms/tools/index": typeof llms_tools_index;
-  "llms/tools/searchMemory/tool": typeof llms_tools_searchMemory_tool;
-  "llms/tools/storeMemory/tool": typeof llms_tools_storeMemory_tool;
   "llms/uiMessage": typeof llms_uiMessage;
   "models/auth/account": typeof models_auth_account;
   "models/auth/index": typeof models_auth_index;
   "models/auth/session": typeof models_auth_session;
-  "models/context/binaryEmbeddingProcess": typeof models_context_binaryEmbeddingProcess;
-  "models/context/contextEntryEmbedding": typeof models_context_contextEntryEmbedding;
-  "models/context/contextEntryVersion": typeof models_context_contextEntryVersion;
   "models/context/contextFile": typeof models_context_contextFile;
   "models/context/contextFileProcess": typeof models_context_contextFileProcess;
-  "models/context/contextProjectionJob": typeof models_context_contextProjectionJob;
   "models/context/index": typeof models_context_index;
   "models/geo/index": typeof models_geo_index;
   "models/geo/libs/upsert/index": typeof models_geo_libs_upsert_index;
@@ -953,7 +931,7 @@ export declare const components: {
           "mutation",
           "internal",
           { featureId: string; namespace: string },
-          any
+          null
         >;
         upsertFeature: FunctionReference<
           "mutation",
@@ -981,7 +959,7 @@ export declare const components: {
             title?: string;
             updatedAt?: number;
           },
-          any
+          string
         >;
       };
       search: {
@@ -995,7 +973,31 @@ export declare const components: {
             query: string;
             sourceSystem?: string;
           },
-          any
+          Array<{
+            _creationTime: number;
+            _id: string;
+            featureId: string;
+            namespace: string;
+            source:
+              | {
+                  document: string;
+                  documentId: string;
+                  entryId: string;
+                  key: string;
+                  kind: "document";
+                  sourceType: "text" | "binary";
+                }
+              | {
+                  contentId: string;
+                  kind: "content";
+                  sourceType: "text" | "binary";
+                };
+            sourceSystem: string;
+            status: "current" | "historical";
+            text: string;
+            title?: string;
+            updatedAt: number;
+          }>
         >;
       };
     };
@@ -1468,21 +1470,145 @@ export declare const components: {
           "mutation",
           "internal",
           { entryId: string; namespace: string },
-          any
+          null
         >;
         insertEntry: FunctionReference<
           "mutation",
           "internal",
           {
-            createdAt: number;
             entryId: string;
             key: string;
             legacyEntryId?: string;
             namespace: string;
+            source:
+              | {
+                  document: string;
+                  documentId: string;
+                  entryId: string;
+                  key: string;
+                  kind: "document";
+                  sourceType: "text" | "binary";
+                }
+              | {
+                  contentId: string;
+                  kind: "content";
+                  sourceType: "text" | "binary";
+                };
             textPreview: string;
             title?: string;
           },
-          any
+          null
+        >;
+      };
+      context: {
+        add: FunctionReference<
+          "action",
+          "internal",
+          {
+            chunks?: Array<{ embedding: Array<number>; text: string }>;
+            key: string;
+            namespace: string;
+            searchText?: string;
+            source?:
+              | {
+                  document: string;
+                  documentId: string;
+                  entryId: string;
+                  key: string;
+                  kind: "document";
+                  sourceType: "text" | "binary";
+                }
+              | {
+                  contentId: string;
+                  kind: "content";
+                  sourceType: "text" | "binary";
+                };
+            sourceType?: "text" | "binary";
+            text: string;
+            title?: string;
+          },
+          { entryId: string }
+        >;
+        edit: FunctionReference<
+          "action",
+          "internal",
+          { entryId: string; namespace: string; text: string; title?: string },
+          { entryId: string }
+        >;
+        get: FunctionReference<
+          "query",
+          "internal",
+          { entryId: string; namespace: string },
+          null | {
+            entryId: string;
+            fullText: string;
+            key: string;
+            legacyEntryId?: string;
+            namespace: string;
+            source:
+              | {
+                  document: string;
+                  documentId: string;
+                  entryId: string;
+                  key: string;
+                  kind: "document";
+                  sourceType: "text" | "binary";
+                }
+              | {
+                  contentId: string;
+                  kind: "content";
+                  sourceType: "text" | "binary";
+                };
+            textPreview: string;
+            title?: string;
+            version: null | {
+              data:
+                | { status: "current" }
+                | {
+                    replacedByEntryId: string;
+                    replacementTime: number;
+                    status: "historical";
+                  };
+              key: string;
+            };
+            versionChain: Array<{
+              entryId: string;
+              entryTime: number;
+              kind: string;
+              payload?: any;
+            }>;
+          }
+        >;
+        remove: FunctionReference<
+          "action",
+          "internal",
+          { entryId: string; namespace: string },
+          null
+        >;
+        search: FunctionReference<
+          "action",
+          "internal",
+          {
+            includeHistorical?: boolean;
+            lexicalWeight?: number;
+            limit?: number;
+            namespace: string;
+            query: string | Array<number>;
+            retrievalMode?: "vector" | "lexical" | "hybrid";
+            rrfK?: number;
+            searchType?: "vector" | "text" | "hybrid";
+            vectorScoreThreshold?: number;
+            vectorWeight?: number;
+          },
+          Array<{
+            entryId: string;
+            importance: number;
+            key: string;
+            metadata?: any;
+            score: number;
+            text: string;
+            title?: string;
+          }>
         >;
       };
       history: {
@@ -1498,19 +1624,44 @@ export declare const components: {
             streamId: string;
             streamType: string;
           },
-          any
+          {
+            attrs?: Record<string, string | number | boolean | null>;
+            author?: { byId: string; byType: string };
+            entryId: string;
+            entryTime: number;
+            kind: string;
+            parentEntryIds: Array<string>;
+            payload?: any;
+            streamId: string;
+            streamType: string;
+          }
         >;
         getVersionChain: FunctionReference<
           "query",
           "internal",
           { entryId: string; streamId: string; streamType: string },
-          any
+          Array<{
+            attrs?: Record<string, string | number | boolean | null>;
+            author?: { byId: string; byType: string };
+            entryId: string;
+            entryTime: number;
+            kind: string;
+            parentEntryIds: Array<string>;
+            payload?: any;
+            streamId: string;
+            streamType: string;
+          }>
         >;
         listHistoryHeads: FunctionReference<
           "query",
           "internal",
           { streamId: string; streamType: string },
-          any
+          Array<{
+            entryId: string;
+            headKind?: string;
+            streamId: string;
+            streamType: string;
+          }>
         >;
       };
       list: {
@@ -1518,7 +1669,30 @@ export declare const components: {
           "query",
           "internal",
           { legacyEntryId: string; namespace: string },
-          any
+          null | {
+            _creationTime: number;
+            _id: string;
+            entryId: string;
+            key: string;
+            legacyEntryId?: string;
+            namespace: string;
+            source:
+              | {
+                  document: string;
+                  documentId: string;
+                  entryId: string;
+                  key: string;
+                  kind: "document";
+                  sourceType: "text" | "binary";
+                }
+              | {
+                  contentId: string;
+                  kind: "content";
+                  sourceType: "text" | "binary";
+                };
+            textPreview: string;
+            title?: string;
+          }
         >;
         listEntries: FunctionReference<
           "query",
@@ -1534,7 +1708,219 @@ export declare const components: {
               numItems: number;
             };
           },
-          any
+          {
+            continueCursor: string;
+            isDone: boolean;
+            page: Array<{
+              _creationTime: number;
+              _id: string;
+              entryId: string;
+              key: string;
+              legacyEntryId?: string;
+              namespace: string;
+              source:
+                | {
+                    document: string;
+                    documentId: string;
+                    entryId: string;
+                    key: string;
+                    kind: "document";
+                    sourceType: "text" | "binary";
+                  }
+                | {
+                    contentId: string;
+                    kind: "content";
+                    sourceType: "text" | "binary";
+                  };
+              textPreview: string;
+              title?: string;
+            }>;
+            pageStatus?: "SplitRecommended" | "SplitRequired" | null;
+            splitCursor?: string | null;
+          }
+        >;
+      };
+      projection: {
+        createJob: FunctionReference<
+          "mutation",
+          "internal",
+          { limit: number; namespace: string },
+          string
+        >;
+        getJob: FunctionReference<
+          "query",
+          "internal",
+          { jobId: string },
+          null | {
+            _creationTime: number;
+            _id: string;
+            data:
+              | { status: "pending" }
+              | {
+                  loadedCount: number;
+                  phase: "loading" | "projecting";
+                  status: "running";
+                  workflowId: string;
+                }
+              | {
+                  completionTime: number;
+                  points: Array<{
+                    entryId: string;
+                    key: string;
+                    mimeType?: string;
+                    textPreview: string;
+                    title?: string;
+                    x: number;
+                    y: number;
+                    z: number;
+                  }>;
+                  status: "completed";
+                }
+              | { error: string; failureTime: number; status: "failed" };
+            limit: number;
+            namespace: string;
+            stale: boolean;
+            updateTime: number;
+          }
+        >;
+        getLatestProjection: FunctionReference<
+          "query",
+          "internal",
+          { namespace: string },
+          | null
+          | {
+              completionTime: number;
+              jobId: string;
+              points: Array<{
+                entryId: string;
+                key: string;
+                mimeType?: string;
+                textPreview: string;
+                title?: string;
+                x: number;
+                y: number;
+                z: number;
+              }>;
+              stale: boolean;
+              status: "completed";
+            }
+          | {
+              jobId: string;
+              loadedCount: number;
+              phase: "loading" | "projecting";
+              stale: boolean;
+              status: "running";
+            }
+          | { error: string; jobId: string; stale: boolean; status: "failed" }
+          | { jobId: string; stale: boolean; status: "pending" }
+        >;
+        getProjectionStatus: FunctionReference<
+          "query",
+          "internal",
+          { jobId: string },
+          | null
+          | {
+              completionTime: number;
+              namespace: string;
+              points: Array<{
+                entryId: string;
+                key: string;
+                mimeType?: string;
+                textPreview: string;
+                title?: string;
+                x: number;
+                y: number;
+                z: number;
+              }>;
+              stale: boolean;
+              status: "completed";
+            }
+          | {
+              error: string;
+              failureTime: number;
+              namespace: string;
+              stale: boolean;
+              status: "failed";
+            }
+          | {
+              loadedCount: number;
+              namespace: string;
+              phase: "loading" | "projecting";
+              stale: boolean;
+              status: "running";
+            }
+          | { namespace: string; stale: boolean; status: "pending" }
+        >;
+        loadEmbeddingPage: FunctionReference<
+          "query",
+          "internal",
+          { cursor: string | null; limit: number; namespace: string },
+          {
+            cursor: string;
+            isDone: boolean;
+            items: Array<{ embedding: Array<number>; entryId: string }>;
+          }
+        >;
+        loadEntryPage: FunctionReference<
+          "query",
+          "internal",
+          { cursor: string | null; namespace: string; numItems: number },
+          {
+            continueCursor: string;
+            isDone: boolean;
+            page: Array<{
+              entryId: string;
+              key: string;
+              textPreview: string;
+              title?: string;
+            }>;
+          }
+        >;
+        markCompleted: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            jobId: string;
+            points: Array<{
+              entryId: string;
+              key: string;
+              mimeType?: string;
+              textPreview: string;
+              title?: string;
+              x: number;
+              y: number;
+              z: number;
+            }>;
+          },
+          null
+        >;
+        markFailed: FunctionReference<
+          "mutation",
+          "internal",
+          { error: string; jobId: string },
+          null
+        >;
+        markProjectionsStale: FunctionReference<
+          "mutation",
+          "internal",
+          { namespace: string },
+          null
+        >;
+        markRunning: FunctionReference<
+          "mutation",
+          "internal",
+          { jobId: string; workflowId: string },
+          null
+        >;
+        updatePhase: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            jobId: string;
+            loadedCount?: number;
+            phase: "loading" | "projecting";
+          },
+          null
         >;
       };
       search: {

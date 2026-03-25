@@ -10,8 +10,6 @@ import {
 import { languageModels } from "../models";
 import type { ToolkitContext } from "../tools/_libs/customFunctions";
 import { type Composable, toolkit } from "../tools/_libs/toolkit";
-import { searchMemoryTool } from "../tools/searchMemory/tool";
-import { storeMemoryTool } from "../tools/storeMemory/tool";
 
 const baseInstructions = [
   "You are a helpful terminal chat assistant.",
@@ -28,12 +26,9 @@ const staticToolkitContext: ToolkitContext = {
   },
 };
 
-const terminalChatMemoryToolkit: Composable = toolkit(
-  [searchMemoryTool, storeMemoryTool],
-  {
-    name: "terminalChatMemory",
-  },
-);
+const terminalChatMemoryToolkit: Composable = toolkit([], {
+  name: "terminalChatMemory",
+});
 
 const terminalChatComposed: Composable = toolkit([terminalChatMemoryToolkit], {
   name: "terminalChat",

@@ -10,10 +10,16 @@
 
 import type * as client_index from "../client/index.js";
 import type * as history from "../history.js";
+import type * as internal_embedding from "../internal/embedding.js";
+import type * as internal_embeddingStore from "../internal/embeddingStore.js";
 import type * as internal_rag from "../internal/rag.js";
+import type * as internal_status from "../internal/status.js";
+import type * as internal_versionStore from "../internal/versionStore.js";
 import type * as public_add from "../public/add.js";
+import type * as public_context from "../public/context.js";
 import type * as public_history from "../public/history.js";
 import type * as public_list from "../public/list.js";
+import type * as public_projection from "../public/projection.js";
 import type * as public_search from "../public/search.js";
 import type * as search from "../search.js";
 
@@ -27,10 +33,16 @@ import { anyApi, componentsGeneric } from "convex/server";
 const fullApi: ApiFromModules<{
   "client/index": typeof client_index;
   history: typeof history;
+  "internal/embedding": typeof internal_embedding;
+  "internal/embeddingStore": typeof internal_embeddingStore;
   "internal/rag": typeof internal_rag;
+  "internal/status": typeof internal_status;
+  "internal/versionStore": typeof internal_versionStore;
   "public/add": typeof public_add;
+  "public/context": typeof public_context;
   "public/history": typeof public_history;
   "public/list": typeof public_list;
+  "public/projection": typeof public_projection;
   "public/search": typeof public_search;
   search: typeof search;
 }> = anyApi as any;
@@ -630,7 +642,7 @@ export const components = componentsGeneric() as unknown as {
           "mutation",
           "internal",
           { featureId: string; namespace: string },
-          any
+          null
         >;
         upsertFeature: FunctionReference<
           "mutation",
@@ -658,7 +670,7 @@ export const components = componentsGeneric() as unknown as {
             title?: string;
             updatedAt?: number;
           },
-          any
+          string
         >;
       };
       search: {
@@ -672,7 +684,31 @@ export const components = componentsGeneric() as unknown as {
             query: string;
             sourceSystem?: string;
           },
-          any
+          Array<{
+            _creationTime: number;
+            _id: string;
+            featureId: string;
+            namespace: string;
+            source:
+              | {
+                  document: string;
+                  documentId: string;
+                  entryId: string;
+                  key: string;
+                  kind: "document";
+                  sourceType: "text" | "binary";
+                }
+              | {
+                  contentId: string;
+                  kind: "content";
+                  sourceType: "text" | "binary";
+                };
+            sourceSystem: string;
+            status: "current" | "historical";
+            text: string;
+            title?: string;
+            updatedAt: number;
+          }>
         >;
       };
     };

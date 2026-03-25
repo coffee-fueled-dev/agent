@@ -29,7 +29,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           "mutation",
           "internal",
           { featureId: string; namespace: string },
-          any,
+          null,
           Name
         >;
         upsertFeature: FunctionReference<
@@ -58,7 +58,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             title?: string;
             updatedAt?: number;
           },
-          any,
+          string,
           Name
         >;
       };
@@ -73,7 +73,31 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             query: string;
             sourceSystem?: string;
           },
-          any,
+          Array<{
+            _creationTime: number;
+            _id: string;
+            featureId: string;
+            namespace: string;
+            source:
+              | {
+                  document: string;
+                  documentId: string;
+                  entryId: string;
+                  key: string;
+                  kind: "document";
+                  sourceType: "text" | "binary";
+                }
+              | {
+                  contentId: string;
+                  kind: "content";
+                  sourceType: "text" | "binary";
+                };
+            sourceSystem: string;
+            status: "current" | "historical";
+            text: string;
+            title?: string;
+            updatedAt: number;
+          }>,
           Name
         >;
       };

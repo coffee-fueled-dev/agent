@@ -8,7 +8,6 @@ export const accountAliasKinds = ["session", "machineAgent", "token"] as const;
 export const zAccount = z.object({
   kind: z.enum(accountKinds),
   displayName: z.string().optional(),
-  createdAt: z.number(),
   lastSeenAt: z.number(),
   data: z.discriminatedUnion("status", [
     z.object({ status: z.literal("active") }),
@@ -26,7 +25,6 @@ export const zAccountAlias = z.object({
   kind: z.enum(accountAliasKinds),
   value: z.string(),
   normalizedValue: z.string(),
-  createdAt: z.number(),
   lastSeenAt: z.number(),
   expiredAt: z.number().nullable(),
   verifiedAt: z.number().optional(),

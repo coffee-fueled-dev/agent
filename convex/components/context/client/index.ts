@@ -1,4 +1,3 @@
-import type { InputChunk } from "@convex-dev/rag";
 import type {
   FunctionArgs,
   GenericActionCtx,
@@ -7,7 +6,6 @@ import type {
   GenericQueryCtx,
 } from "convex/server";
 import type { ComponentApi } from "../_generated/component";
-import { createContextRag } from "../internal/rag";
 
 type RunMutationCtx = Pick<
   GenericMutationCtx<GenericDataModel>,
@@ -17,47 +15,8 @@ type RunActionCtx = Pick<GenericActionCtx<GenericDataModel>, "runAction"> &
   RunMutationCtx;
 type RunQueryCtx = Pick<GenericQueryCtx<GenericDataModel>, "runQuery">;
 
-const TEXT_PREVIEW_LENGTH = 280;
-
-type ContextRag = ReturnType<typeof createContextRag>;
-
-export type AddArgs = Omit<
-  Parameters<ContextRag["add"]>[1],
-  "text" | "chunks" | "namespace" | "namespaceId"
-> & {
-  namespace: string;
-  namespaceId?: string;
-  text: string;
-  chunks?: Iterable<InputChunk> | AsyncIterable<InputChunk>;
-  legacyEntryId?: string;
-};
-
 export type ContextClientConfig = {
   googleApiKey?: string;
-};
-
-export type ContextSearchFeature = {
-  namespace: string;
-  featureId: string;
-  sourceSystem: string;
-  source:
-    | {
-        kind: "document";
-        document: string;
-        documentId: string;
-        entryId: string;
-        key: string;
-        sourceType: "text" | "binary";
-      }
-    | {
-        kind: "content";
-        contentId: string;
-        sourceType: "text" | "binary";
-      };
-  title?: string;
-  text: string;
-  status: "current" | "historical";
-  updatedAt: number;
 };
 
 export class ContextClient {
@@ -66,55 +25,39 @@ export class ContextClient {
     public config: ContextClientConfig = {},
   ) {}
 
-  private rag() {
-    return createContextRag(this.config.googleApiKey);
-  }
-
-  add = async (
+  addContext = async (
     ctx: RunActionCtx,
-    args: AddArgs,
-  ): Promise<Awaited<ReturnType<ContextRag["add"]>>> => {
-    const { text, chunks: providedChunks, legacyEntryId, ...rest } = args;
-    const chunks = providedChunks ?? [
-      text,
-      ...(rest.title ? [rest.title] : []),
-    ];
-
-    const result = await this.rag().add(ctx, {
-      ...rest,
-      chunks,
-    });
-
-    await ctx.runMutation(this.component.public.add.insertEntry, {
-      namespace: args.namespace,
-      entryId: result.entryId,
-      key: args.key ?? result.entryId,
-      title: args.title,
-      textPreview: text.slice(0, TEXT_PREVIEW_LENGTH),
-      legacyEntryId,
-      createdAt: Date.now(),
-    });
-
-    return result;
+    args: FunctionArgs<typeof this.component.public.context.add>,
+  ) => {
+    return await ctx.runAction(this.component.public.context.add, args);
   };
 
-  search = async (
-    ctx: RunActionCtx,
-    args: Parameters<ContextRag["search"]>[1],
+  getContextDetail = async (
+    ctx: RunQueryCtx,
+    args: FunctionArgs<typeof this.component.public.context.get>,
   ) => {
-    const { entries, results } = await this.rag().search(ctx, args);
+    return await ctx.runQuery(this.component.public.context.get, args);
+  };
 
-    return entries.map((entry) => ({
-      entryId: entry.entryId,
-      key: entry.key ?? entry.entryId,
-      title: entry.title,
-      text: entry.text,
-      importance: entry.importance,
-      score: results
-        .filter((r) => r.entryId === entry.entryId)
-        .reduce((max, r) => Math.max(max, r.score), 0),
-      metadata: entry.metadata,
-    }));
+  deleteContext = async (
+    ctx: RunActionCtx,
+    args: FunctionArgs<typeof this.component.public.context.remove>,
+  ) => {
+    return await ctx.runAction(this.component.public.context.remove, args);
+  };
+
+  editContext = async (
+    ctx: RunActionCtx,
+    args: FunctionArgs<typeof this.component.public.context.edit>,
+  ) => {
+    return await ctx.runAction(this.component.public.context.edit, args);
+  };
+
+  searchContext = async (
+    ctx: RunActionCtx,
+    args: FunctionArgs<typeof this.component.public.context.search>,
+  ) => {
+    return await ctx.runAction(this.component.public.context.search, args);
   };
 
   list = async (
@@ -124,104 +67,23 @@ export class ContextClient {
     return await ctx.runQuery(this.component.public.list.listEntries, args);
   };
 
-  getEntryByLegacyId = async (
+  getLatestProjection = async (
     ctx: RunQueryCtx,
-    args: FunctionArgs<typeof this.component.public.list.getEntryByLegacyId>,
+    args: FunctionArgs<typeof this.component.public.projection.getLatestProjection>,
   ) => {
     return await ctx.runQuery(
-      this.component.public.list.getEntryByLegacyId,
+      this.component.public.projection.getLatestProjection,
       args,
     );
   };
 
-  upsertSearchFeature = async (
-    ctx: RunMutationCtx,
-    args: {
-      namespace: string;
-      featureId: string;
-      sourceSystem: string;
-      source:
-        | {
-            kind: "document";
-            document: string;
-            documentId: string;
-            entryId: string;
-            key: string;
-            sourceType: "text" | "binary";
-          }
-        | {
-            kind: "content";
-            contentId: string;
-            sourceType: "text" | "binary";
-          };
-      title?: string;
-      text: string;
-      status: "current" | "historical";
-      updatedAt?: number;
-    },
-  ) => {
-    return await ctx.runMutation(
-      this.component.public.search.upsertSearchFeature,
-      args as never,
-    );
-  };
-
-  deleteSearchFeature = async (
-    ctx: RunMutationCtx,
-    args: FunctionArgs<typeof this.component.public.search.deleteSearchFeature>,
-  ) => {
-    return await ctx.runMutation(
-      this.component.public.search.deleteSearchFeature,
-      args,
-    );
-  };
-
-  searchFeatures = async (
+  getProjectionStatus = async (
     ctx: RunQueryCtx,
-    args: FunctionArgs<typeof this.component.public.search.searchFeatures>,
-  ): Promise<ContextSearchFeature[]> => {
+    args: FunctionArgs<typeof this.component.public.projection.getProjectionStatus>,
+  ) => {
     return await ctx.runQuery(
-      this.component.public.search.searchFeatures,
+      this.component.public.projection.getProjectionStatus,
       args,
-    ) as ContextSearchFeature[];
-  };
-
-  appendHistory = async (
-    ctx: RunMutationCtx,
-    args: Omit<
-      FunctionArgs<typeof this.component.public.history.appendHistoryEntry>,
-      "streamType"
-    >,
-  ) => {
-    return await ctx.runMutation(
-      this.component.public.history.appendHistoryEntry,
-      { streamType: "contextEntry", ...args },
     );
-  };
-
-  getVersionChain = async (
-    ctx: RunQueryCtx,
-    args: Omit<
-      FunctionArgs<typeof this.component.public.history.getVersionChain>,
-      "streamType"
-    >,
-  ) => {
-    return await ctx.runQuery(this.component.public.history.getVersionChain, {
-      streamType: "contextEntry",
-      ...args,
-    });
-  };
-
-  listHistoryHeads = async (
-    ctx: RunQueryCtx,
-    args: Omit<
-      FunctionArgs<typeof this.component.public.history.listHistoryHeads>,
-      "streamType"
-    >,
-  ) => {
-    return await ctx.runQuery(this.component.public.history.listHistoryHeads, {
-      streamType: "contextEntry",
-      ...args,
-    });
   };
 }

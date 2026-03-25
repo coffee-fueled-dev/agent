@@ -2,6 +2,18 @@ import { v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { history } from "../history";
 
+const historyEntryValidator = v.object({
+  streamType: v.string(),
+  streamId: v.string(),
+  entryId: v.string(),
+  kind: v.string(),
+  entryTime: v.number(),
+  parentEntryIds: v.array(v.string()),
+  payload: v.optional(v.any()),
+  author: v.optional(v.object({ byId: v.string(), byType: v.string() })),
+  attrs: v.optional(v.record(v.string(), v.union(v.string(), v.number(), v.boolean(), v.null()))),
+});
+
 export const appendHistoryEntry = mutation({
   args: {
     streamType: v.string(),
@@ -12,6 +24,7 @@ export const appendHistoryEntry = mutation({
     parentEntryIds: v.optional(v.array(v.string())),
     entryTime: v.optional(v.number()),
   },
+  returns: historyEntryValidator,
   handler: async (ctx, args) => {
     return await history.append(
       ctx,
@@ -26,6 +39,7 @@ export const getVersionChain = query({
     streamId: v.string(),
     entryId: v.string(),
   },
+  returns: v.array(historyEntryValidator),
   handler: async (ctx, args) => {
     return await history.getPathToRoot(
       ctx,
@@ -39,6 +53,12 @@ export const listHistoryHeads = query({
     streamType: v.string(),
     streamId: v.string(),
   },
+  returns: v.array(v.object({
+    streamType: v.string(),
+    streamId: v.string(),
+    entryId: v.string(),
+    headKind: v.optional(v.string()),
+  })),
   handler: async (ctx, args) => {
     return await history.listHeads(
       ctx,

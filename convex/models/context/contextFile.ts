@@ -1,13 +1,15 @@
 import { defineTable } from "convex/server";
-import { v } from "convex/values";
+import { zid, zodOutputToConvex } from "convex-helpers/server/zod4";
+import z from "zod";
 
-export const contextFiles = defineTable({
-  entryId: v.string(),
-  namespace: v.string(),
-  storageId: v.id("_storage"),
-  mimeType: v.string(),
-  fileName: v.optional(v.string()),
-  createdAt: v.number(),
-})
+export const zContextFile = z.object({
+  entryId: z.string(),
+  namespace: z.string(),
+  storageId: zid("_storage"),
+  mimeType: z.string(),
+  fileName: z.string().optional(),
+});
+
+export const contextFiles = defineTable(zodOutputToConvex(zContextFile))
   .index("by_entryId", ["entryId"])
-  .index("by_namespace_createdAt", ["namespace", "createdAt"]);
+  .index("by_namespace", ["namespace"]);

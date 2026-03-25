@@ -6,7 +6,6 @@ export const zMachineAgentRegistration = z.object({
   account: zid("accounts").optional(),
   codeId: z.string(),
   name: z.string(),
-  createdAt: z.number(),
   lastSeenAt: z.number(),
   latestStaticHash: z.string(),
   latestRuntimeHash: z.string(),
@@ -23,7 +22,6 @@ export const zMachineAgentStaticVersion = z.object({
   codeId: z.string(),
   staticHash: z.string(),
   snapshot: z.any(),
-  createdAt: z.number(),
   lastSeenAt: z.number(),
 });
 
@@ -31,7 +29,7 @@ export const machineAgentStaticVersions = defineTable(
   zodOutputToConvex(zMachineAgentStaticVersion),
 )
   .index("by_registrationId_staticHash", ["registrationId", "staticHash"])
-  .index("by_codeId_createdAt", ["codeId", "createdAt"]);
+  .index("by_codeId", ["codeId"]);
 
 export const zMachineAgentRuntimeVersion = z.object({
   registrationId: z.string(),
@@ -39,7 +37,6 @@ export const zMachineAgentRuntimeVersion = z.object({
   codeId: z.string(),
   runtimeHash: z.string(),
   snapshot: z.any(),
-  createdAt: z.number(),
   lastSeenAt: z.number(),
 });
 
@@ -47,7 +44,7 @@ export const machineAgentRuntimeVersions = defineTable(
   zodOutputToConvex(zMachineAgentRuntimeVersion),
 )
   .index("by_staticVersionId_runtimeHash", ["staticVersionId", "runtimeHash"])
-  .index("by_codeId_createdAt", ["codeId", "createdAt"]);
+  .index("by_codeId", ["codeId"]);
 
 export const zMachineAgentTurnBinding = z.object({
   account: zid("accounts").optional(),
@@ -58,13 +55,12 @@ export const zMachineAgentTurnBinding = z.object({
   threadId: z.string(),
   messageId: z.string(),
   sessionId: z.string().optional(),
-  recordedAt: z.number(),
 });
 
 export const machineAgentTurnBindings = defineTable(
   zodOutputToConvex(zMachineAgentTurnBinding),
 )
   .index("by_messageId", ["messageId"])
-  .index("by_account_recordedAt", ["account", "recordedAt"])
-  .index("by_threadId_recordedAt", ["threadId", "recordedAt"])
-  .index("by_codeId_recordedAt", ["codeId", "recordedAt"]);
+  .index("by_account", ["account"])
+  .index("by_threadId", ["threadId"])
+  .index("by_codeId", ["codeId"]);

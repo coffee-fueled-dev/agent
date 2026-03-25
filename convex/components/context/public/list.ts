@@ -1,6 +1,10 @@
-import { paginationOptsValidator } from "convex/server";
+import {
+  paginationOptsValidator,
+  paginationResultValidator,
+} from "convex/server";
 import { v } from "convex/values";
 import { paginator } from "convex-helpers/server/pagination";
+import { doc } from "convex-helpers/validators";
 import { query } from "../_generated/server";
 import schema from "../schema";
 
@@ -9,12 +13,11 @@ export const listEntries = query({
     namespace: v.string(),
     paginationOpts: paginationOptsValidator,
   },
+  returns: paginationResultValidator(doc(schema, "contextEntries")),
   handler: async (ctx, args) => {
     return await paginator(ctx.db, schema)
       .query("contextEntries")
-      .withIndex("by_namespace_createdAt", (q) =>
-        q.eq("namespace", args.namespace),
-      )
+      .withIndex("by_namespace", (q) => q.eq("namespace", args.namespace))
       .order("desc")
       .paginate(args.paginationOpts);
   },
@@ -25,6 +28,7 @@ export const getEntryByLegacyId = query({
     namespace: v.string(),
     legacyEntryId: v.string(),
   },
+  returns: v.union(v.null(), doc(schema, "contextEntries")),
   handler: async (ctx, args) => {
     const entry = await ctx.db
       .query("contextEntries")

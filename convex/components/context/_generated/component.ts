@@ -29,22 +29,151 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           "mutation",
           "internal",
           { entryId: string; namespace: string },
-          any,
+          null,
           Name
         >;
         insertEntry: FunctionReference<
           "mutation",
           "internal",
           {
-            createdAt: number;
             entryId: string;
             key: string;
             legacyEntryId?: string;
             namespace: string;
+            source:
+              | {
+                  document: string;
+                  documentId: string;
+                  entryId: string;
+                  key: string;
+                  kind: "document";
+                  sourceType: "text" | "binary";
+                }
+              | {
+                  contentId: string;
+                  kind: "content";
+                  sourceType: "text" | "binary";
+                };
             textPreview: string;
             title?: string;
           },
-          any,
+          null,
+          Name
+        >;
+      };
+      context: {
+        add: FunctionReference<
+          "action",
+          "internal",
+          {
+            chunks?: Array<{ embedding: Array<number>; text: string }>;
+            key: string;
+            namespace: string;
+            searchText?: string;
+            source?:
+              | {
+                  document: string;
+                  documentId: string;
+                  entryId: string;
+                  key: string;
+                  kind: "document";
+                  sourceType: "text" | "binary";
+                }
+              | {
+                  contentId: string;
+                  kind: "content";
+                  sourceType: "text" | "binary";
+                };
+            sourceType?: "text" | "binary";
+            text: string;
+            title?: string;
+          },
+          { entryId: string },
+          Name
+        >;
+        edit: FunctionReference<
+          "action",
+          "internal",
+          { entryId: string; namespace: string; text: string; title?: string },
+          { entryId: string },
+          Name
+        >;
+        get: FunctionReference<
+          "query",
+          "internal",
+          { entryId: string; namespace: string },
+          null | {
+            entryId: string;
+            fullText: string;
+            key: string;
+            legacyEntryId?: string;
+            namespace: string;
+            source:
+              | {
+                  document: string;
+                  documentId: string;
+                  entryId: string;
+                  key: string;
+                  kind: "document";
+                  sourceType: "text" | "binary";
+                }
+              | {
+                  contentId: string;
+                  kind: "content";
+                  sourceType: "text" | "binary";
+                };
+            textPreview: string;
+            title?: string;
+            version: null | {
+              data:
+                | { status: "current" }
+                | {
+                    replacedByEntryId: string;
+                    replacementTime: number;
+                    status: "historical";
+                  };
+              key: string;
+            };
+            versionChain: Array<{
+              entryId: string;
+              entryTime: number;
+              kind: string;
+              payload?: any;
+            }>;
+          },
+          Name
+        >;
+        remove: FunctionReference<
+          "action",
+          "internal",
+          { entryId: string; namespace: string },
+          null,
+          Name
+        >;
+        search: FunctionReference<
+          "action",
+          "internal",
+          {
+            includeHistorical?: boolean;
+            lexicalWeight?: number;
+            limit?: number;
+            namespace: string;
+            query: string | Array<number>;
+            retrievalMode?: "vector" | "lexical" | "hybrid";
+            rrfK?: number;
+            searchType?: "vector" | "text" | "hybrid";
+            vectorScoreThreshold?: number;
+            vectorWeight?: number;
+          },
+          Array<{
+            entryId: string;
+            importance: number;
+            key: string;
+            metadata?: any;
+            score: number;
+            text: string;
+            title?: string;
+          }>,
           Name
         >;
       };
@@ -61,21 +190,46 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             streamId: string;
             streamType: string;
           },
-          any,
+          {
+            attrs?: Record<string, string | number | boolean | null>;
+            author?: { byId: string; byType: string };
+            entryId: string;
+            entryTime: number;
+            kind: string;
+            parentEntryIds: Array<string>;
+            payload?: any;
+            streamId: string;
+            streamType: string;
+          },
           Name
         >;
         getVersionChain: FunctionReference<
           "query",
           "internal",
           { entryId: string; streamId: string; streamType: string },
-          any,
+          Array<{
+            attrs?: Record<string, string | number | boolean | null>;
+            author?: { byId: string; byType: string };
+            entryId: string;
+            entryTime: number;
+            kind: string;
+            parentEntryIds: Array<string>;
+            payload?: any;
+            streamId: string;
+            streamType: string;
+          }>,
           Name
         >;
         listHistoryHeads: FunctionReference<
           "query",
           "internal",
           { streamId: string; streamType: string },
-          any,
+          Array<{
+            entryId: string;
+            headKind?: string;
+            streamId: string;
+            streamType: string;
+          }>,
           Name
         >;
       };
@@ -84,7 +238,30 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           "query",
           "internal",
           { legacyEntryId: string; namespace: string },
-          any,
+          null | {
+            _creationTime: number;
+            _id: string;
+            entryId: string;
+            key: string;
+            legacyEntryId?: string;
+            namespace: string;
+            source:
+              | {
+                  document: string;
+                  documentId: string;
+                  entryId: string;
+                  key: string;
+                  kind: "document";
+                  sourceType: "text" | "binary";
+                }
+              | {
+                  contentId: string;
+                  kind: "content";
+                  sourceType: "text" | "binary";
+                };
+            textPreview: string;
+            title?: string;
+          },
           Name
         >;
         listEntries: FunctionReference<
@@ -101,7 +278,230 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
               numItems: number;
             };
           },
-          any,
+          {
+            continueCursor: string;
+            isDone: boolean;
+            page: Array<{
+              _creationTime: number;
+              _id: string;
+              entryId: string;
+              key: string;
+              legacyEntryId?: string;
+              namespace: string;
+              source:
+                | {
+                    document: string;
+                    documentId: string;
+                    entryId: string;
+                    key: string;
+                    kind: "document";
+                    sourceType: "text" | "binary";
+                  }
+                | {
+                    contentId: string;
+                    kind: "content";
+                    sourceType: "text" | "binary";
+                  };
+              textPreview: string;
+              title?: string;
+            }>;
+            pageStatus?: "SplitRecommended" | "SplitRequired" | null;
+            splitCursor?: string | null;
+          },
+          Name
+        >;
+      };
+      projection: {
+        createJob: FunctionReference<
+          "mutation",
+          "internal",
+          { limit: number; namespace: string },
+          string,
+          Name
+        >;
+        getJob: FunctionReference<
+          "query",
+          "internal",
+          { jobId: string },
+          null | {
+            _creationTime: number;
+            _id: string;
+            data:
+              | { status: "pending" }
+              | {
+                  loadedCount: number;
+                  phase: "loading" | "projecting";
+                  status: "running";
+                  workflowId: string;
+                }
+              | {
+                  completionTime: number;
+                  points: Array<{
+                    entryId: string;
+                    key: string;
+                    mimeType?: string;
+                    textPreview: string;
+                    title?: string;
+                    x: number;
+                    y: number;
+                    z: number;
+                  }>;
+                  status: "completed";
+                }
+              | { error: string; failureTime: number; status: "failed" };
+            limit: number;
+            namespace: string;
+            stale: boolean;
+            updateTime: number;
+          },
+          Name
+        >;
+        getLatestProjection: FunctionReference<
+          "query",
+          "internal",
+          { namespace: string },
+          | null
+          | {
+              completionTime: number;
+              jobId: string;
+              points: Array<{
+                entryId: string;
+                key: string;
+                mimeType?: string;
+                textPreview: string;
+                title?: string;
+                x: number;
+                y: number;
+                z: number;
+              }>;
+              stale: boolean;
+              status: "completed";
+            }
+          | {
+              jobId: string;
+              loadedCount: number;
+              phase: "loading" | "projecting";
+              stale: boolean;
+              status: "running";
+            }
+          | { error: string; jobId: string; stale: boolean; status: "failed" }
+          | { jobId: string; stale: boolean; status: "pending" },
+          Name
+        >;
+        getProjectionStatus: FunctionReference<
+          "query",
+          "internal",
+          { jobId: string },
+          | null
+          | {
+              completionTime: number;
+              namespace: string;
+              points: Array<{
+                entryId: string;
+                key: string;
+                mimeType?: string;
+                textPreview: string;
+                title?: string;
+                x: number;
+                y: number;
+                z: number;
+              }>;
+              stale: boolean;
+              status: "completed";
+            }
+          | {
+              error: string;
+              failureTime: number;
+              namespace: string;
+              stale: boolean;
+              status: "failed";
+            }
+          | {
+              loadedCount: number;
+              namespace: string;
+              phase: "loading" | "projecting";
+              stale: boolean;
+              status: "running";
+            }
+          | { namespace: string; stale: boolean; status: "pending" },
+          Name
+        >;
+        loadEmbeddingPage: FunctionReference<
+          "query",
+          "internal",
+          { cursor: string | null; limit: number; namespace: string },
+          {
+            cursor: string;
+            isDone: boolean;
+            items: Array<{ embedding: Array<number>; entryId: string }>;
+          },
+          Name
+        >;
+        loadEntryPage: FunctionReference<
+          "query",
+          "internal",
+          { cursor: string | null; namespace: string; numItems: number },
+          {
+            continueCursor: string;
+            isDone: boolean;
+            page: Array<{
+              entryId: string;
+              key: string;
+              textPreview: string;
+              title?: string;
+            }>;
+          },
+          Name
+        >;
+        markCompleted: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            jobId: string;
+            points: Array<{
+              entryId: string;
+              key: string;
+              mimeType?: string;
+              textPreview: string;
+              title?: string;
+              x: number;
+              y: number;
+              z: number;
+            }>;
+          },
+          null,
+          Name
+        >;
+        markFailed: FunctionReference<
+          "mutation",
+          "internal",
+          { error: string; jobId: string },
+          null,
+          Name
+        >;
+        markProjectionsStale: FunctionReference<
+          "mutation",
+          "internal",
+          { namespace: string },
+          null,
+          Name
+        >;
+        markRunning: FunctionReference<
+          "mutation",
+          "internal",
+          { jobId: string; workflowId: string },
+          null,
+          Name
+        >;
+        updatePhase: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            jobId: string;
+            loadedCount?: number;
+            phase: "loading" | "projecting";
+          },
+          null,
           Name
         >;
       };

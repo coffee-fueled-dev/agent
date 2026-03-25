@@ -1,4 +1,3 @@
-import type { InputChunk } from "@convex-dev/rag";
 import { v } from "convex/values";
 import { components, internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
@@ -10,10 +9,6 @@ function createContextClient() {
   });
 }
 
-function getSearchFeatureId(entryId: string) {
-  return `context:entry:${entryId}`;
-}
-
 const chunkValidator = v.object({
   text: v.string(),
   embedding: v.array(v.number()),
@@ -21,7 +16,7 @@ const chunkValidator = v.object({
 
 export const completeFileProcess = internalAction({
   args: {
-    processId: v.string(),
+    processId: v.id("contextFileProcesses"),
     namespace: v.string(),
     key: v.string(),
     title: v.optional(v.string()),
@@ -34,13 +29,14 @@ export const completeFileProcess = internalAction({
   },
   handler: async (ctx, args) => {
     const client = createContextClient();
-    const result = await client.add(ctx, {
+    const result = await client.addContext(ctx, {
       namespace: args.namespace,
       key: args.key,
       title: args.title,
       text: args.retrievalText,
-      chunks: args.chunks as InputChunk[],
-      filterValues: [{ name: "status", value: "current" }],
+      chunks: args.chunks,
+      sourceType: "binary",
+      searchText: args.lexicalText ?? args.retrievalText,
     });
 
     await ctx.runMutation(internal.context.fileStore.insertContextFile, {
@@ -51,37 +47,8 @@ export const completeFileProcess = internalAction({
       fileName: args.fileName,
     });
 
-    const firstEmbedding = args.chunks[0]?.embedding;
-    if (firstEmbedding) {
-      await ctx.runMutation(internal.context.embedding.insertEmbedding, {
-        entryId: result.entryId,
-        namespace: args.namespace,
-        embedding: firstEmbedding,
-      });
-      await ctx.runMutation(internal.context.embedding.markProjectionsStale, {
-        namespace: args.namespace,
-      });
-    }
-
-    await client.upsertSearchFeature(ctx, {
-      namespace: args.namespace,
-      featureId: getSearchFeatureId(result.entryId),
-      sourceSystem: "context",
-      source: {
-        kind: "document",
-        document: "contextEntries",
-        documentId: result.entryId,
-        entryId: result.entryId,
-        key: args.key,
-        sourceType: "binary",
-      },
-      title: args.title,
-      text: args.lexicalText ?? args.retrievalText,
-      status: "current",
-    } as never);
-
     await ctx.runMutation(internal.context.fileStore.markCompleted, {
-      processId: args.processId as never,
+      processId: args.processId,
       entryId: result.entryId,
     });
 

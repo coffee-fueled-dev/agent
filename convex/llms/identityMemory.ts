@@ -185,13 +185,6 @@ function isUnknownRuntimeError(error: unknown) {
   return message.includes("Unknown agentMemory runtime:");
 }
 
-export async function recordThreadIdentityEpisode(
-  ctx: ActionCtx,
-  args: ThreadIdentityEpisodeArgs,
-): Promise<{ workId: string }> {
-  return await enqueueThreadIdentityEpisode(ctx, args);
-}
-
 export async function searchThreadIdentityCurrent(
   ctx: Pick<GenericActionCtx<GenericDataModel>, "runAction" | "runQuery">,
   args: ThreadIdentitySearchArgs,
@@ -478,17 +471,4 @@ function buildThreadIdentityCommit(
       validFrom: entryTime,
     },
   };
-}
-
-export async function enqueueThreadIdentityEpisode(
-  ctx: MutationCtx | ActionCtx,
-  args: ThreadIdentityEpisodeArgs,
-): Promise<{ workId: string }> {
-  await ensureThreadIdentityRuntime(ctx);
-  const current = await createAgentMemoryClient().getRuntimeCurrent(ctx, {
-    runtime: threadIdentityRuntime,
-    streamId: args.threadId,
-  });
-  const commit = buildThreadIdentityCommit(current, args);
-  return await ctx.runMutation(api.agentMemory.enqueueRuntimeEpisode, commit);
 }

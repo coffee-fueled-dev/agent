@@ -1,5 +1,8 @@
 import { v } from "convex/values";
+import { withoutSystemFields } from "convex-helpers";
+import { doc } from "convex-helpers/validators";
 import { internalMutation, internalQuery } from "../_generated/server";
+import schema from "../schema";
 
 export const getFileProcess = internalQuery({
   args: { processId: v.id("contextFileProcesses") },
@@ -18,12 +21,10 @@ export const createFileProcess = internalMutation({
     fileName: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const now = Date.now();
     return await ctx.db.insert("contextFileProcesses", {
       ...args,
-      status: "pending",
-      createdAt: now,
-      updatedAt: now,
+      updatedAt: Date.now(),
+      data: { status: "pending" },
     });
   },
 });
@@ -32,8 +33,8 @@ export const markDispatched = internalMutation({
   args: { processId: v.id("contextFileProcesses") },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.processId, {
-      status: "dispatched",
       updatedAt: Date.now(),
+      data: { status: "dispatched" },
     });
   },
 });
@@ -45,10 +46,8 @@ export const markCompleted = internalMutation({
   },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.processId, {
-      status: "completed",
-      entryId: args.entryId,
-      error: undefined,
       updatedAt: Date.now(),
+      data: { status: "completed", entryId: args.entryId },
     });
   },
 });
@@ -60,26 +59,16 @@ export const markFailed = internalMutation({
   },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.processId, {
-      status: "failed",
-      error: args.error,
       updatedAt: Date.now(),
+      data: { status: "failed", error: args.error },
     });
   },
 });
 
 export const insertContextFile = internalMutation({
-  args: {
-    entryId: v.string(),
-    namespace: v.string(),
-    storageId: v.id("_storage"),
-    mimeType: v.string(),
-    fileName: v.optional(v.string()),
-  },
+  args: withoutSystemFields(doc(schema, "contextFiles").fields),
   handler: async (ctx, args) => {
-    return await ctx.db.insert("contextFiles", {
-      ...args,
-      createdAt: Date.now(),
-    });
+    return await ctx.db.insert("contextFiles", args);
   },
 });
 

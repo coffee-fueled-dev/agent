@@ -101,7 +101,6 @@ export const listMachineAgentRegistrations = query({
       .map((registration) => ({
         codeId: registration.codeId,
         name: registration.name,
-        createdAt: registration.createdAt,
         lastSeenAt: registration.lastSeenAt,
         latestStaticHash: registration.latestStaticHash,
         latestRuntimeHash: registration.latestRuntimeHash,
@@ -132,7 +131,7 @@ export const listRecentThreadIdentityActivity = query({
       if (!summary) {
         summaries.set(binding.threadId, {
           threadId: binding.threadId,
-          lastRecordedAt: binding.recordedAt,
+          lastRecordedAt: binding._creationTime,
           latestMessageId: binding.messageId,
           bindingCount: 1,
           messageIds: new Set([binding.messageId]),
@@ -145,8 +144,8 @@ export const listRecentThreadIdentityActivity = query({
       summary.messageIds.add(binding.messageId);
       summary.codeIds.add(binding.codeId);
 
-      if (binding.recordedAt >= summary.lastRecordedAt) {
-        summary.lastRecordedAt = binding.recordedAt;
+      if (binding._creationTime >= summary.lastRecordedAt) {
+        summary.lastRecordedAt = binding._creationTime;
         summary.latestMessageId = binding.messageId;
       }
     }
@@ -185,7 +184,7 @@ export const listThreadIdentityHistory = query({
     paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, args) => {
-    return await history.read.listEntries(ctx, {
+    return await history.listEntries(ctx, {
       streamType: "threadIdentity",
       streamId: args.threadId,
       paginationOpts: args.paginationOpts,
@@ -199,7 +198,7 @@ export const getThreadIdentityPathToRoot = query({
     entryId: v.string(),
   },
   handler: async (ctx, args) => {
-    return await history.read.getPathToRoot(ctx, {
+    return await history.getPathToRoot(ctx, {
       streamType: "threadIdentity",
       streamId: args.threadId,
       entryId: args.entryId,

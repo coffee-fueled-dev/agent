@@ -1,5 +1,7 @@
 import { v } from "convex/values";
-import { type QueryCtx, query } from "../_generated/server";
+import { doc } from "convex-helpers/validators";
+import { query } from "../_generated/server";
+import schema from "../schema";
 
 export const searchFeatures = query({
   args: {
@@ -9,7 +11,8 @@ export const searchFeatures = query({
     includeHistorical: v.optional(v.boolean()),
     sourceSystem: v.optional(v.string()),
   },
-  handler: async (ctx: QueryCtx, args) => {
+  returns: v.array(doc(schema, "searchFeatures")),
+  handler: async (ctx, args) => {
     const limit = args.limit ?? 20;
     const includeHistorical = args.includeHistorical ?? false;
 
@@ -31,16 +34,6 @@ export const searchFeatures = query({
         .take(limit);
     };
 
-    const docs = await runSearch(args.sourceSystem);
-    return docs.map((doc) => ({
-      namespace: doc.namespace,
-      featureId: doc.featureId,
-      sourceSystem: doc.sourceSystem,
-      source: doc.source,
-      title: doc.title,
-      text: doc.text,
-      status: doc.status,
-      updatedAt: doc.updatedAt,
-    }));
+    return await runSearch(args.sourceSystem);
   },
 });
