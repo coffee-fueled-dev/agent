@@ -1,17 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
-const metadataValidator = v.optional(
-  v.record(v.string(), v.union(v.string(), v.number(), v.boolean(), v.null())),
-);
-
-const authorValidator = v.optional(
-  v.object({
-    byType: v.string(),
-    byId: v.string(),
-  }),
-);
-
 export default defineSchema({
   history_entries: defineTable({
     streamType: v.string(),
@@ -21,8 +10,18 @@ export default defineSchema({
     payload: v.optional(v.any()),
     parentEntryIds: v.array(v.string()),
     entryTime: v.number(),
-    author: authorValidator,
-    attrs: metadataValidator,
+    author: v.optional(
+      v.object({
+        byType: v.string(),
+        byId: v.string(),
+      }),
+    ),
+    attrs: v.optional(
+      v.record(
+        v.string(),
+        v.union(v.string(), v.number(), v.boolean(), v.null()),
+      ),
+    ),
   })
     .index("by_stream_entry", ["streamType", "streamId", "entryId"])
     .index("by_stream_time", ["streamType", "streamId", "entryTime"]),

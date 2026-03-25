@@ -19,7 +19,7 @@ function parseCompletionPayload(payload: unknown) {
   if (!payload || typeof payload !== "object") {
     throw new Error("Expected JSON object");
   }
-  const { processId, retrievalText, chunks } = payload as Record<
+  const { processId, retrievalText, lexicalText, chunks } = payload as Record<
     string,
     unknown
   >;
@@ -33,6 +33,7 @@ function parseCompletionPayload(payload: unknown) {
   return {
     processId,
     retrievalText,
+    lexicalText: typeof lexicalText === "string" ? lexicalText : undefined,
     chunks: chunks.map((c: unknown) => {
       const chunk = c as Record<string, unknown>;
       if (
@@ -55,7 +56,7 @@ export const completeFileProcessHttp = httpAction(async (ctx, request) => {
     return new Response("Unauthorized", { status: 401 });
   }
   try {
-    const { processId, retrievalText, chunks } = parseCompletionPayload(
+    const { processId, retrievalText, lexicalText, chunks } = parseCompletionPayload(
       await request.json(),
     );
     const process = await ctx.runQuery(
@@ -83,6 +84,7 @@ export const completeFileProcessHttp = httpAction(async (ctx, request) => {
         mimeType: process.mimeType,
         fileName: process.fileName,
         retrievalText,
+        lexicalText,
         chunks,
       },
     );

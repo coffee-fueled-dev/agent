@@ -946,6 +946,60 @@ export declare const components: {
       };
     };
   };
+  search: {
+    public: {
+      add: {
+        deleteFeature: FunctionReference<
+          "mutation",
+          "internal",
+          { featureId: string; namespace: string },
+          any
+        >;
+        upsertFeature: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            featureId: string;
+            namespace: string;
+            source:
+              | {
+                  document: string;
+                  documentId: string;
+                  entryId: string;
+                  key: string;
+                  kind: "document";
+                  sourceType: "text" | "binary";
+                }
+              | {
+                  contentId: string;
+                  kind: "content";
+                  sourceType: "text" | "binary";
+                };
+            sourceSystem: string;
+            status: "current" | "historical";
+            text: string;
+            title?: string;
+            updatedAt?: number;
+          },
+          any
+        >;
+      };
+      search: {
+        searchFeatures: FunctionReference<
+          "query",
+          "internal",
+          {
+            includeHistorical?: boolean;
+            limit?: number;
+            namespace: string;
+            query: string;
+            sourceSystem?: string;
+          },
+          any
+        >;
+      };
+    };
+  };
   agentMemory: {
     public: {
       add: {
@@ -1479,6 +1533,54 @@ export declare const components: {
               maximumRowsRead?: number;
               numItems: number;
             };
+          },
+          any
+        >;
+      };
+      search: {
+        deleteSearchFeature: FunctionReference<
+          "mutation",
+          "internal",
+          { featureId: string; namespace: string },
+          any
+        >;
+        searchFeatures: FunctionReference<
+          "query",
+          "internal",
+          {
+            includeHistorical?: boolean;
+            limit?: number;
+            namespace: string;
+            query: string;
+            sourceSystem?: string;
+          },
+          any
+        >;
+        upsertSearchFeature: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            featureId: string;
+            namespace: string;
+            source:
+              | {
+                  document: string;
+                  documentId: string;
+                  entryId: string;
+                  key: string;
+                  kind: "document";
+                  sourceType: "text" | "binary";
+                }
+              | {
+                  contentId: string;
+                  kind: "content";
+                  sourceType: "text" | "binary";
+                };
+            sourceSystem: string;
+            status: "current" | "historical";
+            text: string;
+            title?: string;
+            updatedAt?: number;
           },
           any
         >;

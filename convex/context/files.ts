@@ -11,6 +11,10 @@ function createContextClient() {
   });
 }
 
+function getSearchFeatureId(entryId: string) {
+  return `context:entry:${entryId}`;
+}
+
 function getEmbeddingServerUrl() {
   return process.env.EMBEDDING_SERVER_URL?.trim() || "http://127.0.0.1:3031";
 }
@@ -56,12 +60,14 @@ export const addFileContext = action({
     const { text, storageId, mimeType, fileName, ...entry } = args;
 
     if (text) {
+      const client = createContextClient();
       const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
       const embedding = await embedText(text, apiKey);
-      const result = await createContextClient().add(ctx, {
+      const result = await client.add(ctx, {
         ...entry,
         text,
         chunks: [{ text, embedding }],
+        filterValues: [{ name: "status", value: "current" }],
       });
       await ctx.runMutation(internal.context.fileStore.insertContextFile, {
         entryId: result.entryId,
@@ -75,6 +81,22 @@ export const addFileContext = action({
         namespace: args.namespace,
         embedding,
       });
+      await client.upsertSearchFeature(ctx, {
+        namespace: args.namespace,
+        featureId: getSearchFeatureId(result.entryId),
+        sourceSystem: "context",
+        source: {
+          kind: "document",
+          document: "contextEntries",
+          documentId: result.entryId,
+          entryId: result.entryId,
+          key: args.key,
+          sourceType: "text",
+        },
+        title: args.title,
+        text,
+        status: "current",
+      } as never);
       await ctx.runMutation(internal.context.embedding.markProjectionsStale, {
         namespace: args.namespace,
       });
@@ -114,6 +136,8 @@ export const addFileContext = action({
             title: args.title,
             mimeType,
             fileName: fileName ?? null,
+            // Optional contract for embedding workers that can emit a small lexical summary.
+            lexicalSummaryMode: "tiny",
             completeUrl: `${baseUrl}/context/file/complete`,
             failUrl: `${baseUrl}/context/file/fail`,
           }),

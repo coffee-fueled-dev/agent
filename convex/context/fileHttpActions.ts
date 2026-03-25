@@ -10,6 +10,10 @@ function createContextClient() {
   });
 }
 
+function getSearchFeatureId(entryId: string) {
+  return `context:entry:${entryId}`;
+}
+
 const chunkValidator = v.object({
   text: v.string(),
   embedding: v.array(v.number()),
@@ -25,15 +29,18 @@ export const completeFileProcess = internalAction({
     mimeType: v.string(),
     fileName: v.optional(v.string()),
     retrievalText: v.string(),
+    lexicalText: v.optional(v.string()),
     chunks: v.array(chunkValidator),
   },
   handler: async (ctx, args) => {
-    const result = await createContextClient().add(ctx, {
+    const client = createContextClient();
+    const result = await client.add(ctx, {
       namespace: args.namespace,
       key: args.key,
       title: args.title,
       text: args.retrievalText,
       chunks: args.chunks as InputChunk[],
+      filterValues: [{ name: "status", value: "current" }],
     });
 
     await ctx.runMutation(internal.context.fileStore.insertContextFile, {
@@ -55,6 +62,23 @@ export const completeFileProcess = internalAction({
         namespace: args.namespace,
       });
     }
+
+    await client.upsertSearchFeature(ctx, {
+      namespace: args.namespace,
+      featureId: getSearchFeatureId(result.entryId),
+      sourceSystem: "context",
+      source: {
+        kind: "document",
+        document: "contextEntries",
+        documentId: result.entryId,
+        entryId: result.entryId,
+        key: args.key,
+        sourceType: "binary",
+      },
+      title: args.title,
+      text: args.lexicalText ?? args.retrievalText,
+      status: "current",
+    } as never);
 
     await ctx.runMutation(internal.context.fileStore.markCompleted, {
       processId: args.processId as never,

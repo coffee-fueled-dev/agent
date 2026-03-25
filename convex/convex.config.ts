@@ -11,6 +11,7 @@ import events from "./components/events/convex.config.js";
 import facts from "./components/facts/convex.config.js";
 import history from "./components/history/convex.config.js";
 import policy from "./components/policy/convex.config.js";
+import search from "./components/search/convex.config.js";
 
 const app = defineApp();
 
@@ -19,6 +20,7 @@ app.use(geospatial);
 app.use(facts);
 app.use(events);
 app.use(history);
+app.use(search);
 app.use(agentMemory);
 app.use(context);
 app.use(workpool, { name: "agentMemoryWorkpool" });

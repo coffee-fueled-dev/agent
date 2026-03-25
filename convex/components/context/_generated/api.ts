@@ -14,6 +14,8 @@ import type * as internal_rag from "../internal/rag.js";
 import type * as public_add from "../public/add.js";
 import type * as public_history from "../public/history.js";
 import type * as public_list from "../public/list.js";
+import type * as public_search from "../public/search.js";
+import type * as search from "../search.js";
 
 import type {
   ApiFromModules,
@@ -29,6 +31,8 @@ const fullApi: ApiFromModules<{
   "public/add": typeof public_add;
   "public/history": typeof public_history;
   "public/list": typeof public_list;
+  "public/search": typeof public_search;
+  search: typeof search;
 }> = anyApi as any;
 
 /**
@@ -613,6 +617,60 @@ export const components = componentsGeneric() as unknown as {
             };
             streamId: string;
             streamType: string;
+          },
+          any
+        >;
+      };
+    };
+  };
+  search: {
+    public: {
+      add: {
+        deleteFeature: FunctionReference<
+          "mutation",
+          "internal",
+          { featureId: string; namespace: string },
+          any
+        >;
+        upsertFeature: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            featureId: string;
+            namespace: string;
+            source:
+              | {
+                  document: string;
+                  documentId: string;
+                  entryId: string;
+                  key: string;
+                  kind: "document";
+                  sourceType: "text" | "binary";
+                }
+              | {
+                  contentId: string;
+                  kind: "content";
+                  sourceType: "text" | "binary";
+                };
+            sourceSystem: string;
+            status: "current" | "historical";
+            text: string;
+            title?: string;
+            updatedAt?: number;
+          },
+          any
+        >;
+      };
+      search: {
+        searchFeatures: FunctionReference<
+          "query",
+          "internal",
+          {
+            includeHistorical?: boolean;
+            limit?: number;
+            namespace: string;
+            query: string;
+            sourceSystem?: string;
           },
           any
         >;

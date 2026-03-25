@@ -1,4 +1,4 @@
-import type { EntryId } from "@convex-dev/rag";
+import { type EntryId, hybridRank } from "@convex-dev/rag";
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { components, internal } from "../_generated/api";
@@ -11,6 +11,10 @@ function createContextClient() {
   return new ContextClient(components.context, {
     googleApiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
   });
+}
+
+function getSearchFeatureId(entryId: string) {
+  return `context:entry:${entryId}`;
 }
 
 export const addContext = action({
@@ -50,6 +54,22 @@ export const addContext = action({
       entryId: result.entryId,
       kind: "created",
       payload: { title: args.title, textPreview: args.text.slice(0, 280) },
+    });
+    await client.upsertSearchFeature(ctx, {
+      namespace: args.namespace,
+      featureId: getSearchFeatureId(result.entryId),
+      sourceSystem: "context",
+      source: {
+        kind: "document",
+        document: "contextEntries",
+        documentId: result.entryId,
+        entryId: result.entryId,
+        key: args.key,
+        sourceType: "text",
+      },
+      title: args.title,
+      text: args.text,
+      status: "current",
     });
     await ctx.runMutation(internal.context.embedding.markProjectionsStale, {
       namespace: args.namespace,
@@ -222,6 +242,7 @@ export const deleteContext = action({
     entryId: v.string(),
   },
   handler: async (ctx, args) => {
+    const client = createContextClient();
     const rag = createContextRag(process.env.GOOGLE_GENERATIVE_AI_API_KEY);
     await rag.delete(ctx, { entryId: args.entryId as EntryId });
     await ctx.runMutation(components.context.public.add.deleteEntry, {
@@ -233,6 +254,10 @@ export const deleteContext = action({
     });
     await ctx.runMutation(internal.context.fileStore.deleteContextFile, {
       entryId: args.entryId,
+    });
+    await client.deleteSearchFeature(ctx, {
+      namespace: args.namespace,
+      featureId: getSearchFeatureId(args.entryId),
     });
     await ctx.runMutation(internal.context.embedding.markProjectionsStale, {
       namespace: args.namespace,
@@ -292,6 +317,42 @@ export const editContext = action({
       text: args.text,
       chunks: [{ text: args.text, embedding: newEmbedding }],
       filterValues: [{ name: "status", value: "current" }],
+    });
+    await client.upsertSearchFeature(ctx, {
+      namespace: args.namespace,
+      featureId: getSearchFeatureId(historicalResult.entryId),
+      sourceSystem: "context",
+      source: {
+        kind: "document",
+        document: "contextEntries",
+        documentId: historicalResult.entryId,
+        entryId: historicalResult.entryId,
+        key,
+        sourceType: "text",
+      },
+      title: oldEntry?.title,
+      text: oldText,
+      status: "historical",
+    });
+    await client.upsertSearchFeature(ctx, {
+      namespace: args.namespace,
+      featureId: getSearchFeatureId(newResult.entryId),
+      sourceSystem: "context",
+      source: {
+        kind: "document",
+        document: "contextEntries",
+        documentId: newResult.entryId,
+        entryId: newResult.entryId,
+        key,
+        sourceType: "text",
+      },
+      title: args.title,
+      text: args.text,
+      status: "current",
+    });
+    await client.deleteSearchFeature(ctx, {
+      namespace: args.namespace,
+      featureId: getSearchFeatureId(args.entryId),
     });
 
     // 5. Update version records
@@ -361,15 +422,108 @@ export const searchContext = action({
     ),
     vectorScoreThreshold: v.optional(v.number()),
     includeHistorical: v.optional(v.boolean()),
+    retrievalMode: v.optional(
+      v.union(v.literal("vector"), v.literal("lexical"), v.literal("hybrid")),
+    ),
+    rrfK: v.optional(v.number()),
+    vectorWeight: v.optional(v.number()),
+    lexicalWeight: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
-    const { includeHistorical, ...searchArgs } = args;
+  handler: async (
+    ctx,
+    {
+      includeHistorical,
+      retrievalMode,
+      rrfK,
+      vectorWeight,
+      lexicalWeight,
+      ...args
+    },
+  ) => {
+    const mode = retrievalMode ?? "hybrid";
+    const limit = args.limit ?? 10;
+    const candidateLimit = Math.max(limit * 3, 20);
     const filters = includeHistorical
       ? undefined
       : [{ name: "status" as const, value: "current" }];
-    return await createContextClient().search(ctx, {
-      ...searchArgs,
+    const client = createContextClient();
+
+    if (mode === "vector") {
+      return await client.search(ctx, {
+        ...args,
+        filters,
+      });
+    }
+
+    const lexicalQuery = typeof args.query === "string" ? args.query : null;
+    const lexicalEnabled = lexicalQuery !== null;
+    const lexicalResults = lexicalEnabled
+      ? await client.searchFeatures(ctx, {
+          namespace: args.namespace,
+          query: lexicalQuery,
+          limit: candidateLimit,
+          includeHistorical,
+          sourceSystem: "context",
+        })
+      : [];
+    const lexicalMapped = lexicalResults
+      .filter(
+        (
+          result,
+        ): result is (typeof lexicalResults)[number] & {
+          source: {
+            kind: "document";
+            document: string;
+            documentId: string;
+            entryId: string;
+            key: string;
+            sourceType: "text" | "binary";
+          };
+        } => result.source.kind === "document",
+      )
+      .map((result, index) => ({
+        entryId: result.source.entryId,
+        key: result.source.key,
+        title: result.title,
+        text: result.text,
+        importance: 1,
+        score: 1 / (index + 1),
+      }));
+
+    if (mode === "lexical" || !lexicalEnabled) {
+      if (!lexicalEnabled) {
+        return await client.search(ctx, {
+          ...args,
+          filters,
+        });
+      }
+      return lexicalMapped.slice(0, limit);
+    }
+
+    const vectorResults = await client.search(ctx, {
+      ...args,
+      limit: candidateLimit,
       filters,
     });
+    const fusedIds = hybridRank(
+      [
+        vectorResults.map((result) => result.entryId),
+        lexicalMapped.map((result) => result.entryId),
+      ],
+      {
+        k: rrfK ?? 10,
+        weights: [vectorWeight ?? 1, lexicalWeight ?? 1],
+      },
+    );
+    const byEntryId = new Map<
+      string,
+      (typeof vectorResults)[number] | (typeof lexicalMapped)[number]
+    >();
+    for (const result of lexicalMapped) byEntryId.set(result.entryId, result);
+    for (const result of vectorResults) byEntryId.set(result.entryId, result);
+    return fusedIds
+      .map((entryId) => byEntryId.get(entryId))
+      .filter((result) => !!result)
+      .slice(0, limit);
   },
 });
