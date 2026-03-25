@@ -25,11 +25,18 @@ export class ContextClient {
     public config: ContextClientConfig = {},
   ) {}
 
+  private get apiKey() {
+    return this.config.googleApiKey;
+  }
+
   addContext = async (
     ctx: RunActionCtx,
-    args: FunctionArgs<typeof this.component.public.context.add>,
+    args: Omit<FunctionArgs<typeof this.component.public.context.add>, "apiKey">,
   ) => {
-    return await ctx.runAction(this.component.public.context.add, args);
+    return await ctx.runAction(this.component.public.context.add, {
+      ...args,
+      apiKey: this.apiKey,
+    });
   };
 
   getContextDetail = async (
@@ -41,23 +48,32 @@ export class ContextClient {
 
   deleteContext = async (
     ctx: RunActionCtx,
-    args: FunctionArgs<typeof this.component.public.context.remove>,
+    args: Omit<FunctionArgs<typeof this.component.public.context.remove>, "apiKey">,
   ) => {
-    return await ctx.runAction(this.component.public.context.remove, args);
+    return await ctx.runAction(this.component.public.context.remove, {
+      ...args,
+      apiKey: this.apiKey,
+    });
   };
 
   editContext = async (
     ctx: RunActionCtx,
-    args: FunctionArgs<typeof this.component.public.context.edit>,
+    args: Omit<FunctionArgs<typeof this.component.public.context.edit>, "apiKey">,
   ) => {
-    return await ctx.runAction(this.component.public.context.edit, args);
+    return await ctx.runAction(this.component.public.context.edit, {
+      ...args,
+      apiKey: this.apiKey,
+    });
   };
 
   searchContext = async (
     ctx: RunActionCtx,
-    args: FunctionArgs<typeof this.component.public.context.search>,
+    args: Omit<FunctionArgs<typeof this.component.public.context.search>, "apiKey">,
   ) => {
-    return await ctx.runAction(this.component.public.context.search, args);
+    return await ctx.runAction(this.component.public.context.search, {
+      ...args,
+      apiKey: this.apiKey,
+    });
   };
 
   list = async (

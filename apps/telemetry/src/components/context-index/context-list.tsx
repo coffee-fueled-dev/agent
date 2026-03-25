@@ -52,7 +52,7 @@ export function ContextList() {
                     </ItemDescription>
                   )}
                   <span className="text-xs text-muted-foreground/60">
-                    {formatTime(entry.createdAt)}
+                    {formatTime(entry._creationTime)}
                   </span>
                 </ItemContent>
               </Item>

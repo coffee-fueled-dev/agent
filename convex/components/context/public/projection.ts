@@ -1,7 +1,13 @@
+import {
+  paginationOptsValidator,
+  paginationResultValidator,
+} from "convex/server";
 import { v } from "convex/values";
+import { paginator } from "convex-helpers/server/pagination";
+import { doc } from "convex-helpers/validators";
 import { mutation, query } from "../_generated/server";
 import { hasStatus } from "../internal/status";
-import { pointValidator } from "../schema";
+import schema, { pointValidator } from "../schema";
 
 export const createJob = mutation({
   args: { namespace: v.string(), limit: v.number() },
@@ -119,66 +125,42 @@ export const markFailed = mutation({
 export const loadEmbeddingPage = query({
   args: {
     namespace: v.string(),
-    cursor: v.union(v.string(), v.null()),
-    limit: v.number(),
+    paginationOpts: paginationOptsValidator,
   },
-  returns: v.object({
-    items: v.array(v.object({ entryId: v.string(), embedding: v.array(v.number()) })),
-    cursor: v.string(),
-    isDone: v.boolean(),
-  }),
+  returns: paginationResultValidator(doc(schema, "contextEntryEmbeddings")),
   handler: async (ctx, args) => {
-    const result = await ctx.db
+    return await paginator(ctx.db, schema)
       .query("contextEntryEmbeddings")
       .withIndex("by_namespace", (q) => q.eq("namespace", args.namespace))
-      .paginate({ cursor: args.cursor ?? null, numItems: args.limit });
-
-    const items: Array<{ entryId: string; embedding: number[] }> = [];
-    for (const doc of result.page) {
-      const version = await ctx.db
-        .query("contextEntryVersions")
-        .withIndex("by_entryId", (q) => q.eq("entryId", doc.entryId))
-        .first();
-      if (!version || version.data.status === "current") {
-        items.push({ entryId: doc.entryId, embedding: doc.embedding });
-      }
-    }
-
-    return { items, cursor: result.continueCursor, isDone: result.isDone };
+      .paginate(args.paginationOpts);
   },
 });
 
 export const loadEntryPage = query({
   args: {
     namespace: v.string(),
-    cursor: v.union(v.string(), v.null()),
-    numItems: v.number(),
+    paginationOpts: paginationOptsValidator,
   },
-  returns: v.object({
-    page: v.array(v.object({
-      entryId: v.string(),
-      key: v.string(),
-      title: v.optional(v.string()),
-      textPreview: v.string(),
-    })),
-    continueCursor: v.string(),
-    isDone: v.boolean(),
-  }),
+  returns: paginationResultValidator(doc(schema, "contextEntries")),
   handler: async (ctx, args) => {
-    const result = await ctx.db
+    return await paginator(ctx.db, schema)
       .query("contextEntries")
       .withIndex("by_namespace", (q) => q.eq("namespace", args.namespace))
-      .paginate({ cursor: args.cursor ?? null, numItems: args.numItems });
-    return {
-      page: result.page.map((e) => ({
-        entryId: e.entryId,
-        key: e.key,
-        title: e.title,
-        textPreview: e.textPreview,
-      })),
-      continueCursor: result.continueCursor,
-      isDone: result.isDone,
-    };
+      .paginate(args.paginationOpts);
+  },
+});
+
+export const loadCurrentEntryIds = query({
+  args: { namespace: v.string() },
+  returns: v.array(v.string()),
+  handler: async (ctx, args) => {
+    const versions = await ctx.db
+      .query("contextEntryVersions")
+      .withIndex("by_namespace_key", (q) => q.eq("namespace", args.namespace))
+      .collect();
+    return versions
+      .filter((v) => v.data.status === "current")
+      .map((v) => v.entryId);
   },
 });
 

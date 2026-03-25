@@ -17,7 +17,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../ui/dialog";
-import { Field, FieldLabel } from "../ui/field";
+import { Field, FieldError, FieldLabel } from "../ui/field";
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
 import { FileDropzone, useFiles } from "./file-dropzone.js";
@@ -203,7 +203,10 @@ export function AddContextDialog({
               />
             </Field>
 
-            {error && <p className="text-sm text-destructive">{error}</p>}
+            <FieldError
+              className="max-h-24 overflow-auto break-all text-sm"
+              errors={error ? [{ message: error }] : undefined}
+            />
 
             <DialogFooter>
               <DialogClose asChild>

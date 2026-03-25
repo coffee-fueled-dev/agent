@@ -170,7 +170,7 @@ export function ContextExplore({
   );
   const activeStatus = useQuery(
     api.context.projections.getContextProjectionStatus,
-    activeJobId ? { jobId: activeJobId as never } : "skip",
+    activeJobId ? { jobId: activeJobId } : "skip",
   );
   const requestRef = useRef(0);
 
@@ -207,6 +207,7 @@ export function ContextExplore({
     displayStatus?.status === "completed" ? displayStatus.points : [];
   const isStale = displayStatus?.status === "completed" && displayStatus.stale;
   const hasNoData = cached === null && !activeJobId;
+  const canRegenerate = !isRefreshing && (hasNoData || isStale || displayStatus?.status === "failed" || displayStatus?.status === "completed");
   const isLoading = cached === undefined;
   const phase =
     activeStatus?.status === "running" ? activeStatus.phase : undefined;
@@ -221,7 +222,7 @@ export function ContextExplore({
           <PageSection.Description>{namespace}</PageSection.Description>
         </div>
         <div className="flex items-center gap-2">
-          {(isStale || hasNoData) && !isRefreshing && (
+          {canRegenerate && (
             <Button variant="outline" size="sm" onClick={launch}>
               <RefreshCwIcon className="size-3.5" />
               {hasNoData ? "Generate" : "Refresh"}

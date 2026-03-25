@@ -62,13 +62,14 @@ export const add = action({
     source: v.optional(sourceValidator),
     sourceType: v.optional(v.union(v.literal("text"), v.literal("binary"))),
     searchText: v.optional(v.string()),
+    apiKey: v.optional(v.string()),
   },
   returns: v.object({ entryId: v.string() }),
   handler: async (ctx, args) => {
-    const rag = createContextRag(process.env.GOOGLE_GENERATIVE_AI_API_KEY);
+    const rag = createContextRag(args.apiKey);
     const embedding =
       args.chunks?.[0]?.embedding ??
-      (await embedText(args.text, process.env.GOOGLE_GENERATIVE_AI_API_KEY));
+      (await embedText(args.text, args.apiKey));
 
     const result = await rag.add(ctx, {
       namespace: args.namespace,
@@ -200,10 +201,10 @@ export const get = query({
 });
 
 export const remove = action({
-  args: { namespace: v.string(), entryId: v.string() },
+  args: { namespace: v.string(), entryId: v.string(), apiKey: v.optional(v.string()) },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const rag = createContextRag(process.env.GOOGLE_GENERATIVE_AI_API_KEY);
+    const rag = createContextRag(args.apiKey);
     await rag.delete(ctx, { entryId: args.entryId as EntryId });
     await ctx.runMutation(api.public.add.deleteEntry, args);
     await searchClient.deleteFeature(ctx, {
@@ -225,10 +226,11 @@ export const edit = action({
     entryId: v.string(),
     title: v.optional(v.string()),
     text: v.string(),
+    apiKey: v.optional(v.string()),
   },
   returns: v.object({ entryId: v.string() }),
   handler: async (ctx, args) => {
-    const rag = createContextRag(process.env.GOOGLE_GENERATIVE_AI_API_KEY);
+    const rag = createContextRag(args.apiKey);
     const oldEntry = await rag.getEntry(ctx, {
       entryId: args.entryId as EntryId,
     });
@@ -271,10 +273,7 @@ export const edit = action({
       legacyEntryId: args.entryId,
     });
 
-    const embedding = await embedText(
-      args.text,
-      process.env.GOOGLE_GENERATIVE_AI_API_KEY,
-    );
+    const embedding = await embedText(args.text, args.apiKey);
 
     const currentSource = {
       kind: "document" as const,
@@ -389,6 +388,7 @@ export const search = action({
     rrfK: v.optional(v.number()),
     vectorWeight: v.optional(v.number()),
     lexicalWeight: v.optional(v.number()),
+    apiKey: v.optional(v.string()),
   },
   returns: v.array(searchResultValidator),
   handler: async (
@@ -399,10 +399,11 @@ export const search = action({
       rrfK,
       vectorWeight,
       lexicalWeight,
+      apiKey,
       ...args
     },
   ) => {
-    const rag = createContextRag(process.env.GOOGLE_GENERATIVE_AI_API_KEY);
+    const rag = createContextRag(apiKey);
     const mode = retrievalMode ?? "hybrid";
     const limit = args.limit ?? 10;
     const candidateLimit = Math.max(limit * 3, 20);

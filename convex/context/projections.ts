@@ -1,7 +1,13 @@
+import type { PaginationResult } from "convex/server";
 import { v } from "convex/values";
 import { UMAP } from "umap-js";
 import { components, internal } from "../_generated/api";
-import { action, internalAction, internalQuery, query } from "../_generated/server";
+import {
+  action,
+  internalAction,
+  internalQuery,
+  query,
+} from "../_generated/server";
 import { workflow as workflowManager } from "../workflow";
 
 const DEFAULT_LIMIT = 120;
@@ -88,22 +94,17 @@ export const projectEmbeddingCloud = internalAction({
   },
 });
 
-type EmbeddingPage = {
-  items: Array<{ entryId: string; embedding: number[] }>;
-  cursor: string;
-  isDone: boolean;
-};
+type PaginatedEmbeddings = PaginationResult<{
+  entryId: string;
+  embedding: number[];
+}>;
 
-type EntryPage = {
-  page: Array<{
-    entryId: string;
-    key: string;
-    title?: string;
-    textPreview: string;
-  }>;
-  continueCursor: string;
-  isDone: boolean;
-};
+type PaginatedEntries = PaginationResult<{
+  entryId: string;
+  key: string;
+  title?: string;
+  textPreview: string;
+}>;
 
 type FileMeta = { entryId: string; mimeType: string };
 
@@ -136,26 +137,41 @@ export const runContextProjectionWorkflow = workflowManager.define({
       let cursor: string | null = null;
       let isDone = false;
       while (!isDone && embeddings.length < job.limit) {
-        const page: EmbeddingPage = await step.runQuery(
+        const result: PaginatedEmbeddings = await step.runQuery(
           projectionApi.loadEmbeddingPage,
           {
             namespace: job.namespace,
-            cursor,
-            limit: Math.min(EMBEDDING_PAGE_SIZE, job.limit - embeddings.length),
+            paginationOpts: {
+              cursor,
+              numItems: Math.min(
+                EMBEDDING_PAGE_SIZE,
+                job.limit - embeddings.length,
+              ),
+            },
           },
           { inline: true },
         );
-        embeddings.push(...page.items);
-        cursor = page.cursor;
-        isDone = page.isDone;
+        embeddings.push(...result.page);
+        cursor = result.continueCursor;
+        isDone = result.isDone;
       }
+
+      const currentEntryIds: string[] = await step.runQuery(
+        projectionApi.loadCurrentEntryIds,
+        { namespace: job.namespace },
+        { inline: true },
+      );
+      const currentSet = new Set(currentEntryIds);
+      const currentEmbeddings = embeddings.filter((e) =>
+        currentSet.has(e.entryId),
+      );
 
       await step.runMutation(
         projectionApi.updatePhase,
         {
           jobId: args.jobId,
           phase: "loading",
-          loadedCount: embeddings.length,
+          loadedCount: currentEmbeddings.length,
         },
         { inline: true },
       );
@@ -167,27 +183,29 @@ export const runContextProjectionWorkflow = workflowManager.define({
       let entryCursor: string | null = null;
       let entriesDone = false;
       while (!entriesDone) {
-        const page: EntryPage = await step.runQuery(
+        const entryResult: PaginatedEntries = await step.runQuery(
           projectionApi.loadEntryPage,
           {
             namespace: job.namespace,
-            cursor: entryCursor,
-            numItems: EMBEDDING_PAGE_SIZE,
+            paginationOpts: {
+              cursor: entryCursor,
+              numItems: EMBEDDING_PAGE_SIZE,
+            },
           },
           { inline: true },
         );
-        for (const entry of page.page) {
+        for (const entry of entryResult.page) {
           entryMap.set(entry.entryId, {
             key: entry.key,
             title: entry.title,
             textPreview: entry.textPreview,
           });
         }
-        entryCursor = page.continueCursor;
-        entriesDone = page.isDone;
+        entryCursor = entryResult.continueCursor;
+        entriesDone = entryResult.isDone;
       }
 
-      const entryIds = embeddings.map((e) => e.entryId);
+      const entryIds = currentEmbeddings.map((e) => e.entryId);
       const fileMetas: FileMeta[] = await step.runQuery(
         internal.context.projections.loadFileMetas,
         { entryIds },
@@ -195,7 +213,7 @@ export const runContextProjectionWorkflow = workflowManager.define({
       );
       const fileMap = new Map(fileMetas.map((f) => [f.entryId, f.mimeType]));
 
-      const seeds = embeddings
+      const seeds = currentEmbeddings
         .map((emb) => {
           const meta = entryMap.get(emb.entryId);
           if (!meta) return null;

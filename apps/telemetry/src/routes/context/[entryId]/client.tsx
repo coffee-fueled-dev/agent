@@ -2,7 +2,6 @@ import { useAction, useQuery } from "convex/react";
 import {
   ArrowBigUpIcon,
   ArrowLeftIcon,
-  FileTextIcon,
   GitCommitVerticalIcon,
   HistoryIcon,
   LinkIcon,
@@ -16,7 +15,6 @@ import {
   Item,
   ItemContent,
   ItemDescription,
-  ItemGroup,
   ItemMedia,
   ItemTitle,
 } from "@/components/ui/item.js";
@@ -255,7 +253,7 @@ function ContextDetail({ entryId }: { entryId: string }) {
                     >
                       a newer version
                     </a>{" "}
-                    on {formatTime(detail.version.data.replacedAt)}.
+                    on {formatTime(detail.version.data.replacementTime)}.
                   </div>
                 )}
 

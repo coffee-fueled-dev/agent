@@ -66,6 +66,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           "action",
           "internal",
           {
+            apiKey?: string;
             chunks?: Array<{ embedding: Array<number>; text: string }>;
             key: string;
             namespace: string;
@@ -94,7 +95,13 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         edit: FunctionReference<
           "action",
           "internal",
-          { entryId: string; namespace: string; text: string; title?: string },
+          {
+            apiKey?: string;
+            entryId: string;
+            namespace: string;
+            text: string;
+            title?: string;
+          },
           { entryId: string },
           Name
         >;
@@ -146,7 +153,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         remove: FunctionReference<
           "action",
           "internal",
-          { entryId: string; namespace: string },
+          { apiKey?: string; entryId: string; namespace: string },
           null,
           Name
         >;
@@ -154,6 +161,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           "action",
           "internal",
           {
+            apiKey?: string;
             includeHistorical?: boolean;
             lexicalWeight?: number;
             limit?: number;
@@ -426,30 +434,85 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           | { namespace: string; stale: boolean; status: "pending" },
           Name
         >;
+        loadCurrentEntryIds: FunctionReference<
+          "query",
+          "internal",
+          { namespace: string },
+          Array<string>,
+          Name
+        >;
         loadEmbeddingPage: FunctionReference<
           "query",
           "internal",
-          { cursor: string | null; limit: number; namespace: string },
           {
-            cursor: string;
+            namespace: string;
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
+          },
+          {
+            continueCursor: string;
             isDone: boolean;
-            items: Array<{ embedding: Array<number>; entryId: string }>;
+            page: Array<{
+              _creationTime: number;
+              _id: string;
+              embedding: Array<number>;
+              entryId: string;
+              namespace: string;
+            }>;
+            pageStatus?: "SplitRecommended" | "SplitRequired" | null;
+            splitCursor?: string | null;
           },
           Name
         >;
         loadEntryPage: FunctionReference<
           "query",
           "internal",
-          { cursor: string | null; namespace: string; numItems: number },
+          {
+            namespace: string;
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
+          },
           {
             continueCursor: string;
             isDone: boolean;
             page: Array<{
+              _creationTime: number;
+              _id: string;
               entryId: string;
               key: string;
+              legacyEntryId?: string;
+              namespace: string;
+              source:
+                | {
+                    document: string;
+                    documentId: string;
+                    entryId: string;
+                    key: string;
+                    kind: "document";
+                    sourceType: "text" | "binary";
+                  }
+                | {
+                    contentId: string;
+                    kind: "content";
+                    sourceType: "text" | "binary";
+                  };
               textPreview: string;
               title?: string;
             }>;
+            pageStatus?: "SplitRecommended" | "SplitRequired" | null;
+            splitCursor?: string | null;
           },
           Name
         >;
