@@ -33,7 +33,6 @@ import type * as llms_agents_exampleAgent__toolkits_example from "../llms/agents
 import type * as llms_agents_exampleAgent_agent from "../llms/agents/exampleAgent/agent.js";
 import type * as llms_agents_terminalChat from "../llms/agents/terminalChat.js";
 import type * as llms_identity from "../llms/identity.js";
-import type * as llms_identityMemory from "../llms/identityMemory.js";
 import type * as llms_identityRegistry from "../llms/identityRegistry.js";
 import type * as llms_identityTelemetry from "../llms/identityTelemetry.js";
 import type * as llms_memoryFiles from "../llms/memoryFiles.js";
@@ -97,7 +96,6 @@ declare const fullApi: ApiFromModules<{
   "llms/agents/exampleAgent/agent": typeof llms_agents_exampleAgent_agent;
   "llms/agents/terminalChat": typeof llms_agents_terminalChat;
   "llms/identity": typeof llms_identity;
-  "llms/identityMemory": typeof llms_identityMemory;
   "llms/identityRegistry": typeof llms_identityRegistry;
   "llms/identityTelemetry": typeof llms_identityTelemetry;
   "llms/memoryFiles": typeof llms_memoryFiles;
@@ -1008,333 +1006,27 @@ export declare const components: {
       };
     };
   };
-  agentMemory: {
+  graph: {
     public: {
-      add: {
-        addStoredTextFile: FunctionReference<
-          "action",
-          "internal",
-          {
-            entity?: string;
-            entityType?: string;
-            entryTime?: number;
-            fileName?: string;
-            googleApiKey?: string;
-            indexKind?: "current" | "historical";
-            key: string;
-            metadata?: Record<string, string | number | boolean | null>;
-            mimeType: string;
-            namespace: string;
-            scope?: string;
-            sourceEntryId?: string;
-            sourceKind?: string;
-            sourceVersion?: number;
-            storageId: string;
-            streamId?: string;
-            streamType?: string;
-            title?: string;
-            validFrom?: number;
-            validTo?: number | null;
-          },
-          any
-        >;
-        addText: FunctionReference<
-          "action",
-          "internal",
-          {
-            entity?: string;
-            entityType?: string;
-            entryTime?: number;
-            googleApiKey?: string;
-            indexKind?: "current" | "historical";
-            key: string;
-            metadata?: Record<string, string | number | boolean | null>;
-            namespace: string;
-            scope?: string;
-            sourceEntryId?: string;
-            sourceKind?: string;
-            sourceVersion?: number;
-            streamId?: string;
-            streamType?: string;
-            text: string;
-            title?: string;
-            validFrom?: number;
-            validTo?: number | null;
-          },
-          any
-        >;
-        generateUploadUrl: FunctionReference<"mutation", "internal", {}, any>;
-      };
-      runtime: {
-        agentRuntime: {
-          finalizeRuntimeCommit: FunctionReference<
-            "mutation",
-            "internal",
-            { error?: string; state: "failed" | "canceled"; workId: string },
-            any
-          >;
-          getRuntimeCurrent: FunctionReference<
-            "query",
-            "internal",
-            { runtime: string; streamId: string },
-            any
-          >;
-          getRuntimeStreamState: FunctionReference<
-            "query",
-            "internal",
-            { runtime: string; streamId: string },
-            any
-          >;
-          listRuntimeEvolution: FunctionReference<
-            "query",
-            "internal",
-            {
-              paginationOpts: {
-                cursor: string | null;
-                endCursor?: string | null;
-                id?: number;
-                maximumBytesRead?: number;
-                maximumRowsRead?: number;
-                numItems: number;
-              };
-              runtime: string;
-              streamId: string;
-            },
-            any
-          >;
-          markRuntimeCommitQueued: FunctionReference<
-            "mutation",
-            "internal",
-            {
-              commitKey: string;
-              runtime: string;
-              streamId: string;
-              workId: string;
-            },
-            any
-          >;
-          registerRuntime: FunctionReference<
-            "mutation",
-            "internal",
-            {
-              description?: string;
-              facts: {
-                edgeKinds: Array<string>;
-                entities: Array<{
-                  attrs: Record<string, "string" | "number" | "boolean">;
-                  entityType: string;
-                  states: Array<string>;
-                }>;
-                partitions: Array<string>;
-              };
-              historyStreamType: string;
-              namespaces?: {
-                current?: string;
-                facts?: string;
-                historical?: string;
-              };
-              runtime: string;
-              searchProfiles?: {
-                current?: { sourceKinds?: Array<string> };
-                historical?: { sourceKinds?: Array<string> };
-              };
-            },
-            any
-          >;
-        };
-        index: {
-          finalizeRuntimeCommit: FunctionReference<
-            "mutation",
-            "internal",
-            { error?: string; state: "failed" | "canceled"; workId: string },
-            any
-          >;
-          getRuntimeCurrent: FunctionReference<
-            "query",
-            "internal",
-            { runtime: string; streamId: string },
-            any
-          >;
-          getRuntimeStreamState: FunctionReference<
-            "query",
-            "internal",
-            { runtime: string; streamId: string },
-            any
-          >;
-          listRuntimeEvolution: FunctionReference<
-            "query",
-            "internal",
-            {
-              paginationOpts: {
-                cursor: string | null;
-                endCursor?: string | null;
-                id?: number;
-                maximumBytesRead?: number;
-                maximumRowsRead?: number;
-                numItems: number;
-              };
-              runtime: string;
-              streamId: string;
-            },
-            any
-          >;
-          markRuntimeCommitQueued: FunctionReference<
-            "mutation",
-            "internal",
-            {
-              commitKey: string;
-              runtime: string;
-              streamId: string;
-              workId: string;
-            },
-            any
-          >;
-          registerRuntime: FunctionReference<
-            "mutation",
-            "internal",
-            {
-              description?: string;
-              facts: {
-                edgeKinds: Array<string>;
-                entities: Array<{
-                  attrs: Record<string, "string" | "number" | "boolean">;
-                  entityType: string;
-                  states: Array<string>;
-                }>;
-                partitions: Array<string>;
-              };
-              historyStreamType: string;
-              namespaces?: {
-                current?: string;
-                facts?: string;
-                historical?: string;
-              };
-              runtime: string;
-              searchProfiles?: {
-                current?: { sourceKinds?: Array<string> };
-                historical?: { sourceKinds?: Array<string> };
-              };
-            },
-            any
-          >;
-        };
-      };
-      runtimeApi: {
-        appendRuntimeHistory: FunctionReference<
+      edges: {
+        createEdge: FunctionReference<
           "mutation",
           "internal",
-          {
-            entryId: string;
-            entryTime: number;
-            kind: string;
-            parentEntryIds?: Array<string>;
-            payload?: any;
-            runtime: string;
-            streamId: string;
-          },
-          any
+          { from: string; label: string; properties?: any; to: string },
+          null
         >;
-        applyRuntimeFacts: FunctionReference<
+        deleteEdge: FunctionReference<
           "mutation",
           "internal",
-          {
-            facts: {
-              edges?: Array<{
-                from: string;
-                kind: string;
-                scope?: string;
-                to: string;
-              }>;
-              items: Array<{
-                attrs?: Record<string, string | number | boolean>;
-                entity: string;
-                entityType: string;
-                labels?: Array<string>;
-                order: Array<number>;
-                scope?: string;
-                state?: string;
-              }>;
-              mode?: "direct" | "event";
-              partitions?: Array<{
-                count: number;
-                head?: string;
-                membersVersion?: number;
-                partition: string;
-                scope?: string;
-                tail?: string;
-              }>;
-              projector?: string;
-            };
-            runtime: string;
-            sourceVersion: number;
-            streamId: string;
-          },
-          any
+          { from: string; label: string; to: string },
+          null
         >;
-        completeMemoryChartMaintenance: FunctionReference<
-          "mutation",
-          "internal",
-          { entryTime: number; namespace: string },
-          any
-        >;
-        completeRuntimeCommit: FunctionReference<
-          "mutation",
-          "internal",
-          {
-            commitKey: string;
-            currentKey?: string;
-            entryId: string;
-            entryTime: number;
-            historicalKey?: string;
-            latestEntity?: string;
-            runtime: string;
-            sourceVersion: number;
-            streamId: string;
-            workId?: string;
-          },
-          any
-        >;
-        getMemoryChart: FunctionReference<
-          "query",
-          "internal",
-          { chartId: string },
-          any
-        >;
-        getMemoryChartMemberByEntryId: FunctionReference<
-          "query",
-          "internal",
-          { entryId: string; namespace: string },
-          any
-        >;
-        getMemoryChartNamespaceMetrics: FunctionReference<
-          "query",
-          "internal",
-          { namespace: string },
-          any
-        >;
-        getMemoryEntryIdsForCharts: FunctionReference<
-          "query",
-          "internal",
-          { chartIds: Array<string>; namespace: string },
-          any
-        >;
-        getRuntimeRegistration: FunctionReference<
-          "query",
-          "internal",
-          { runtime: string },
-          any
-        >;
-        getStorageUrl: FunctionReference<
-          "query",
-          "internal",
-          { storageId: string },
-          any
-        >;
-        listMemoryChartMembers: FunctionReference<
+        queryEdges: FunctionReference<
           "query",
           "internal",
           {
-            chartId: string;
+            from?: string;
+            label: string;
             paginationOpts: {
               cursor: string | null;
               endCursor?: string | null;
@@ -1343,128 +1035,152 @@ export declare const components: {
               maximumRowsRead?: number;
               numItems: number;
             };
+            to?: string;
           },
-          any
-        >;
-        listMemoryChartRepartitionEvents: FunctionReference<
-          "query",
-          "internal",
           {
-            namespace: string;
-            paginationOpts: {
-              cursor: string | null;
-              endCursor?: string | null;
-              id?: number;
-              maximumBytesRead?: number;
-              maximumRowsRead?: number;
-              numItems: number;
-            };
-          },
-          any
+            continueCursor: string;
+            isDone: boolean;
+            page: Array<{
+              _creationTime: number;
+              _id: string;
+              from: string;
+              label: string;
+              properties?: any;
+              to: string;
+            }>;
+            pageStatus?: "SplitRecommended" | "SplitRequired" | null;
+            splitCursor?: string | null;
+          }
         >;
-        listMemoryCharts: FunctionReference<
-          "query",
-          "internal",
-          {
-            namespace: string;
-            paginationOpts: {
-              cursor: string | null;
-              endCursor?: string | null;
-              id?: number;
-              maximumBytesRead?: number;
-              maximumRowsRead?: number;
-              numItems: number;
-            };
-          },
-          any
-        >;
-        listMemoryChartSupportEdges: FunctionReference<
-          "query",
-          "internal",
-          {
-            namespace: string;
-            paginationOpts: {
-              cursor: string | null;
-              endCursor?: string | null;
-              id?: number;
-              maximumBytesRead?: number;
-              maximumRowsRead?: number;
-              numItems: number;
-            };
-          },
-          any
-        >;
-        maintainMemoryChartNamespace: FunctionReference<
+        updateEdge: FunctionReference<
           "mutation",
           "internal",
-          { entryTime: number; namespace: string },
-          any
-        >;
-        markMemoryChartMaintenanceQueued: FunctionReference<
-          "mutation",
-          "internal",
-          { entryTime: number; namespace: string },
-          any
-        >;
-        startRuntimeCommit: FunctionReference<
-          "mutation",
-          "internal",
-          {
-            commitKey: string;
-            currentKey?: string;
-            entryTime?: number;
-            historicalKey?: string;
-            runtime: string;
-            streamId: string;
-            workId?: string;
-          },
-          any
-        >;
-        upsertMemoryChartAssignment: FunctionReference<
-          "mutation",
-          "internal",
-          {
-            embedding: Array<number>;
-            entryId: string;
-            entryTime: number;
-            fileName?: string | null;
-            key: string;
-            metadata?: Record<string, string | number | boolean | null>;
-            mimeType?: string;
-            namespace: string;
-            sourceKind?: string;
-            sourceType: "text" | "textFile" | "binaryFile";
-            storageId?: string;
-            summary: string;
-            title?: string;
-          },
-          any
+          { from: string; label: string; properties: any; to: string },
+          null
         >;
       };
-      search: {
-        search: FunctionReference<
-          "action",
+      labels: {
+        getLabel: FunctionReference<
+          "query",
+          "internal",
+          { value: string },
+          null | {
+            _creationTime: number;
+            _id: string;
+            displayValue: string;
+            value: string;
+          }
+        >;
+        listLabels: FunctionReference<
+          "query",
           "internal",
           {
-            asOfTime?: number;
-            chunkContext?: { after: number; before: number };
-            entity?: string;
-            entityType?: string;
-            filters?: Array<any>;
-            googleApiKey?: string;
-            includeHistorical?: boolean;
-            limit?: number;
-            namespace: string;
-            query: string | Array<number>;
-            searchType?: "vector" | "text" | "hybrid";
-            sourceKinds?: Array<string>;
-            streamId?: string;
-            streamType?: string;
-            textWeight?: number;
-            vectorScoreThreshold?: number;
-            vectorWeight?: number;
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
           },
-          any
+          {
+            continueCursor: string;
+            isDone: boolean;
+            page: Array<{
+              _creationTime: number;
+              _id: string;
+              displayValue: string;
+              value: string;
+            }>;
+            pageStatus?: "SplitRecommended" | "SplitRequired" | null;
+            splitCursor?: string | null;
+          }
+        >;
+        searchLabels: FunctionReference<
+          "query",
+          "internal",
+          {
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
+            query: string;
+          },
+          {
+            continueCursor: string;
+            isDone: boolean;
+            page: Array<{
+              _creationTime: number;
+              _id: string;
+              displayValue: string;
+              value: string;
+            }>;
+            pageStatus?: "SplitRecommended" | "SplitRequired" | null;
+            splitCursor?: string | null;
+          }
+        >;
+        upsertLabel: FunctionReference<
+          "mutation",
+          "internal",
+          { value: string },
+          null
+        >;
+      };
+      nodes: {
+        createNode: FunctionReference<
+          "mutation",
+          "internal",
+          { key: string; label: string },
+          null
+        >;
+        deleteNode: FunctionReference<
+          "mutation",
+          "internal",
+          { key: string; label: string },
+          null
+        >;
+        getNode: FunctionReference<
+          "query",
+          "internal",
+          { key: string; label?: string },
+          null | {
+            _creationTime: number;
+            _id: string;
+            key: string;
+            label: string;
+          }
+        >;
+        listNodes: FunctionReference<
+          "query",
+          "internal",
+          {
+            label: string;
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
+          },
+          {
+            continueCursor: string;
+            isDone: boolean;
+            page: Array<{
+              _creationTime: number;
+              _id: string;
+              key: string;
+              label: string;
+            }>;
+            pageStatus?: "SplitRecommended" | "SplitRequired" | null;
+            splitCursor?: string | null;
+          }
         >;
       };
     };

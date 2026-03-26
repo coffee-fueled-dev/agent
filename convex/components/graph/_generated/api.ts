@@ -15,21 +15,17 @@ import type {
 } from "convex/server";
 import { anyApi, componentsGeneric } from "convex/server";
 import type * as client_index from "../client/index.js";
-import type * as internal_evaluate from "../internal/evaluate.js";
-import type * as internal_shared from "../internal/shared.js";
-import type * as public_access from "../public/access.js";
-import type * as public_features from "../public/features.js";
-import type * as public_scopes from "../public/scopes.js";
-import type * as types from "../types.js";
+import type * as internal_normalize from "../internal/normalize.js";
+import type * as public_edges from "../public/edges.js";
+import type * as public_labels from "../public/labels.js";
+import type * as public_nodes from "../public/nodes.js";
 
 const fullApi: ApiFromModules<{
   "client/index": typeof client_index;
-  "internal/evaluate": typeof internal_evaluate;
-  "internal/shared": typeof internal_shared;
-  "public/access": typeof public_access;
-  "public/features": typeof public_features;
-  "public/scopes": typeof public_scopes;
-  types: typeof types;
+  "internal/normalize": typeof internal_normalize;
+  "public/edges": typeof public_edges;
+  "public/labels": typeof public_labels;
+  "public/nodes": typeof public_nodes;
 }> = anyApi as any;
 
 /**
