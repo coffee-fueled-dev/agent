@@ -8,12 +8,6 @@
  * @module
  */
 
-import type {
-  ApiFromModules,
-  FilterApi,
-  FunctionReference,
-} from "convex/server";
-import { anyApi, componentsGeneric } from "convex/server";
 import type * as client_index from "../client/index.js";
 import type * as internal_chartAtlas from "../internal/chartAtlas.js";
 import type * as internal_embed from "../internal/embed.js";
@@ -30,6 +24,13 @@ import type * as public_runtime_shared from "../public/runtime/shared.js";
 import type * as public_runtime_state from "../public/runtime/state.js";
 import type * as public_runtimeApi from "../public/runtimeApi.js";
 import type * as public_search from "../public/search.js";
+
+import type {
+  ApiFromModules,
+  FilterApi,
+  FunctionReference,
+} from "convex/server";
+import { anyApi, componentsGeneric } from "convex/server";
 
 const fullApi: ApiFromModules<{
   "client/index": typeof client_index;

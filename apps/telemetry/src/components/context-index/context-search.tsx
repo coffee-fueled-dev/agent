@@ -20,6 +20,7 @@ import {
   InputGroupButton,
   InputGroupInput,
 } from "../ui/input-group";
+import { Skeleton } from "../ui/skeleton.js";
 import { Spinner } from "../ui/spinner.js";
 import { MimeTypeIcon } from "./mime-type-icon.js";
 import { useNamespace } from "./use-namespace.js";
@@ -238,8 +239,10 @@ export function ContextSearch() {
         <CommandList className="mt-2">
           {searching || embeddingPending ? (
             <Empty>
-              <Spinner />
-              {embeddingPending ? "Embedding file..." : "Searching..."}
+              <Skeleton className="flex flex-row items-center gap-2 text-muted-foreground">
+                <Spinner />
+                {embeddingPending ? "Embedding file..." : "Searching..."}
+              </Skeleton>
             </Empty>
           ) : (
             <>

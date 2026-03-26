@@ -18,6 +18,11 @@ import {
   ItemMedia,
   ItemTitle,
 } from "@/components/ui/item.js";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip.js";
 import { api } from "../../../../../../convex/_generated/api.js";
 import { MimeTypeIcon } from "../../../components/context-index/mime-type-icon.js";
 import {
@@ -29,6 +34,13 @@ import { AppShell } from "../../../components/layout/app-shell";
 import { PageSection } from "../../../components/layout/page-section";
 import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
+import {
+  Card,
+  CardAction,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "../../../components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -148,37 +160,39 @@ function ContextDetail({ entryId }: { entryId: string }) {
 
   return (
     <PageSection.Body variant="card" className="gap-4">
-      <div className="flex items-center justify-between">
-        <div className="flex flex-col gap-1">
-          <PageSection.Title size="lg">Context detail</PageSection.Title>
-          <PageSection.Description>{namespace}</PageSection.Description>
-        </div>
-        <div className="flex items-center gap-2">
-          {detail && !editing && isCurrent && (
-            <>
-              <Button variant="outline" size="sm" onClick={startEditing}>
-                <PencilIcon className="size-4" />
-                Edit
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-destructive hover:bg-destructive/10"
-                onClick={() => setShowDeleteDialog(true)}
-              >
-                <Trash2Icon className="size-4" />
-                Delete
-              </Button>
-            </>
-          )}
-          <Button asChild variant="outline" size="sm">
-            <a href={backHref}>
-              <ArrowLeftIcon className="size-4" />
-              Back
-            </a>
-          </Button>
-        </div>
-      </div>
+      <PageSection.Header>
+        <PageSection.HeaderRow>
+          <PageSection.HeaderColumn>
+            <PageSection.Title size="lg">Context detail</PageSection.Title>
+            <PageSection.Description>{namespace}</PageSection.Description>
+          </PageSection.HeaderColumn>
+          <PageSection.HeaderActions className="flex flex-row items-center gap-2 justify-end">
+            {detail && !editing && isCurrent && (
+              <>
+                <Button variant="outline" size="sm" onClick={startEditing}>
+                  <PencilIcon className="size-4" />
+                  Edit
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-destructive hover:bg-destructive/10"
+                  onClick={() => setShowDeleteDialog(true)}
+                >
+                  <Trash2Icon className="size-4" />
+                  Delete
+                </Button>
+              </>
+            )}
+            <Button asChild variant="outline" size="sm">
+              <a href={backHref}>
+                <ArrowLeftIcon className="size-4" />
+                Back
+              </a>
+            </Button>
+          </PageSection.HeaderActions>
+        </PageSection.HeaderRow>
+      </PageSection.Header>
       <NotFoundBoundary fallbackHref={backHref}>
         <RequiredResult
           query={api.context.contextApi.getContextDetail}
@@ -231,12 +245,21 @@ function ContextDetail({ entryId }: { entryId: string }) {
             ) : (
               <div className="space-y-4 rounded-xl border bg-muted/20 p-4">
                 <div className="flex items-center gap-2">
-                  <div className="flex items-center justify-center rounded-md border border-border bg-muted p-2">
-                    <MimeTypeIcon
-                      mimeType={detail.file?.mimeType}
-                      className="size-4"
-                    />
-                  </div>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center justify-center rounded-md border border-border bg-muted p-2">
+                        <MimeTypeIcon
+                          mimeType={detail.file?.mimeType}
+                          className="size-4"
+                        />
+                      </div>
+                    </TooltipTrigger>
+                    {detail.file && (
+                      <TooltipContent side="left">
+                        {detail.file.mimeType}
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-base font-semibold">
                       {detail.title ?? detail.key}
@@ -262,31 +285,33 @@ function ContextDetail({ entryId }: { entryId: string }) {
                 </div>
 
                 {detail.file ? (
-                  <div className="space-y-1 text-sm">
-                    <p className="text-muted-foreground">
-                      {detail.file.mimeType}
-                      {detail.file.fileName ? ` · ${detail.file.fileName}` : ""}
-                    </p>
-                    {detail.file.url ? (
-                      <a
-                        href={detail.file.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1 text-primary hover:underline"
-                      >
-                        <LinkIcon className="size-3.5" />
-                        Open file
-                      </a>
-                    ) : null}
+                  <Card className="relative w-full max-w-sm overflow-hidden pt-0 shadow-none mx-auto">
                     {detail.file.mimeType.startsWith("image/") &&
                     detail.file.url ? (
-                      <img
-                        src={detail.file.url}
-                        alt={detail.title ?? detail.key}
-                        className="mt-3 max-h-80 rounded-lg border object-contain"
-                      />
+                      <>
+                        <div className="absolute inset-0 z-30" />
+                        <img
+                          src={detail.file.url}
+                          alt={detail.title ?? detail.key}
+                          className="relative z-20 w-full object-cover"
+                        />
+                      </>
                     ) : null}
-                  </div>
+                    {detail.file.url ? (
+                      <CardFooter>
+                        <Button asChild className="w-full" variant="outline">
+                          <a
+                            href={detail.file.url}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            <LinkIcon className="size-4" />
+                            Open file
+                          </a>
+                        </Button>
+                      </CardFooter>
+                    ) : null}
+                  </Card>
                 ) : null}
 
                 {detail.versionChain.length >= 1 && (
