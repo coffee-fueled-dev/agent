@@ -1025,6 +1025,7 @@ export declare const components: {
             key: string;
             legacyEntryId?: string;
             namespace: string;
+            observationTime?: number;
             source:
               | {
                   document: string;
@@ -1107,7 +1108,12 @@ export declare const components: {
           "query",
           "internal",
           { entryIds: Array<string>; namespace: string },
-          Array<{ entryId: string; textPreview: string; title?: string }>
+          Array<{
+            entryId: string;
+            observationTime?: number;
+            textPreview: string;
+            title?: string;
+          }>
         >;
         getJob: FunctionReference<"query", "internal", { jobId: string }, any>;
         getLatestCommunities: FunctionReference<
@@ -1266,6 +1272,7 @@ export declare const components: {
             chunks?: Array<{ embedding: Array<number>; text: string }>;
             key: string;
             namespace: string;
+            observationTime?: number;
             searchText?: string;
             similarityK?: number;
             similarityThreshold?: number;
@@ -1296,6 +1303,7 @@ export declare const components: {
             apiKey?: string;
             entryId: string;
             namespace: string;
+            observationTime?: number;
             similarityK?: number;
             similarityThreshold?: number;
             text: string;
@@ -1313,6 +1321,7 @@ export declare const components: {
             key: string;
             legacyEntryId?: string;
             namespace: string;
+            observationTime?: number;
             source:
               | {
                   document: string;
@@ -1347,6 +1356,12 @@ export declare const components: {
             }>;
           }
         >;
+        recordView: FunctionReference<
+          "mutation",
+          "internal",
+          { entryId: string; namespace: string },
+          null
+        >;
         remove: FunctionReference<
           "action",
           "internal",
@@ -1367,8 +1382,6 @@ export declare const components: {
             query: string | Array<number>;
             retrievalMode?: "vector" | "lexical" | "hybrid";
             rrfK?: number;
-            searchType?: "vector" | "text" | "hybrid";
-            vectorScoreThreshold?: number;
             vectorWeight?: number;
           },
           Array<{
@@ -1376,6 +1389,7 @@ export declare const components: {
             importance: number;
             key: string;
             metadata?: any;
+            observationTime?: number;
             score: number;
             text: string;
             title?: string;
@@ -1447,6 +1461,7 @@ export declare const components: {
             key: string;
             legacyEntryId?: string;
             namespace: string;
+            observationTime?: number;
             source:
               | {
                   document: string;
@@ -1489,6 +1504,7 @@ export declare const components: {
               key: string;
               legacyEntryId?: string;
               namespace: string;
+              observationTime?: number;
               source:
                 | {
                     document: string;
@@ -1667,6 +1683,7 @@ export declare const components: {
               key: string;
               legacyEntryId?: string;
               namespace: string;
+              observationTime?: number;
               source:
                 | {
                     document: string;

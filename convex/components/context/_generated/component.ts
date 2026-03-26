@@ -40,6 +40,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             key: string;
             legacyEntryId?: string;
             namespace: string;
+            observationTime?: number;
             source:
               | {
                   document: string;
@@ -132,7 +133,12 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           "query",
           "internal",
           { entryIds: Array<string>; namespace: string },
-          Array<{ entryId: string; textPreview: string; title?: string }>,
+          Array<{
+            entryId: string;
+            observationTime?: number;
+            textPreview: string;
+            title?: string;
+          }>,
           Name
         >;
         getJob: FunctionReference<
@@ -311,6 +317,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             chunks?: Array<{ embedding: Array<number>; text: string }>;
             key: string;
             namespace: string;
+            observationTime?: number;
             searchText?: string;
             similarityK?: number;
             similarityThreshold?: number;
@@ -342,6 +349,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             apiKey?: string;
             entryId: string;
             namespace: string;
+            observationTime?: number;
             similarityK?: number;
             similarityThreshold?: number;
             text: string;
@@ -360,6 +368,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             key: string;
             legacyEntryId?: string;
             namespace: string;
+            observationTime?: number;
             source:
               | {
                   document: string;
@@ -395,6 +404,13 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           },
           Name
         >;
+        recordView: FunctionReference<
+          "mutation",
+          "internal",
+          { entryId: string; namespace: string },
+          null,
+          Name
+        >;
         remove: FunctionReference<
           "action",
           "internal",
@@ -416,8 +432,6 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             query: string | Array<number>;
             retrievalMode?: "vector" | "lexical" | "hybrid";
             rrfK?: number;
-            searchType?: "vector" | "text" | "hybrid";
-            vectorScoreThreshold?: number;
             vectorWeight?: number;
           },
           Array<{
@@ -425,6 +439,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             importance: number;
             key: string;
             metadata?: any;
+            observationTime?: number;
             score: number;
             text: string;
             title?: string;
@@ -500,6 +515,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             key: string;
             legacyEntryId?: string;
             namespace: string;
+            observationTime?: number;
             source:
               | {
                   document: string;
@@ -543,6 +559,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
               key: string;
               legacyEntryId?: string;
               namespace: string;
+              observationTime?: number;
               source:
                 | {
                     document: string;
@@ -735,6 +752,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
               key: string;
               legacyEntryId?: string;
               namespace: string;
+              observationTime?: number;
               source:
                 | {
                     document: string;

@@ -148,4 +148,14 @@ export class ContextClient {
       args,
     );
   };
+
+  recordView = async (
+    ctx: RunMutationCtx,
+    args: FunctionArgs<typeof this.component.public.context.recordView>,
+  ) => {
+    return await ctx.runMutation(
+      this.component.public.context.recordView,
+      args,
+    );
+  };
 }

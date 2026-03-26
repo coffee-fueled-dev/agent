@@ -549,6 +549,7 @@ export const getEntryMetas = query({
       entryId: v.string(),
       title: v.optional(v.string()),
       textPreview: v.string(),
+      observationTime: v.optional(v.number()),
     }),
   ),
   handler: async (ctx, args) => {
@@ -556,18 +557,19 @@ export const getEntryMetas = query({
       entryId: string;
       title?: string;
       textPreview: string;
+      observationTime?: number;
     }> = [];
     for (const entryId of args.entryIds) {
       const entry = await ctx.db
         .query("contextEntries")
-        .withIndex("by_namespace", (q) => q.eq("namespace", args.namespace))
-        .filter((q) => q.eq(q.field("entryId"), entryId))
+        .withIndex("by_entryId", (q) => q.eq("entryId", entryId))
         .first();
-      if (entry) {
+      if (entry && entry.namespace === args.namespace) {
         results.push({
           entryId: entry.entryId,
           title: entry.title,
           textPreview: entry.textPreview,
+          observationTime: entry.observationTime,
         });
       }
     }

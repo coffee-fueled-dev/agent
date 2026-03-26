@@ -46,8 +46,10 @@ export default defineSchema({
     title: v.optional(v.string()),
     textPreview: v.string(),
     legacyEntryId: v.optional(v.string()),
+    observationTime: v.optional(v.number()),
   })
     .index("by_namespace", ["namespace"])
+    .index("by_entryId", ["entryId"])
     .index("by_legacyEntryId", ["legacyEntryId"]),
   contextEntryEmbeddings: defineTable({
     entryId: v.string(),

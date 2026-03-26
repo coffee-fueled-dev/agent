@@ -13,6 +13,7 @@ import type * as graph from "../graph.js";
 import type * as history from "../history.js";
 import type * as internal_embedding from "../internal/embedding.js";
 import type * as internal_embeddingStore from "../internal/embeddingStore.js";
+import type * as internal_events from "../internal/events.js";
 import type * as internal_rag from "../internal/rag.js";
 import type * as internal_status from "../internal/status.js";
 import type * as internal_versionStore from "../internal/versionStore.js";
@@ -38,6 +39,7 @@ const fullApi: ApiFromModules<{
   history: typeof history;
   "internal/embedding": typeof internal_embedding;
   "internal/embeddingStore": typeof internal_embeddingStore;
+  "internal/events": typeof internal_events;
   "internal/rag": typeof internal_rag;
   "internal/status": typeof internal_status;
   "internal/versionStore": typeof internal_versionStore;
@@ -955,6 +957,192 @@ export const components = componentsGeneric() as unknown as {
           "internal",
           { key: string },
           null | { inDegree: number; outDegree: number; totalDegree: number }
+        >;
+      };
+    };
+  };
+  events: {
+    public: {
+      append: {
+        appendToStream: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            actor?: { byId: string; byType: string };
+            causationId?: string;
+            correlationId?: string;
+            eventId: string;
+            eventTime?: number;
+            eventType: string;
+            expectedVersion?: number;
+            metadata?: Record<string, string | number | boolean | null>;
+            payload?: any;
+            streamId: string;
+            streamType: string;
+          },
+          {
+            actor?: { byId: string; byType: string };
+            causationId?: string;
+            correlationId?: string;
+            eventId: string;
+            eventTime: number;
+            eventType: string;
+            globalSequence: number;
+            metadata?: Record<string, string | number | boolean | null>;
+            payload?: any;
+            streamId: string;
+            streamType: string;
+            streamVersion: number;
+          }
+        >;
+      };
+      projectors: {
+        advanceCheckpoint: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            lastSequence: number;
+            leaseOwner?: string;
+            projector: string;
+            releaseClaim?: boolean;
+            streamType: string;
+          },
+          {
+            lastSequence: number;
+            leaseExpiresAt?: number;
+            leaseOwner?: string;
+            projector: string;
+            streamType: string;
+            updatedTime: number;
+          }
+        >;
+        claimOrReadCheckpoint: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            leaseDurationMs?: number;
+            leaseOwner?: string;
+            projector: string;
+            streamType: string;
+          },
+          {
+            checkpoint: {
+              lastSequence: number;
+              leaseExpiresAt?: number;
+              leaseOwner?: string;
+              projector: string;
+              streamType: string;
+              updatedTime: number;
+            };
+            claimed: boolean;
+          }
+        >;
+        listUnprocessedEvents: FunctionReference<
+          "query",
+          "internal",
+          { limit?: number; projector: string; streamType: string },
+          Array<{
+            actor?: { byId: string; byType: string };
+            causationId?: string;
+            correlationId?: string;
+            eventId: string;
+            eventTime: number;
+            eventType: string;
+            globalSequence: number;
+            metadata?: Record<string, string | number | boolean | null>;
+            payload?: any;
+            streamId: string;
+            streamType: string;
+            streamVersion: number;
+          }>
+        >;
+        readCheckpoint: FunctionReference<
+          "query",
+          "internal",
+          { projector: string; streamType: string },
+          {
+            lastSequence: number;
+            leaseExpiresAt?: number;
+            leaseOwner?: string;
+            projector: string;
+            streamType: string;
+            updatedTime: number;
+          } | null
+        >;
+      };
+      read: {
+        getEvent: FunctionReference<
+          "query",
+          "internal",
+          { eventId: string; streamId: string; streamType: string },
+          {
+            actor?: { byId: string; byType: string };
+            causationId?: string;
+            correlationId?: string;
+            eventId: string;
+            eventTime: number;
+            eventType: string;
+            globalSequence: number;
+            metadata?: Record<string, string | number | boolean | null>;
+            payload?: any;
+            streamId: string;
+            streamType: string;
+            streamVersion: number;
+          } | null
+        >;
+        listCategoryEvents: FunctionReference<
+          "query",
+          "internal",
+          {
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
+            streamType: string;
+          },
+          any
+        >;
+        listStreamEvents: FunctionReference<
+          "query",
+          "internal",
+          {
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
+            streamId: string;
+            streamType: string;
+          },
+          any
+        >;
+      };
+      streams: {
+        getStream: FunctionReference<
+          "query",
+          "internal",
+          { streamId: string; streamType: string },
+          {
+            createdTime: number;
+            lastEventSequence: number | null;
+            streamId: string;
+            streamType: string;
+            updatedTime: number;
+            version: number;
+          } | null
+        >;
+        getStreamVersion: FunctionReference<
+          "query",
+          "internal",
+          { streamId: string; streamType: string },
+          number
         >;
       };
     };

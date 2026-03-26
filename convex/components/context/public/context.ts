@@ -5,11 +5,14 @@ import {
   action,
   internalAction,
   internalMutation,
+  internalQuery,
+  mutation,
   query,
 } from "../_generated/server";
 import { graph } from "../graph";
 import { history } from "../history";
 import { embedText } from "../internal/embedding";
+import { memoryEvents } from "../internal/events";
 import { createContextRag } from "../internal/rag";
 import { sourceValidator, versionDataValidator } from "../schema";
 import { search as searchClient } from "../search";
@@ -93,6 +96,21 @@ function featureId(entryId: string) {
   return `context:entry:${entryId}`;
 }
 
+export const getObservationTimes = internalQuery({
+  args: { entryIds: v.array(v.string()) },
+  handler: async (ctx, args) => {
+    const result: Record<string, number> = {};
+    for (const entryId of args.entryIds) {
+      const entry = await ctx.db
+        .query("contextEntries")
+        .withIndex("by_entryId", (q) => q.eq("entryId", entryId))
+        .first();
+      if (entry?.observationTime) result[entryId] = entry.observationTime;
+    }
+    return result;
+  },
+});
+
 const searchResultValidator = v.object({
   entryId: v.string(),
   key: v.string(),
@@ -100,6 +118,7 @@ const searchResultValidator = v.object({
   text: v.string(),
   importance: v.number(),
   score: v.number(),
+  observationTime: v.optional(v.number()),
   metadata: v.optional(v.any()),
 });
 
@@ -120,6 +139,7 @@ const contextDetailValidator = v.union(
     title: v.optional(v.string()),
     textPreview: v.string(),
     legacyEntryId: v.optional(v.string()),
+    observationTime: v.optional(v.number()),
     fullText: v.string(),
     version: v.union(
       v.null(),
@@ -141,6 +161,7 @@ export const add = action({
     source: v.optional(sourceValidator),
     sourceType: v.optional(v.union(v.literal("text"), v.literal("binary"))),
     searchText: v.optional(v.string()),
+    observationTime: v.optional(v.number()),
     apiKey: v.optional(v.string()),
     similarityK: v.optional(v.number()),
     similarityThreshold: v.optional(v.number()),
@@ -175,6 +196,7 @@ export const add = action({
       source,
       title: args.title,
       textPreview: args.text.slice(0, TEXT_PREVIEW_LENGTH),
+      observationTime: args.observationTime,
     });
 
     await ctx.runMutation(internal.internal.versionStore.insert, {
@@ -231,6 +253,14 @@ export const add = action({
       similarityThreshold: args.similarityThreshold,
     });
 
+    await memoryEvents.append.appendToStream(ctx, {
+      streamType: "contextMemory",
+      streamId: result.entryId,
+      eventId: crypto.randomUUID(),
+      eventType: "added",
+      payload: { namespace: args.namespace, key: args.key },
+    });
+
     return { entryId: result.entryId };
   },
 });
@@ -284,6 +314,7 @@ export const get = query({
       title: entry.title,
       textPreview: entry.textPreview,
       legacyEntryId: entry.legacyEntryId,
+      observationTime: entry.observationTime,
       fullText: chunks.page.map((c) => c.text).join("\n"),
       version: version ? { key: version.key, data: version.data } : null,
       versionChain: chain.map((e) => ({
@@ -293,6 +324,20 @@ export const get = query({
         payload: e.payload,
       })),
     };
+  },
+});
+
+export const recordView = mutation({
+  args: { namespace: v.string(), entryId: v.string() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await memoryEvents.append.appendToStream(ctx, {
+      streamType: "contextMemory",
+      streamId: args.entryId,
+      eventId: crypto.randomUUID(),
+      eventType: "viewed",
+      payload: { namespace: args.namespace },
+    });
   },
 });
 
@@ -324,6 +369,14 @@ export const remove = action({
       label: "contextEntry",
       key: args.entryId,
     });
+
+    await memoryEvents.append.appendToStream(ctx, {
+      streamType: "contextMemory",
+      streamId: args.entryId,
+      eventId: crypto.randomUUID(),
+      eventType: "deleted",
+      payload: { namespace: args.namespace },
+    });
   },
 });
 
@@ -333,6 +386,7 @@ export const edit = action({
     entryId: v.string(),
     title: v.optional(v.string()),
     text: v.string(),
+    observationTime: v.optional(v.number()),
     apiKey: v.optional(v.string()),
     similarityK: v.optional(v.number()),
     similarityThreshold: v.optional(v.number()),
@@ -410,6 +464,7 @@ export const edit = action({
       source: currentSource,
       title: args.title,
       textPreview: args.text.slice(0, TEXT_PREVIEW_LENGTH),
+      observationTime: args.observationTime,
     });
 
     await ctx.runMutation(internal.internal.versionStore.markHistorical, {
@@ -503,6 +558,14 @@ export const edit = action({
       similarityThreshold: args.similarityThreshold,
     });
 
+    await memoryEvents.append.appendToStream(ctx, {
+      streamType: "contextMemory",
+      streamId: current.entryId,
+      eventId: crypto.randomUUID(),
+      eventType: "edited",
+      payload: { namespace: args.namespace, oldEntryId: args.entryId },
+    });
+
     return { entryId: current.entryId };
   },
 });
@@ -512,10 +575,6 @@ export const search = action({
     namespace: v.string(),
     query: v.union(v.string(), v.array(v.number())),
     limit: v.optional(v.number()),
-    searchType: v.optional(
-      v.union(v.literal("vector"), v.literal("text"), v.literal("hybrid")),
-    ),
-    vectorScoreThreshold: v.optional(v.number()),
     includeHistorical: v.optional(v.boolean()),
     retrievalMode: v.optional(
       v.union(v.literal("vector"), v.literal("lexical"), v.literal("hybrid")),
@@ -546,6 +605,35 @@ export const search = action({
     const mode = retrievalMode ?? "hybrid";
     const limit = args.limit ?? 10;
     const candidateLimit = Math.max(limit * 3, 20);
+
+    const finalizeResults = async (
+      hits: SearchHit[],
+    ): Promise<SearchHit[]> => {
+      if (!hits.length) return hits;
+      const times = (await ctx.runQuery(
+        internal.public.context.getObservationTimes,
+        { entryIds: hits.map((h) => h.entryId) },
+      )) as Record<string, number>;
+      const enriched = hits.map((h) => ({
+        ...h,
+        observationTime: times[h.entryId],
+      }));
+      for (let i = 0; i < enriched.length; i++) {
+        await memoryEvents.append.appendToStream(ctx, {
+          streamType: "contextMemory",
+          streamId: enriched[i].entryId,
+          eventId: crypto.randomUUID(),
+          eventType: "searched",
+          payload: {
+            namespace: args.namespace,
+            rank: i,
+            score: enriched[i].score,
+          },
+        });
+      }
+      return enriched;
+    };
+
     const filters = includeHistorical
       ? undefined
       : [{ name: "status" as const, value: "current" }];
@@ -557,6 +645,7 @@ export const search = action({
       text: string;
       importance: number;
       score: number;
+      observationTime?: number;
       metadata?: unknown;
     };
 
@@ -587,15 +676,18 @@ export const search = action({
 
     // Vector-only mode: run text vector + optional file vector, no lexical
     if (mode === "vector") {
-      if (!fileEmbedding) return runVectorSearch(args.query);
+      if (!fileEmbedding)
+        return finalizeResults(await runVectorSearch(args.query));
       const [textVector, fileVector] = await Promise.all([
         hasTextQuery
           ? runVectorSearch(args.query, candidateLimit)
           : Promise.resolve([]),
         runVectorSearch(fileEmbedding, candidateLimit),
       ]);
-      if (!textVector.length) return fileVector.slice(0, limit);
-      if (!fileVector.length) return textVector.slice(0, limit);
+      if (!textVector.length)
+        return finalizeResults(fileVector.slice(0, limit));
+      if (!fileVector.length)
+        return finalizeResults(textVector.slice(0, limit));
       const byId = new Map<string, SearchHit>();
       for (const r of fileVector) byId.set(r.entryId, r);
       for (const r of textVector) byId.set(r.entryId, r);
@@ -604,15 +696,17 @@ export const search = action({
         [textVector.map((r) => r.entryId), fileVector.map((r) => r.entryId)],
         { k: effectiveK, weights: [vectorWeight ?? 1, vectorWeight ?? 1] },
       );
-      return [...scores.entries()]
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, limit)
-        .map(([id, s]) => {
-          const hit = byId.get(id);
-          if (!hit) return null;
-          return { ...hit, score: s };
-        })
-        .filter((x): x is NonNullable<typeof x> => !!x);
+      return finalizeResults(
+        [...scores.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, limit)
+          .map(([id, s]) => {
+            const hit = byId.get(id);
+            if (!hit) return null;
+            return { ...hit, score: s };
+          })
+          .filter((x): x is NonNullable<typeof x> => !!x),
+      );
     }
 
     const lexicalQuery = hasTextQuery ? (args.query as string) : null;
@@ -644,7 +738,7 @@ export const search = action({
       }));
 
     if (mode === "lexical") {
-      return lexicalMapped.slice(0, limit);
+      return finalizeResults(lexicalMapped.slice(0, limit));
     }
 
     // Hybrid: run all available arms in parallel
@@ -726,19 +820,21 @@ export const search = action({
         : fileVector.length
           ? fileVector
           : lexicalMapped;
-      return single.slice(0, limit);
+      return finalizeResults(single.slice(0, limit));
     }
 
     const effectiveK = rrfK ?? Math.max(candidateLimit, 60);
     const scores = fusedRank(rankedLists, { k: effectiveK, weights });
-    return [...scores.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, limit)
-      .map(([id, s]) => {
-        const hit = byId.get(id);
-        if (!hit) return null;
-        return { ...hit, score: s };
-      })
-      .filter((x): x is NonNullable<typeof x> => !!x);
+    return finalizeResults(
+      [...scores.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, limit)
+        .map(([id, s]) => {
+          const hit = byId.get(id);
+          if (!hit) return null;
+          return { ...hit, score: s };
+        })
+        .filter((x): x is NonNullable<typeof x> => !!x),
+    );
   },
 });

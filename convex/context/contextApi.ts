@@ -1,7 +1,7 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { api, components, internal } from "../_generated/api";
-import { action, query } from "../_generated/server";
+import { action, mutation, query } from "../_generated/server";
 import { ContextClient } from "../components/context/client";
 
 function createContextClient() {
@@ -16,6 +16,7 @@ export const addContext = action({
     key: v.string(),
     title: v.optional(v.string()),
     text: v.string(),
+    observationTime: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     return await createContextClient().addContext(ctx, args);
@@ -123,6 +124,7 @@ export const editContext = action({
     entryId: v.string(),
     title: v.optional(v.string()),
     text: v.string(),
+    observationTime: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const result = await createContextClient().editContext(ctx, args);
@@ -139,10 +141,6 @@ export const searchContext = action({
     namespace: v.string(),
     query: v.union(v.string(), v.array(v.number())),
     limit: v.optional(v.number()),
-    searchType: v.optional(
-      v.union(v.literal("vector"), v.literal("text"), v.literal("hybrid")),
-    ),
-    vectorScoreThreshold: v.optional(v.number()),
     includeHistorical: v.optional(v.boolean()),
     retrievalMode: v.optional(
       v.union(v.literal("vector"), v.literal("lexical"), v.literal("hybrid")),
@@ -216,5 +214,12 @@ export const embedForSearch = action({
     if (!response.ok) {
       throw new Error(`Embedding server rejected the job (${response.status})`);
     }
+  },
+});
+
+export const recordContextView = mutation({
+  args: { namespace: v.string(), entryId: v.string() },
+  handler: async (ctx, args) => {
+    await createContextClient().recordView(ctx, args);
   },
 });

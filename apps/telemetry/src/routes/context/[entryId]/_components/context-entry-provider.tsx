@@ -1,6 +1,6 @@
-import { useAction } from "convex/react";
+import { useAction, useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { createContext, type ReactNode, useState } from "react";
+import { createContext, type ReactNode, useEffect, useState } from "react";
 import { api } from "../../../../../../../convex/_generated/api.js";
 
 export type ContextEntryDetail = NonNullable<
@@ -43,6 +43,11 @@ export function ContextEntryProvider({
 }) {
   const deleteAction = useAction(api.context.contextApi.deleteContext);
   const editAction = useAction(api.context.contextApi.editContext);
+  const recordView = useMutation(api.context.contextApi.recordContextView);
+
+  useEffect(() => {
+    void recordView({ namespace, entryId });
+  }, [recordView, namespace, entryId]);
 
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
