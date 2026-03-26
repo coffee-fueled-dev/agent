@@ -8,9 +8,10 @@ import { doc } from "convex-helpers/validators";
 import type { MutationCtx } from "../_generated/server";
 import { mutation, query } from "../_generated/server";
 import {
-  type GraphAggregateNamespace,
   graphAggregate,
+  type GraphAggregateNamespace,
 } from "../internal/aggregate";
+import { canonicalPair } from "../internal/canonical";
 import { normalizeLabel } from "../internal/normalize";
 import schema from "../schema";
 
@@ -62,9 +63,9 @@ async function getOrCreateNodeStats(ctx: MutationCtx, key: string) {
     outDegree: 0,
     totalDegree: 0,
   });
-  const doc = await ctx.db.get(id);
-  if (!doc) throw new Error("Failed to read freshly inserted nodeStats");
-  return doc;
+  const row = await ctx.db.get(id);
+  if (!row) throw new Error("Failed to read freshly inserted nodeStats");
+  return row;
 }
 
 export const createEdge = mutation({
@@ -72,15 +73,21 @@ export const createEdge = mutation({
     label: v.string(),
     from: v.string(),
     to: v.string(),
+    directed: v.optional(v.boolean()),
     properties: v.optional(v.any()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
     const normalized = normalizeLabel(args.label);
+    const isDirected = args.directed !== false;
+    const [from, to] = isDirected
+      ? [args.from, args.to]
+      : canonicalPair(args.from, args.to);
+
     const existing = await ctx.db
       .query("edges")
       .withIndex("by_label_from_to", (q) =>
-        q.eq("label", normalized).eq("from", args.from).eq("to", args.to),
+        q.eq("label", normalized).eq("from", from).eq("to", to),
       )
       .first();
     if (existing) return null;
@@ -98,12 +105,13 @@ export const createEdge = mutation({
 
     await ctx.db.insert("edges", {
       label: normalized,
-      from: args.from,
-      to: args.to,
+      from,
+      to,
+      directed: isDirected,
       properties: args.properties,
     });
 
-    const id = edgeId(normalized, args.from, args.to);
+    const id = edgeId(normalized, from, to);
     await graphAggregate.insertIfDoesNotExist(ctx, {
       namespace: ["edges"],
       key: null,
@@ -115,33 +123,56 @@ export const createEdge = mutation({
       id,
     });
 
-    const fromStats = await getOrCreateNodeStats(ctx, args.from);
-    const newOutDegree = fromStats.outDegree + 1;
-    const newFromTotal = fromStats.totalDegree + 1;
-    await ctx.db.patch(fromStats._id, {
-      outDegree: newOutDegree,
-      totalDegree: newFromTotal,
-    });
-    await updateDegreeAggregate(ctx, {
-      nodeKey: args.from,
-      oldDegree: fromStats.totalDegree,
-      newDegree: newFromTotal,
-      edgeLabel: normalized,
-    });
+    if (isDirected) {
+      const fromStats = await getOrCreateNodeStats(ctx, from);
+      await ctx.db.patch(fromStats._id, {
+        outDegree: fromStats.outDegree + 1,
+        totalDegree: fromStats.totalDegree + 1,
+      });
+      await updateDegreeAggregate(ctx, {
+        nodeKey: from,
+        oldDegree: fromStats.totalDegree,
+        newDegree: fromStats.totalDegree + 1,
+        edgeLabel: normalized,
+      });
 
-    const toStats = await getOrCreateNodeStats(ctx, args.to);
-    const newInDegree = toStats.inDegree + 1;
-    const newToTotal = toStats.totalDegree + 1;
-    await ctx.db.patch(toStats._id, {
-      inDegree: newInDegree,
-      totalDegree: newToTotal,
-    });
-    await updateDegreeAggregate(ctx, {
-      nodeKey: args.to,
-      oldDegree: toStats.totalDegree,
-      newDegree: newToTotal,
-      edgeLabel: normalized,
-    });
+      const toStats = await getOrCreateNodeStats(ctx, to);
+      await ctx.db.patch(toStats._id, {
+        inDegree: toStats.inDegree + 1,
+        totalDegree: toStats.totalDegree + 1,
+      });
+      await updateDegreeAggregate(ctx, {
+        nodeKey: to,
+        oldDegree: toStats.totalDegree,
+        newDegree: toStats.totalDegree + 1,
+        edgeLabel: normalized,
+      });
+    } else {
+      // Undirected: both nodes get +1 totalDegree, no in/out distinction
+      const fromStats = await getOrCreateNodeStats(ctx, from);
+      await ctx.db.patch(fromStats._id, {
+        totalDegree: fromStats.totalDegree + 1,
+      });
+      await updateDegreeAggregate(ctx, {
+        nodeKey: from,
+        oldDegree: fromStats.totalDegree,
+        newDegree: fromStats.totalDegree + 1,
+        edgeLabel: normalized,
+      });
+
+      if (from !== to) {
+        const toStats = await getOrCreateNodeStats(ctx, to);
+        await ctx.db.patch(toStats._id, {
+          totalDegree: toStats.totalDegree + 1,
+        });
+        await updateDegreeAggregate(ctx, {
+          nodeKey: to,
+          oldDegree: toStats.totalDegree,
+          newDegree: toStats.totalDegree + 1,
+          edgeLabel: normalized,
+        });
+      }
+    }
 
     return null;
   },
@@ -152,15 +183,21 @@ export const updateEdge = mutation({
     label: v.string(),
     from: v.string(),
     to: v.string(),
+    directed: v.optional(v.boolean()),
     properties: v.any(),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
     const normalized = normalizeLabel(args.label);
+    const isDirected = args.directed !== false;
+    const [from, to] = isDirected
+      ? [args.from, args.to]
+      : canonicalPair(args.from, args.to);
+
     const edge = await ctx.db
       .query("edges")
       .withIndex("by_label_from_to", (q) =>
-        q.eq("label", normalized).eq("from", args.from).eq("to", args.to),
+        q.eq("label", normalized).eq("from", from).eq("to", to),
       )
       .first();
     if (!edge) return null;
@@ -174,20 +211,26 @@ export const deleteEdge = mutation({
     label: v.string(),
     from: v.string(),
     to: v.string(),
+    directed: v.optional(v.boolean()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
     const normalized = normalizeLabel(args.label);
+    const isDirected = args.directed !== false;
+    const [from, to] = isDirected
+      ? [args.from, args.to]
+      : canonicalPair(args.from, args.to);
+
     const edge = await ctx.db
       .query("edges")
       .withIndex("by_label_from_to", (q) =>
-        q.eq("label", normalized).eq("from", args.from).eq("to", args.to),
+        q.eq("label", normalized).eq("from", from).eq("to", to),
       )
       .first();
     if (!edge) return null;
     await ctx.db.delete(edge._id);
 
-    const id = edgeId(normalized, args.from, args.to);
+    const id = edgeId(normalized, from, to);
     await graphAggregate.deleteIfExists(ctx, {
       namespace: ["edges"],
       key: null,
@@ -199,42 +242,76 @@ export const deleteEdge = mutation({
       id,
     });
 
-    const fromStats = await ctx.db
-      .query("nodeStats")
-      .withIndex("by_key", (q) => q.eq("key", args.from))
-      .first();
-    if (fromStats) {
-      const newOutDegree = Math.max(0, fromStats.outDegree - 1);
-      const newFromTotal = Math.max(0, fromStats.totalDegree - 1);
-      await ctx.db.patch(fromStats._id, {
-        outDegree: newOutDegree,
-        totalDegree: newFromTotal,
-      });
-      await updateDegreeAggregate(ctx, {
-        nodeKey: args.from,
-        oldDegree: fromStats.totalDegree,
-        newDegree: newFromTotal,
-        edgeLabel: normalized,
-      });
-    }
+    if (edge.directed) {
+      const fromStats = await ctx.db
+        .query("nodeStats")
+        .withIndex("by_key", (q) => q.eq("key", from))
+        .first();
+      if (fromStats) {
+        const newOut = Math.max(0, fromStats.outDegree - 1);
+        const newTotal = Math.max(0, fromStats.totalDegree - 1);
+        await ctx.db.patch(fromStats._id, {
+          outDegree: newOut,
+          totalDegree: newTotal,
+        });
+        await updateDegreeAggregate(ctx, {
+          nodeKey: from,
+          oldDegree: fromStats.totalDegree,
+          newDegree: newTotal,
+          edgeLabel: normalized,
+        });
+      }
 
-    const toStats = await ctx.db
-      .query("nodeStats")
-      .withIndex("by_key", (q) => q.eq("key", args.to))
-      .first();
-    if (toStats) {
-      const newInDegree = Math.max(0, toStats.inDegree - 1);
-      const newToTotal = Math.max(0, toStats.totalDegree - 1);
-      await ctx.db.patch(toStats._id, {
-        inDegree: newInDegree,
-        totalDegree: newToTotal,
-      });
-      await updateDegreeAggregate(ctx, {
-        nodeKey: args.to,
-        oldDegree: toStats.totalDegree,
-        newDegree: newToTotal,
-        edgeLabel: normalized,
-      });
+      const toStats = await ctx.db
+        .query("nodeStats")
+        .withIndex("by_key", (q) => q.eq("key", to))
+        .first();
+      if (toStats) {
+        const newIn = Math.max(0, toStats.inDegree - 1);
+        const newTotal = Math.max(0, toStats.totalDegree - 1);
+        await ctx.db.patch(toStats._id, {
+          inDegree: newIn,
+          totalDegree: newTotal,
+        });
+        await updateDegreeAggregate(ctx, {
+          nodeKey: to,
+          oldDegree: toStats.totalDegree,
+          newDegree: newTotal,
+          edgeLabel: normalized,
+        });
+      }
+    } else {
+      const fromStats = await ctx.db
+        .query("nodeStats")
+        .withIndex("by_key", (q) => q.eq("key", from))
+        .first();
+      if (fromStats) {
+        const newTotal = Math.max(0, fromStats.totalDegree - 1);
+        await ctx.db.patch(fromStats._id, { totalDegree: newTotal });
+        await updateDegreeAggregate(ctx, {
+          nodeKey: from,
+          oldDegree: fromStats.totalDegree,
+          newDegree: newTotal,
+          edgeLabel: normalized,
+        });
+      }
+
+      if (from !== to) {
+        const toStats = await ctx.db
+          .query("nodeStats")
+          .withIndex("by_key", (q) => q.eq("key", to))
+          .first();
+        if (toStats) {
+          const newTotal = Math.max(0, toStats.totalDegree - 1);
+          await ctx.db.patch(toStats._id, { totalDegree: newTotal });
+          await updateDegreeAggregate(ctx, {
+            nodeKey: to,
+            oldDegree: toStats.totalDegree,
+            newDegree: newTotal,
+            edgeLabel: normalized,
+          });
+        }
+      }
     }
 
     return null;
@@ -246,12 +323,43 @@ export const queryEdges = query({
     label: v.string(),
     from: v.optional(v.string()),
     to: v.optional(v.string()),
+    node: v.optional(v.string()),
     paginationOpts: paginationOptsValidator,
   },
   returns: paginationResultValidator(doc(schema, "edges")),
   handler: async (ctx, args) => {
     const normalized = normalizeLabel(args.label);
-    const { from, to } = args;
+    const { from, to, node } = args;
+
+    // Neighbors mode: find all edges touching a node in either direction
+    if (node != null) {
+      const [outgoing, incoming] = await Promise.all([
+        ctx.db
+          .query("edges")
+          .withIndex("by_label_from_to", (q) =>
+            q.eq("label", normalized).eq("from", node),
+          )
+          .collect(),
+        ctx.db
+          .query("edges")
+          .withIndex("by_label_to_from", (q) =>
+            q.eq("label", normalized).eq("to", node),
+          )
+          .collect(),
+      ]);
+      // Dedup (for self-edges the same row appears in both)
+      const seen = new Set<string>();
+      const merged = [];
+      for (const edge of [...outgoing, ...incoming]) {
+        const id = edge._id.toString();
+        if (!seen.has(id)) {
+          seen.add(id);
+          merged.push(edge);
+        }
+      }
+      return { page: merged, isDone: true, continueCursor: "" };
+    }
+
     if (from != null && to != null) {
       const edge = await ctx.db
         .query("edges")

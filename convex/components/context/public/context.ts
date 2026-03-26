@@ -1,12 +1,69 @@
 import { type EntryId, hybridRank } from "@convex-dev/rag";
+import type {
+  GenericActionCtx,
+  GenericDataModel,
+  GenericMutationCtx,
+} from "convex/server";
 import { v } from "convex/values";
 import { api, internal } from "../_generated/api";
 import { action, query } from "../_generated/server";
+import { graph } from "../graph";
 import { history } from "../history";
 import { embedText } from "../internal/embedding";
 import { createContextRag } from "../internal/rag";
 import { sourceValidator, versionDataValidator } from "../schema";
 import { search as searchClient } from "../search";
+
+const DEFAULT_SIMILARITY_K = 6;
+const DEFAULT_SIMILARITY_THRESHOLD = 0.7;
+
+type SimilarityCtx = Pick<
+  GenericActionCtx<GenericDataModel>,
+  "runAction"
+> &
+  Pick<GenericMutationCtx<GenericDataModel>, "runMutation">;
+
+async function createSimilarityEdges(
+  ctx: SimilarityCtx,
+  opts: {
+    entryId: string;
+    namespace: string;
+    embedding: number[];
+    apiKey?: string;
+    similarityK?: number;
+    similarityThreshold?: number;
+  },
+) {
+  await graph.nodes.create(ctx, {
+    label: "contextEntry",
+    key: opts.entryId,
+  });
+
+  const rag = createContextRag(opts.apiKey);
+  const k = opts.similarityK ?? DEFAULT_SIMILARITY_K;
+  const threshold = opts.similarityThreshold ?? DEFAULT_SIMILARITY_THRESHOLD;
+
+  const { entries, results } = await rag.search(ctx, {
+    namespace: opts.namespace,
+    query: opts.embedding,
+    limit: k + 1,
+    filters: [{ name: "status", value: "current" }],
+  });
+
+  for (const entry of entries) {
+    if (entry.entryId === opts.entryId) continue;
+    const score = results
+      .filter((r) => r.entryId === entry.entryId)
+      .reduce((max, r) => Math.max(max, r.score), 0);
+    if (score < threshold) continue;
+    await graph.edges.create(ctx, {
+      label: "SIMILAR_TO",
+      from: opts.entryId,
+      to: entry.entryId,
+      properties: { score },
+    });
+  }
+}
 
 const TEXT_PREVIEW_LENGTH = 280;
 
@@ -63,6 +120,8 @@ export const add = action({
     sourceType: v.optional(v.union(v.literal("text"), v.literal("binary"))),
     searchText: v.optional(v.string()),
     apiKey: v.optional(v.string()),
+    similarityK: v.optional(v.number()),
+    similarityThreshold: v.optional(v.number()),
   },
   returns: v.object({ entryId: v.string() }),
   handler: async (ctx, args) => {
@@ -131,6 +190,15 @@ export const add = action({
 
     await ctx.runMutation(api.public.projection.markProjectionsStale, {
       namespace: args.namespace,
+    });
+
+    await createSimilarityEdges(ctx, {
+      entryId: result.entryId,
+      namespace: args.namespace,
+      embedding,
+      apiKey: args.apiKey,
+      similarityK: args.similarityK,
+      similarityThreshold: args.similarityThreshold,
     });
 
     return { entryId: result.entryId };
@@ -219,6 +287,10 @@ export const remove = action({
     await ctx.runMutation(api.public.projection.markProjectionsStale, {
       namespace: args.namespace,
     });
+    await graph.nodes.delete(ctx, {
+      label: "contextEntry",
+      key: args.entryId,
+    });
   },
 });
 
@@ -229,6 +301,8 @@ export const edit = action({
     title: v.optional(v.string()),
     text: v.string(),
     apiKey: v.optional(v.string()),
+    similarityK: v.optional(v.number()),
+    similarityThreshold: v.optional(v.number()),
   },
   returns: v.object({ entryId: v.string() }),
   handler: async (ctx, args) => {
@@ -371,6 +445,21 @@ export const edit = action({
 
     await ctx.runMutation(api.public.projection.markProjectionsStale, {
       namespace: args.namespace,
+    });
+
+    // Delete old entry's graph node (cascades similarity edges)
+    await graph.nodes.delete(ctx, {
+      label: "contextEntry",
+      key: args.entryId,
+    });
+
+    await createSimilarityEdges(ctx, {
+      entryId: current.entryId,
+      namespace: args.namespace,
+      embedding,
+      apiKey: args.apiKey,
+      similarityK: args.similarityK,
+      similarityThreshold: args.similarityThreshold,
     });
 
     return { entryId: current.entryId };

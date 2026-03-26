@@ -20,6 +20,7 @@ export default defineSchema({
     label: v.string(),
     from: v.string(),
     to: v.string(),
+    directed: v.boolean(),
     properties: v.optional(v.any()),
   })
     .index("by_label_from_to", ["label", "from", "to"])

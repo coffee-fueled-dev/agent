@@ -35,7 +35,6 @@ import type * as llms_agents_terminalChat from "../llms/agents/terminalChat.js";
 import type * as llms_identity from "../llms/identity.js";
 import type * as llms_identityRegistry from "../llms/identityRegistry.js";
 import type * as llms_identityTelemetry from "../llms/identityTelemetry.js";
-import type * as llms_memoryFiles from "../llms/memoryFiles.js";
 import type * as llms_models from "../llms/models.js";
 import type * as llms_tools__libs_customFunctions from "../llms/tools/_libs/customFunctions.js";
 import type * as llms_tools__libs_toolkit from "../llms/tools/_libs/toolkit.js";
@@ -98,7 +97,6 @@ declare const fullApi: ApiFromModules<{
   "llms/identity": typeof llms_identity;
   "llms/identityRegistry": typeof llms_identityRegistry;
   "llms/identityTelemetry": typeof llms_identityTelemetry;
-  "llms/memoryFiles": typeof llms_memoryFiles;
   "llms/models": typeof llms_models;
   "llms/tools/_libs/customFunctions": typeof llms_tools__libs_customFunctions;
   "llms/tools/_libs/toolkit": typeof llms_tools__libs_toolkit;
@@ -1006,218 +1004,6 @@ export declare const components: {
       };
     };
   };
-  graph: {
-    public: {
-      edges: {
-        createEdge: FunctionReference<
-          "mutation",
-          "internal",
-          { from: string; label: string; properties?: any; to: string },
-          null
-        >;
-        deleteEdge: FunctionReference<
-          "mutation",
-          "internal",
-          { from: string; label: string; to: string },
-          null
-        >;
-        queryEdges: FunctionReference<
-          "query",
-          "internal",
-          {
-            from?: string;
-            label: string;
-            paginationOpts: {
-              cursor: string | null;
-              endCursor?: string | null;
-              id?: number;
-              maximumBytesRead?: number;
-              maximumRowsRead?: number;
-              numItems: number;
-            };
-            to?: string;
-          },
-          {
-            continueCursor: string;
-            isDone: boolean;
-            page: Array<{
-              _creationTime: number;
-              _id: string;
-              from: string;
-              label: string;
-              properties?: any;
-              to: string;
-            }>;
-            pageStatus?: "SplitRecommended" | "SplitRequired" | null;
-            splitCursor?: string | null;
-          }
-        >;
-        updateEdge: FunctionReference<
-          "mutation",
-          "internal",
-          { from: string; label: string; properties: any; to: string },
-          null
-        >;
-      };
-      labels: {
-        getLabel: FunctionReference<
-          "query",
-          "internal",
-          { value: string },
-          null | {
-            _creationTime: number;
-            _id: string;
-            displayValue: string;
-            value: string;
-          }
-        >;
-        listLabels: FunctionReference<
-          "query",
-          "internal",
-          {
-            paginationOpts: {
-              cursor: string | null;
-              endCursor?: string | null;
-              id?: number;
-              maximumBytesRead?: number;
-              maximumRowsRead?: number;
-              numItems: number;
-            };
-          },
-          {
-            continueCursor: string;
-            isDone: boolean;
-            page: Array<{
-              _creationTime: number;
-              _id: string;
-              displayValue: string;
-              value: string;
-            }>;
-            pageStatus?: "SplitRecommended" | "SplitRequired" | null;
-            splitCursor?: string | null;
-          }
-        >;
-        searchLabels: FunctionReference<
-          "query",
-          "internal",
-          {
-            paginationOpts: {
-              cursor: string | null;
-              endCursor?: string | null;
-              id?: number;
-              maximumBytesRead?: number;
-              maximumRowsRead?: number;
-              numItems: number;
-            };
-            query: string;
-          },
-          {
-            continueCursor: string;
-            isDone: boolean;
-            page: Array<{
-              _creationTime: number;
-              _id: string;
-              displayValue: string;
-              value: string;
-            }>;
-            pageStatus?: "SplitRecommended" | "SplitRequired" | null;
-            splitCursor?: string | null;
-          }
-        >;
-        upsertLabel: FunctionReference<
-          "mutation",
-          "internal",
-          { value: string },
-          null
-        >;
-      };
-      nodes: {
-        createNode: FunctionReference<
-          "mutation",
-          "internal",
-          { key: string; label: string },
-          null
-        >;
-        deleteNode: FunctionReference<
-          "mutation",
-          "internal",
-          { key: string; label: string },
-          null
-        >;
-        getNode: FunctionReference<
-          "query",
-          "internal",
-          { key: string; label?: string },
-          null | {
-            _creationTime: number;
-            _id: string;
-            key: string;
-            label: string;
-          }
-        >;
-        listNodes: FunctionReference<
-          "query",
-          "internal",
-          {
-            label: string;
-            paginationOpts: {
-              cursor: string | null;
-              endCursor?: string | null;
-              id?: number;
-              maximumBytesRead?: number;
-              maximumRowsRead?: number;
-              numItems: number;
-            };
-          },
-          {
-            continueCursor: string;
-            isDone: boolean;
-            page: Array<{
-              _creationTime: number;
-              _id: string;
-              key: string;
-              label: string;
-            }>;
-            pageStatus?: "SplitRecommended" | "SplitRequired" | null;
-            splitCursor?: string | null;
-          }
-        >;
-      };
-      stats: {
-        getDegreeStats: FunctionReference<
-          "query",
-          "internal",
-          { label?: string },
-          {
-            count: number;
-            max: null | number;
-            mean: number;
-            median: null | number;
-            min: null | number;
-            sum: number;
-          }
-        >;
-        getEdgeCount: FunctionReference<
-          "query",
-          "internal",
-          { label?: string },
-          number
-        >;
-        getNodeCount: FunctionReference<
-          "query",
-          "internal",
-          { label?: string },
-          number
-        >;
-        getNodeStats: FunctionReference<
-          "query",
-          "internal",
-          { key: string },
-          null | { inDegree: number; outDegree: number; totalDegree: number }
-        >;
-      };
-    };
-  };
   context: {
     public: {
       add: {
@@ -1265,6 +1051,8 @@ export declare const components: {
             key: string;
             namespace: string;
             searchText?: string;
+            similarityK?: number;
+            similarityThreshold?: number;
             source?:
               | {
                   document: string;
@@ -1292,6 +1080,8 @@ export declare const components: {
             apiKey?: string;
             entryId: string;
             namespace: string;
+            similarityK?: number;
+            similarityThreshold?: number;
             text: string;
             title?: string;
           },
@@ -1789,104 +1579,6 @@ export declare const components: {
           any
         >;
       };
-    };
-  };
-  agentMemoryWorkpool: {
-    config: {
-      update: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          logLevel?: "DEBUG" | "TRACE" | "INFO" | "REPORT" | "WARN" | "ERROR";
-          maxParallelism?: number;
-        },
-        any
-      >;
-    };
-    lib: {
-      cancel: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          id: string;
-          logLevel?: "DEBUG" | "TRACE" | "INFO" | "REPORT" | "WARN" | "ERROR";
-        },
-        any
-      >;
-      cancelAll: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          before?: number;
-          limit?: number;
-          logLevel?: "DEBUG" | "TRACE" | "INFO" | "REPORT" | "WARN" | "ERROR";
-        },
-        any
-      >;
-      enqueue: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          config: {
-            logLevel?: "DEBUG" | "TRACE" | "INFO" | "REPORT" | "WARN" | "ERROR";
-            maxParallelism?: number;
-          };
-          fnArgs: any;
-          fnHandle: string;
-          fnName: string;
-          fnType: "action" | "mutation" | "query";
-          onComplete?: { context?: any; fnHandle: string };
-          retryBehavior?: {
-            base: number;
-            initialBackoffMs: number;
-            maxAttempts: number;
-          };
-          runAt: number;
-        },
-        string
-      >;
-      enqueueBatch: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          config: {
-            logLevel?: "DEBUG" | "TRACE" | "INFO" | "REPORT" | "WARN" | "ERROR";
-            maxParallelism?: number;
-          };
-          items: Array<{
-            fnArgs: any;
-            fnHandle: string;
-            fnName: string;
-            fnType: "action" | "mutation" | "query";
-            onComplete?: { context?: any; fnHandle: string };
-            retryBehavior?: {
-              base: number;
-              initialBackoffMs: number;
-              maxAttempts: number;
-            };
-            runAt: number;
-          }>;
-        },
-        Array<string>
-      >;
-      status: FunctionReference<
-        "query",
-        "internal",
-        { id: string },
-        | { previousAttempts: number; state: "pending" }
-        | { previousAttempts: number; state: "running" }
-        | { state: "finished" }
-      >;
-      statusBatch: FunctionReference<
-        "query",
-        "internal",
-        { ids: Array<string> },
-        Array<
-          | { previousAttempts: number; state: "pending" }
-          | { previousAttempts: number; state: "running" }
-          | { state: "finished" }
-        >
-      >;
     };
   };
   workflow: {

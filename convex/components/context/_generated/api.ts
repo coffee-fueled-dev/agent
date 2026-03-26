@@ -9,6 +9,7 @@
  */
 
 import type * as client_index from "../client/index.js";
+import type * as graph from "../graph.js";
 import type * as history from "../history.js";
 import type * as internal_embedding from "../internal/embedding.js";
 import type * as internal_embeddingStore from "../internal/embeddingStore.js";
@@ -32,6 +33,7 @@ import { anyApi, componentsGeneric } from "convex/server";
 
 const fullApi: ApiFromModules<{
   "client/index": typeof client_index;
+  graph: typeof graph;
   history: typeof history;
   "internal/embedding": typeof internal_embedding;
   "internal/embeddingStore": typeof internal_embeddingStore;
@@ -709,6 +711,232 @@ export const components = componentsGeneric() as unknown as {
             title?: string;
             updatedAt: number;
           }>
+        >;
+      };
+    };
+  };
+  graph: {
+    public: {
+      edges: {
+        createEdge: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            directed?: boolean;
+            from: string;
+            label: string;
+            properties?: any;
+            to: string;
+          },
+          null
+        >;
+        deleteEdge: FunctionReference<
+          "mutation",
+          "internal",
+          { directed?: boolean; from: string; label: string; to: string },
+          null
+        >;
+        queryEdges: FunctionReference<
+          "query",
+          "internal",
+          {
+            from?: string;
+            label: string;
+            node?: string;
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
+            to?: string;
+          },
+          {
+            continueCursor: string;
+            isDone: boolean;
+            page: Array<{
+              _creationTime: number;
+              _id: string;
+              directed: boolean;
+              from: string;
+              label: string;
+              properties?: any;
+              to: string;
+            }>;
+            pageStatus?: "SplitRecommended" | "SplitRequired" | null;
+            splitCursor?: string | null;
+          }
+        >;
+        updateEdge: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            directed?: boolean;
+            from: string;
+            label: string;
+            properties: any;
+            to: string;
+          },
+          null
+        >;
+      };
+      labels: {
+        getLabel: FunctionReference<
+          "query",
+          "internal",
+          { value: string },
+          null | {
+            _creationTime: number;
+            _id: string;
+            displayValue: string;
+            value: string;
+          }
+        >;
+        listLabels: FunctionReference<
+          "query",
+          "internal",
+          {
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
+          },
+          {
+            continueCursor: string;
+            isDone: boolean;
+            page: Array<{
+              _creationTime: number;
+              _id: string;
+              displayValue: string;
+              value: string;
+            }>;
+            pageStatus?: "SplitRecommended" | "SplitRequired" | null;
+            splitCursor?: string | null;
+          }
+        >;
+        searchLabels: FunctionReference<
+          "query",
+          "internal",
+          {
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
+            query: string;
+          },
+          {
+            continueCursor: string;
+            isDone: boolean;
+            page: Array<{
+              _creationTime: number;
+              _id: string;
+              displayValue: string;
+              value: string;
+            }>;
+            pageStatus?: "SplitRecommended" | "SplitRequired" | null;
+            splitCursor?: string | null;
+          }
+        >;
+        upsertLabel: FunctionReference<
+          "mutation",
+          "internal",
+          { value: string },
+          null
+        >;
+      };
+      nodes: {
+        createNode: FunctionReference<
+          "mutation",
+          "internal",
+          { key: string; label: string },
+          null
+        >;
+        deleteNode: FunctionReference<
+          "mutation",
+          "internal",
+          { key: string; label: string },
+          null
+        >;
+        getNode: FunctionReference<
+          "query",
+          "internal",
+          { key: string; label?: string },
+          null | {
+            _creationTime: number;
+            _id: string;
+            key: string;
+            label: string;
+          }
+        >;
+        listNodes: FunctionReference<
+          "query",
+          "internal",
+          {
+            label: string;
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
+          },
+          {
+            continueCursor: string;
+            isDone: boolean;
+            page: Array<{
+              _creationTime: number;
+              _id: string;
+              key: string;
+              label: string;
+            }>;
+            pageStatus?: "SplitRecommended" | "SplitRequired" | null;
+            splitCursor?: string | null;
+          }
+        >;
+      };
+      stats: {
+        getDegreeStats: FunctionReference<
+          "query",
+          "internal",
+          { label?: string },
+          {
+            count: number;
+            max: null | number;
+            mean: number;
+            median: null | number;
+            min: null | number;
+            sum: number;
+          }
+        >;
+        getEdgeCount: FunctionReference<
+          "query",
+          "internal",
+          { label?: string },
+          number
+        >;
+        getNodeCount: FunctionReference<
+          "query",
+          "internal",
+          { label?: string },
+          number
+        >;
+        getNodeStats: FunctionReference<
+          "query",
+          "internal",
+          { key: string },
+          null | { inDegree: number; outDegree: number; totalDegree: number }
         >;
       };
     };

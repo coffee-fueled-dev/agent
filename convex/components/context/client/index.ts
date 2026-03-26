@@ -17,6 +17,8 @@ type RunQueryCtx = Pick<GenericQueryCtx<GenericDataModel>, "runQuery">;
 
 export type ContextClientConfig = {
   googleApiKey?: string;
+  similarityK?: number;
+  similarityThreshold?: number;
 };
 
 export class ContextClient {
@@ -33,12 +35,14 @@ export class ContextClient {
     ctx: RunActionCtx,
     args: Omit<
       FunctionArgs<typeof this.component.public.context.add>,
-      "apiKey"
+      "apiKey" | "similarityK" | "similarityThreshold"
     >,
   ) => {
     return await ctx.runAction(this.component.public.context.add, {
       ...args,
       apiKey: this.apiKey,
+      similarityK: this.config.similarityK,
+      similarityThreshold: this.config.similarityThreshold,
     });
   };
 
@@ -66,12 +70,14 @@ export class ContextClient {
     ctx: RunActionCtx,
     args: Omit<
       FunctionArgs<typeof this.component.public.context.edit>,
-      "apiKey"
+      "apiKey" | "similarityK" | "similarityThreshold"
     >,
   ) => {
     return await ctx.runAction(this.component.public.context.edit, {
       ...args,
       apiKey: this.apiKey,
+      similarityK: this.config.similarityK,
+      similarityThreshold: this.config.similarityThreshold,
     });
   };
 

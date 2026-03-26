@@ -71,6 +71,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             key: string;
             namespace: string;
             searchText?: string;
+            similarityK?: number;
+            similarityThreshold?: number;
             source?:
               | {
                   document: string;
@@ -99,6 +101,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             apiKey?: string;
             entryId: string;
             namespace: string;
+            similarityK?: number;
+            similarityThreshold?: number;
             text: string;
             title?: string;
           },

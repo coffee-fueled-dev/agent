@@ -11,18 +11,8 @@ import {
   contextFileFailPath,
   failFileProcessHttp,
 } from "./context/fileHttp";
-import {
-  publicMemoryFilePath,
-  servePublicMemoryFile,
-} from "./llms/memoryFiles";
 
 const http = httpRouter();
-
-http.route({
-  path: publicMemoryFilePath,
-  method: "GET",
-  handler: servePublicMemoryFile,
-});
 
 http.route({
   path: contextFileCompletePath,

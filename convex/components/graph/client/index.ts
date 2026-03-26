@@ -1,8 +1,11 @@
 import type {
+  DataModelFromSchemaDefinition,
   GenericDataModel,
   GenericMutationCtx,
   GenericQueryCtx,
   PaginationOptions,
+  SchemaDefinition,
+  TableNamesInDataModel,
 } from "convex/server";
 import type { Validator } from "convex/values";
 import type { ComponentApi } from "../_generated/component";
@@ -26,9 +29,11 @@ export type EdgeDef<
   V extends Validator<any, "required", any> | undefined =
     | Validator<any, "required", any>
     | undefined,
+  D extends boolean = boolean,
 > = {
   readonly label: L;
   readonly properties: V;
+  readonly directed: D;
 };
 
 export type GraphConfig<
@@ -64,24 +69,40 @@ type EdgePropertiesArg<E extends readonly EdgeDef[], L extends string> =
 // ---------------------------------------------------------------------------
 
 export function nodeSchema<
-  S extends Record<string, any>,
+  S extends SchemaDefinition<any, boolean>,
   L extends string,
-  T extends Extract<keyof S, string>,
+  T extends TableNamesInDataModel<DataModelFromSchemaDefinition<S>> & string,
 >(_schema: S, label: L, tableName: T): NodeDef<L, T> {
   void _schema;
   return { label, tableName };
 }
 
-export function edgeSchema<L extends string>(label: L): EdgeDef<L, undefined>;
+export function edgeSchema<L extends string>(
+  label: L,
+): EdgeDef<L, undefined, true>;
 export function edgeSchema<
   L extends string,
   V extends Validator<any, "required", any>,
->(label: L, properties: V): EdgeDef<L, V>;
+>(label: L, properties: V): EdgeDef<L, V, true>;
+export function edgeSchema<L extends string>(
+  label: L,
+  properties: undefined,
+  options: { directed: false },
+): EdgeDef<L, undefined, false>;
+export function edgeSchema<
+  L extends string,
+  V extends Validator<any, "required", any>,
+>(
+  label: L,
+  properties: V,
+  options: { directed: false },
+): EdgeDef<L, V, false>;
 export function edgeSchema(
   label: string,
   properties?: Validator<any, "required", any>,
+  options?: { directed: boolean },
 ): EdgeDef {
-  return { label, properties };
+  return { label, properties, directed: options?.directed !== false };
 }
 
 // ---------------------------------------------------------------------------
@@ -170,6 +191,13 @@ export class GraphClient<
     },
   };
 
+  private edgeDirected<L extends EdgeLabel<E>>(label: L): boolean {
+    const def = this.config.edges.find(
+      (e) => e.label === label,
+    ) as EdgeDef | undefined;
+    return def?.directed !== false;
+  }
+
   edges = {
     create: async <L extends EdgeLabel<E>>(
       ctx: RunMutationCtx,
@@ -179,6 +207,7 @@ export class GraphClient<
         label: args.label,
         from: args.from,
         to: args.to,
+        directed: this.edgeDirected(args.label),
         properties: (args as Record<string, unknown>).properties,
       });
     },
@@ -191,6 +220,7 @@ export class GraphClient<
         label: args.label,
         from: args.from,
         to: args.to,
+        directed: this.edgeDirected(args.label),
         properties: (args as Record<string, unknown>).properties,
       });
     },
@@ -203,6 +233,7 @@ export class GraphClient<
         label: args.label,
         from: args.from,
         to: args.to,
+        directed: this.edgeDirected(args.label),
       });
     },
 
@@ -219,6 +250,17 @@ export class GraphClient<
         label: args.label,
         from: args.from,
         to: args.to,
+        paginationOpts: args.paginationOpts,
+      });
+    },
+
+    neighbors: async <L extends EdgeLabel<E>>(
+      ctx: RunQueryCtx,
+      args: { label: L; node: string; paginationOpts: PaginationOptions },
+    ) => {
+      return await ctx.runQuery(this.component.public.edges.queryEdges, {
+        label: args.label,
+        node: args.node,
         paginationOpts: args.paginationOpts,
       });
     },

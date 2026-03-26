@@ -28,14 +28,20 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         createEdge: FunctionReference<
           "mutation",
           "internal",
-          { from: string; label: string; properties?: any; to: string },
+          {
+            directed?: boolean;
+            from: string;
+            label: string;
+            properties?: any;
+            to: string;
+          },
           null,
           Name
         >;
         deleteEdge: FunctionReference<
           "mutation",
           "internal",
-          { from: string; label: string; to: string },
+          { directed?: boolean; from: string; label: string; to: string },
           null,
           Name
         >;
@@ -45,6 +51,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           {
             from?: string;
             label: string;
+            node?: string;
             paginationOpts: {
               cursor: string | null;
               endCursor?: string | null;
@@ -61,6 +68,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             page: Array<{
               _creationTime: number;
               _id: string;
+              directed: boolean;
               from: string;
               label: string;
               properties?: any;
@@ -74,7 +82,13 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         updateEdge: FunctionReference<
           "mutation",
           "internal",
-          { from: string; label: string; properties: any; to: string },
+          {
+            directed?: boolean;
+            from: string;
+            label: string;
+            properties: any;
+            to: string;
+          },
           null,
           Name
         >;
