@@ -8,16 +8,15 @@
  * @module
  */
 
-import type * as client_index from "../client/index.js";
-import type * as public_add from "../public/add.js";
-import type * as public_search from "../public/search.js";
-
 import type {
   ApiFromModules,
   FilterApi,
   FunctionReference,
 } from "convex/server";
 import { anyApi, componentsGeneric } from "convex/server";
+import type * as client_index from "../client/index.js";
+import type * as public_add from "../public/add.js";
+import type * as public_search from "../public/search.js";
 
 const fullApi: ApiFromModules<{
   "client/index": typeof client_index;

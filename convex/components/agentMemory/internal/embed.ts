@@ -1,6 +1,6 @@
 import {
-  createPartFromUri,
   createPartFromText,
+  createPartFromUri,
   GoogleGenAI,
 } from "@google/genai";
 import type { Id } from "../_generated/dataModel";

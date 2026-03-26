@@ -15,16 +15,6 @@ import {
   startRuntimeCommitImpl,
 } from "./runtime/agentRuntime";
 import {
-  getMemoryEntryIdsForChartsImpl,
-  getMemoryChartMemberByEntryIdImpl,
-  getMemoryChartImpl,
-  getMemoryChartNamespaceMetricsImpl,
-  listMemoryChartMembersImpl,
-  listMemoryChartRepartitionEventsImpl,
-  listMemoryChartSupportEdgesImpl,
-  listMemoryChartsImpl,
-} from "./runtime/memoryChartQueries";
-import {
   completeMemoryChartMaintenanceImpl,
   maintainMemoryChartNamespaceImpl,
   markMemoryChartMaintenanceQueuedImpl,
@@ -32,6 +22,16 @@ import {
   memoryChartUpdateValidator,
   upsertMemoryChartAssignmentImpl,
 } from "./runtime/memoryChartMutations";
+import {
+  getMemoryChartImpl,
+  getMemoryChartMemberByEntryIdImpl,
+  getMemoryChartNamespaceMetricsImpl,
+  getMemoryEntryIdsForChartsImpl,
+  listMemoryChartMembersImpl,
+  listMemoryChartRepartitionEventsImpl,
+  listMemoryChartSupportEdgesImpl,
+  listMemoryChartsImpl,
+} from "./runtime/memoryChartQueries";
 
 export const getRuntimeRegistration = query({
   args: getRuntimeRegistrationArgs,

@@ -5,9 +5,9 @@ import schema from "../../schema";
 import {
   chartMemberSummary,
   chartSummary,
+  type MemoryChartDoc,
   repartitionEventSummary,
   supportEdgeSummary,
-  type MemoryChartDoc,
 } from "./shared";
 import { emptyMemoryChartMetrics, getMemoryChartNamespaceRow } from "./state";
 

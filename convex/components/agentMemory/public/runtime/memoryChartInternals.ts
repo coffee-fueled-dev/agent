@@ -1,11 +1,11 @@
 import type { MutationCtx } from "../../_generated/server";
 import type { MemoryChartMetrics } from "../../internal/runtime";
-import { getMemoryChartNamespaceRow } from "./state";
 import {
   chartPairKey,
   type MemoryChartDoc,
   type MemoryChartSupportEdgeDoc,
 } from "./shared";
+import { getMemoryChartNamespaceRow } from "./state";
 
 export function chartObjective(chart: {
   descriptionLength: number;

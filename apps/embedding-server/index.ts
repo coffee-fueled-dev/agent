@@ -1,9 +1,9 @@
+import { Database } from "bun:sqlite";
 import {
   createPartFromBase64,
   createPartFromText,
   GoogleGenAI,
 } from "@google/genai";
-import { Database } from "bun:sqlite";
 import { $ } from "bun";
 
 const embeddingModel = "gemini-embedding-2-preview";

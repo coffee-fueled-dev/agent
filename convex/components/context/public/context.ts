@@ -5,8 +5,8 @@ import { action, query } from "../_generated/server";
 import { history } from "../history";
 import { embedText } from "../internal/embedding";
 import { createContextRag } from "../internal/rag";
-import { search as searchClient } from "../search";
 import { sourceValidator, versionDataValidator } from "../schema";
+import { search as searchClient } from "../search";
 
 const TEXT_PREVIEW_LENGTH = 280;
 
