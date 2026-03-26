@@ -211,5 +211,42 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           Name
         >;
       };
+      stats: {
+        getDegreeStats: FunctionReference<
+          "query",
+          "internal",
+          { label?: string },
+          {
+            count: number;
+            max: null | number;
+            mean: number;
+            median: null | number;
+            min: null | number;
+            sum: number;
+          },
+          Name
+        >;
+        getEdgeCount: FunctionReference<
+          "query",
+          "internal",
+          { label?: string },
+          number,
+          Name
+        >;
+        getNodeCount: FunctionReference<
+          "query",
+          "internal",
+          { label?: string },
+          number,
+          Name
+        >;
+        getNodeStats: FunctionReference<
+          "query",
+          "internal",
+          { key: string },
+          null | { inDegree: number; outDegree: number; totalDegree: number },
+          Name
+        >;
+      };
     };
   };

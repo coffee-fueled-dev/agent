@@ -223,4 +223,39 @@ export class GraphClient<
       });
     },
   };
+
+  stats = {
+    nodeCount: async (
+      ctx: RunQueryCtx,
+      args: { label?: AllLabels<N, E> } = {},
+    ) => {
+      return await ctx.runQuery(this.component.public.stats.getNodeCount, {
+        label: args.label,
+      });
+    },
+
+    edgeCount: async (
+      ctx: RunQueryCtx,
+      args: { label?: AllLabels<N, E> } = {},
+    ) => {
+      return await ctx.runQuery(this.component.public.stats.getEdgeCount, {
+        label: args.label,
+      });
+    },
+
+    degreeStats: async (
+      ctx: RunQueryCtx,
+      args: { label?: EdgeLabel<E> } = {},
+    ) => {
+      return await ctx.runQuery(this.component.public.stats.getDegreeStats, {
+        label: args.label,
+      });
+    },
+
+    nodeStats: async (ctx: RunQueryCtx, args: { key: string }) => {
+      return await ctx.runQuery(this.component.public.stats.getNodeStats, {
+        key: args.key,
+      });
+    },
+  };
 }

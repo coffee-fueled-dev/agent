@@ -1183,6 +1183,39 @@ export declare const components: {
           }
         >;
       };
+      stats: {
+        getDegreeStats: FunctionReference<
+          "query",
+          "internal",
+          { label?: string },
+          {
+            count: number;
+            max: null | number;
+            mean: number;
+            median: null | number;
+            min: null | number;
+            sum: number;
+          }
+        >;
+        getEdgeCount: FunctionReference<
+          "query",
+          "internal",
+          { label?: string },
+          number
+        >;
+        getNodeCount: FunctionReference<
+          "query",
+          "internal",
+          { label?: string },
+          number
+        >;
+        getNodeStats: FunctionReference<
+          "query",
+          "internal",
+          { key: string },
+          null | { inDegree: number; outDegree: number; totalDegree: number }
+        >;
+      };
     };
   };
   context: {

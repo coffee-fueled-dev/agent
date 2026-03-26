@@ -6,6 +6,7 @@ import { v } from "convex/values";
 import { paginator } from "convex-helpers/server/pagination";
 import { doc } from "convex-helpers/validators";
 import { mutation, query } from "../_generated/server";
+import { graphAggregate } from "../internal/aggregate";
 import { normalizeLabel } from "../internal/normalize";
 import schema from "../schema";
 
@@ -34,6 +35,31 @@ export const createNode = mutation({
     }
 
     await ctx.db.insert("nodes", { label: normalized, key: args.key });
+
+    await graphAggregate.insertIfDoesNotExist(ctx, {
+      namespace: ["nodes"],
+      key: null,
+      id: args.key,
+    });
+    await graphAggregate.insertIfDoesNotExist(ctx, {
+      namespace: ["nodes", normalized],
+      key: null,
+      id: args.key,
+    });
+
+    const existingStats = await ctx.db
+      .query("nodeStats")
+      .withIndex("by_key", (q) => q.eq("key", args.key))
+      .first();
+    if (!existingStats) {
+      await ctx.db.insert("nodeStats", {
+        key: args.key,
+        inDegree: 0,
+        outDegree: 0,
+        totalDegree: 0,
+      });
+    }
+
     return null;
   },
 });
@@ -82,7 +108,43 @@ export const deleteNode = mutation({
       .collect();
     for (const edge of edges) {
       await ctx.db.delete(edge._id);
+      await graphAggregate.deleteIfExists(ctx, {
+        namespace: ["edges"],
+        key: null,
+        id: `${edge.label}:${edge.from}:${edge.to}`,
+      });
+      await graphAggregate.deleteIfExists(ctx, {
+        namespace: ["edges", edge.label],
+        key: null,
+        id: `${edge.label}:${edge.from}:${edge.to}`,
+      });
     }
+
+    const stats = await ctx.db
+      .query("nodeStats")
+      .withIndex("by_key", (q) => q.eq("key", args.key))
+      .first();
+    if (stats) {
+      if (stats.totalDegree > 0) {
+        await graphAggregate.deleteIfExists(ctx, {
+          namespace: ["degree"],
+          key: stats.totalDegree,
+          id: args.key,
+        });
+      }
+      await ctx.db.delete(stats._id);
+    }
+
+    await graphAggregate.deleteIfExists(ctx, {
+      namespace: ["nodes"],
+      key: null,
+      id: args.key,
+    });
+    await graphAggregate.deleteIfExists(ctx, {
+      namespace: ["nodes", normalized],
+      key: null,
+      id: args.key,
+    });
 
     await ctx.db.delete(node._id);
     return null;

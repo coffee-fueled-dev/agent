@@ -24,4 +24,11 @@ export default defineSchema({
   })
     .index("by_label_from_to", ["label", "from", "to"])
     .index("by_label_to_from", ["label", "to", "from"]),
+
+  nodeStats: defineTable({
+    key: v.string(),
+    inDegree: v.number(),
+    outDegree: v.number(),
+    totalDegree: v.number(),
+  }).index("by_key", ["key"]),
 });

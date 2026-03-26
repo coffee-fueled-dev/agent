@@ -8,12 +8,6 @@
  * @module
  */
 
-import type {
-  ApiFromModules,
-  FilterApi,
-  FunctionReference,
-} from "convex/server";
-import { anyApi, componentsGeneric } from "convex/server";
 import type * as client_index from "../client/index.js";
 import type * as history from "../history.js";
 import type * as internal_embedding from "../internal/embedding.js";
@@ -28,6 +22,13 @@ import type * as public_list from "../public/list.js";
 import type * as public_projection from "../public/projection.js";
 import type * as public_search from "../public/search.js";
 import type * as search from "../search.js";
+
+import type {
+  ApiFromModules,
+  FilterApi,
+  FunctionReference,
+} from "convex/server";
+import { anyApi, componentsGeneric } from "convex/server";
 
 const fullApi: ApiFromModules<{
   "client/index": typeof client_index;
