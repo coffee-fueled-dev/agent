@@ -34,13 +34,7 @@ import { AppShell } from "../../../components/layout/app-shell";
 import { PageSection } from "../../../components/layout/page-section";
 import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
-import {
-  Card,
-  CardAction,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "../../../components/ui/card";
+import { Card, CardFooter } from "../../../components/ui/card";
 import {
   Dialog,
   DialogContent,
