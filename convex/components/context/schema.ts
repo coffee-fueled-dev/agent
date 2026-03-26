@@ -79,8 +79,8 @@ export default defineSchema({
       }),
       v.object({
         status: v.literal("completed"),
-        points: v.array(pointValidator),
         completionTime: v.number(),
+        pointCount: v.number(),
       }),
       v.object({
         status: v.literal("failed"),
@@ -89,6 +89,18 @@ export default defineSchema({
       }),
     ),
   }).index("by_namespace", ["namespace"]),
+
+  contextProjectionPoints: defineTable({
+    jobId: v.id("contextProjectionJobs"),
+    entryId: v.string(),
+    key: v.string(),
+    title: v.optional(v.string()),
+    textPreview: v.string(),
+    mimeType: v.optional(v.string()),
+    x: v.number(),
+    y: v.number(),
+    z: v.number(),
+  }).index("by_jobId", ["jobId"]),
 
   contextCommunityJobs: defineTable({
     namespace: v.string(),

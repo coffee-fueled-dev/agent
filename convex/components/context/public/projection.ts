@@ -25,36 +25,7 @@ export const createJob = mutation({
 
 export const getJob = query({
   args: { jobId: v.id("contextProjectionJobs") },
-  returns: v.union(
-    v.null(),
-    v.object({
-      _id: v.id("contextProjectionJobs"),
-      _creationTime: v.number(),
-      namespace: v.string(),
-      limit: v.number(),
-      stale: v.boolean(),
-      updateTime: v.number(),
-      data: v.union(
-        v.object({ status: v.literal("pending") }),
-        v.object({
-          status: v.literal("running"),
-          workflowId: v.string(),
-          phase: v.union(v.literal("loading"), v.literal("projecting")),
-          loadedCount: v.number(),
-        }),
-        v.object({
-          status: v.literal("completed"),
-          points: v.array(pointValidator),
-          completionTime: v.number(),
-        }),
-        v.object({
-          status: v.literal("failed"),
-          error: v.string(),
-          failureTime: v.number(),
-        }),
-      ),
-    }),
-  ),
+  returns: v.any(),
   handler: async (ctx, args) => {
     return await ctx.db.get(args.jobId);
   },
@@ -100,7 +71,7 @@ export const updatePhase = mutation({
 export const markCompleted = mutation({
   args: {
     jobId: v.id("contextProjectionJobs"),
-    points: v.array(pointValidator),
+    pointCount: v.number(),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -108,7 +79,11 @@ export const markCompleted = mutation({
     await ctx.db.patch(args.jobId, {
       stale: false,
       updateTime: now,
-      data: { status: "completed", points: args.points, completionTime: now },
+      data: {
+        status: "completed",
+        completionTime: now,
+        pointCount: args.pointCount,
+      },
     });
   },
 });
@@ -122,6 +97,46 @@ export const markFailed = mutation({
       updateTime: now,
       data: { status: "failed", error: args.error, failureTime: now },
     });
+  },
+});
+
+export const writePointsBatch = mutation({
+  args: {
+    jobId: v.id("contextProjectionJobs"),
+    points: v.array(pointValidator),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    for (const p of args.points) {
+      await ctx.db.insert("contextProjectionPoints", {
+        jobId: args.jobId,
+        entryId: p.entryId,
+        key: p.key,
+        title: p.title,
+        textPreview: p.textPreview,
+        mimeType: p.mimeType,
+        x: p.x,
+        y: p.y,
+        z: p.z,
+      });
+    }
+  },
+});
+
+const CLEAR_BATCH = 100;
+
+export const clearPointsForJob = mutation({
+  args: { jobId: v.id("contextProjectionJobs") },
+  returns: v.object({ hasMore: v.boolean() }),
+  handler: async (ctx, args) => {
+    const docs = await ctx.db
+      .query("contextProjectionPoints")
+      .withIndex("by_jobId", (q) => q.eq("jobId", args.jobId))
+      .take(CLEAR_BATCH);
+    for (const doc of docs) {
+      await ctx.db.delete(doc._id);
+    }
+    return { hasMore: docs.length === CLEAR_BATCH };
   },
 });
 
@@ -153,6 +168,21 @@ export const loadEntryPage = query({
   },
 });
 
+export const loadCurrentEntryIdPage = query({
+  args: {
+    namespace: v.string(),
+    paginationOpts: paginationOptsValidator,
+  },
+  returns: v.any(),
+  handler: async (ctx, args) => {
+    return await paginator(ctx.db, schema)
+      .query("contextEntryVersions")
+      .withIndex("by_namespace_key", (q) => q.eq("namespace", args.namespace))
+      .paginate(args.paginationOpts);
+  },
+});
+
+/** @deprecated Use loadCurrentEntryIdPage and filter in the caller */
 export const loadCurrentEntryIds = query({
   args: { namespace: v.string() },
   returns: v.array(v.string()),
@@ -207,10 +237,23 @@ export const getLatestProjection = query({
       .first();
     if (!job) return null;
     if (hasStatus(job, "completed")) {
+      const points = await ctx.db
+        .query("contextProjectionPoints")
+        .withIndex("by_jobId", (q) => q.eq("jobId", job._id))
+        .collect();
       return {
         jobId: job._id,
         status: "completed" as const,
-        points: job.data.points,
+        points: points.map((p) => ({
+          entryId: p.entryId,
+          key: p.key,
+          title: p.title,
+          textPreview: p.textPreview,
+          mimeType: p.mimeType,
+          x: p.x,
+          y: p.y,
+          z: p.z,
+        })),
         completionTime: job.data.completionTime,
         stale: job.stale,
       };
@@ -289,9 +332,22 @@ export const getProjectionStatus = query({
     const job = await ctx.db.get(args.jobId);
     if (!job) return null;
     if (hasStatus(job, "completed")) {
+      const points = await ctx.db
+        .query("contextProjectionPoints")
+        .withIndex("by_jobId", (q) => q.eq("jobId", job._id))
+        .collect();
       return {
         status: "completed" as const,
-        points: job.data.points,
+        points: points.map((p) => ({
+          entryId: p.entryId,
+          key: p.key,
+          title: p.title,
+          textPreview: p.textPreview,
+          mimeType: p.mimeType,
+          x: p.x,
+          y: p.y,
+          z: p.z,
+        })),
         completionTime: job.data.completionTime,
         stale: job.stale,
         namespace: job.namespace,

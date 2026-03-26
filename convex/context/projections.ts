@@ -8,11 +8,13 @@ import {
   internalQuery,
   query,
 } from "../_generated/server";
-import { workflow as workflowManager } from "../workflow";
+import { pool } from "../workpool";
 
 const DEFAULT_LIMIT = 120;
-const MAX_LIMIT = 300;
+const MAX_LIMIT = 1000;
 const EMBEDDING_PAGE_SIZE = 100;
+const POINTS_BATCH_SIZE = 50;
+const FILE_META_BATCH_SIZE = 100;
 
 function clampLimit(value?: number) {
   if (typeof value !== "number" || Number.isNaN(value)) return DEFAULT_LIMIT;
@@ -68,31 +70,14 @@ function projectCoordinates(vectors: number[][]) {
   }
 }
 
-const seedValidator = v.object({
-  entryId: v.string(),
-  key: v.string(),
-  title: v.optional(v.string()),
-  textPreview: v.string(),
-  mimeType: v.optional(v.string()),
-  embedding: v.array(v.number()),
-});
-
-export const projectEmbeddingCloud = internalAction({
-  args: { seeds: v.array(seedValidator) },
-  handler: async (_ctx, args) => {
-    const coords = projectCoordinates(args.seeds.map((s) => s.embedding));
-    return args.seeds.map((s, i) => ({
-      entryId: s.entryId,
-      key: s.key,
-      title: s.title,
-      textPreview: s.textPreview,
-      mimeType: s.mimeType,
-      x: coords[i]?.[0] ?? 0,
-      y: coords[i]?.[1] ?? 0,
-      z: coords[i]?.[2] ?? 0,
-    }));
-  },
-});
+/** Fisher-Yates shuffle, mutates in place */
+function shuffle<T>(arr: T[]): T[] {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
 
 type PaginatedEmbeddings = PaginationResult<{
   entryId: string;
@@ -106,7 +91,10 @@ type PaginatedEntries = PaginationResult<{
   textPreview: string;
 }>;
 
-type FileMeta = { entryId: string; mimeType: string };
+type PaginatedVersions = PaginationResult<{
+  entryId: string;
+  data: { status: string };
+}>;
 
 type ProjectionPoint = {
   entryId: string;
@@ -120,144 +108,212 @@ type ProjectionPoint = {
 };
 
 const projectionApi = components.context.public.projection;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- new functions available after codegen
+const projApi = projectionApi as Record<string, any>;
 
-export const runContextProjectionWorkflow = workflowManager.define({
-  args: { jobId: v.string() },
-  returns: v.object({ count: v.number() }),
-  handler: async (step, args): Promise<{ count: number }> => {
-    const job = await step.runQuery(
-      projectionApi.getJob,
-      { jobId: args.jobId },
-      { inline: true },
+async function loadCurrentEntryIdsPaginated(
+  ctx: { runQuery: (...args: any[]) => Promise<any> },
+  namespace: string,
+): Promise<string[]> {
+  const ids: string[] = [];
+  let cursor: string | null = null;
+  let isDone = false;
+  while (!isDone) {
+    const result: PaginatedVersions = await ctx.runQuery(
+      projApi.loadCurrentEntryIdPage,
+      { namespace, paginationOpts: { cursor, numItems: EMBEDDING_PAGE_SIZE } },
     );
+    for (const row of result.page) {
+      if (row.data.status === "current") ids.push(row.entryId);
+    }
+    cursor = result.continueCursor;
+    isDone = result.isDone;
+  }
+  return ids;
+}
+
+// ---------------------------------------------------------------------------
+// Fat action: load data, run UMAP, write points to table
+// ---------------------------------------------------------------------------
+
+export const computeProjection = internalAction({
+  args: { jobId: v.string(), limit: v.number() },
+  handler: async (ctx, args) => {
+    const job = await ctx.runQuery(projectionApi.getJob, { jobId: args.jobId });
     if (!job) throw new Error(`Projection job ${args.jobId} not found`);
 
-    try {
-      const embeddings: Array<{ entryId: string; embedding: number[] }> = [];
-      let cursor: string | null = null;
-      let isDone = false;
-      while (!isDone && embeddings.length < job.limit) {
-        const result: PaginatedEmbeddings = await step.runQuery(
-          projectionApi.loadEmbeddingPage,
-          {
-            namespace: job.namespace,
-            paginationOpts: {
-              cursor,
-              numItems: Math.min(
-                EMBEDDING_PAGE_SIZE,
-                job.limit - embeddings.length,
-              ),
-            },
-          },
-          { inline: true },
-        );
-        embeddings.push(...result.page);
-        cursor = result.continueCursor;
-        isDone = result.isDone;
+    await ctx.runMutation(projectionApi.updatePhase, {
+      jobId: args.jobId,
+      phase: "loading",
+      loadedCount: 0,
+    });
+
+    // 1. Load embeddings (paginated)
+    const embeddings: Array<{ entryId: string; embedding: number[] }> = [];
+    let cursor: string | null = null;
+    let isDone = false;
+    while (!isDone) {
+      const result: PaginatedEmbeddings = await ctx.runQuery(
+        projectionApi.loadEmbeddingPage,
+        { namespace: job.namespace, paginationOpts: { cursor, numItems: EMBEDDING_PAGE_SIZE } },
+      );
+      embeddings.push(...result.page);
+      cursor = result.continueCursor;
+      isDone = result.isDone;
+    }
+
+    // 2. Load current entry IDs (paginated)
+    const currentEntryIds = await loadCurrentEntryIdsPaginated(ctx, job.namespace);
+    const currentSet = new Set(currentEntryIds);
+    let currentEmbeddings = embeddings.filter((e) => currentSet.has(e.entryId));
+
+    // 3. Sample if exceeding limit
+    if (currentEmbeddings.length > args.limit) {
+      shuffle(currentEmbeddings);
+      currentEmbeddings = currentEmbeddings.slice(0, args.limit);
+    }
+
+    await ctx.runMutation(projectionApi.updatePhase, {
+      jobId: args.jobId,
+      phase: "loading",
+      loadedCount: currentEmbeddings.length,
+    });
+
+    if (currentEmbeddings.length === 0) {
+      await ctx.runMutation(projectionApi.markCompleted, {
+        jobId: args.jobId,
+        pointCount: 0,
+      });
+      return { count: 0 };
+    }
+
+    // 4. Load entry metadata (paginated)
+    const entryMap = new Map<
+      string,
+      { key: string; title?: string; textPreview: string }
+    >();
+    let entryCursor: string | null = null;
+    let entriesDone = false;
+    while (!entriesDone) {
+      const entryResult: PaginatedEntries = await ctx.runQuery(
+        projectionApi.loadEntryPage,
+        { namespace: job.namespace, paginationOpts: { cursor: entryCursor, numItems: EMBEDDING_PAGE_SIZE } },
+      );
+      for (const entry of entryResult.page) {
+        entryMap.set(entry.entryId, {
+          key: entry.key,
+          title: entry.title,
+          textPreview: entry.textPreview,
+        });
       }
+      entryCursor = entryResult.continueCursor;
+      entriesDone = entryResult.isDone;
+    }
 
-      const currentEntryIds: string[] = await step.runQuery(
-        projectionApi.loadCurrentEntryIds,
-        { namespace: job.namespace },
-        { inline: true },
-      );
-      const currentSet = new Set(currentEntryIds);
-      const currentEmbeddings = embeddings.filter((e) =>
-        currentSet.has(e.entryId),
-      );
+    // 5. Load file metas in batches
+    const entryIds = currentEmbeddings.map((e) => e.entryId);
+    const fileMap = new Map<string, string>();
+    for (let i = 0; i < entryIds.length; i += FILE_META_BATCH_SIZE) {
+      const batch = entryIds.slice(i, i + FILE_META_BATCH_SIZE);
+      const metas: Array<{ entryId: string; mimeType: string }> =
+        await ctx.runQuery(internal.context.projections.loadFileMetas, {
+          entryIds: batch,
+        });
+      for (const m of metas) fileMap.set(m.entryId, m.mimeType);
+    }
 
-      await step.runMutation(
-        projectionApi.updatePhase,
-        {
-          jobId: args.jobId,
-          phase: "loading",
-          loadedCount: currentEmbeddings.length,
-        },
-        { inline: true },
-      );
+    // 6. Build seeds and run UMAP
+    const seeds = currentEmbeddings
+      .map((emb) => {
+        const meta = entryMap.get(emb.entryId);
+        if (!meta) return null;
+        return {
+          entryId: emb.entryId,
+          key: meta.key,
+          title: meta.title,
+          textPreview: meta.textPreview,
+          mimeType: fileMap.get(emb.entryId),
+          embedding: emb.embedding,
+        };
+      })
+      .filter((s): s is NonNullable<typeof s> => s !== null);
 
-      const entryMap = new Map<
-        string,
-        { key: string; title?: string; textPreview: string }
-      >();
-      let entryCursor: string | null = null;
-      let entriesDone = false;
-      while (!entriesDone) {
-        const entryResult: PaginatedEntries = await step.runQuery(
-          projectionApi.loadEntryPage,
-          {
-            namespace: job.namespace,
-            paginationOpts: {
-              cursor: entryCursor,
-              numItems: EMBEDDING_PAGE_SIZE,
-            },
-          },
-          { inline: true },
-        );
-        for (const entry of entryResult.page) {
-          entryMap.set(entry.entryId, {
-            key: entry.key,
-            title: entry.title,
-            textPreview: entry.textPreview,
-          });
-        }
-        entryCursor = entryResult.continueCursor;
-        entriesDone = entryResult.isDone;
+    await ctx.runMutation(projectionApi.updatePhase, {
+      jobId: args.jobId,
+      phase: "projecting",
+      loadedCount: seeds.length,
+    });
+
+    const coords = projectCoordinates(seeds.map((s) => s.embedding));
+    const points: ProjectionPoint[] = seeds.map((s, i) => ({
+      entryId: s.entryId,
+      key: s.key,
+      title: s.title,
+      textPreview: s.textPreview,
+      mimeType: s.mimeType,
+      x: coords[i]?.[0] ?? 0,
+      y: coords[i]?.[1] ?? 0,
+      z: coords[i]?.[2] ?? 0,
+    }));
+
+    // 7. Clear old points from any previous completed job
+    const latestProjection = await ctx.runQuery(
+      projectionApi.getLatestProjection,
+      { namespace: job.namespace },
+    );
+    if (
+      latestProjection &&
+      "jobId" in latestProjection &&
+      latestProjection.status === "completed" &&
+      latestProjection.jobId !== args.jobId
+    ) {
+      let hasMore = true;
+      while (hasMore) {
+        const result = (await ctx.runMutation(projApi.clearPointsForJob, {
+          jobId: latestProjection.jobId,
+        })) as { hasMore: boolean };
+        hasMore = result.hasMore;
       }
+    }
 
-      const entryIds = currentEmbeddings.map((e) => e.entryId);
-      const fileMetas: FileMeta[] = await step.runQuery(
-        internal.context.projections.loadFileMetas,
-        { entryIds },
-        { inline: true },
-      );
-      const fileMap = new Map(fileMetas.map((f) => [f.entryId, f.mimeType]));
+    // 8. Write new points in batches
+    for (let i = 0; i < points.length; i += POINTS_BATCH_SIZE) {
+      await ctx.runMutation(projApi.writePointsBatch, {
+        jobId: args.jobId,
+        points: points.slice(i, i + POINTS_BATCH_SIZE),
+      });
+    }
 
-      const seeds = currentEmbeddings
-        .map((emb) => {
-          const meta = entryMap.get(emb.entryId);
-          if (!meta) return null;
-          return {
-            entryId: emb.entryId,
-            key: meta.key,
-            title: meta.title,
-            textPreview: meta.textPreview,
-            mimeType: fileMap.get(emb.entryId),
-            embedding: emb.embedding,
-          };
-        })
-        .filter((s): s is NonNullable<typeof s> => s !== null);
+    // 9. Mark completed
+    await ctx.runMutation(projectionApi.markCompleted, {
+      jobId: args.jobId,
+      pointCount: points.length,
+    });
 
-      await step.runMutation(
-        projectionApi.updatePhase,
-        { jobId: args.jobId, phase: "projecting", loadedCount: seeds.length },
-        { inline: true },
-      );
+    return { count: points.length };
+  },
+});
 
-      const points: ProjectionPoint[] = await step.runAction(
-        internal.context.projections.projectEmbeddingCloud,
-        { seeds },
-      );
+// ---------------------------------------------------------------------------
+// onComplete handler
+// ---------------------------------------------------------------------------
 
-      await step.runMutation(
-        projectionApi.markCompleted,
-        { jobId: args.jobId, points },
-        { inline: true },
-      );
-
-      return { count: points.length };
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Projection failed";
-      await step.runMutation(
-        projectionApi.markFailed,
-        { jobId: args.jobId, error: message },
-        { inline: true },
-      );
-      throw error;
+export const onProjectionComplete = pool.defineOnComplete({
+  context: v.object({ jobId: v.string() }),
+  handler: async (ctx, { context, result }) => {
+    if (result.kind !== "success") {
+      const error = result.kind === "failed" ? result.error : "Canceled";
+      await ctx.runMutation(projectionApi.markFailed, {
+        jobId: context.jobId,
+        error,
+      });
     }
   },
 });
+
+// ---------------------------------------------------------------------------
+// File meta loader (batched by caller)
+// ---------------------------------------------------------------------------
 
 export const loadFileMetas = internalQuery({
   args: { entryIds: v.array(v.string()) },
@@ -274,6 +330,10 @@ export const loadFileMetas = internalQuery({
   },
 });
 
+// ---------------------------------------------------------------------------
+// Public entry point
+// ---------------------------------------------------------------------------
+
 export const startContextProjection = action({
   args: {
     namespace: v.string(),
@@ -286,17 +346,18 @@ export const startContextProjection = action({
       limit,
     });
     try {
-      const workflowId = String(
-        await workflowManager.start(
-          ctx,
-          internal.context.projections.runContextProjectionWorkflow,
-          { jobId },
-          { startAsync: true },
-        ),
+      const workId = await pool.enqueueAction(
+        ctx,
+        internal.context.projections.computeProjection,
+        { jobId, limit },
+        {
+          onComplete: internal.context.projections.onProjectionComplete,
+          context: { jobId },
+        },
       );
       await ctx.runMutation(projectionApi.markRunning, {
         jobId,
-        workflowId,
+        workflowId: String(workId),
       });
       return { jobId, status: "running" as const };
     } catch (error) {
@@ -310,6 +371,10 @@ export const startContextProjection = action({
     }
   },
 });
+
+// ---------------------------------------------------------------------------
+// Query wrappers
+// ---------------------------------------------------------------------------
 
 export const getContextProjectionStatus = query({
   args: { jobId: v.string() },

@@ -1497,48 +1497,19 @@ export declare const components: {
         >;
       };
       projection: {
+        clearPointsForJob: FunctionReference<
+          "mutation",
+          "internal",
+          { jobId: string },
+          { hasMore: boolean }
+        >;
         createJob: FunctionReference<
           "mutation",
           "internal",
           { limit: number; namespace: string },
           string
         >;
-        getJob: FunctionReference<
-          "query",
-          "internal",
-          { jobId: string },
-          null | {
-            _creationTime: number;
-            _id: string;
-            data:
-              | { status: "pending" }
-              | {
-                  loadedCount: number;
-                  phase: "loading" | "projecting";
-                  status: "running";
-                  workflowId: string;
-                }
-              | {
-                  completionTime: number;
-                  points: Array<{
-                    entryId: string;
-                    key: string;
-                    mimeType?: string;
-                    textPreview: string;
-                    title?: string;
-                    x: number;
-                    y: number;
-                    z: number;
-                  }>;
-                  status: "completed";
-                }
-              | { error: string; failureTime: number; status: "failed" };
-            limit: number;
-            namespace: string;
-            stale: boolean;
-            updateTime: number;
-          }
-        >;
+        getJob: FunctionReference<"query", "internal", { jobId: string }, any>;
         getLatestProjection: FunctionReference<
           "query",
           "internal",
@@ -1606,6 +1577,22 @@ export declare const components: {
               status: "running";
             }
           | { namespace: string; stale: boolean; status: "pending" }
+        >;
+        loadCurrentEntryIdPage: FunctionReference<
+          "query",
+          "internal",
+          {
+            namespace: string;
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
+          },
+          any
         >;
         loadCurrentEntryIds: FunctionReference<
           "query",
@@ -1689,19 +1676,7 @@ export declare const components: {
         markCompleted: FunctionReference<
           "mutation",
           "internal",
-          {
-            jobId: string;
-            points: Array<{
-              entryId: string;
-              key: string;
-              mimeType?: string;
-              textPreview: string;
-              title?: string;
-              x: number;
-              y: number;
-              z: number;
-            }>;
-          },
+          { jobId: string; pointCount: number },
           null
         >;
         markFailed: FunctionReference<
@@ -1729,6 +1704,24 @@ export declare const components: {
             jobId: string;
             loadedCount?: number;
             phase: "loading" | "projecting";
+          },
+          null
+        >;
+        writePointsBatch: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            jobId: string;
+            points: Array<{
+              entryId: string;
+              key: string;
+              mimeType?: string;
+              textPreview: string;
+              title?: string;
+              x: number;
+              y: number;
+              z: number;
+            }>;
           },
           null
         >;

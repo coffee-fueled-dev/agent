@@ -20,6 +20,35 @@ const communityApi = components.context.public.community;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- staging functions are generated after codegen
 const staging = communityApi as Record<string, any>;
 const projectionApi = components.context.public.projection;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- paginated loader available after codegen
+const projApi = projectionApi as Record<string, any>;
+
+type PaginatedVersions = PaginationResult<{
+  entryId: string;
+  data: { status: string };
+}>;
+
+async function loadCurrentEntryIdsPaginated(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ctx: { runQuery: (...args: any[]) => Promise<any> },
+  namespace: string,
+): Promise<string[]> {
+  const ids: string[] = [];
+  let cursor: string | null = null;
+  let isDone = false;
+  while (!isDone) {
+    const result: PaginatedVersions = await ctx.runQuery(
+      projApi.loadCurrentEntryIdPage,
+      { namespace, paginationOpts: { cursor, numItems: EMBEDDING_PAGE_SIZE } },
+    );
+    for (const row of result.page) {
+      if (row.data.status === "current") ids.push(row.entryId);
+    }
+    cursor = result.continueCursor;
+    isDone = result.isDone;
+  }
+  return ids;
+}
 
 type PaginatedEmbeddings = PaginationResult<{
   entryId: string;
@@ -66,10 +95,7 @@ export const computeAndStageGraph = internalAction({
       isDone = result.isDone;
     }
 
-    const currentEntryIds: string[] = await ctx.runQuery(
-      projectionApi.loadCurrentEntryIds,
-      { namespace: job.namespace },
-    );
+    const currentEntryIds = await loadCurrentEntryIdsPaginated(ctx, job.namespace);
     const currentSet = new Set(currentEntryIds);
     const currentEmbeddings = embeddings.filter((e) => currentSet.has(e.entryId));
 
@@ -174,10 +200,7 @@ export const computeAndStageLeiden = internalAction({
     }
 
     // Load current entry IDs as node set
-    const currentEntryIds: string[] = await ctx.runQuery(
-      projectionApi.loadCurrentEntryIds,
-      { namespace: job.namespace },
-    );
+    const currentEntryIds = await loadCurrentEntryIdsPaginated(ctx, job.namespace);
 
     // Build adjacency and run Leiden
     const adj = new Map<string, Map<string, number>>();

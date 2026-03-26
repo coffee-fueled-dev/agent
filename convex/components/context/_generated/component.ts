@@ -550,6 +550,13 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         >;
       };
       projection: {
+        clearPointsForJob: FunctionReference<
+          "mutation",
+          "internal",
+          { jobId: string },
+          { hasMore: boolean },
+          Name
+        >;
         createJob: FunctionReference<
           "mutation",
           "internal",
@@ -561,37 +568,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           "query",
           "internal",
           { jobId: string },
-          null | {
-            _creationTime: number;
-            _id: string;
-            data:
-              | { status: "pending" }
-              | {
-                  loadedCount: number;
-                  phase: "loading" | "projecting";
-                  status: "running";
-                  workflowId: string;
-                }
-              | {
-                  completionTime: number;
-                  points: Array<{
-                    entryId: string;
-                    key: string;
-                    mimeType?: string;
-                    textPreview: string;
-                    title?: string;
-                    x: number;
-                    y: number;
-                    z: number;
-                  }>;
-                  status: "completed";
-                }
-              | { error: string; failureTime: number; status: "failed" };
-            limit: number;
-            namespace: string;
-            stale: boolean;
-            updateTime: number;
-          },
+          any,
           Name
         >;
         getLatestProjection: FunctionReference<
@@ -662,6 +639,23 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
               status: "running";
             }
           | { namespace: string; stale: boolean; status: "pending" },
+          Name
+        >;
+        loadCurrentEntryIdPage: FunctionReference<
+          "query",
+          "internal",
+          {
+            namespace: string;
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
+          },
+          any,
           Name
         >;
         loadCurrentEntryIds: FunctionReference<
@@ -749,19 +743,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         markCompleted: FunctionReference<
           "mutation",
           "internal",
-          {
-            jobId: string;
-            points: Array<{
-              entryId: string;
-              key: string;
-              mimeType?: string;
-              textPreview: string;
-              title?: string;
-              x: number;
-              y: number;
-              z: number;
-            }>;
-          },
+          { jobId: string; pointCount: number },
           null,
           Name
         >;
@@ -793,6 +775,25 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             jobId: string;
             loadedCount?: number;
             phase: "loading" | "projecting";
+          },
+          null,
+          Name
+        >;
+        writePointsBatch: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            jobId: string;
+            points: Array<{
+              entryId: string;
+              key: string;
+              mimeType?: string;
+              textPreview: string;
+              title?: string;
+              x: number;
+              y: number;
+              z: number;
+            }>;
           },
           null,
           Name
