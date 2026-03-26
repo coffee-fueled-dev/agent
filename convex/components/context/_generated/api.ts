@@ -17,6 +17,7 @@ import type * as internal_rag from "../internal/rag.js";
 import type * as internal_status from "../internal/status.js";
 import type * as internal_versionStore from "../internal/versionStore.js";
 import type * as public_add from "../public/add.js";
+import type * as public_community from "../public/community.js";
 import type * as public_context from "../public/context.js";
 import type * as public_history from "../public/history.js";
 import type * as public_list from "../public/list.js";
@@ -41,6 +42,7 @@ const fullApi: ApiFromModules<{
   "internal/status": typeof internal_status;
   "internal/versionStore": typeof internal_versionStore;
   "public/add": typeof public_add;
+  "public/community": typeof public_community;
   "public/context": typeof public_context;
   "public/history": typeof public_history;
   "public/list": typeof public_list;

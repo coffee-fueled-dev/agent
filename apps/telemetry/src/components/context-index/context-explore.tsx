@@ -1,8 +1,9 @@
-import { Bounds, Html, OrbitControls } from "@react-three/drei";
+import { Bounds, Html, Line, OrbitControls } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { useAction, useQuery } from "convex/react";
 import { LoaderCircleIcon, RefreshCwIcon } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { useDebounceValue } from "usehooks-ts";
 import { api } from "../../../../../convex/_generated/api.js";
 import { PageSection } from "../layout/page-section";
 import { Button } from "../ui/button.js";
@@ -22,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
+import { Spinner } from "../ui/spinner.js";
 import {
   Tooltip,
   TooltipContent,
@@ -32,6 +34,8 @@ import { MimeTypeIcon } from "./mime-type-icon.js";
 import { useNamespace } from "./use-namespace";
 
 const LIMIT_OPTIONS = ["48", "96", "144", "240"];
+const SCALE = 7;
+const HOVER_DEBOUNCE_MS = 120;
 
 type ProjectionPoint = {
   entryId: string;
@@ -46,21 +50,30 @@ type ProjectionPoint = {
 
 function ProjectionMarker({
   point,
+  dimmed,
   onSelect,
+  onHoverStart,
+  onHoverEnd,
 }: {
   point: ProjectionPoint;
+  dimmed: boolean;
   onSelect: (point: ProjectionPoint) => void;
+  onHoverStart: (entryId: string) => void;
+  onHoverEnd: (entryId: string) => void;
 }) {
   return (
-    <group position={[point.x * 7, point.y * 7, point.z * 7]}>
+    <group position={[point.x * SCALE, point.y * SCALE, point.z * SCALE]}>
       <Html center zIndexRange={[250, -250]}>
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 size="icon-sm"
-                className="rounded-full"
+                className="rounded-full transition-opacity duration-200"
+                style={{ opacity: dimmed ? 0.15 : 1 }}
                 onClick={() => onSelect(point)}
+                onPointerEnter={() => onHoverStart(point.entryId)}
+                onPointerLeave={() => onHoverEnd(point.entryId)}
               >
                 <MimeTypeIcon mimeType={point.mimeType} className="size-3" />
               </Button>
@@ -75,13 +88,79 @@ function ProjectionMarker({
   );
 }
 
+function EdgeLines({
+  hoveredId,
+  neighbors,
+  posMap,
+}: {
+  hoveredId: string;
+  neighbors: Array<{ id: string; score: number }>;
+  posMap: Map<string, [number, number, number]>;
+}) {
+  const origin = posMap.get(hoveredId);
+  if (!origin) return null;
+
+  const scores = neighbors.map((n) => n.score);
+  const minScore = Math.min(...scores, 0);
+  const maxScore = Math.max(...scores, 1);
+  const range = maxScore - minScore || 1;
+
+  return (
+    <>
+      {neighbors.map((n) => {
+        const target = posMap.get(n.id);
+        if (!target) return null;
+        const normalized = (n.score - minScore) / range;
+        const opacity = 0.15 + normalized * 0.85;
+        const lineWidth = 0.5 + normalized * 1.5;
+        return (
+          <Line
+            key={n.id}
+            points={[origin, target]}
+            color="var(--color-primary)"
+            lineWidth={lineWidth}
+            transparent
+            opacity={opacity}
+          />
+        );
+      })}
+    </>
+  );
+}
+
 function ExploreScene({
   points,
   onSelect,
+  hoveredEntryId,
+  onHoverStart,
+  onHoverEnd,
+  hoverData,
 }: {
   points: ProjectionPoint[];
   onSelect: (point: ProjectionPoint) => void;
+  hoveredEntryId: string | null;
+  onHoverStart: (entryId: string) => void;
+  onHoverEnd: (entryId: string) => void;
+  hoverData:
+    | {
+        neighbors: Array<{ id: string; score: number }>;
+        communityMembers: string[];
+      }
+    | undefined;
 }) {
+  const posMap = useMemo(() => {
+    const m = new Map<string, [number, number, number]>();
+    for (const p of points) {
+      m.set(p.entryId, [p.x * SCALE, p.y * SCALE, p.z * SCALE]);
+    }
+    return m;
+  }, [points]);
+
+  const communitySet = useMemo(() => {
+    if (!hoverData?.communityMembers.length) return null;
+    return new Set(hoverData.communityMembers);
+  }, [hoverData]);
+
   return (
     <Canvas camera={{ position: [0, 0, 4.8], fov: 50 }}>
       <color attach="background" args={["var(--card)"]} />
@@ -93,9 +172,23 @@ function ExploreScene({
           <ProjectionMarker
             key={point.entryId}
             point={point}
+            dimmed={
+              communitySet !== null &&
+              point.entryId !== hoveredEntryId &&
+              !communitySet.has(point.entryId)
+            }
             onSelect={onSelect}
+            onHoverStart={onHoverStart}
+            onHoverEnd={onHoverEnd}
           />
         ))}
+        {hoveredEntryId && hoverData && (
+          <EdgeLines
+            hoveredId={hoveredEntryId}
+            neighbors={hoverData.neighbors}
+            posMap={posMap}
+          />
+        )}
       </Bounds>
       <OrbitControls enableDamping makeDefault />
     </Canvas>
@@ -168,6 +261,9 @@ export function ContextExplore({
   const startProjection = useAction(
     api.context.projections.startContextProjection,
   );
+  const startCommunity = useAction(
+    api.context.communities.startContextCommunityWorkflow,
+  );
   const activeStatus = useQuery(
     api.context.projections.getContextProjectionStatus,
     activeJobId ? { jobId: activeJobId } : "skip",
@@ -179,10 +275,13 @@ export function ContextExplore({
     setIsStarting(true);
     setStartError(null);
     setActiveJobId(null);
-    void startProjection({ namespace, limit: Number(limit) })
-      .then((result) => {
+    void Promise.all([
+      startProjection({ namespace, limit: Number(limit) }),
+      startCommunity({ namespace }),
+    ])
+      .then(([projResult]) => {
         if (requestRef.current !== requestId) return;
-        setActiveJobId(result.jobId);
+        setActiveJobId(projResult.jobId);
       })
       .catch((error) => {
         if (requestRef.current !== requestId) return;
@@ -195,7 +294,7 @@ export function ContextExplore({
       .finally(() => {
         if (requestRef.current === requestId) setIsStarting(false);
       });
-  }, [namespace, limit, startProjection]);
+  }, [namespace, limit, startProjection, startCommunity]);
 
   const isRefreshing =
     isStarting ||
@@ -207,10 +306,14 @@ export function ContextExplore({
     displayStatus?.status === "completed" ? displayStatus.points : [];
   const isStale = displayStatus?.status === "completed" && displayStatus.stale;
   const hasNoData = cached === null && !activeJobId;
+  const cachedIsStuck =
+    !activeJobId &&
+    (cached?.status === "running" || cached?.status === "pending");
   const canRegenerate =
-    !isRefreshing &&
+    !isStarting &&
     (hasNoData ||
       isStale ||
+      cachedIsStuck ||
       displayStatus?.status === "failed" ||
       displayStatus?.status === "completed");
   const isLoading = cached === undefined;
@@ -218,6 +321,31 @@ export function ContextExplore({
     activeStatus?.status === "running" ? activeStatus.phase : undefined;
 
   const [selected, setSelected] = useState<ProjectionPoint | null>(null);
+
+  // Hover state: raw entry ID set immediately, debounced for the query
+  const [rawHoveredId, setRawHoveredId] = useState<string | null>(null);
+  const leaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [debouncedHoveredId] = useDebounceValue(
+    rawHoveredId,
+    HOVER_DEBOUNCE_MS,
+  );
+
+  const onHoverStart = useCallback((entryId: string) => {
+    if (leaveTimer.current) {
+      clearTimeout(leaveTimer.current);
+      leaveTimer.current = null;
+    }
+    setRawHoveredId(entryId);
+  }, []);
+
+  const onHoverEnd = useCallback(() => {
+    leaveTimer.current = setTimeout(() => setRawHoveredId(null), 300);
+  }, []);
+
+  const hoverData = useQuery(
+    api.context.communities.getEntryGraphContext,
+    debouncedHoveredId ? { namespace, entryId: debouncedHoveredId } : "skip",
+  );
 
   return (
     <PageSection.Body variant="card" className="gap-4">
@@ -235,7 +363,7 @@ export function ContextExplore({
           )}
           {isRefreshing && (
             <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <LoaderCircleIcon className="size-3.5 animate-spin" />
+              <Spinner />
               {phase === "projecting" ? "Projecting" : "Loading"}
             </span>
           )}
@@ -275,7 +403,7 @@ export function ContextExplore({
           </div>
         ) : isLoading ? (
           <div className="flex h-full flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
-            <LoaderCircleIcon className="size-5 animate-spin" />
+            <Spinner />
             <span>Loading...</span>
           </div>
         ) : points.length === 0 ? (
@@ -285,7 +413,14 @@ export function ContextExplore({
               : "No projected points available for this namespace."}
           </div>
         ) : (
-          <ExploreScene points={points} onSelect={setSelected} />
+          <ExploreScene
+            points={points}
+            onSelect={setSelected}
+            hoveredEntryId={debouncedHoveredId}
+            onHoverStart={onHoverStart}
+            onHoverEnd={onHoverEnd}
+            hoverData={hoverData ?? undefined}
+          />
         )}
       </div>
 

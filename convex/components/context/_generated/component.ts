@@ -61,6 +61,152 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           Name
         >;
       };
+      community: {
+        clearAssignments: FunctionReference<
+          "mutation",
+          "internal",
+          { jobId: string },
+          null,
+          Name
+        >;
+        createJob: FunctionReference<
+          "mutation",
+          "internal",
+          { namespace: string; params: { k: number; resolution: number } },
+          string,
+          Name
+        >;
+        createSimilarityEdgeBatch: FunctionReference<
+          "mutation",
+          "internal",
+          { edges: Array<{ from: string; score: number; to: string }> },
+          number,
+          Name
+        >;
+        deleteSimilarityEdgesForEntries: FunctionReference<
+          "mutation",
+          "internal",
+          { entryIds: Array<string> },
+          number,
+          Name
+        >;
+        getCommunityForEntry: FunctionReference<
+          "query",
+          "internal",
+          { entryId: string; namespace: string },
+          null | { communityId: number },
+          Name
+        >;
+        getCommunityMembers: FunctionReference<
+          "query",
+          "internal",
+          { communityId: number; namespace: string },
+          Array<string>,
+          Name
+        >;
+        getJob: FunctionReference<
+          "query",
+          "internal",
+          { jobId: string },
+          any,
+          Name
+        >;
+        getLatestCommunities: FunctionReference<
+          "query",
+          "internal",
+          { namespace: string },
+          | null
+          | {
+              communities: Array<{
+                id: number;
+                memberCount: number;
+                sampleEntryIds: Array<string>;
+              }>;
+              completionTime: number;
+              edgeCount: number;
+              entryCount: number;
+              jobId: string;
+              stale: boolean;
+              status: "completed";
+            }
+          | {
+              jobId: string;
+              loadedCount: number;
+              phase: "loading" | "building" | "detecting" | "writing";
+              stale: boolean;
+              status: "running";
+            }
+          | { error: string; jobId: string; stale: boolean; status: "failed" }
+          | { jobId: string; stale: boolean; status: "pending" },
+          Name
+        >;
+        getNeighborEdges: FunctionReference<
+          "query",
+          "internal",
+          { entryId: string },
+          Array<{ neighbor: string; score: number }>,
+          Name
+        >;
+        markCommunitiesStale: FunctionReference<
+          "mutation",
+          "internal",
+          { namespace: string },
+          null,
+          Name
+        >;
+        markCompleted: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            communities: Array<{
+              id: number;
+              memberCount: number;
+              sampleEntryIds: Array<string>;
+            }>;
+            edgeCount: number;
+            entryCount: number;
+            jobId: string;
+          },
+          null,
+          Name
+        >;
+        markFailed: FunctionReference<
+          "mutation",
+          "internal",
+          { error: string; jobId: string },
+          null,
+          Name
+        >;
+        markRunning: FunctionReference<
+          "mutation",
+          "internal",
+          { jobId: string; workflowId: string },
+          null,
+          Name
+        >;
+        updatePhase: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            jobId: string;
+            loadedCount?: number;
+            phase: "loading" | "building" | "detecting" | "writing";
+          },
+          null,
+          Name
+        >;
+        writeAssignments: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            assignments: Array<{ communityId: number; entryId: string }>;
+            jobId: string;
+            namespace: string;
+          },
+          null,
+          Name
+        >;
+      };
       context: {
         add: FunctionReference<
           "action",

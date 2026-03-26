@@ -124,4 +124,28 @@ export class ContextClient {
       args,
     );
   };
+
+  getLatestCommunities = async (
+    ctx: RunQueryCtx,
+    args: FunctionArgs<
+      typeof this.component.public.community.getLatestCommunities
+    >,
+  ) => {
+    return await ctx.runQuery(
+      this.component.public.community.getLatestCommunities,
+      args,
+    );
+  };
+
+  getCommunityForEntry = async (
+    ctx: RunQueryCtx,
+    args: FunctionArgs<
+      typeof this.component.public.community.getCommunityForEntry
+    >,
+  ) => {
+    return await ctx.runQuery(
+      this.component.public.community.getCommunityForEntry,
+      args,
+    );
+  };
 }

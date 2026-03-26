@@ -89,4 +89,56 @@ export default defineSchema({
       }),
     ),
   }).index("by_namespace", ["namespace"]),
+
+  contextCommunityJobs: defineTable({
+    namespace: v.string(),
+    stale: v.boolean(),
+    updateTime: v.number(),
+    params: v.object({
+      k: v.number(),
+      resolution: v.number(),
+    }),
+    data: v.union(
+      v.object({ status: v.literal("pending") }),
+      v.object({
+        status: v.literal("running"),
+        workflowId: v.string(),
+        phase: v.union(
+          v.literal("loading"),
+          v.literal("building"),
+          v.literal("detecting"),
+          v.literal("writing"),
+        ),
+        loadedCount: v.number(),
+      }),
+      v.object({
+        status: v.literal("completed"),
+        completionTime: v.number(),
+        communities: v.array(
+          v.object({
+            id: v.number(),
+            memberCount: v.number(),
+            sampleEntryIds: v.array(v.string()),
+          }),
+        ),
+        entryCount: v.number(),
+        edgeCount: v.number(),
+      }),
+      v.object({
+        status: v.literal("failed"),
+        error: v.string(),
+        failureTime: v.number(),
+      }),
+    ),
+  }).index("by_namespace", ["namespace"]),
+
+  contextCommunityAssignments: defineTable({
+    namespace: v.string(),
+    entryId: v.string(),
+    communityId: v.number(),
+    jobId: v.id("contextCommunityJobs"),
+  })
+    .index("by_namespace_entryId", ["namespace", "entryId"])
+    .index("by_namespace_communityId", ["namespace", "communityId"])
+    .index("by_jobId", ["jobId"]),
 });

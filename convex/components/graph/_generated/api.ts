@@ -12,6 +12,8 @@ import type * as client_index from "../client/index.js";
 import type * as internal_aggregate from "../internal/aggregate.js";
 import type * as internal_canonical from "../internal/canonical.js";
 import type * as internal_normalize from "../internal/normalize.js";
+import type * as lib_knn from "../lib/knn.js";
+import type * as lib_leiden from "../lib/leiden.js";
 import type * as public_edges from "../public/edges.js";
 import type * as public_labels from "../public/labels.js";
 import type * as public_nodes from "../public/nodes.js";
@@ -29,6 +31,8 @@ const fullApi: ApiFromModules<{
   "internal/aggregate": typeof internal_aggregate;
   "internal/canonical": typeof internal_canonical;
   "internal/normalize": typeof internal_normalize;
+  "lib/knn": typeof lib_knn;
+  "lib/leiden": typeof lib_leiden;
   "public/edges": typeof public_edges;
   "public/labels": typeof public_labels;
   "public/nodes": typeof public_nodes;

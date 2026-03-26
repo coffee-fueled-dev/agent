@@ -191,6 +191,9 @@ export const add = action({
     await ctx.runMutation(api.public.projection.markProjectionsStale, {
       namespace: args.namespace,
     });
+    await ctx.runMutation(api.public.community.markCommunitiesStale, {
+      namespace: args.namespace,
+    });
 
     await createSimilarityEdges(ctx, {
       entryId: result.entryId,
@@ -285,6 +288,9 @@ export const remove = action({
       entryId: args.entryId,
     });
     await ctx.runMutation(api.public.projection.markProjectionsStale, {
+      namespace: args.namespace,
+    });
+    await ctx.runMutation(api.public.community.markCommunitiesStale, {
       namespace: args.namespace,
     });
     await graph.nodes.delete(ctx, {
@@ -444,6 +450,9 @@ export const edit = action({
     });
 
     await ctx.runMutation(api.public.projection.markProjectionsStale, {
+      namespace: args.namespace,
+    });
+    await ctx.runMutation(api.public.community.markCommunitiesStale, {
       namespace: args.namespace,
     });
 

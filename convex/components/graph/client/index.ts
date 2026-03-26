@@ -11,6 +11,8 @@ import type { Validator } from "convex/values";
 import type { ComponentApi } from "../_generated/component";
 
 export { normalizeLabel } from "../internal/normalize";
+export { buildKnnGraph } from "../lib/knn";
+export { leiden } from "../lib/leiden";
 
 type RunMutationCtx = Pick<GenericMutationCtx<GenericDataModel>, "runMutation">;
 type RunQueryCtx = Pick<GenericQueryCtx<GenericDataModel>, "runQuery">;

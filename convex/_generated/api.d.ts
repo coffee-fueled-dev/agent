@@ -9,6 +9,7 @@
  */
 
 import type * as aggregate from "../aggregate.js";
+import type * as context_communities from "../context/communities.js";
 import type * as context_contextApi from "../context/contextApi.js";
 import type * as context_embeddingCacheHttp from "../context/embeddingCacheHttp.js";
 import type * as context_embeddingCacheStore from "../context/embeddingCacheStore.js";
@@ -71,6 +72,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   aggregate: typeof aggregate;
+  "context/communities": typeof context_communities;
   "context/contextApi": typeof context_contextApi;
   "context/embeddingCacheHttp": typeof context_embeddingCacheHttp;
   "context/embeddingCacheStore": typeof context_embeddingCacheStore;
@@ -1037,6 +1039,132 @@ export declare const components: {
                 };
             textPreview: string;
             title?: string;
+          },
+          null
+        >;
+      };
+      community: {
+        clearAssignments: FunctionReference<
+          "mutation",
+          "internal",
+          { jobId: string },
+          null
+        >;
+        createJob: FunctionReference<
+          "mutation",
+          "internal",
+          { namespace: string; params: { k: number; resolution: number } },
+          string
+        >;
+        createSimilarityEdgeBatch: FunctionReference<
+          "mutation",
+          "internal",
+          { edges: Array<{ from: string; score: number; to: string }> },
+          number
+        >;
+        deleteSimilarityEdgesForEntries: FunctionReference<
+          "mutation",
+          "internal",
+          { entryIds: Array<string> },
+          number
+        >;
+        getCommunityForEntry: FunctionReference<
+          "query",
+          "internal",
+          { entryId: string; namespace: string },
+          null | { communityId: number }
+        >;
+        getCommunityMembers: FunctionReference<
+          "query",
+          "internal",
+          { communityId: number; namespace: string },
+          Array<string>
+        >;
+        getJob: FunctionReference<"query", "internal", { jobId: string }, any>;
+        getLatestCommunities: FunctionReference<
+          "query",
+          "internal",
+          { namespace: string },
+          | null
+          | {
+              communities: Array<{
+                id: number;
+                memberCount: number;
+                sampleEntryIds: Array<string>;
+              }>;
+              completionTime: number;
+              edgeCount: number;
+              entryCount: number;
+              jobId: string;
+              stale: boolean;
+              status: "completed";
+            }
+          | {
+              jobId: string;
+              loadedCount: number;
+              phase: "loading" | "building" | "detecting" | "writing";
+              stale: boolean;
+              status: "running";
+            }
+          | { error: string; jobId: string; stale: boolean; status: "failed" }
+          | { jobId: string; stale: boolean; status: "pending" }
+        >;
+        getNeighborEdges: FunctionReference<
+          "query",
+          "internal",
+          { entryId: string },
+          Array<{ neighbor: string; score: number }>
+        >;
+        markCommunitiesStale: FunctionReference<
+          "mutation",
+          "internal",
+          { namespace: string },
+          null
+        >;
+        markCompleted: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            communities: Array<{
+              id: number;
+              memberCount: number;
+              sampleEntryIds: Array<string>;
+            }>;
+            edgeCount: number;
+            entryCount: number;
+            jobId: string;
+          },
+          null
+        >;
+        markFailed: FunctionReference<
+          "mutation",
+          "internal",
+          { error: string; jobId: string },
+          null
+        >;
+        markRunning: FunctionReference<
+          "mutation",
+          "internal",
+          { jobId: string; workflowId: string },
+          null
+        >;
+        updatePhase: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            jobId: string;
+            loadedCount?: number;
+            phase: "loading" | "building" | "detecting" | "writing";
+          },
+          null
+        >;
+        writeAssignments: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            assignments: Array<{ communityId: number; entryId: string }>;
+            jobId: string;
+            namespace: string;
           },
           null
         >;
