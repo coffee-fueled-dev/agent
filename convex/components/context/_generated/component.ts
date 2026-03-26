@@ -147,6 +147,16 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           Array<{ neighbor: string; score: number }>,
           Name
         >;
+        getNeighborEdgesBatch: FunctionReference<
+          "query",
+          "internal",
+          { entryIds: Array<string> },
+          Array<{
+            entryId: string;
+            neighbors: Array<{ neighbor: string; score: number }>;
+          }>,
+          Name
+        >;
         markCommunitiesStale: FunctionReference<
           "mutation",
           "internal",
@@ -313,6 +323,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           {
             apiKey?: string;
             fileEmbedding?: Array<number>;
+            graphWeight?: number;
             includeHistorical?: boolean;
             lexicalWeight?: number;
             limit?: number;

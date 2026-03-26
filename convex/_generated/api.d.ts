@@ -1115,6 +1115,15 @@ export declare const components: {
           { entryId: string },
           Array<{ neighbor: string; score: number }>
         >;
+        getNeighborEdgesBatch: FunctionReference<
+          "query",
+          "internal",
+          { entryIds: Array<string> },
+          Array<{
+            entryId: string;
+            neighbors: Array<{ neighbor: string; score: number }>;
+          }>
+        >;
         markCommunitiesStale: FunctionReference<
           "mutation",
           "internal",
@@ -1271,6 +1280,7 @@ export declare const components: {
           {
             apiKey?: string;
             fileEmbedding?: Array<number>;
+            graphWeight?: number;
             includeHistorical?: boolean;
             lexicalWeight?: number;
             limit?: number;

@@ -13,7 +13,7 @@
         "@convex-dev/geospatial": "^0.2.1",
         "@convex-dev/rag": "^0.7.2",
         "@convex-dev/workflow": "^0.3.7",
-        "@convex-dev/workpool": "^0.4.3",
+        "@convex-dev/workpool": "^0.4.6",
         "@google/genai": "^1.46.0",
         "ai": "^5.0.82",
         "convex": "^1.33.1",
@@ -131,7 +131,7 @@
 
     "@convex-dev/workflow": ["@convex-dev/workflow@0.3.7", "", { "dependencies": { "async-channel": "^0.2.0" }, "peerDependencies": { "@convex-dev/workpool": "^0.3.0 || ^0.4.0", "convex": "^1.31.7", "convex-helpers": "^0.1.99" } }, "sha512-c1WKHKFnhMWNyiwXzPUfSUjbFrinRITsQ76yZ4KHUG7uxSZQ/0fW1Cp/A45fI8KkmYLq+EAwv6WjsX0g01xSpQ=="],
 
-    "@convex-dev/workpool": ["@convex-dev/workpool@0.4.3", "", { "peerDependencies": { "convex": "^1.31.7", "convex-helpers": "^0.1.94" } }, "sha512-ewwgv7J72d7BfBu/njS78Z7s+JjBbNgwOc416pPbVQ884j7qnkTnS+eE5g5T2hBz2yLOy0WLu5mL6q+EU/QvEg=="],
+    "@convex-dev/workpool": ["@convex-dev/workpool@0.4.6", "", { "peerDependencies": { "convex": "^1.31.7", "convex-helpers": "^0.1.94" } }, "sha512-e+cIgQePx5rrGizvzaYocWQCsDFbFlYqR1ZbtFPLa909izwc5GvoasPJPANeFhHRWaA5NBipNVqNtfHySi7Ldw=="],
 
     "@dimforge/rapier3d-compat": ["@dimforge/rapier3d-compat@0.12.0", "", {}, "sha512-uekIGetywIgopfD97oDL5PfeezkFpNhwlzlaEYNOA0N6ghdsOvh/HYjSMek5Q2O1PYvRSDFcqFVJl4r4ZBwOow=="],
 

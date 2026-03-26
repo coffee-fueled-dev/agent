@@ -1,4 +1,4 @@
-import { type EntryId, hybridRank } from "@convex-dev/rag";
+import type { EntryId } from "@convex-dev/rag";
 import type {
   GenericActionCtx,
   GenericDataModel,
@@ -13,6 +13,21 @@ import { embedText } from "../internal/embedding";
 import { createContextRag } from "../internal/rag";
 import { sourceValidator, versionDataValidator } from "../schema";
 import { search as searchClient } from "../search";
+
+function fusedRank(
+  sortedResults: string[][],
+  opts: { k: number; weights: number[] },
+): Map<string, number> {
+  const scores = new Map<string, number>();
+  for (const [i, results] of sortedResults.entries()) {
+    const w = opts.weights[i] ?? 1;
+    for (let j = 0; j < results.length; j++) {
+      const id = results[j];
+      scores.set(id, (scores.get(id) ?? 0) + w / (opts.k + j));
+    }
+  }
+  return scores;
+}
 
 const DEFAULT_SIMILARITY_K = 6;
 const DEFAULT_SIMILARITY_THRESHOLD = 0.7;
@@ -491,6 +506,7 @@ export const search = action({
     rrfK: v.optional(v.number()),
     vectorWeight: v.optional(v.number()),
     lexicalWeight: v.optional(v.number()),
+    graphWeight: v.optional(v.number()),
     fileEmbedding: v.optional(v.array(v.number())),
     apiKey: v.optional(v.string()),
   },
@@ -503,6 +519,7 @@ export const search = action({
       rrfK,
       vectorWeight,
       lexicalWeight,
+      graphWeight,
       fileEmbedding,
       apiKey,
       ...args
@@ -565,14 +582,20 @@ export const search = action({
       const byId = new Map<string, SearchHit>();
       for (const r of fileVector) byId.set(r.entryId, r);
       for (const r of textVector) byId.set(r.entryId, r);
-      const fused = hybridRank(
+      const effectiveK = rrfK ?? Math.max(candidateLimit, 60);
+      const scores = fusedRank(
         [textVector.map((r) => r.entryId), fileVector.map((r) => r.entryId)],
-        { k: rrfK ?? 10, weights: [vectorWeight ?? 1, vectorWeight ?? 1] },
+        { k: effectiveK, weights: [vectorWeight ?? 1, vectorWeight ?? 1] },
       );
-      return fused
-        .map((id) => byId.get(id))
-        .filter((x): x is NonNullable<typeof x> => !!x)
-        .slice(0, limit);
+      return [...scores.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, limit)
+        .map(([id, s]) => {
+          const hit = byId.get(id);
+          if (!hit) return null;
+          return { ...hit, score: s };
+        })
+        .filter((x): x is NonNullable<typeof x> => !!x);
     }
 
     const lexicalQuery = hasTextQuery ? (args.query as string) : null;
@@ -632,6 +655,53 @@ export const search = action({
       weights.push(vectorWeight ?? 1);
     }
 
+    const byId = new Map<string, SearchHit>();
+    for (const r of lexicalMapped) byId.set(r.entryId, r);
+    for (const r of fileVector) byId.set(r.entryId, r);
+    for (const r of textVector) byId.set(r.entryId, r);
+
+    // Adaptive graph weight based on graph density
+    const [nodeCount, edgeCount] = await Promise.all([
+      graph.stats.nodeCount(ctx, { label: "contextEntry" }),
+      graph.stats.edgeCount(ctx, { label: "SIMILAR_TO" }),
+    ]);
+    const maxEdges = (nodeCount * (nodeCount - 1)) / 2;
+    const density = maxEdges > 0 ? edgeCount / maxEdges : 1;
+    const adaptiveGraphWeight = graphWeight ?? Math.max(0, 0.5 * (1 - density));
+
+    // Graph neighbor boosting: top seeds' neighbors get an RRF arm
+    if (adaptiveGraphWeight > 0) {
+      const GRAPH_SEED_COUNT = 5;
+      const GRAPH_NEIGHBORS_PER_SEED = 15;
+      const allIds = new Set(byId.keys());
+      const seeds = [...byId.values()]
+        .sort((a, b) => b.score - a.score)
+        .slice(0, GRAPH_SEED_COUNT);
+
+      const graphScored: Array<{ id: string; weight: number }> = [];
+      const seen = new Set(seeds.map((s) => s.entryId));
+      for (const seed of seeds) {
+        const { page } = await graph.edges.neighbors(ctx, {
+          label: "SIMILAR_TO",
+          node: seed.entryId,
+          paginationOpts: { cursor: null, numItems: GRAPH_NEIGHBORS_PER_SEED },
+        });
+        for (const edge of page) {
+          const nId = edge.from === seed.entryId ? edge.to : edge.from;
+          if (!allIds.has(nId) || seen.has(nId)) continue;
+          seen.add(nId);
+          const edgeScore =
+            (edge.properties as { score?: number } | undefined)?.score ?? 0;
+          graphScored.push({ id: nId, weight: edgeScore });
+        }
+      }
+      graphScored.sort((a, b) => b.weight - a.weight);
+      if (graphScored.length) {
+        rankedLists.push(graphScored.map((g) => g.id));
+        weights.push(adaptiveGraphWeight);
+      }
+    }
+
     if (rankedLists.length === 0) return [];
     if (rankedLists.length === 1) {
       const single = textVector.length
@@ -642,17 +712,16 @@ export const search = action({
       return single.slice(0, limit);
     }
 
-    const byId = new Map<string, SearchHit>();
-    for (const r of lexicalMapped) byId.set(r.entryId, r);
-    for (const r of fileVector) byId.set(r.entryId, r);
-    for (const r of textVector) byId.set(r.entryId, r);
-    const fused = hybridRank(rankedLists, {
-      k: rrfK ?? 10,
-      weights,
-    });
-    return fused
-      .map((id) => byId.get(id))
-      .filter((x): x is NonNullable<typeof x> => !!x)
-      .slice(0, limit);
+    const effectiveK = rrfK ?? Math.max(candidateLimit, 60);
+    const scores = fusedRank(rankedLists, { k: effectiveK, weights });
+    return [...scores.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, limit)
+      .map(([id, s]) => {
+        const hit = byId.get(id);
+        if (!hit) return null;
+        return { ...hit, score: s };
+      })
+      .filter((x): x is NonNullable<typeof x> => !!x);
   },
 });

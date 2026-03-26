@@ -6,9 +6,10 @@ import { action, internalAction, query } from "../_generated/server";
 import { workflow as workflowManager } from "../workflow";
 
 const EMBEDDING_PAGE_SIZE = 100;
-const EDGE_BATCH_SIZE = 50;
-const ASSIGNMENT_BATCH_SIZE = 200;
-const DELETE_BATCH_SIZE = 20;
+const EDGE_BATCH_SIZE = 20;
+const ASSIGNMENT_BATCH_SIZE = 100;
+const DELETE_BATCH_SIZE = 5;
+const NEIGHBOR_BATCH_SIZE = 10;
 
 const communityApi = components.context.public.community;
 const projectionApi = components.context.public.projection;
@@ -146,26 +147,31 @@ export const runContextCommunityWorkflow = workflowManager.define({
           k: args.k,
         });
 
-      // 3. Augment with existing graph edges (each entry is a separate step)
+      // 3. Augment with existing graph edges (batched to reduce workflow steps)
       const edgeMap = new Map<string, number>();
       for (const e of knnEdges) {
         const key = e.from < e.to ? `${e.from}:${e.to}` : `${e.to}:${e.from}`;
         edgeMap.set(key, Math.max(edgeMap.get(key) ?? 0, e.weight));
       }
 
-      for (const entryId of currentEntryIds) {
-        const neighbors: Array<{ neighbor: string; score: number }> =
-          await step.runQuery(
-            communityApi.getNeighborEdges,
-            { entryId },
-          );
-        for (const { neighbor, score } of neighbors) {
-          if (!currentSet.has(neighbor)) continue;
-          const key =
-            entryId < neighbor
-              ? `${entryId}:${neighbor}`
-              : `${neighbor}:${entryId}`;
-          edgeMap.set(key, Math.max(edgeMap.get(key) ?? 0, score));
+      for (let i = 0; i < currentEntryIds.length; i += NEIGHBOR_BATCH_SIZE) {
+        const batch = currentEntryIds.slice(i, i + NEIGHBOR_BATCH_SIZE);
+        const batchResults: Array<{
+          entryId: string;
+          neighbors: Array<{ neighbor: string; score: number }>;
+        }> = await step.runQuery(
+          communityApi.getNeighborEdgesBatch,
+          { entryIds: batch },
+        );
+        for (const { entryId, neighbors } of batchResults) {
+          for (const { neighbor, score } of neighbors) {
+            if (!currentSet.has(neighbor)) continue;
+            const key =
+              entryId < neighbor
+                ? `${entryId}:${neighbor}`
+                : `${neighbor}:${entryId}`;
+            edgeMap.set(key, Math.max(edgeMap.get(key) ?? 0, score));
+          }
         }
       }
 

@@ -5,6 +5,7 @@ import { LoaderIcon, PaperclipIcon, SearchIcon, XIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { api } from "../../../../../convex/_generated/api.js";
+import { LoaderWithMessage } from "../blocks/loader-with-message.js";
 import { Button } from "../ui/button.js";
 import {
   Command,
@@ -74,7 +75,6 @@ export function ContextSearch() {
   const {
     getRootProps,
     getInputProps,
-    isDragActive,
     open: openFilePicker,
   } = useDropzone({
     multiple: false,
@@ -239,10 +239,9 @@ export function ContextSearch() {
         <CommandList className="mt-2">
           {searching || embeddingPending ? (
             <Empty>
-              <Skeleton className="flex flex-row items-center gap-2 text-muted-foreground">
-                <Spinner />
+              <LoaderWithMessage>
                 {embeddingPending ? "Embedding file..." : "Searching..."}
-              </Skeleton>
+              </LoaderWithMessage>
             </Empty>
           ) : (
             <>

@@ -343,3 +343,32 @@ export const getNeighborEdges = query({
     }));
   },
 });
+
+export const getNeighborEdgesBatch = query({
+  args: { entryIds: v.array(v.string()) },
+  returns: v.array(
+    v.object({
+      entryId: v.string(),
+      neighbors: v.array(v.object({ neighbor: v.string(), score: v.number() })),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    const results = [];
+    for (const entryId of args.entryIds) {
+      const { page } = await graph.edges.neighbors(ctx, {
+        label: "SIMILAR_TO",
+        node: entryId,
+        paginationOpts: { cursor: null, numItems: 100 },
+      });
+      results.push({
+        entryId,
+        neighbors: page.map((edge) => ({
+          neighbor: edge.from === entryId ? edge.to : edge.from,
+          score:
+            (edge.properties as { score?: number } | undefined)?.score ?? 0,
+        })),
+      });
+    }
+    return results;
+  },
+});

@@ -1,10 +1,11 @@
 import { Bounds, Html, Line, OrbitControls } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { useAction, useQuery } from "convex/react";
-import { LoaderCircleIcon, RefreshCwIcon } from "lucide-react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { RefreshCwIcon } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDebounceValue } from "usehooks-ts";
 import { api } from "../../../../../convex/_generated/api.js";
+import { LoaderWithMessage } from "../blocks/loader-with-message.js";
 import { PageSection } from "../layout/page-section";
 import { Button } from "../ui/button.js";
 import {
@@ -16,6 +17,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../ui/dialog";
+import { Empty } from "../ui/empty.js";
+import { Kbd } from "../ui/kbd.js";
 import {
   Select,
   SelectContent,
@@ -322,24 +325,24 @@ export function ContextExplore({
 
   const [selected, setSelected] = useState<ProjectionPoint | null>(null);
 
-  // Hover state: raw entry ID set immediately, debounced for the query
   const [rawHoveredId, setRawHoveredId] = useState<string | null>(null);
-  const leaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [debouncedHoveredId] = useDebounceValue(
     rawHoveredId,
     HOVER_DEBOUNCE_MS,
   );
 
   const onHoverStart = useCallback((entryId: string) => {
-    if (leaveTimer.current) {
-      clearTimeout(leaveTimer.current);
-      leaveTimer.current = null;
-    }
     setRawHoveredId(entryId);
   }, []);
 
-  const onHoverEnd = useCallback(() => {
-    leaveTimer.current = setTimeout(() => setRawHoveredId(null), 300);
+  const onHoverEnd = useCallback(() => {}, []);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setRawHoveredId(null);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
   }, []);
 
   const hoverData = useQuery(
@@ -398,29 +401,38 @@ export function ContextExplore({
         }
       >
         {startError ? (
-          <div className="flex h-full items-center justify-center p-6 text-center text-sm text-destructive">
-            {startError}
-          </div>
+          <Empty className="h-full">
+            <LoaderWithMessage>{startError}</LoaderWithMessage>
+          </Empty>
         ) : isLoading ? (
-          <div className="flex h-full flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
-            <Spinner />
-            <span>Loading...</span>
-          </div>
-        ) : points.length === 0 ? (
-          <div className="flex h-full items-center justify-center p-6 text-center text-sm text-muted-foreground">
-            {hasNoData
-              ? "No projection yet. Click Generate to create one."
-              : "No projected points available for this namespace."}
-          </div>
+          <Empty className="h-full">
+            <LoaderWithMessage>Loading...</LoaderWithMessage>
+          </Empty>
+        ) : points.length === 0 && isRefreshing ? (
+          <Empty className="h-full">
+            <LoaderWithMessage>
+              {phase === "projecting"
+                ? "Projecting..."
+                : "Loading embeddings..."}
+            </LoaderWithMessage>
+          </Empty>
         ) : (
-          <ExploreScene
-            points={points}
-            onSelect={setSelected}
-            hoveredEntryId={debouncedHoveredId}
-            onHoverStart={onHoverStart}
-            onHoverEnd={onHoverEnd}
-            hoverData={hoverData ?? undefined}
-          />
+          <>
+            <ExploreScene
+              points={points}
+              onSelect={setSelected}
+              hoveredEntryId={debouncedHoveredId}
+              onHoverStart={onHoverStart}
+              onHoverEnd={onHoverEnd}
+              hoverData={hoverData ?? undefined}
+            />
+            {debouncedHoveredId && hoverData && (
+              <div className="absolute top-3 right-3 flex items-center gap-1.5 text-xs text-muted-foreground z-10">
+                <Kbd>Esc</Kbd>
+                <span>clear edges</span>
+              </div>
+            )}
+          </>
         )}
       </div>
 

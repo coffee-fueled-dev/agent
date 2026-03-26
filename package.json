@@ -36,7 +36,7 @@
     "@convex-dev/geospatial": "^0.2.1",
     "@convex-dev/rag": "^0.7.2",
     "@convex-dev/workflow": "^0.3.7",
-    "@convex-dev/workpool": "^0.4.3",
+    "@convex-dev/workpool": "^0.4.6",
     "@google/genai": "^1.46.0",
     "ai": "^5.0.82",
     "convex": "^1.33.1",
