@@ -62,6 +62,16 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         >;
       };
       community: {
+        batchKnnSearch: FunctionReference<
+          "action",
+          "internal",
+          { entryIds: Array<string>; k: number; namespace: string },
+          Array<{
+            entryId: string;
+            neighbors: Array<{ entryId: string; score: number }>;
+          }>,
+          Name
+        >;
         clearAssignments: FunctionReference<
           "mutation",
           "internal",

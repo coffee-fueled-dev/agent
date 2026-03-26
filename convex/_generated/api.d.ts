@@ -1046,6 +1046,15 @@ export declare const components: {
         >;
       };
       community: {
+        batchKnnSearch: FunctionReference<
+          "action",
+          "internal",
+          { entryIds: Array<string>; k: number; namespace: string },
+          Array<{
+            entryId: string;
+            neighbors: Array<{ entryId: string; score: number }>;
+          }>
+        >;
         clearAssignments: FunctionReference<
           "mutation",
           "internal",

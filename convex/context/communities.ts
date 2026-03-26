@@ -1,6 +1,6 @@
 import type { PaginationResult } from "convex/server";
 import { v } from "convex/values";
-import { buildKnnGraph, leiden } from "../components/graph/client";
+import { leiden } from "../components/graph/client";
 import { components, internal } from "../_generated/api";
 import {
   action,
@@ -11,6 +11,7 @@ import {
 import { pool } from "../workpool";
 
 const EMBEDDING_PAGE_SIZE = 100;
+const KNN_BATCH_SIZE = 30;
 const STAGING_EDGE_BATCH = 50;
 const STAGING_ASSIGNMENT_BATCH = 200;
 const GRAPH_EDGE_BATCH = 20;
@@ -50,11 +51,6 @@ async function loadCurrentEntryIdsPaginated(
   return ids;
 }
 
-type PaginatedEmbeddings = PaginationResult<{
-  entryId: string;
-  embedding: number[];
-}>;
-
 type StagingEdgePage = PaginationResult<{
   from: string;
   to: string;
@@ -82,56 +78,53 @@ export const computeAndStageGraph = internalAction({
       loadedCount: 0,
     });
 
-    const embeddings: Array<{ entryId: string; embedding: number[] }> = [];
-    let cursor: string | null = null;
-    let isDone = false;
-    while (!isDone) {
-      const result: PaginatedEmbeddings = await ctx.runQuery(
-        projectionApi.loadEmbeddingPage,
-        { namespace: job.namespace, paginationOpts: { cursor, numItems: EMBEDDING_PAGE_SIZE } },
-      );
-      embeddings.push(...result.page);
-      cursor = result.continueCursor;
-      isDone = result.isDone;
-    }
-
+    // Load current entry IDs (paginated, no embeddings needed in memory)
     const currentEntryIds = await loadCurrentEntryIdsPaginated(ctx, job.namespace);
-    const currentSet = new Set(currentEntryIds);
-    const currentEmbeddings = embeddings.filter((e) => currentSet.has(e.entryId));
 
     await ctx.runMutation(communityApi.updatePhase, {
       jobId: args.jobId,
       phase: "loading",
-      loadedCount: currentEmbeddings.length,
+      loadedCount: currentEntryIds.length,
     });
 
-    if (currentEmbeddings.length < 2) {
+    if (currentEntryIds.length < 2) {
       await ctx.runMutation(communityApi.markCompleted, {
         jobId: args.jobId,
         communities: [],
-        entryCount: currentEmbeddings.length,
+        entryCount: currentEntryIds.length,
         edgeCount: 0,
       });
-      return { entryCount: currentEmbeddings.length, edgeCount: 0, done: true };
+      return { entryCount: currentEntryIds.length, edgeCount: 0, done: true };
     }
 
     await ctx.runMutation(communityApi.updatePhase, {
       jobId: args.jobId,
       phase: "building",
-      loadedCount: currentEmbeddings.length,
+      loadedCount: currentEntryIds.length,
     });
 
-    const entries = currentEmbeddings.map((e) => ({
-      id: e.entryId,
-      embedding: e.embedding,
-    }));
-    const adj = buildKnnGraph(entries, args.k);
-
+    // Use ANN vector search to find k-NN for each entry (no brute-force)
+    const currentSet = new Set(currentEntryIds);
     const edgeMap = new Map<string, number>();
-    for (const [from, neighbors] of adj) {
-      for (const [to, weight] of neighbors) {
-        const key = from < to ? `${from}:${to}` : `${to}:${from}`;
-        edgeMap.set(key, Math.max(edgeMap.get(key) ?? 0, weight));
+
+    for (let i = 0; i < currentEntryIds.length; i += KNN_BATCH_SIZE) {
+      const batch = currentEntryIds.slice(i, i + KNN_BATCH_SIZE);
+      const batchResults: Array<{
+        entryId: string;
+        neighbors: Array<{ entryId: string; score: number }>;
+      }> = await ctx.runAction(staging.batchKnnSearch, {
+        namespace: job.namespace,
+        entryIds: batch,
+        k: args.k,
+      });
+      for (const { entryId, neighbors } of batchResults) {
+        for (const { entryId: neighborId, score } of neighbors) {
+          if (!currentSet.has(neighborId)) continue;
+          const key = entryId < neighborId
+            ? `${entryId}:${neighborId}`
+            : `${neighborId}:${entryId}`;
+          edgeMap.set(key, Math.max(edgeMap.get(key) ?? 0, score));
+        }
       }
     }
 
@@ -164,7 +157,7 @@ export const computeAndStageGraph = internalAction({
       });
     }
 
-    return { entryCount: currentEmbeddings.length, edgeCount: allEdges.length, done: false };
+    return { entryCount: currentEntryIds.length, edgeCount: allEdges.length, done: false };
   },
 });
 
@@ -234,12 +227,12 @@ export const computeAndStageLeiden = internalAction({
 // Apply mutations (paginated, re-enqueue via scheduler)
 // ---------------------------------------------------------------------------
 
-export const applyGraphResults = internalMutation({
+// Phase A: delete old SIMILAR_TO edges for nodes found in staging edges
+export const clearOldSimilarityEdges = internalMutation({
   args: {
     jobId: v.string(),
     namespace: v.string(),
     cursor: v.union(v.string(), v.null()),
-    deletedNodes: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
     const result: StagingEdgePage = await ctx.runQuery(staging.readStagingEdgePage, {
@@ -247,15 +240,13 @@ export const applyGraphResults = internalMutation({
       paginationOpts: { cursor: args.cursor, numItems: GRAPH_EDGE_BATCH },
     });
 
-    const nodesToDelete = new Set<string>();
+    const nodesToClear = new Set<string>();
     for (const row of result.page) {
-      nodesToDelete.add(row.from);
-      nodesToDelete.add(row.to);
+      nodesToClear.add(row.from);
+      nodesToClear.add(row.to);
     }
 
-    const alreadyDeleted = new Set(args.deletedNodes ?? []);
-    for (const nodeKey of nodesToDelete) {
-      if (alreadyDeleted.has(nodeKey)) continue;
+    for (const nodeKey of nodesToClear) {
       let hasMore = true;
       while (hasMore) {
         const deleteResult = (await ctx.runMutation(
@@ -264,8 +255,37 @@ export const applyGraphResults = internalMutation({
         )) as { deleted: number; hasMore: boolean };
         hasMore = deleteResult.hasMore;
       }
-      alreadyDeleted.add(nodeKey);
     }
+
+    if (!result.isDone) {
+      await ctx.scheduler.runAfter(0, internal.context.communities.clearOldSimilarityEdges, {
+        jobId: args.jobId,
+        namespace: args.namespace,
+        cursor: result.continueCursor,
+      });
+    } else {
+      // Phase A complete — start Phase B: write new edges
+      await ctx.scheduler.runAfter(0, internal.context.communities.writeNewSimilarityEdges, {
+        jobId: args.jobId,
+        namespace: args.namespace,
+        cursor: null,
+      });
+    }
+  },
+});
+
+// Phase B: write new SIMILAR_TO edges from staging
+export const writeNewSimilarityEdges = internalMutation({
+  args: {
+    jobId: v.string(),
+    namespace: v.string(),
+    cursor: v.union(v.string(), v.null()),
+  },
+  handler: async (ctx, args) => {
+    const result: StagingEdgePage = await ctx.runQuery(staging.readStagingEdgePage, {
+      jobId: args.jobId,
+      paginationOpts: { cursor: args.cursor, numItems: GRAPH_EDGE_BATCH },
+    });
 
     if (result.page.length > 0) {
       await ctx.runMutation(communityApi.createSimilarityEdgeBatch, {
@@ -278,14 +298,13 @@ export const applyGraphResults = internalMutation({
     }
 
     if (!result.isDone) {
-      await ctx.scheduler.runAfter(0, internal.context.communities.applyGraphResults, {
+      await ctx.scheduler.runAfter(0, internal.context.communities.writeNewSimilarityEdges, {
         jobId: args.jobId,
         namespace: args.namespace,
         cursor: result.continueCursor,
-        deletedNodes: Array.from(alreadyDeleted),
       });
     } else {
-      // Move to applying assignments
+      // Phase B complete — move to applying assignments
       await ctx.scheduler.runAfter(0, internal.context.communities.applyAssignmentResults, {
         jobId: args.jobId,
         namespace: args.namespace,
@@ -363,7 +382,7 @@ export const applyAssignmentResults = internalMutation({
   },
 });
 
-export const finalizeCommunities = internalMutation({
+export const finalizeCommunities = internalAction({
   args: { jobId: v.string(), namespace: v.string() },
   handler: async (ctx, args) => {
     // Read all staging assignments to build summaries
@@ -415,7 +434,16 @@ export const finalizeCommunities = internalMutation({
       edgeCount,
     });
 
-    // Start cleanup
+    // Schedule cleanup (actions can't use ctx.scheduler directly)
+    await ctx.runMutation(internal.context.communities.scheduleCleanup, {
+      jobId: args.jobId,
+    });
+  },
+});
+
+export const scheduleCleanup = internalMutation({
+  args: { jobId: v.string() },
+  handler: async (ctx, args) => {
     await ctx.scheduler.runAfter(0, internal.context.communities.cleanupStaging, {
       jobId: args.jobId,
     });
@@ -488,12 +516,11 @@ export const onLeidenComplete = pool.defineOnComplete({
       phase: "writing",
     });
 
-    // Chain: start applying results
-    await ctx.scheduler.runAfter(0, internal.context.communities.applyGraphResults, {
+    // Chain: start Phase A — clear old edges, then write new
+    await ctx.scheduler.runAfter(0, internal.context.communities.clearOldSimilarityEdges, {
       jobId: context.jobId,
       namespace: job.namespace,
       cursor: null,
-      deletedNodes: [],
     });
   },
 });

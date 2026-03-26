@@ -1,9 +1,11 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { paginator } from "convex-helpers/server/pagination";
-import { mutation, query } from "../_generated/server";
+import { action, mutation, query } from "../_generated/server";
+import { internal as componentInternal } from "../_generated/api";
 import schema from "../schema";
 import { graph } from "../graph";
+import { createContextRag } from "../internal/rag";
 import { hasStatus } from "../internal/status";
 
 export const createJob = mutation({
@@ -449,6 +451,65 @@ export const clearStaging = mutation({
       deleted++;
     }
     return { hasMore: deleted === CLEAR_BATCH };
+  },
+});
+
+export const batchKnnSearch = action({
+  args: {
+    namespace: v.string(),
+    entryIds: v.array(v.string()),
+    k: v.number(),
+  },
+  returns: v.array(
+    v.object({
+      entryId: v.string(),
+      neighbors: v.array(v.object({ entryId: v.string(), score: v.number() })),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    const rag = createContextRag();
+    const results: Array<{
+      entryId: string;
+      neighbors: Array<{ entryId: string; score: number }>;
+    }> = [];
+
+    for (const entryId of args.entryIds) {
+      const embedding: number[] | null = await ctx.runQuery(
+        componentInternal.internal.embeddingStore.get,
+        { entryId },
+      );
+      if (!embedding) {
+        results.push({ entryId, neighbors: [] });
+        continue;
+      }
+
+      const { entries, results: searchResults } = await rag.search(ctx, {
+        namespace: args.namespace,
+        query: embedding,
+        limit: args.k + 1,
+        filters: [{ name: "status", value: "current" }],
+      });
+
+      const scoreMap = new Map<string, number>();
+      for (const r of searchResults) {
+        scoreMap.set(
+          r.entryId,
+          Math.max(scoreMap.get(r.entryId) ?? 0, r.score),
+        );
+      }
+
+      const neighbors = entries
+        .filter((e) => e.entryId !== entryId)
+        .map((e) => ({
+          entryId: e.entryId,
+          score: scoreMap.get(e.entryId) ?? 0,
+        }))
+        .slice(0, args.k);
+
+      results.push({ entryId, neighbors });
+    }
+
+    return results;
   },
 });
 
