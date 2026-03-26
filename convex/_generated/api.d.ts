@@ -10,6 +10,8 @@
 
 import type * as aggregate from "../aggregate.js";
 import type * as context_contextApi from "../context/contextApi.js";
+import type * as context_embeddingCacheHttp from "../context/embeddingCacheHttp.js";
+import type * as context_embeddingCacheStore from "../context/embeddingCacheStore.js";
 import type * as context_fileHttp from "../context/fileHttp.js";
 import type * as context_fileHttpActions from "../context/fileHttpActions.js";
 import type * as context_fileStore from "../context/fileStore.js";
@@ -47,6 +49,7 @@ import type * as models_auth_index from "../models/auth/index.js";
 import type * as models_auth_session from "../models/auth/session.js";
 import type * as models_context_contextFile from "../models/context/contextFile.js";
 import type * as models_context_contextFileProcess from "../models/context/contextFileProcess.js";
+import type * as models_context_embeddingCache from "../models/context/embeddingCache.js";
 import type * as models_context_index from "../models/context/index.js";
 import type * as models_geo_index from "../models/geo/index.js";
 import type * as models_geo_libs_upsert_index from "../models/geo/libs/upsert/index.js";
@@ -71,6 +74,8 @@ import type {
 declare const fullApi: ApiFromModules<{
   aggregate: typeof aggregate;
   "context/contextApi": typeof context_contextApi;
+  "context/embeddingCacheHttp": typeof context_embeddingCacheHttp;
+  "context/embeddingCacheStore": typeof context_embeddingCacheStore;
   "context/fileHttp": typeof context_fileHttp;
   "context/fileHttpActions": typeof context_fileHttpActions;
   "context/fileStore": typeof context_fileStore;
@@ -108,6 +113,7 @@ declare const fullApi: ApiFromModules<{
   "models/auth/session": typeof models_auth_session;
   "models/context/contextFile": typeof models_context_contextFile;
   "models/context/contextFileProcess": typeof models_context_contextFileProcess;
+  "models/context/embeddingCache": typeof models_context_embeddingCache;
   "models/context/index": typeof models_context_index;
   "models/geo/index": typeof models_geo_index;
   "models/geo/libs/upsert/index": typeof models_geo_libs_upsert_index;
@@ -1597,6 +1603,7 @@ export declare const components: {
           "internal",
           {
             apiKey?: string;
+            fileEmbedding?: Array<number>;
             includeHistorical?: boolean;
             lexicalWeight?: number;
             limit?: number;

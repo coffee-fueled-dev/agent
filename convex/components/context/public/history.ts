@@ -11,7 +11,12 @@ const historyEntryValidator = v.object({
   parentEntryIds: v.array(v.string()),
   payload: v.optional(v.any()),
   author: v.optional(v.object({ byId: v.string(), byType: v.string() })),
-  attrs: v.optional(v.record(v.string(), v.union(v.string(), v.number(), v.boolean(), v.null()))),
+  attrs: v.optional(
+    v.record(
+      v.string(),
+      v.union(v.string(), v.number(), v.boolean(), v.null()),
+    ),
+  ),
 });
 
 export const appendHistoryEntry = mutation({
@@ -53,12 +58,14 @@ export const listHistoryHeads = query({
     streamType: v.string(),
     streamId: v.string(),
   },
-  returns: v.array(v.object({
-    streamType: v.string(),
-    streamId: v.string(),
-    entryId: v.string(),
-    headKind: v.optional(v.string()),
-  })),
+  returns: v.array(
+    v.object({
+      streamType: v.string(),
+      streamId: v.string(),
+      entryId: v.string(),
+      headKind: v.optional(v.string()),
+    }),
+  ),
   handler: async (ctx, args) => {
     return await history.listHeads(
       ctx,

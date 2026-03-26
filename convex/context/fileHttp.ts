@@ -57,9 +57,8 @@ export const completeFileProcessHttp = httpAction(async (ctx, request) => {
     return new Response("Unauthorized", { status: 401 });
   }
   try {
-    const { processId, retrievalText, lexicalText, chunks } = parseCompletionPayload(
-      await request.json(),
-    );
+    const { processId, retrievalText, lexicalText, chunks } =
+      parseCompletionPayload(await request.json());
     const process = await ctx.runQuery(
       internal.context.fileStore.getFileProcess,
       { processId: processId as Id<"contextFileProcesses"> },

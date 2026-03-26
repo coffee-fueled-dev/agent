@@ -3,6 +3,7 @@ import {
   createPartFromText,
   GoogleGenAI,
 } from "@google/genai";
+import { Database } from "bun:sqlite";
 import { $ } from "bun";
 
 const embeddingModel = "gemini-embedding-2-preview";
@@ -17,6 +18,19 @@ if (!convexBaseUrl) {
   throw new Error("CONVEX_SITE_URL or CONVEX_URL is required");
 }
 const callbackBaseUrl = convexBaseUrl;
+
+const cacheDbPath = process.env.EMBEDDING_CACHE_DB ?? "embedding-cache.sqlite";
+const cacheDb = new Database(cacheDbPath, { create: true });
+cacheDb.run("PRAGMA journal_mode = WAL;");
+cacheDb.run(
+  "CREATE TABLE IF NOT EXISTS cache (hash TEXT PRIMARY KEY, embedding TEXT NOT NULL, created_at INTEGER NOT NULL)",
+);
+const cacheGet = cacheDb.query<{ embedding: string }, { $hash: string }>(
+  "SELECT embedding FROM cache WHERE hash = $hash",
+);
+const cacheSet = cacheDb.query(
+  "INSERT OR REPLACE INTO cache (hash, embedding, created_at) VALUES ($hash, $embedding, $created_at)",
+);
 
 function resolveGoogleApiKey() {
   return (
@@ -51,10 +65,6 @@ function buildRetrievalText(args: {
 function createGenAIClient() {
   const apiKey = resolveGoogleApiKey();
   return new GoogleGenAI(apiKey ? { apiKey } : {});
-}
-
-function completeUrl() {
-  return `${normalizeBaseUrl(callbackBaseUrl)}/context/binary-embedding/complete`;
 }
 
 function failUrl() {
@@ -98,6 +108,8 @@ type EmbedJob = {
   fileName?: string | null;
   completeUrl?: string;
   failUrl?: string;
+  contentHash?: string;
+  cacheCompleteUrl?: string;
 };
 
 function tempDownloadPath(job: EmbedJob) {
@@ -123,6 +135,32 @@ async function downloadFileWithCurl(job: EmbedJob) {
 async function processEmbeddingJob(job: EmbedJob) {
   let tempFilePath: string | undefined;
   try {
+    // Check SQLite cache if a content hash was provided
+    if (job.contentHash) {
+      const cached = cacheGet.get({ $hash: job.contentHash });
+      if (cached) {
+        const embedding: number[] = JSON.parse(cached.embedding);
+        const retrievalText = buildRetrievalText(job);
+        const chunks = [{ text: retrievalText, embedding }];
+        if (job.completeUrl) {
+          await postJson(job.completeUrl, {
+            processId: job.processId,
+            retrievalText,
+            chunks,
+            contentHash: job.contentHash,
+          });
+        }
+        if (job.cacheCompleteUrl) {
+          await postJson(job.cacheCompleteUrl, {
+            contentHash: job.contentHash,
+            embedding,
+            mimeType: job.mimeType,
+          });
+        }
+        return;
+      }
+    }
+
     tempFilePath = await downloadFileWithCurl(job);
     const retrievalText = buildRetrievalText(job);
     const fileBytes = await Bun.file(tempFilePath).arrayBuffer();
@@ -148,11 +186,32 @@ async function processEmbeddingJob(job: EmbedJob) {
     if (chunks.length === 0) {
       throw new Error("Google did not return any embeddings");
     }
-    await postJson(job.completeUrl ?? completeUrl(), {
-      processId: job.processId,
-      retrievalText,
-      chunks,
-    });
+
+    // Store in SQLite cache
+    if (job.contentHash && chunks[0]) {
+      cacheSet.run({
+        $hash: job.contentHash,
+        $embedding: JSON.stringify(chunks[0].embedding),
+        $created_at: Date.now(),
+      });
+    }
+
+    if (job.completeUrl) {
+      await postJson(job.completeUrl, {
+        processId: job.processId,
+        retrievalText,
+        chunks,
+        contentHash: job.contentHash,
+      });
+    }
+
+    if (job.cacheCompleteUrl && job.contentHash && chunks[0]) {
+      await postJson(job.cacheCompleteUrl, {
+        contentHash: job.contentHash,
+        embedding: chunks[0].embedding,
+        mimeType: job.mimeType,
+      });
+    }
   } catch (error) {
     console.error("Embedding job failed", error);
     await reportFailure(job, error);
@@ -177,6 +236,8 @@ function readJob(payload: unknown): EmbedJob {
     fileName,
     completeUrl: jobCompleteUrl,
     failUrl: jobFailUrl,
+    contentHash,
+    cacheCompleteUrl,
   } = payload as Record<string, unknown>;
   if (
     typeof processId !== "string" ||
@@ -197,6 +258,9 @@ function readJob(payload: unknown): EmbedJob {
     completeUrl:
       typeof jobCompleteUrl === "string" ? jobCompleteUrl : undefined,
     failUrl: typeof jobFailUrl === "string" ? jobFailUrl : undefined,
+    contentHash: typeof contentHash === "string" ? contentHash : undefined,
+    cacheCompleteUrl:
+      typeof cacheCompleteUrl === "string" ? cacheCompleteUrl : undefined,
   };
 }
 

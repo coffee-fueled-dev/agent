@@ -44,6 +44,7 @@ export const addFileContext = action({
     storageId: v.id("_storage"),
     mimeType: v.string(),
     fileName: v.optional(v.string()),
+    contentHash: v.optional(v.string()),
   },
   handler: async (
     ctx,
@@ -52,7 +53,14 @@ export const addFileContext = action({
     | { entryId: string; status: "completed" }
     | { processId: Id<"contextFileProcesses">; status: "dispatched" }
   > => {
-    const { text, storageId, mimeType, fileName, ...entry } = args;
+    const {
+      text,
+      storageId,
+      mimeType,
+      fileName,
+      contentHash: _,
+      ...entry
+    } = args;
 
     if (text) {
       const client = createContextClient();
@@ -100,10 +108,11 @@ export const addFileContext = action({
             title: args.title,
             mimeType,
             fileName: fileName ?? null,
-            // Optional contract for embedding workers that can emit a small lexical summary.
+            contentHash: args.contentHash,
             lexicalSummaryMode: "tiny",
             completeUrl: `${baseUrl}/context/file/complete`,
             failUrl: `${baseUrl}/context/file/fail`,
+            cacheCompleteUrl: `${baseUrl}/embedding-cache/complete`,
           }),
         },
       );

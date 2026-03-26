@@ -11,8 +11,10 @@ export type MemoryChartDoc = Doc<"memoryCharts">;
 export type MemoryChartMemberDoc = Doc<"memoryChartMembers">;
 export type MemoryChartNamespaceDoc = Doc<"memoryChartNamespaces">;
 export type MemoryChartSupportEdgeDoc = Doc<"memoryChartSupportEdges">;
-export type MemoryChartRepartitionEventDoc = Doc<"memoryChartRepartitionEvents">;
-export type RuntimeHistoryEntrySummary = RuntimeEvolutionView["history"][number];
+export type MemoryChartRepartitionEventDoc =
+  Doc<"memoryChartRepartitionEvents">;
+export type RuntimeHistoryEntrySummary =
+  RuntimeEvolutionView["history"][number];
 
 export const MAX_CHART_CANDIDATES = 64;
 export const MAINTENANCE_MIN_MEMBERS = 4;
@@ -76,7 +78,9 @@ export function chartSummary(chart: MemoryChartDoc): MemoryChartSummary {
   };
 }
 
-export function chartMemberSummary(member: MemoryChartMemberDoc): MemoryChartMember {
+export function chartMemberSummary(
+  member: MemoryChartMemberDoc,
+): MemoryChartMember {
   return {
     chartMemberId: member._id,
     chartId: member.chartId,

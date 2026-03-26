@@ -13,11 +13,16 @@ import { emptyMemoryChartMetrics, getMemoryChartNamespaceRow } from "./state";
 
 export async function listMemoryChartsImpl(
   ctx: QueryCtx,
-  args: { namespace: string; paginationOpts: { cursor: string | null; numItems: number } },
+  args: {
+    namespace: string;
+    paginationOpts: { cursor: string | null; numItems: number };
+  },
 ) {
   const result = paginator(ctx.db, schema)
     .query("memoryCharts")
-    .withIndex("by_namespace_updatedAt", (q) => q.eq("namespace", args.namespace))
+    .withIndex("by_namespace_updatedAt", (q) =>
+      q.eq("namespace", args.namespace),
+    )
     .order("desc");
   const page = await result.paginate(args.paginationOpts);
   return { ...page, page: page.page.map(chartSummary) };
@@ -116,11 +121,16 @@ export async function listMemoryChartMembersImpl(
 
 export async function listMemoryChartSupportEdgesImpl(
   ctx: QueryCtx,
-  args: { namespace: string; paginationOpts: { cursor: string | null; numItems: number } },
+  args: {
+    namespace: string;
+    paginationOpts: { cursor: string | null; numItems: number };
+  },
 ) {
   const result = paginator(ctx.db, schema)
     .query("memoryChartSupportEdges")
-    .withIndex("by_namespace_updatedAt", (q) => q.eq("namespace", args.namespace))
+    .withIndex("by_namespace_updatedAt", (q) =>
+      q.eq("namespace", args.namespace),
+    )
     .order("desc");
   const page = await result.paginate(args.paginationOpts);
   return { ...page, page: page.page.map(supportEdgeSummary) };
@@ -128,11 +138,16 @@ export async function listMemoryChartSupportEdgesImpl(
 
 export async function listMemoryChartRepartitionEventsImpl(
   ctx: QueryCtx,
-  args: { namespace: string; paginationOpts: { cursor: string | null; numItems: number } },
+  args: {
+    namespace: string;
+    paginationOpts: { cursor: string | null; numItems: number };
+  },
 ) {
   const result = paginator(ctx.db, schema)
     .query("memoryChartRepartitionEvents")
-    .withIndex("by_namespace_entryTime", (q) => q.eq("namespace", args.namespace))
+    .withIndex("by_namespace_entryTime", (q) =>
+      q.eq("namespace", args.namespace),
+    )
     .order("desc");
   const page = await result.paginate(args.paginationOpts);
   return { ...page, page: page.page.map(repartitionEventSummary) };

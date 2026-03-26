@@ -1,3 +1,4 @@
+import { contentHashFromArrayBuffer } from "@convex-dev/rag";
 import { useAction, useMutation } from "convex/react";
 import { XIcon } from "lucide-react";
 import {
@@ -116,7 +117,10 @@ export function AddContextDialog({
           text: text.trim(),
         });
       } else {
-        const storageId = await uploadFile(file);
+        const [storageId, hash] = await Promise.all([
+          uploadFile(file),
+          contentHashFromArrayBuffer(await file.arrayBuffer()),
+        ]);
         const fileText = isTextLikeFile(file)
           ? await readFileText(file)
           : undefined;
@@ -129,6 +133,7 @@ export function AddContextDialog({
           mimeType: file.type || "application/octet-stream",
           fileName: file.name,
           text: fileText ?? (text.trim() || undefined),
+          contentHash: hash,
         });
       }
 

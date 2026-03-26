@@ -162,6 +162,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           "internal",
           {
             apiKey?: string;
+            fileEmbedding?: Array<number>;
             includeHistorical?: boolean;
             lexicalWeight?: number;
             limit?: number;

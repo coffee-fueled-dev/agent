@@ -8,7 +8,9 @@ export function withConvexNodeEnv(
 ) {
   const home = env.HOME;
   if (!home) {
-    throw new Error("HOME is required to locate the pinned Convex Node runtime");
+    throw new Error(
+      "HOME is required to locate the pinned Convex Node runtime",
+    );
   }
   const nodeBin = join(
     home,

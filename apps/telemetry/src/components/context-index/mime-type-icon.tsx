@@ -1,10 +1,12 @@
 import {
   ArchiveIcon,
+  AudioLinesIcon,
   FileCodeIcon,
   FileIcon,
   FileImageIcon,
   FileTextIcon,
   ScanTextIcon,
+  VideoIcon,
 } from "lucide-react";
 import type { Accept } from "react-dropzone";
 
@@ -62,6 +64,20 @@ const ARCHIVE_FILES = {
   "application/x-7z-compressed": [".7z"],
 } as const satisfies Accept;
 
+const AUDIO_FILES = {
+  "audio/mpeg": [".mp3"],
+  "audio/wav": [".wav"],
+  "audio/ogg": [".ogg"],
+  "audio/mp4": [".m4a"],
+} as const satisfies Accept;
+
+const VIDEO_FILES = {
+  "video/mp4": [".mp4"],
+  "video/mpeg": [".mpeg"],
+  "video/webm": [".webm"],
+  "video/quicktime": [".mov"],
+} as const satisfies Accept;
+
 const CODE_FILES = {
   "application/x-python": [".py"],
   "text/x-python": [".py"],
@@ -100,6 +116,8 @@ export const MIME_TYPES = {
   ...TEXT_FILES,
   ...DOCUMENT_FILES,
   ...IMAGE_FILES,
+  ...AUDIO_FILES,
+  ...VIDEO_FILES,
   ...ARCHIVE_FILES,
   ...CODE_FILES,
 } as const satisfies Accept;
@@ -112,6 +130,8 @@ export function MimeTypeIcon({
   if (mimeType in TEXT_FILES) return <FileTextIcon {...props} />;
   if (mimeType in DOCUMENT_FILES) return <FileIcon {...props} />;
   if (mimeType in IMAGE_FILES) return <FileImageIcon {...props} />;
+  if (mimeType in AUDIO_FILES) return <AudioLinesIcon {...props} />;
+  if (mimeType in VIDEO_FILES) return <VideoIcon {...props} />;
   if (mimeType in ARCHIVE_FILES) return <ArchiveIcon {...props} />;
   if (mimeType in CODE_FILES) return <FileCodeIcon {...props} />;
   return <FileIcon {...props} />;

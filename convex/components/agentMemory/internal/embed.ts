@@ -78,7 +78,10 @@ export async function embedStoredBinaryFile(
     const response = await client.models.embedContent({
       model: geminiEmbeddingModel,
       contents: [
-        createPartFromUri(uploadedFile.uri, uploadedFile.mimeType ?? args.mimeType),
+        createPartFromUri(
+          uploadedFile.uri,
+          uploadedFile.mimeType ?? args.mimeType,
+        ),
         createPartFromText(retrievalText),
       ],
     });

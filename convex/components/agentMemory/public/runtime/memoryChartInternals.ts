@@ -73,7 +73,8 @@ export async function syncMemoryChartNamespaceMetrics(
       0,
     ),
     coverageEntropy: charts.reduce(
-      (total: number, chart: MemoryChartDoc) => total + (chart.coverageEntropy ?? 0),
+      (total: number, chart: MemoryChartDoc) =>
+        total + (chart.coverageEntropy ?? 0),
       0,
     ),
     preservedInformation: charts.reduce(
@@ -117,7 +118,10 @@ export async function upsertMemoryChartSupportEdge(
     updatedAt: number;
   },
 ) {
-  const pairKey = chartPairKey(String(args.fromChartId), String(args.toChartId));
+  const pairKey = chartPairKey(
+    String(args.fromChartId),
+    String(args.toChartId),
+  );
   const existing = await ctx.db
     .query("memoryChartSupportEdges")
     .withIndex("by_namespace_pair", (q) =>

@@ -207,7 +207,12 @@ export function ContextExplore({
     displayStatus?.status === "completed" ? displayStatus.points : [];
   const isStale = displayStatus?.status === "completed" && displayStatus.stale;
   const hasNoData = cached === null && !activeJobId;
-  const canRegenerate = !isRefreshing && (hasNoData || isStale || displayStatus?.status === "failed" || displayStatus?.status === "completed");
+  const canRegenerate =
+    !isRefreshing &&
+    (hasNoData ||
+      isStale ||
+      displayStatus?.status === "failed" ||
+      displayStatus?.status === "completed");
   const isLoading = cached === undefined;
   const phase =
     activeStatus?.status === "running" ? activeStatus.phase : undefined;

@@ -31,7 +31,10 @@ export class ContextClient {
 
   addContext = async (
     ctx: RunActionCtx,
-    args: Omit<FunctionArgs<typeof this.component.public.context.add>, "apiKey">,
+    args: Omit<
+      FunctionArgs<typeof this.component.public.context.add>,
+      "apiKey"
+    >,
   ) => {
     return await ctx.runAction(this.component.public.context.add, {
       ...args,
@@ -48,7 +51,10 @@ export class ContextClient {
 
   deleteContext = async (
     ctx: RunActionCtx,
-    args: Omit<FunctionArgs<typeof this.component.public.context.remove>, "apiKey">,
+    args: Omit<
+      FunctionArgs<typeof this.component.public.context.remove>,
+      "apiKey"
+    >,
   ) => {
     return await ctx.runAction(this.component.public.context.remove, {
       ...args,
@@ -58,7 +64,10 @@ export class ContextClient {
 
   editContext = async (
     ctx: RunActionCtx,
-    args: Omit<FunctionArgs<typeof this.component.public.context.edit>, "apiKey">,
+    args: Omit<
+      FunctionArgs<typeof this.component.public.context.edit>,
+      "apiKey"
+    >,
   ) => {
     return await ctx.runAction(this.component.public.context.edit, {
       ...args,
@@ -68,7 +77,10 @@ export class ContextClient {
 
   searchContext = async (
     ctx: RunActionCtx,
-    args: Omit<FunctionArgs<typeof this.component.public.context.search>, "apiKey">,
+    args: Omit<
+      FunctionArgs<typeof this.component.public.context.search>,
+      "apiKey"
+    >,
   ) => {
     return await ctx.runAction(this.component.public.context.search, {
       ...args,
@@ -85,7 +97,9 @@ export class ContextClient {
 
   getLatestProjection = async (
     ctx: RunQueryCtx,
-    args: FunctionArgs<typeof this.component.public.projection.getLatestProjection>,
+    args: FunctionArgs<
+      typeof this.component.public.projection.getLatestProjection
+    >,
   ) => {
     return await ctx.runQuery(
       this.component.public.projection.getLatestProjection,
@@ -95,7 +109,9 @@ export class ContextClient {
 
   getProjectionStatus = async (
     ctx: RunQueryCtx,
-    args: FunctionArgs<typeof this.component.public.projection.getProjectionStatus>,
+    args: FunctionArgs<
+      typeof this.component.public.projection.getProjectionStatus
+    >,
   ) => {
     return await ctx.runQuery(
       this.component.public.projection.getProjectionStatus,

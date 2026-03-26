@@ -1,6 +1,6 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
-import { components, internal } from "../_generated/api";
+import { api, components, internal } from "../_generated/api";
 import { action, query } from "../_generated/server";
 import { ContextClient } from "../components/context/client";
 
@@ -150,8 +150,70 @@ export const searchContext = action({
     rrfK: v.optional(v.number()),
     vectorWeight: v.optional(v.number()),
     lexicalWeight: v.optional(v.number()),
+    fileEmbedding: v.optional(v.array(v.number())),
   },
   handler: async (ctx, args) => {
     return await createContextClient().searchContext(ctx, args);
+  },
+});
+
+function getEmbeddingServerUrl() {
+  return process.env.EMBEDDING_SERVER_URL?.trim() || "http://127.0.0.1:3031";
+}
+
+function getFileEmbeddingSecret() {
+  return (
+    process.env.BINARY_EMBEDDING_SECRET?.trim() ||
+    "dev-only-binary-embedding-secret"
+  );
+}
+
+function getConvexSiteUrl() {
+  const url =
+    process.env.CONVEX_SITE_URL?.trim() || process.env.CONVEX_URL?.trim();
+  if (!url) throw new Error("CONVEX_SITE_URL or CONVEX_URL is required");
+  return url.replace(/\/+$/, "");
+}
+
+export const embedForSearch = action({
+  args: {
+    storageId: v.id("_storage"),
+    mimeType: v.string(),
+    contentHash: v.string(),
+    text: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const cached = await ctx.runQuery(
+      api.context.embeddingCacheStore.getByHash,
+      { contentHash: args.contentHash },
+    );
+    if (cached) return;
+
+    const fileUrl = await ctx.storage.getUrl(args.storageId);
+    if (!fileUrl)
+      throw new Error(`Could not resolve URL for ${args.storageId}`);
+
+    const baseUrl = getConvexSiteUrl();
+    const response = await fetch(
+      `${getEmbeddingServerUrl().replace(/\/+$/, "")}/embed`,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-binary-embedding-secret": getFileEmbeddingSecret(),
+        },
+        body: JSON.stringify({
+          processId: `search-${args.contentHash}`,
+          fileUrl,
+          mimeType: args.mimeType,
+          text: args.text,
+          contentHash: args.contentHash,
+          cacheCompleteUrl: `${baseUrl}/embedding-cache/complete`,
+        }),
+      },
+    );
+    if (!response.ok) {
+      throw new Error(`Embedding server rejected the job (${response.status})`);
+    }
   },
 });

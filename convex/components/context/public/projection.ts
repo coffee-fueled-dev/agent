@@ -98,7 +98,10 @@ export const updatePhase = mutation({
 });
 
 export const markCompleted = mutation({
-  args: { jobId: v.id("contextProjectionJobs"), points: v.array(pointValidator) },
+  args: {
+    jobId: v.id("contextProjectionJobs"),
+    points: v.array(pointValidator),
+  },
   returns: v.null(),
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -312,6 +315,10 @@ export const getProjectionStatus = query({
         namespace: job.namespace,
       };
     }
-    return { status: "pending" as const, stale: job.stale, namespace: job.namespace };
+    return {
+      status: "pending" as const,
+      stale: job.stale,
+      namespace: job.namespace,
+    };
   },
 });

@@ -68,8 +68,7 @@ export const add = action({
   handler: async (ctx, args) => {
     const rag = createContextRag(args.apiKey);
     const embedding =
-      args.chunks?.[0]?.embedding ??
-      (await embedText(args.text, args.apiKey));
+      args.chunks?.[0]?.embedding ?? (await embedText(args.text, args.apiKey));
 
     const result = await rag.add(ctx, {
       namespace: args.namespace,
@@ -79,15 +78,14 @@ export const add = action({
       filterValues: [{ name: "status", value: "current" }],
     });
 
-    const source: typeof args.source & {} =
-      args.source ?? {
-        kind: "document",
-        sourceType: args.sourceType ?? "text",
-        document: "contextEntries",
-        documentId: result.entryId,
-        entryId: result.entryId,
-        key: args.key,
-      };
+    const source: typeof args.source & {} = args.source ?? {
+      kind: "document",
+      sourceType: args.sourceType ?? "text",
+      document: "contextEntries",
+      documentId: result.entryId,
+      entryId: result.entryId,
+      key: args.key,
+    };
 
     await ctx.runMutation(api.public.add.insertEntry, {
       namespace: args.namespace,
@@ -201,7 +199,11 @@ export const get = query({
 });
 
 export const remove = action({
-  args: { namespace: v.string(), entryId: v.string(), apiKey: v.optional(v.string()) },
+  args: {
+    namespace: v.string(),
+    entryId: v.string(),
+    apiKey: v.optional(v.string()),
+  },
   returns: v.null(),
   handler: async (ctx, args) => {
     const rag = createContextRag(args.apiKey);
@@ -240,9 +242,12 @@ export const edit = action({
       paginationOpts: { cursor: null, numItems: 1000 },
     });
     const oldText = oldChunks.page.map((c) => c.text).join("\n");
-    const oldEmbedding = await ctx.runQuery(internal.internal.embeddingStore.get, {
-      entryId: args.entryId,
-    });
+    const oldEmbedding = await ctx.runQuery(
+      internal.internal.embeddingStore.get,
+      {
+        entryId: args.entryId,
+      },
+    );
     await rag.delete(ctx, { entryId: args.entryId as EntryId });
 
     const historicalSource = {
@@ -388,6 +393,7 @@ export const search = action({
     rrfK: v.optional(v.number()),
     vectorWeight: v.optional(v.number()),
     lexicalWeight: v.optional(v.number()),
+    fileEmbedding: v.optional(v.array(v.number())),
     apiKey: v.optional(v.string()),
   },
   returns: v.array(searchResultValidator),
@@ -399,6 +405,7 @@ export const search = action({
       rrfK,
       vectorWeight,
       lexicalWeight,
+      fileEmbedding,
       apiKey,
       ...args
     },
@@ -411,10 +418,24 @@ export const search = action({
       ? undefined
       : [{ name: "status" as const, value: "current" }];
 
-    const vectorSearch = async (overrideLimit?: number) => {
+    type SearchHit = {
+      entryId: string;
+      key: string;
+      title: string | undefined;
+      text: string;
+      importance: number;
+      score: number;
+      metadata?: unknown;
+    };
+
+    const runVectorSearch = async (
+      query: string | number[],
+      overrideLimit?: number,
+    ): Promise<SearchHit[]> => {
       const { entries, results } = await rag.search(ctx, {
-        ...args,
-        limit: overrideLimit,
+        namespace: args.namespace,
+        query,
+        limit: overrideLimit ?? args.limit,
         filters,
       });
       return entries.map((entry) => ({
@@ -430,9 +451,33 @@ export const search = action({
       }));
     };
 
-    if (mode === "vector") return vectorSearch();
+    const hasTextQuery = typeof args.query === "string";
 
-    const lexicalQuery = typeof args.query === "string" ? args.query : null;
+    // Vector-only mode: run text vector + optional file vector, no lexical
+    if (mode === "vector") {
+      if (!fileEmbedding) return runVectorSearch(args.query);
+      const [textVector, fileVector] = await Promise.all([
+        hasTextQuery
+          ? runVectorSearch(args.query, candidateLimit)
+          : Promise.resolve([]),
+        runVectorSearch(fileEmbedding, candidateLimit),
+      ]);
+      if (!textVector.length) return fileVector.slice(0, limit);
+      if (!fileVector.length) return textVector.slice(0, limit);
+      const byId = new Map<string, SearchHit>();
+      for (const r of fileVector) byId.set(r.entryId, r);
+      for (const r of textVector) byId.set(r.entryId, r);
+      const fused = hybridRank(
+        [textVector.map((r) => r.entryId), fileVector.map((r) => r.entryId)],
+        { k: rrfK ?? 10, weights: [vectorWeight ?? 1, vectorWeight ?? 1] },
+      );
+      return fused
+        .map((id) => byId.get(id))
+        .filter((x): x is NonNullable<typeof x> => !!x)
+        .slice(0, limit);
+    }
+
+    const lexicalQuery = hasTextQuery ? (args.query as string) : null;
     const lexical = lexicalQuery
       ? await searchClient.search(ctx, {
           namespace: args.namespace,
@@ -443,10 +488,13 @@ export const search = action({
         })
       : [];
 
-    const lexicalMapped = lexical
+    const lexicalMapped: SearchHit[] = lexical
       .filter(
-        (r): r is typeof r & { source: { kind: "document"; entryId: string; key: string } } =>
-          r.source.kind === "document",
+        (
+          r,
+        ): r is typeof r & {
+          source: { kind: "document"; entryId: string; key: string };
+        } => r.source.kind === "document",
       )
       .map((r, index) => ({
         entryId: r.source.entryId,
@@ -457,22 +505,53 @@ export const search = action({
         score: 1 / (index + 1),
       }));
 
-    if (mode === "lexical" || !lexicalQuery) {
-      if (!lexicalQuery) return vectorSearch();
+    if (mode === "lexical") {
       return lexicalMapped.slice(0, limit);
     }
 
-    const vector = await vectorSearch(candidateLimit);
-    const fused = hybridRank(
-      [vector.map((r) => r.entryId), lexicalMapped.map((r) => r.entryId)],
-      { k: rrfK ?? 10, weights: [vectorWeight ?? 1, lexicalWeight ?? 1] },
-    );
-    const byId = new Map<
-      string,
-      (typeof vector)[number] | (typeof lexicalMapped)[number]
-    >();
+    // Hybrid: run all available arms in parallel
+    const [textVector, fileVector] = await Promise.all([
+      hasTextQuery || !fileEmbedding
+        ? runVectorSearch(args.query, candidateLimit)
+        : Promise.resolve([]),
+      fileEmbedding
+        ? runVectorSearch(fileEmbedding, candidateLimit)
+        : Promise.resolve([]),
+    ]);
+
+    const rankedLists: string[][] = [];
+    const weights: number[] = [];
+    if (textVector.length) {
+      rankedLists.push(textVector.map((r) => r.entryId));
+      weights.push(vectorWeight ?? 1);
+    }
+    if (lexicalMapped.length) {
+      rankedLists.push(lexicalMapped.map((r) => r.entryId));
+      weights.push(lexicalWeight ?? 1);
+    }
+    if (fileVector.length) {
+      rankedLists.push(fileVector.map((r) => r.entryId));
+      weights.push(vectorWeight ?? 1);
+    }
+
+    if (rankedLists.length === 0) return [];
+    if (rankedLists.length === 1) {
+      const single = textVector.length
+        ? textVector
+        : fileVector.length
+          ? fileVector
+          : lexicalMapped;
+      return single.slice(0, limit);
+    }
+
+    const byId = new Map<string, SearchHit>();
     for (const r of lexicalMapped) byId.set(r.entryId, r);
-    for (const r of vector) byId.set(r.entryId, r);
+    for (const r of fileVector) byId.set(r.entryId, r);
+    for (const r of textVector) byId.set(r.entryId, r);
+    const fused = hybridRank(rankedLists, {
+      k: rrfK ?? 10,
+      weights,
+    });
     return fused
       .map((id) => byId.get(id))
       .filter((x): x is NonNullable<typeof x> => !!x)

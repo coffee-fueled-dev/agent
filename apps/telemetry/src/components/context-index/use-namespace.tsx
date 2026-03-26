@@ -43,8 +43,7 @@ export function NamespaceProvider({ children }: PropsWithChildren) {
   const search = useSyncExternalStore(subscribe, getSearchSnapshot, () => "");
   const namespace = useMemo(
     () =>
-      new URLSearchParams(search).get("namespace")?.trim() ||
-      DEFAULT_NAMESPACE,
+      new URLSearchParams(search).get("namespace")?.trim() || DEFAULT_NAMESPACE,
     [search],
   );
   const setNamespace = useCallback((ns: string) => writeNamespace(ns), []);
@@ -63,6 +62,7 @@ export function NamespaceProvider({ children }: PropsWithChildren) {
 
 export function useNamespace() {
   const ctx = useContext(NamespaceContext);
-  if (!ctx) throw new Error("useNamespace must be used within NamespaceProvider");
+  if (!ctx)
+    throw new Error("useNamespace must be used within NamespaceProvider");
   return ctx;
 }

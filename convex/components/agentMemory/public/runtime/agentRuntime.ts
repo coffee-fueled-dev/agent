@@ -164,7 +164,12 @@ export async function getRuntimeStreamStateImpl(
 
 export async function markRuntimeCommitQueuedImpl(
   ctx: MutationCtx,
-  args: { runtime: string; streamId: string; commitKey: string; workId: string },
+  args: {
+    runtime: string;
+    streamId: string;
+    commitKey: string;
+    workId: string;
+  },
 ) {
   const registration = await getRuntimeRegistrationRow(ctx, args.runtime);
   const existing = await getRuntimeStreamRow(ctx, args.runtime, args.streamId);
@@ -175,7 +180,11 @@ export async function markRuntimeCommitQueuedImpl(
       runtime: args.runtime,
       streamId: args.streamId,
       factsNamespace: runtimeNamespace(registration, args.streamId, "facts"),
-      currentNamespace: runtimeNamespace(registration, args.streamId, "current"),
+      currentNamespace: runtimeNamespace(
+        registration,
+        args.streamId,
+        "current",
+      ),
       historicalNamespace: runtimeNamespace(
         registration,
         args.streamId,
@@ -442,11 +451,14 @@ export async function listRuntimeEvolutionImpl(
     components.facts.public.evaluate.getOrderedFacts,
     { namespace: state.factsNamespace },
   )) as Array<Record<string, unknown>>;
-  const history = await ctx.runQuery(components.history.public.read.listEntries, {
-    streamType: registration.historyStreamType,
-    streamId: args.streamId,
-    paginationOpts: args.paginationOpts,
-  });
+  const history = await ctx.runQuery(
+    components.history.public.read.listEntries,
+    {
+      streamType: registration.historyStreamType,
+      streamId: args.streamId,
+      paginationOpts: args.paginationOpts,
+    },
+  );
   return {
     ...state,
     facts: facts.map((row) => ({
@@ -455,10 +467,14 @@ export async function listRuntimeEvolutionImpl(
       scope: typeof row.scope === "string" ? row.scope : undefined,
       state: typeof row.state === "string" ? row.state : undefined,
       order: Array.isArray(row.order)
-        ? row.order.filter((value): value is number => typeof value === "number")
+        ? row.order.filter(
+            (value): value is number => typeof value === "number",
+          )
         : [],
       labels: Array.isArray(row.labels)
-        ? row.labels.filter((value): value is string => typeof value === "string")
+        ? row.labels.filter(
+            (value): value is string => typeof value === "string",
+          )
         : [],
       attrs:
         row.attrs && typeof row.attrs === "object"
