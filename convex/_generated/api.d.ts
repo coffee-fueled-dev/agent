@@ -63,6 +63,7 @@ import type * as resolvers_geo from "../resolvers/geo.js";
 import type * as resolvers_index from "../resolvers/index.js";
 import type * as seeds from "../seeds.js";
 import type * as workflow from "../workflow.js";
+import type * as workpool from "../workpool.js";
 
 import type {
   ApiFromModules,
@@ -126,6 +127,7 @@ declare const fullApi: ApiFromModules<{
   "resolvers/index": typeof resolvers_index;
   seeds: typeof seeds;
   workflow: typeof workflow;
+  workpool: typeof workpool;
 }>;
 
 /**
@@ -1048,7 +1050,13 @@ export declare const components: {
           "mutation",
           "internal",
           { jobId: string },
-          null
+          { hasMore: boolean }
+        >;
+        clearStaging: FunctionReference<
+          "mutation",
+          "internal",
+          { jobId: string },
+          { hasMore: boolean }
         >;
         createJob: FunctionReference<
           "mutation",
@@ -1067,6 +1075,12 @@ export declare const components: {
           "internal",
           { entryIds: Array<string> },
           number
+        >;
+        deleteSimilarityEdgesForNode: FunctionReference<
+          "mutation",
+          "internal",
+          { nodeKey: string },
+          { deleted: number; hasMore: boolean }
         >;
         getCommunityForEntry: FunctionReference<
           "query",
@@ -1157,6 +1171,38 @@ export declare const components: {
           { jobId: string; workflowId: string },
           null
         >;
+        readStagingAssignmentPage: FunctionReference<
+          "query",
+          "internal",
+          {
+            jobId: string;
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
+          },
+          any
+        >;
+        readStagingEdgePage: FunctionReference<
+          "query",
+          "internal",
+          {
+            jobId: string;
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
+          },
+          any
+        >;
         updatePhase: FunctionReference<
           "mutation",
           "internal",
@@ -1174,6 +1220,24 @@ export declare const components: {
             assignments: Array<{ communityId: number; entryId: string }>;
             jobId: string;
             namespace: string;
+          },
+          null
+        >;
+        writeStagingAssignments: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            assignments: Array<{ communityId: number; nodeId: string }>;
+            jobId: string;
+          },
+          null
+        >;
+        writeStagingEdges: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            edges: Array<{ from: string; to: string; weight: number }>;
+            jobId: string;
           },
           null
         >;
@@ -5887,6 +5951,104 @@ export declare const components: {
             startOrder: number;
           }>;
         }
+      >;
+    };
+  };
+  workpool: {
+    config: {
+      update: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          logLevel?: "DEBUG" | "TRACE" | "INFO" | "REPORT" | "WARN" | "ERROR";
+          maxParallelism?: number;
+        },
+        any
+      >;
+    };
+    lib: {
+      cancel: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          id: string;
+          logLevel?: "DEBUG" | "TRACE" | "INFO" | "REPORT" | "WARN" | "ERROR";
+        },
+        any
+      >;
+      cancelAll: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          before?: number;
+          limit?: number;
+          logLevel?: "DEBUG" | "TRACE" | "INFO" | "REPORT" | "WARN" | "ERROR";
+        },
+        any
+      >;
+      enqueue: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          config: {
+            logLevel?: "DEBUG" | "TRACE" | "INFO" | "REPORT" | "WARN" | "ERROR";
+            maxParallelism?: number;
+          };
+          fnArgs: any;
+          fnHandle: string;
+          fnName: string;
+          fnType: "action" | "mutation" | "query";
+          onComplete?: { context?: any; fnHandle: string };
+          retryBehavior?: {
+            base: number;
+            initialBackoffMs: number;
+            maxAttempts: number;
+          };
+          runAt: number;
+        },
+        string
+      >;
+      enqueueBatch: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          config: {
+            logLevel?: "DEBUG" | "TRACE" | "INFO" | "REPORT" | "WARN" | "ERROR";
+            maxParallelism?: number;
+          };
+          items: Array<{
+            fnArgs: any;
+            fnHandle: string;
+            fnName: string;
+            fnType: "action" | "mutation" | "query";
+            onComplete?: { context?: any; fnHandle: string };
+            retryBehavior?: {
+              base: number;
+              initialBackoffMs: number;
+              maxAttempts: number;
+            };
+            runAt: number;
+          }>;
+        },
+        Array<string>
+      >;
+      status: FunctionReference<
+        "query",
+        "internal",
+        { id: string },
+        | { previousAttempts: number; state: "pending" }
+        | { previousAttempts: number; state: "running" }
+        | { state: "finished" }
+      >;
+      statusBatch: FunctionReference<
+        "query",
+        "internal",
+        { ids: Array<string> },
+        Array<
+          | { previousAttempts: number; state: "pending" }
+          | { previousAttempts: number; state: "running" }
+          | { state: "finished" }
+        >
       >;
     };
   };

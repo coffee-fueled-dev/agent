@@ -94,11 +94,7 @@ export function edgeSchema<L extends string>(
 export function edgeSchema<
   L extends string,
   V extends Validator<any, "required", any>,
->(
-  label: L,
-  properties: V,
-  options: { directed: false },
-): EdgeDef<L, V, false>;
+>(label: L, properties: V, options: { directed: false }): EdgeDef<L, V, false>;
 export function edgeSchema(
   label: string,
   properties?: Validator<any, "required", any>,
@@ -194,9 +190,9 @@ export class GraphClient<
   };
 
   private edgeDirected<L extends EdgeLabel<E>>(label: L): boolean {
-    const def = this.config.edges.find(
-      (e) => e.label === label,
-    ) as EdgeDef | undefined;
+    const def = this.config.edges.find((e) => e.label === label) as
+      | EdgeDef
+      | undefined;
     return def?.directed !== false;
   }
 
@@ -265,6 +261,39 @@ export class GraphClient<
         node: args.node,
         paginationOpts: args.paginationOpts,
       });
+    },
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- available after codegen
+    createBatch: async <L extends EdgeLabel<E>>(
+      ctx: RunMutationCtx,
+      args: {
+        label: L;
+        edges: Array<{
+          from: string;
+          to: string;
+          properties?: Record<string, unknown>;
+        }>;
+      },
+    ): Promise<number> => {
+      return (await ctx.runMutation(
+        this.component.public.edges.createEdgesBatch,
+        {
+          label: args.label,
+          directed: this.edgeDirected(args.label),
+          edges: args.edges,
+        },
+      )) as number;
+    },
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- available after codegen
+    deleteForNode: async <L extends EdgeLabel<E>>(
+      ctx: RunMutationCtx,
+      args: { label: L; nodeKey: string; limit?: number },
+    ): Promise<{ deleted: number; hasMore: boolean }> => {
+      return (await ctx.runMutation(
+        this.component.public.edges.deleteEdgesForNode,
+        { label: args.label, nodeKey: args.nodeKey, limit: args.limit },
+      )) as { deleted: number; hasMore: boolean };
     },
   };
 

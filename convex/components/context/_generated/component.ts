@@ -66,7 +66,14 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           "mutation",
           "internal",
           { jobId: string },
-          null,
+          { hasMore: boolean },
+          Name
+        >;
+        clearStaging: FunctionReference<
+          "mutation",
+          "internal",
+          { jobId: string },
+          { hasMore: boolean },
           Name
         >;
         createJob: FunctionReference<
@@ -88,6 +95,13 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           "internal",
           { entryIds: Array<string> },
           number,
+          Name
+        >;
+        deleteSimilarityEdgesForNode: FunctionReference<
+          "mutation",
+          "internal",
+          { nodeKey: string },
+          { deleted: number; hasMore: boolean },
           Name
         >;
         getCommunityForEntry: FunctionReference<
@@ -194,6 +208,40 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           null,
           Name
         >;
+        readStagingAssignmentPage: FunctionReference<
+          "query",
+          "internal",
+          {
+            jobId: string;
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
+          },
+          any,
+          Name
+        >;
+        readStagingEdgePage: FunctionReference<
+          "query",
+          "internal",
+          {
+            jobId: string;
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
+          },
+          any,
+          Name
+        >;
         updatePhase: FunctionReference<
           "mutation",
           "internal",
@@ -212,6 +260,26 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             assignments: Array<{ communityId: number; entryId: string }>;
             jobId: string;
             namespace: string;
+          },
+          null,
+          Name
+        >;
+        writeStagingAssignments: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            assignments: Array<{ communityId: number; nodeId: string }>;
+            jobId: string;
+          },
+          null,
+          Name
+        >;
+        writeStagingEdges: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            edges: Array<{ from: string; to: string; weight: number }>;
+            jobId: string;
           },
           null,
           Name

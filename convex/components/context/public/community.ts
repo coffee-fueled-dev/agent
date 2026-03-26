@@ -1,5 +1,8 @@
+import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
+import { paginator } from "convex-helpers/server/pagination";
 import { mutation, query } from "../_generated/server";
+import schema from "../schema";
 import { graph } from "../graph";
 import { hasStatus } from "../internal/status";
 
@@ -249,17 +252,20 @@ export const writeAssignments = mutation({
   },
 });
 
+const CLEAR_BATCH = 100;
+
 export const clearAssignments = mutation({
   args: { jobId: v.id("contextCommunityJobs") },
-  returns: v.null(),
+  returns: v.object({ hasMore: v.boolean() }),
   handler: async (ctx, args) => {
     const docs = await ctx.db
       .query("contextCommunityAssignments")
       .withIndex("by_jobId", (q) => q.eq("jobId", args.jobId))
-      .collect();
+      .take(CLEAR_BATCH);
     for (const doc of docs) {
       await ctx.db.delete(doc._id);
     }
+    return { hasMore: docs.length === CLEAR_BATCH };
   },
 });
 
@@ -286,6 +292,18 @@ export const deleteSimilarityEdgesForEntries = mutation({
       }
     }
     return deleted;
+  },
+});
+
+export const deleteSimilarityEdgesForNode = mutation({
+  args: { nodeKey: v.string() },
+  returns: v.object({ deleted: v.number(), hasMore: v.boolean() }),
+  handler: async (ctx, args) => {
+    return await graph.edges.deleteForNode(ctx, {
+      label: "SIMILAR_TO",
+      nodeKey: args.nodeKey,
+      limit: 50,
+    });
   },
 });
 
@@ -341,6 +359,96 @@ export const getNeighborEdges = query({
       score:
         (edge.properties as { score?: number } | undefined)?.score ?? 0,
     }));
+  },
+});
+
+// Staging CRUD
+
+export const writeStagingEdges = mutation({
+  args: {
+    jobId: v.id("contextCommunityJobs"),
+    edges: v.array(v.object({ from: v.string(), to: v.string(), weight: v.number() })),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    for (const e of args.edges) {
+      await ctx.db.insert("contextStagingEdges", {
+        jobId: args.jobId,
+        from: e.from,
+        to: e.to,
+        weight: e.weight,
+      });
+    }
+  },
+});
+
+export const readStagingEdgePage = query({
+  args: {
+    jobId: v.id("contextCommunityJobs"),
+    paginationOpts: paginationOptsValidator,
+  },
+  returns: v.any(),
+  handler: async (ctx, args) => {
+    return await paginator(ctx.db, schema)
+      .query("contextStagingEdges")
+      .withIndex("by_jobId", (q) => q.eq("jobId", args.jobId))
+      .paginate(args.paginationOpts);
+  },
+});
+
+export const writeStagingAssignments = mutation({
+  args: {
+    jobId: v.id("contextCommunityJobs"),
+    assignments: v.array(v.object({ nodeId: v.string(), communityId: v.number() })),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    for (const a of args.assignments) {
+      await ctx.db.insert("contextStagingAssignments", {
+        jobId: args.jobId,
+        nodeId: a.nodeId,
+        communityId: a.communityId,
+      });
+    }
+  },
+});
+
+export const readStagingAssignmentPage = query({
+  args: {
+    jobId: v.id("contextCommunityJobs"),
+    paginationOpts: paginationOptsValidator,
+  },
+  returns: v.any(),
+  handler: async (ctx, args) => {
+    return await paginator(ctx.db, schema)
+      .query("contextStagingAssignments")
+      .withIndex("by_jobId", (q) => q.eq("jobId", args.jobId))
+      .paginate(args.paginationOpts);
+  },
+});
+
+export const clearStaging = mutation({
+  args: { jobId: v.id("contextCommunityJobs") },
+  returns: v.object({ hasMore: v.boolean() }),
+  handler: async (ctx, args) => {
+    let deleted = 0;
+    const edges = await ctx.db
+      .query("contextStagingEdges")
+      .withIndex("by_jobId", (q) => q.eq("jobId", args.jobId))
+      .take(CLEAR_BATCH);
+    for (const doc of edges) {
+      await ctx.db.delete(doc._id);
+      deleted++;
+    }
+    const assignments = await ctx.db
+      .query("contextStagingAssignments")
+      .withIndex("by_jobId", (q) => q.eq("jobId", args.jobId))
+      .take(CLEAR_BATCH - deleted);
+    for (const doc of assignments) {
+      await ctx.db.delete(doc._id);
+      deleted++;
+    }
+    return { hasMore: deleted === CLEAR_BATCH };
   },
 });
 

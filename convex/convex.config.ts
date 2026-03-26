@@ -3,6 +3,7 @@ import aggregate from "@convex-dev/aggregate/convex.config.js";
 import geospatial from "@convex-dev/geospatial/convex.config.js";
 import rag from "@convex-dev/rag/convex.config.js";
 import workflow from "@convex-dev/workflow/convex.config.js";
+import workpool from "@convex-dev/workpool/convex.config.js";
 import { defineApp } from "convex/server";
 import context from "./components/context/convex.config.js";
 import events from "./components/events/convex.config.js";
@@ -24,5 +25,6 @@ app.use(workflow);
 app.use(policy);
 app.use(agent);
 app.use(rag);
+app.use(workpool);
 
 export default app;

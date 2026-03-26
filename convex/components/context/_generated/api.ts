@@ -732,11 +732,27 @@ export const components = componentsGeneric() as unknown as {
           },
           null
         >;
+        createEdgesBatch: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            directed?: boolean;
+            edges: Array<{ from: string; properties?: any; to: string }>;
+            label: string;
+          },
+          number
+        >;
         deleteEdge: FunctionReference<
           "mutation",
           "internal",
           { directed?: boolean; from: string; label: string; to: string },
           null
+        >;
+        deleteEdgesForNode: FunctionReference<
+          "mutation",
+          "internal",
+          { label: string; limit?: number; nodeKey: string },
+          { deleted: number; hasMore: boolean }
         >;
         queryEdges: FunctionReference<
           "query",

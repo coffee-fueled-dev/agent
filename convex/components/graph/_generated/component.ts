@@ -38,11 +38,29 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           null,
           Name
         >;
+        createEdgesBatch: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            directed?: boolean;
+            edges: Array<{ from: string; properties?: any; to: string }>;
+            label: string;
+          },
+          number,
+          Name
+        >;
         deleteEdge: FunctionReference<
           "mutation",
           "internal",
           { directed?: boolean; from: string; label: string; to: string },
           null,
+          Name
+        >;
+        deleteEdgesForNode: FunctionReference<
+          "mutation",
+          "internal",
+          { label: string; limit?: number; nodeKey: string },
+          { deleted: number; hasMore: boolean },
           Name
         >;
         queryEdges: FunctionReference<

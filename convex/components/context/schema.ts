@@ -141,4 +141,17 @@ export default defineSchema({
     .index("by_namespace_entryId", ["namespace", "entryId"])
     .index("by_namespace_communityId", ["namespace", "communityId"])
     .index("by_jobId", ["jobId"]),
+
+  contextStagingEdges: defineTable({
+    jobId: v.id("contextCommunityJobs"),
+    from: v.string(),
+    to: v.string(),
+    weight: v.number(),
+  }).index("by_jobId", ["jobId"]),
+
+  contextStagingAssignments: defineTable({
+    jobId: v.id("contextCommunityJobs"),
+    nodeId: v.string(),
+    communityId: v.number(),
+  }).index("by_jobId", ["jobId"]),
 });

@@ -1,12 +1,12 @@
 import type { EntryId } from "@convex-dev/rag";
-import type {
-  GenericActionCtx,
-  GenericDataModel,
-  GenericMutationCtx,
-} from "convex/server";
 import { v } from "convex/values";
 import { api, internal } from "../_generated/api";
-import { action, query } from "../_generated/server";
+import {
+  action,
+  internalAction,
+  internalMutation,
+  query,
+} from "../_generated/server";
 import { graph } from "../graph";
 import { history } from "../history";
 import { embedText } from "../internal/embedding";
@@ -32,53 +32,60 @@ function fusedRank(
 const DEFAULT_SIMILARITY_K = 6;
 const DEFAULT_SIMILARITY_THRESHOLD = 0.7;
 
-type SimilarityCtx = Pick<
-  GenericActionCtx<GenericDataModel>,
-  "runAction"
-> &
-  Pick<GenericMutationCtx<GenericDataModel>, "runMutation">;
-
-async function createSimilarityEdges(
-  ctx: SimilarityCtx,
-  opts: {
-    entryId: string;
-    namespace: string;
-    embedding: number[];
-    apiKey?: string;
-    similarityK?: number;
-    similarityThreshold?: number;
+export const scheduleSimilarityEdges = internalMutation({
+  args: {
+    entryId: v.string(),
+    namespace: v.string(),
+    embedding: v.array(v.number()),
+    apiKey: v.optional(v.string()),
+    similarityK: v.optional(v.number()),
+    similarityThreshold: v.optional(v.number()),
   },
-) {
-  await graph.nodes.create(ctx, {
-    label: "contextEntry",
-    key: opts.entryId,
-  });
+  handler: async (ctx, args) => {
+    await ctx.scheduler.runAfter(
+      0,
+      internal.public.context.createSimilarityEdgesAsync,
+      args,
+    );
+  },
+});
 
-  const rag = createContextRag(opts.apiKey);
-  const k = opts.similarityK ?? DEFAULT_SIMILARITY_K;
-  const threshold = opts.similarityThreshold ?? DEFAULT_SIMILARITY_THRESHOLD;
+export const createSimilarityEdgesAsync = internalAction({
+  args: {
+    entryId: v.string(),
+    namespace: v.string(),
+    embedding: v.array(v.number()),
+    apiKey: v.optional(v.string()),
+    similarityK: v.optional(v.number()),
+    similarityThreshold: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const rag = createContextRag(args.apiKey);
+    const k = args.similarityK ?? DEFAULT_SIMILARITY_K;
+    const threshold = args.similarityThreshold ?? DEFAULT_SIMILARITY_THRESHOLD;
 
-  const { entries, results } = await rag.search(ctx, {
-    namespace: opts.namespace,
-    query: opts.embedding,
-    limit: k + 1,
-    filters: [{ name: "status", value: "current" }],
-  });
-
-  for (const entry of entries) {
-    if (entry.entryId === opts.entryId) continue;
-    const score = results
-      .filter((r) => r.entryId === entry.entryId)
-      .reduce((max, r) => Math.max(max, r.score), 0);
-    if (score < threshold) continue;
-    await graph.edges.create(ctx, {
-      label: "SIMILAR_TO",
-      from: opts.entryId,
-      to: entry.entryId,
-      properties: { score },
+    const { entries, results } = await rag.search(ctx, {
+      namespace: args.namespace,
+      query: args.embedding,
+      limit: k + 1,
+      filters: [{ name: "status", value: "current" }],
     });
-  }
-}
+
+    for (const entry of entries) {
+      if (entry.entryId === args.entryId) continue;
+      const score = results
+        .filter((r) => r.entryId === entry.entryId)
+        .reduce((max, r) => Math.max(max, r.score), 0);
+      if (score < threshold) continue;
+      await graph.edges.create(ctx, {
+        label: "SIMILAR_TO",
+        from: args.entryId,
+        to: entry.entryId,
+        properties: { score },
+      });
+    }
+  },
+});
 
 const TEXT_PREVIEW_LENGTH = 280;
 
@@ -210,7 +217,12 @@ export const add = action({
       namespace: args.namespace,
     });
 
-    await createSimilarityEdges(ctx, {
+    await graph.nodes.create(ctx, {
+      label: "contextEntry",
+      key: result.entryId,
+    });
+
+    await ctx.runMutation(internal.public.context.scheduleSimilarityEdges, {
       entryId: result.entryId,
       namespace: args.namespace,
       embedding,
@@ -477,7 +489,12 @@ export const edit = action({
       key: args.entryId,
     });
 
-    await createSimilarityEdges(ctx, {
+    await graph.nodes.create(ctx, {
+      label: "contextEntry",
+      key: current.entryId,
+    });
+
+    await ctx.runMutation(internal.public.context.scheduleSimilarityEdges, {
       entryId: current.entryId,
       namespace: args.namespace,
       embedding,
