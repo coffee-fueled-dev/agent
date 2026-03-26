@@ -7,8 +7,8 @@ import {
   useMemo,
   useState,
 } from "react";
-import { api } from "../../../../../convex/_generated/api.js";
-import { Button } from "../ui/button";
+import { api } from "../../../../../../convex/_generated/api.js";
+import { Button } from "../../../components/ui/button.js";
 import {
   Dialog,
   DialogClose,
@@ -17,12 +17,12 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "../ui/dialog";
-import { Field, FieldError, FieldLabel } from "../ui/field";
-import { Input } from "../ui/input";
-import { Textarea } from "../ui/textarea";
+} from "../../../components/ui/dialog.js";
+import { Field, FieldError, FieldLabel } from "../../../components/ui/field.js";
+import { Input } from "../../../components/ui/input.js";
+import { Textarea } from "../../../components/ui/textarea.js";
+import { useNamespace } from "../_hooks/use-namespace.js";
 import { FileDropzone, useFiles } from "./file-dropzone.js";
-import { useNamespace } from "./use-namespace";
 
 function buildKey(title: string, file?: File | null) {
   const base = (title.trim() || file?.name || "context")

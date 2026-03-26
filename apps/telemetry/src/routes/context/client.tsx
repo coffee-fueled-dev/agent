@@ -1,15 +1,15 @@
 import { PlusIcon, SearchIcon } from "lucide-react";
 import { useState } from "react";
 import { useDropzone } from "react-dropzone";
-import { AddContextDialog } from "../../components/context-index/add-context-dialog";
-import { ContextExplore } from "../../components/context-index/context-explore";
-import { ContextSearch } from "../../components/context-index/context-search.js";
-import { FileDropzoneProvider } from "../../components/context-index/file-dropzone";
-import { NamespaceProvider } from "../../components/context-index/use-namespace";
 import { AppShell } from "../../components/layout/app-shell";
 import { Button } from "../../components/ui/button";
 import { CommandDialog } from "../../components/ui/command";
 import { renderApp } from "../../render-root";
+import { AddContextDialog } from "./_components/add-context-dialog.js";
+import { ContextExplore } from "./_components/context-explore.js";
+import { ContextSearch } from "./_components/context-search.js";
+import { FileDropzoneProvider } from "./_components/file-dropzone.js";
+import { NamespaceProvider } from "./_hooks/use-namespace.js";
 
 function ContextIndexRoute() {
   return (

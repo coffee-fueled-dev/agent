@@ -541,3 +541,36 @@ export const getNeighborEdgesBatch = query({
     return results;
   },
 });
+
+export const getEntryMetas = query({
+  args: { namespace: v.string(), entryIds: v.array(v.string()) },
+  returns: v.array(
+    v.object({
+      entryId: v.string(),
+      title: v.optional(v.string()),
+      textPreview: v.string(),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    const results: Array<{
+      entryId: string;
+      title?: string;
+      textPreview: string;
+    }> = [];
+    for (const entryId of args.entryIds) {
+      const entry = await ctx.db
+        .query("contextEntries")
+        .withIndex("by_namespace", (q) => q.eq("namespace", args.namespace))
+        .filter((q) => q.eq(q.field("entryId"), entryId))
+        .first();
+      if (entry) {
+        results.push({
+          entryId: entry.entryId,
+          title: entry.title,
+          textPreview: entry.textPreview,
+        });
+      }
+    }
+    return results;
+  },
+});

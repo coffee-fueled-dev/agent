@@ -4,27 +4,25 @@ import type { FunctionReturnType } from "convex/server";
 import { LoaderIcon, PaperclipIcon, SearchIcon, XIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDropzone } from "react-dropzone";
-import { api } from "../../../../../convex/_generated/api.js";
-import { LoaderWithMessage } from "../blocks/loader-with-message.js";
-import { Button } from "../ui/button.js";
+import { api } from "../../../../../../convex/_generated/api.js";
+import { LoaderWithMessage } from "../../../components/blocks/loader-with-message.js";
+import { Button } from "../../../components/ui/button.js";
 import {
   Command,
   CommandEmpty,
   CommandGroup,
   CommandItem,
   CommandList,
-} from "../ui/command";
-import { Empty } from "../ui/empty.js";
+} from "../../../components/ui/command.js";
+import { Empty } from "../../../components/ui/empty.js";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
   InputGroupInput,
-} from "../ui/input-group";
-import { Skeleton } from "../ui/skeleton.js";
-import { Spinner } from "../ui/spinner.js";
+} from "../../../components/ui/input-group.js";
+import { useNamespace } from "../_hooks/use-namespace.js";
 import { MimeTypeIcon } from "./mime-type-icon.js";
-import { useNamespace } from "./use-namespace.js";
 
 type SearchResults = FunctionReturnType<
   typeof api.context.contextApi.searchContext

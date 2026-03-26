@@ -1103,6 +1103,12 @@ export declare const components: {
           { communityId: number; namespace: string },
           Array<string>
         >;
+        getEntryMetas: FunctionReference<
+          "query",
+          "internal",
+          { entryIds: Array<string>; namespace: string },
+          Array<{ entryId: string; textPreview: string; title?: string }>
+        >;
         getJob: FunctionReference<"query", "internal", { jobId: string }, any>;
         getLatestCommunities: FunctionReference<
           "query",

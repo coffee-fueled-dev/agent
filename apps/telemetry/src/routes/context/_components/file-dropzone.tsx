@@ -8,7 +8,7 @@ import {
 } from "react";
 import { useDropzone } from "react-dropzone";
 import { cn } from "@/lib/utils";
-import { Skeleton } from "../ui/skeleton";
+import { Skeleton } from "../../../components/ui/skeleton.js";
 
 type FilesContextValue = {
   files: File[];

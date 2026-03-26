@@ -128,6 +128,13 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           Array<string>,
           Name
         >;
+        getEntryMetas: FunctionReference<
+          "query",
+          "internal",
+          { entryIds: Array<string>; namespace: string },
+          Array<{ entryId: string; textPreview: string; title?: string }>,
+          Name
+        >;
         getJob: FunctionReference<
           "query",
           "internal",

@@ -609,8 +609,36 @@ export const getEntryGraphContext = query({
       });
     }
 
+    const neighborIds = neighbors.map((n) => n.neighbor);
+    const metas: Array<{
+      entryId: string;
+      title?: string;
+      textPreview: string;
+    }> = neighborIds.length
+      ? await ctx.runQuery(
+          (communityApi as any).getEntryMetas,
+          { namespace: args.namespace, entryIds: neighborIds },
+        )
+      : [];
+    const metaMap = new Map(metas.map((m) => [m.entryId, m]));
+
+    const fileMap = new Map<string, string>();
+    for (const id of neighborIds) {
+      const file = await ctx.db
+        .query("contextFiles")
+        .withIndex("by_entryId", (q) => q.eq("entryId", id))
+        .first();
+      if (file) fileMap.set(id, file.mimeType);
+    }
+
     return {
-      neighbors: neighbors.map((n) => ({ id: n.neighbor, score: n.score })),
+      neighbors: neighbors.map((n) => ({
+        id: n.neighbor,
+        score: n.score,
+        title: metaMap.get(n.neighbor)?.title,
+        textPreview: metaMap.get(n.neighbor)?.textPreview,
+        mimeType: fileMap.get(n.neighbor),
+      })),
       communityMembers,
     };
   },
