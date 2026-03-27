@@ -32,4 +32,10 @@ export default defineSchema({
     outDegree: v.number(),
     totalDegree: v.number(),
   }).index("by_key", ["key"]),
+
+  pendingDegreeUpdates: defineTable({
+    nodeKey: v.string(),
+    delta: v.number(),
+    edgeLabel: v.string(),
+  }).index("by_nodeKey", ["nodeKey"]),
 });

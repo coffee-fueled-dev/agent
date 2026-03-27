@@ -5,67 +5,15 @@ import {
 import { v } from "convex/values";
 import { paginator } from "convex-helpers/server/pagination";
 import { doc } from "convex-helpers/validators";
-import type { MutationCtx } from "../_generated/server";
+import { internal } from "../_generated/api";
 import { mutation, query } from "../_generated/server";
-import {
-  graphAggregate,
-  type GraphAggregateNamespace,
-} from "../internal/aggregate";
 import { canonicalPair } from "../internal/canonical";
+import { graphCounters } from "../internal/counters";
 import { normalizeLabel } from "../internal/normalize";
 import schema from "../schema";
 
-function edgeId(label: string, from: string, to: string) {
-  return `${label}:${from}:${to}`;
-}
-
-async function updateDegreeAggregate(
-  ctx: MutationCtx,
-  args: {
-    nodeKey: string;
-    oldDegree: number;
-    newDegree: number;
-    edgeLabel: string;
-  },
-) {
-  const namespaces: GraphAggregateNamespace[] = [
-    ["degree"],
-    ["degree", args.edgeLabel],
-  ];
-  for (const namespace of namespaces) {
-    if (args.oldDegree > 0) {
-      await graphAggregate.deleteIfExists(ctx, {
-        namespace,
-        key: args.oldDegree,
-        id: args.nodeKey,
-      });
-    }
-    if (args.newDegree > 0) {
-      await graphAggregate.insertIfDoesNotExist(ctx, {
-        namespace,
-        key: args.newDegree,
-        id: args.nodeKey,
-        sumValue: args.newDegree,
-      });
-    }
-  }
-}
-
-async function getOrCreateNodeStats(ctx: MutationCtx, key: string) {
-  const existing = await ctx.db
-    .query("nodeStats")
-    .withIndex("by_key", (q) => q.eq("key", key))
-    .first();
-  if (existing) return existing;
-  const id = await ctx.db.insert("nodeStats", {
-    key,
-    inDegree: 0,
-    outDegree: 0,
-    totalDegree: 0,
-  });
-  const row = await ctx.db.get(id);
-  if (!row) throw new Error("Failed to read freshly inserted nodeStats");
-  return row;
+function counterKey(prefix: string, label?: string) {
+  return label ? `${prefix}:${label}` : prefix;
 }
 
 export const createEdge = mutation({
@@ -111,68 +59,26 @@ export const createEdge = mutation({
       properties: args.properties,
     });
 
-    const id = edgeId(normalized, from, to);
-    await graphAggregate.insertIfDoesNotExist(ctx, {
-      namespace: ["edges"],
-      key: null,
-      id,
-    });
-    await graphAggregate.insertIfDoesNotExist(ctx, {
-      namespace: ["edges", normalized],
-      key: null,
-      id,
-    });
+    await graphCounters.inc(ctx, counterKey("edges"));
+    await graphCounters.inc(ctx, counterKey("edges", normalized));
 
-    if (isDirected) {
-      const fromStats = await getOrCreateNodeStats(ctx, from);
-      await ctx.db.patch(fromStats._id, {
-        outDegree: fromStats.outDegree + 1,
-        totalDegree: fromStats.totalDegree + 1,
-      });
-      await updateDegreeAggregate(ctx, {
-        nodeKey: from,
-        oldDegree: fromStats.totalDegree,
-        newDegree: fromStats.totalDegree + 1,
-        edgeLabel: normalized,
-      });
-
-      const toStats = await getOrCreateNodeStats(ctx, to);
-      await ctx.db.patch(toStats._id, {
-        inDegree: toStats.inDegree + 1,
-        totalDegree: toStats.totalDegree + 1,
-      });
-      await updateDegreeAggregate(ctx, {
+    await ctx.db.insert("pendingDegreeUpdates", {
+      nodeKey: from,
+      delta: 1,
+      edgeLabel: normalized,
+    });
+    if (from !== to) {
+      await ctx.db.insert("pendingDegreeUpdates", {
         nodeKey: to,
-        oldDegree: toStats.totalDegree,
-        newDegree: toStats.totalDegree + 1,
+        delta: 1,
         edgeLabel: normalized,
       });
-    } else {
-      // Undirected: both nodes get +1 totalDegree, no in/out distinction
-      const fromStats = await getOrCreateNodeStats(ctx, from);
-      await ctx.db.patch(fromStats._id, {
-        totalDegree: fromStats.totalDegree + 1,
-      });
-      await updateDegreeAggregate(ctx, {
-        nodeKey: from,
-        oldDegree: fromStats.totalDegree,
-        newDegree: fromStats.totalDegree + 1,
-        edgeLabel: normalized,
-      });
-
-      if (from !== to) {
-        const toStats = await getOrCreateNodeStats(ctx, to);
-        await ctx.db.patch(toStats._id, {
-          totalDegree: toStats.totalDegree + 1,
-        });
-        await updateDegreeAggregate(ctx, {
-          nodeKey: to,
-          oldDegree: toStats.totalDegree,
-          newDegree: toStats.totalDegree + 1,
-          edgeLabel: normalized,
-        });
-      }
     }
+    await ctx.scheduler.runAfter(
+      0,
+      internal.public.stats.flushDegreeUpdates,
+      {},
+    );
 
     return null;
   },
@@ -230,89 +136,26 @@ export const deleteEdge = mutation({
     if (!edge) return null;
     await ctx.db.delete(edge._id);
 
-    const id = edgeId(normalized, from, to);
-    await graphAggregate.deleteIfExists(ctx, {
-      namespace: ["edges"],
-      key: null,
-      id,
+    await graphCounters.dec(ctx, counterKey("edges"));
+    await graphCounters.dec(ctx, counterKey("edges", normalized));
+
+    await ctx.db.insert("pendingDegreeUpdates", {
+      nodeKey: from,
+      delta: -1,
+      edgeLabel: normalized,
     });
-    await graphAggregate.deleteIfExists(ctx, {
-      namespace: ["edges", normalized],
-      key: null,
-      id,
-    });
-
-    if (edge.directed) {
-      const fromStats = await ctx.db
-        .query("nodeStats")
-        .withIndex("by_key", (q) => q.eq("key", from))
-        .first();
-      if (fromStats) {
-        const newOut = Math.max(0, fromStats.outDegree - 1);
-        const newTotal = Math.max(0, fromStats.totalDegree - 1);
-        await ctx.db.patch(fromStats._id, {
-          outDegree: newOut,
-          totalDegree: newTotal,
-        });
-        await updateDegreeAggregate(ctx, {
-          nodeKey: from,
-          oldDegree: fromStats.totalDegree,
-          newDegree: newTotal,
-          edgeLabel: normalized,
-        });
-      }
-
-      const toStats = await ctx.db
-        .query("nodeStats")
-        .withIndex("by_key", (q) => q.eq("key", to))
-        .first();
-      if (toStats) {
-        const newIn = Math.max(0, toStats.inDegree - 1);
-        const newTotal = Math.max(0, toStats.totalDegree - 1);
-        await ctx.db.patch(toStats._id, {
-          inDegree: newIn,
-          totalDegree: newTotal,
-        });
-        await updateDegreeAggregate(ctx, {
-          nodeKey: to,
-          oldDegree: toStats.totalDegree,
-          newDegree: newTotal,
-          edgeLabel: normalized,
-        });
-      }
-    } else {
-      const fromStats = await ctx.db
-        .query("nodeStats")
-        .withIndex("by_key", (q) => q.eq("key", from))
-        .first();
-      if (fromStats) {
-        const newTotal = Math.max(0, fromStats.totalDegree - 1);
-        await ctx.db.patch(fromStats._id, { totalDegree: newTotal });
-        await updateDegreeAggregate(ctx, {
-          nodeKey: from,
-          oldDegree: fromStats.totalDegree,
-          newDegree: newTotal,
-          edgeLabel: normalized,
-        });
-      }
-
-      if (from !== to) {
-        const toStats = await ctx.db
-          .query("nodeStats")
-          .withIndex("by_key", (q) => q.eq("key", to))
-          .first();
-        if (toStats) {
-          const newTotal = Math.max(0, toStats.totalDegree - 1);
-          await ctx.db.patch(toStats._id, { totalDegree: newTotal });
-          await updateDegreeAggregate(ctx, {
-            nodeKey: to,
-            oldDegree: toStats.totalDegree,
-            newDegree: newTotal,
-            edgeLabel: normalized,
-          });
-        }
-      }
+    if (from !== to) {
+      await ctx.db.insert("pendingDegreeUpdates", {
+        nodeKey: to,
+        delta: -1,
+        edgeLabel: normalized,
+      });
     }
+    await ctx.scheduler.runAfter(
+      0,
+      internal.public.stats.flushDegreeUpdates,
+      {},
+    );
 
     return null;
   },
@@ -331,7 +174,6 @@ export const queryEdges = query({
     const normalized = normalizeLabel(args.label);
     const { from, to, node } = args;
 
-    // Neighbors mode: find all edges touching a node in either direction
     if (node != null) {
       const [outgoing, incoming] = await Promise.all([
         ctx.db
@@ -347,7 +189,6 @@ export const queryEdges = query({
           )
           .collect(),
       ]);
-      // Dedup (for self-edges the same row appears in both)
       const seen = new Set<string>();
       const merged = [];
       for (const edge of [...outgoing, ...incoming]) {
@@ -418,14 +259,19 @@ export const createEdgesBatch = mutation({
       .withIndex("by_value", (q) => q.eq("value", normalized))
       .first();
     if (!labelRow) {
-      await ctx.db.insert("labels", { value: normalized, displayValue: args.label });
+      await ctx.db.insert("labels", {
+        value: normalized,
+        displayValue: args.label,
+      });
     }
 
     const degreeDeltas = new Map<string, number>();
     let created = 0;
 
     for (const e of args.edges) {
-      const [from, to] = isDirected ? [e.from, e.to] : canonicalPair(e.from, e.to);
+      const [from, to] = isDirected
+        ? [e.from, e.to]
+        : canonicalPair(e.from, e.to);
 
       const existing = await ctx.db
         .query("edges")
@@ -443,10 +289,6 @@ export const createEdgesBatch = mutation({
         properties: e.properties,
       });
 
-      const id = edgeId(normalized, from, to);
-      await graphAggregate.insertIfDoesNotExist(ctx, { namespace: ["edges"], key: null, id });
-      await graphAggregate.insertIfDoesNotExist(ctx, { namespace: ["edges", normalized], key: null, id });
-
       degreeDeltas.set(from, (degreeDeltas.get(from) ?? 0) + 1);
       if (from !== to) {
         degreeDeltas.set(to, (degreeDeltas.get(to) ?? 0) + 1);
@@ -454,12 +296,24 @@ export const createEdgesBatch = mutation({
       created++;
     }
 
+    if (created > 0) {
+      await graphCounters.add(ctx, counterKey("edges"), created);
+      await graphCounters.add(ctx, counterKey("edges", normalized), created);
+    }
+
     for (const [nodeKey, delta] of degreeDeltas) {
-      const stats = await getOrCreateNodeStats(ctx, nodeKey);
-      const oldDegree = stats.totalDegree;
-      const newDegree = oldDegree + delta;
-      await ctx.db.patch(stats._id, { totalDegree: newDegree });
-      await updateDegreeAggregate(ctx, { nodeKey, oldDegree, newDegree, edgeLabel: normalized });
+      await ctx.db.insert("pendingDegreeUpdates", {
+        nodeKey,
+        delta,
+        edgeLabel: normalized,
+      });
+    }
+    if (degreeDeltas.size > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.public.stats.flushDegreeUpdates,
+        {},
+      );
     }
 
     return created;
@@ -505,27 +359,34 @@ export const deleteEdgesForNode = mutation({
     const degreeDeltas = new Map<string, number>();
     for (const edge of toDelete) {
       await ctx.db.delete(edge._id);
-      const eid = edgeId(normalized, edge.from, edge.to);
-      await graphAggregate.deleteIfExists(ctx, { namespace: ["edges"], key: null, id: eid });
-      await graphAggregate.deleteIfExists(ctx, { namespace: ["edges", normalized], key: null, id: eid });
-
       degreeDeltas.set(edge.from, (degreeDeltas.get(edge.from) ?? 0) + 1);
       if (edge.from !== edge.to) {
         degreeDeltas.set(edge.to, (degreeDeltas.get(edge.to) ?? 0) + 1);
       }
     }
 
+    if (toDelete.length > 0) {
+      await graphCounters.subtract(ctx, counterKey("edges"), toDelete.length);
+      await graphCounters.subtract(
+        ctx,
+        counterKey("edges", normalized),
+        toDelete.length,
+      );
+    }
+
     for (const [nodeKey, delta] of degreeDeltas) {
-      const stats = await ctx.db
-        .query("nodeStats")
-        .withIndex("by_key", (q) => q.eq("key", nodeKey))
-        .first();
-      if (stats) {
-        const oldDegree = stats.totalDegree;
-        const newDegree = Math.max(0, oldDegree - delta);
-        await ctx.db.patch(stats._id, { totalDegree: newDegree });
-        await updateDegreeAggregate(ctx, { nodeKey, oldDegree, newDegree, edgeLabel: normalized });
-      }
+      await ctx.db.insert("pendingDegreeUpdates", {
+        nodeKey,
+        delta: -delta,
+        edgeLabel: normalized,
+      });
+    }
+    if (degreeDeltas.size > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.public.stats.flushDegreeUpdates,
+        {},
+      );
     }
 
     return { deleted: toDelete.length, hasMore: toDelete.length >= batchLimit };

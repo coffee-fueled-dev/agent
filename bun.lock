@@ -12,6 +12,7 @@
         "@convex-dev/aggregate": "^0.2.1",
         "@convex-dev/geospatial": "^0.2.1",
         "@convex-dev/rag": "^0.7.2",
+        "@convex-dev/sharded-counter": "^0.2.0",
         "@convex-dev/workflow": "^0.3.7",
         "@convex-dev/workpool": "^0.4.6",
         "@google/genai": "^1.46.0",
@@ -128,6 +129,8 @@
     "@convex-dev/geospatial": ["@convex-dev/geospatial@0.2.1", "", { "dependencies": { "async-channel": "^0.2.0", "heap-js": "^2.5.0" }, "peerDependencies": { "convex": "^1.24.8" } }, "sha512-qSo5UJyX0il0zYbtdss9Gew5wVishL8jKxEwjx3FysxOWzzpODFN87ct/YUayAVuYCnXqdhxZ2xpvXADKqdrbg=="],
 
     "@convex-dev/rag": ["@convex-dev/rag@0.7.2", "", { "dependencies": { "ai": "^6.0.0" }, "peerDependencies": { "@convex-dev/workpool": "^0.3.0", "convex": "^1.24.8", "convex-helpers": "^0.1.94" } }, "sha512-LuwiJdnE6twrM+5tVldmOpZqmR6eIQpMroCOyXWTNE7XDfqWz52GKDenraLG95xNRbn5wcxg8mkOrZIUUgwGDg=="],
+
+    "@convex-dev/sharded-counter": ["@convex-dev/sharded-counter@0.2.0", "", { "peerDependencies": { "convex": "^1.24.8" } }, "sha512-Qv1TvFXyQ60rADS1fWH01mnMDNSPfmKKowXva6WxIXGIC2ta5xvohe9TfUhXp4AT1vtOXoFgse3Z9mJB9fJlSQ=="],
 
     "@convex-dev/workflow": ["@convex-dev/workflow@0.3.7", "", { "dependencies": { "async-channel": "^0.2.0" }, "peerDependencies": { "@convex-dev/workpool": "^0.3.0 || ^0.4.0", "convex": "^1.31.7", "convex-helpers": "^0.1.99" } }, "sha512-c1WKHKFnhMWNyiwXzPUfSUjbFrinRITsQ76yZ4KHUG7uxSZQ/0fW1Cp/A45fI8KkmYLq+EAwv6WjsX0g01xSpQ=="],
 

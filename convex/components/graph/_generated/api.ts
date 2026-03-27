@@ -11,6 +11,7 @@
 import type * as client_index from "../client/index.js";
 import type * as internal_aggregate from "../internal/aggregate.js";
 import type * as internal_canonical from "../internal/canonical.js";
+import type * as internal_counters from "../internal/counters.js";
 import type * as internal_normalize from "../internal/normalize.js";
 import type * as lib_knn from "../lib/knn.js";
 import type * as lib_leiden from "../lib/leiden.js";
@@ -30,6 +31,7 @@ const fullApi: ApiFromModules<{
   "client/index": typeof client_index;
   "internal/aggregate": typeof internal_aggregate;
   "internal/canonical": typeof internal_canonical;
+  "internal/counters": typeof internal_counters;
   "internal/normalize": typeof internal_normalize;
   "lib/knn": typeof lib_knn;
   "lib/leiden": typeof lib_leiden;
@@ -250,6 +252,30 @@ export const components = componentsGeneric() as unknown as {
         },
         any
       >;
+    };
+  };
+  shardedCounter: {
+    public: {
+      add: FunctionReference<
+        "mutation",
+        "internal",
+        { count: number; name: string; shard?: number; shards?: number },
+        number
+      >;
+      count: FunctionReference<"query", "internal", { name: string }, number>;
+      estimateCount: FunctionReference<
+        "query",
+        "internal",
+        { name: string; readFromShards?: number; shards?: number },
+        any
+      >;
+      rebalance: FunctionReference<
+        "mutation",
+        "internal",
+        { name: string; shards?: number },
+        any
+      >;
+      reset: FunctionReference<"mutation", "internal", { name: string }, any>;
     };
   };
 };

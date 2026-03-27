@@ -35,6 +35,7 @@
     "@convex-dev/aggregate": "^0.2.1",
     "@convex-dev/geospatial": "^0.2.1",
     "@convex-dev/rag": "^0.7.2",
+    "@convex-dev/sharded-counter": "^0.2.0",
     "@convex-dev/workflow": "^0.3.7",
     "@convex-dev/workpool": "^0.4.6",
     "@google/genai": "^1.46.0",

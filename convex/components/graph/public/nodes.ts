@@ -5,10 +5,15 @@ import {
 import { v } from "convex/values";
 import { paginator } from "convex-helpers/server/pagination";
 import { doc } from "convex-helpers/validators";
+import { internal } from "../_generated/api";
 import { mutation, query } from "../_generated/server";
-import { graphAggregate } from "../internal/aggregate";
+import { graphCounters } from "../internal/counters";
 import { normalizeLabel } from "../internal/normalize";
 import schema from "../schema";
+
+function counterKey(prefix: string, label?: string) {
+  return label ? `${prefix}:${label}` : prefix;
+}
 
 export const createNode = mutation({
   args: { label: v.string(), key: v.string() },
@@ -36,16 +41,8 @@ export const createNode = mutation({
 
     await ctx.db.insert("nodes", { label: normalized, key: args.key });
 
-    await graphAggregate.insertIfDoesNotExist(ctx, {
-      namespace: ["nodes"],
-      key: null,
-      id: args.key,
-    });
-    await graphAggregate.insertIfDoesNotExist(ctx, {
-      namespace: ["nodes", normalized],
-      key: null,
-      id: args.key,
-    });
+    await graphCounters.inc(ctx, counterKey("nodes"));
+    await graphCounters.inc(ctx, counterKey("nodes", normalized));
 
     const existingStats = await ctx.db
       .query("nodeStats")
@@ -106,18 +103,36 @@ export const deleteNode = mutation({
         q.or(q.eq(q.field("from"), args.key), q.eq(q.field("to"), args.key)),
       )
       .collect();
-    for (const edge of edges) {
-      await ctx.db.delete(edge._id);
-      await graphAggregate.deleteIfExists(ctx, {
-        namespace: ["edges"],
-        key: null,
-        id: `${edge.label}:${edge.from}:${edge.to}`,
-      });
-      await graphAggregate.deleteIfExists(ctx, {
-        namespace: ["edges", edge.label],
-        key: null,
-        id: `${edge.label}:${edge.from}:${edge.to}`,
-      });
+
+    if (edges.length > 0) {
+      const edgeLabelCounts = new Map<string, number>();
+      const degreeDeltas = new Map<string, number>();
+      for (const edge of edges) {
+        await ctx.db.delete(edge._id);
+        edgeLabelCounts.set(edge.label, (edgeLabelCounts.get(edge.label) ?? 0) + 1);
+        degreeDeltas.set(edge.from, (degreeDeltas.get(edge.from) ?? 0) + 1);
+        if (edge.from !== edge.to) {
+          degreeDeltas.set(edge.to, (degreeDeltas.get(edge.to) ?? 0) + 1);
+        }
+      }
+
+      await graphCounters.subtract(ctx, counterKey("edges"), edges.length);
+      for (const [label, count] of edgeLabelCounts) {
+        await graphCounters.subtract(ctx, counterKey("edges", label), count);
+      }
+
+      for (const [nodeKey, delta] of degreeDeltas) {
+        if (nodeKey !== args.key) {
+          await ctx.db.insert("pendingDegreeUpdates", {
+            nodeKey,
+            delta: -delta,
+            edgeLabel: normalized,
+          });
+        }
+      }
+      if (degreeDeltas.size > 1 || !degreeDeltas.has(args.key)) {
+        await ctx.scheduler.runAfter(0, internal.public.stats.flushDegreeUpdates, {});
+      }
     }
 
     const stats = await ctx.db
@@ -125,26 +140,11 @@ export const deleteNode = mutation({
       .withIndex("by_key", (q) => q.eq("key", args.key))
       .first();
     if (stats) {
-      if (stats.totalDegree > 0) {
-        await graphAggregate.deleteIfExists(ctx, {
-          namespace: ["degree"],
-          key: stats.totalDegree,
-          id: args.key,
-        });
-      }
       await ctx.db.delete(stats._id);
     }
 
-    await graphAggregate.deleteIfExists(ctx, {
-      namespace: ["nodes"],
-      key: null,
-      id: args.key,
-    });
-    await graphAggregate.deleteIfExists(ctx, {
-      namespace: ["nodes", normalized],
-      key: null,
-      id: args.key,
-    });
+    await graphCounters.dec(ctx, counterKey("nodes"));
+    await graphCounters.dec(ctx, counterKey("nodes", normalized));
 
     await ctx.db.delete(node._id);
     return null;
