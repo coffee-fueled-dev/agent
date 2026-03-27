@@ -17,7 +17,7 @@ export function ContextEntryEditForm() {
   } = useContextEntry();
 
   return (
-    <DialogWithTabs.Content value="edit">
+    <DialogWithTabs.Content value="edit" className="space-y-4">
       <DialogWithTabs.Title>
         Edit {detail.title ?? detail.key}
       </DialogWithTabs.Title>

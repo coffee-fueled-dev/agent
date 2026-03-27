@@ -12,7 +12,7 @@ export function ContextEntryDeleteDialog() {
   const { handleDelete, deleting, detail } = useContextEntry();
 
   return (
-    <DialogWithTabs.Content value="delete">
+    <DialogWithTabs.Content value="delete" className="space-y-4">
       <DialogHeader>
         <DialogTitle>Delete {detail.title ?? detail.key}</DialogTitle>
         <DialogDescription>
