@@ -1,3 +1,4 @@
+import { api } from "@backend/api.js";
 import { Bar, BarChart, CartesianGrid, XAxis } from "recharts";
 import { RequiredResult } from "@/components/layout/required-result.js";
 import {
@@ -7,7 +8,6 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart.js";
 import { Empty, EmptyContent } from "@/components/ui/empty.js";
-import { api } from "@backend/api.js";
 
 const chartConfig = {
   views: {

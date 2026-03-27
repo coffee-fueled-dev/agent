@@ -982,6 +982,7 @@ export const components = componentsGeneric() as unknown as {
             eventType: string;
             expectedVersion?: number;
             metadata?: Record<string, string | number | boolean | null>;
+            namespace?: string;
             payload?: any;
             session?: string;
             streamId: string;
@@ -998,6 +999,7 @@ export const components = componentsGeneric() as unknown as {
             eventType: string;
             globalSequence: number;
             metadata?: Record<string, string | number | boolean | null>;
+            namespace: string;
             payload?: any;
             session?: string;
             streamId: string;
@@ -1066,6 +1068,7 @@ export const components = componentsGeneric() as unknown as {
             eventType: string;
             globalSequence: number;
             metadata?: Record<string, string | number | boolean | null>;
+            namespace: string;
             payload?: any;
             session?: string;
             streamId: string;
@@ -1093,7 +1096,12 @@ export const components = componentsGeneric() as unknown as {
         getEvent: FunctionReference<
           "query",
           "internal",
-          { eventId: string; streamId: string; streamType: string },
+          {
+            eventId: string;
+            namespace?: string;
+            streamId: string;
+            streamType: string;
+          },
           {
             _creationTime: number;
             _id: string;
@@ -1105,6 +1113,7 @@ export const components = componentsGeneric() as unknown as {
             eventType: string;
             globalSequence: number;
             metadata?: Record<string, string | number | boolean | null>;
+            namespace: string;
             payload?: any;
             session?: string;
             streamId: string;
@@ -1133,6 +1142,7 @@ export const components = componentsGeneric() as unknown as {
           "internal",
           {
             eventTypes?: Array<string>;
+            namespace?: string;
             order?: "asc" | "desc";
             paginationOpts: {
               cursor: string | null;
@@ -1153,6 +1163,7 @@ export const components = componentsGeneric() as unknown as {
           {
             eventTypes?: Array<string>;
             minEventTime: number;
+            namespace?: string;
             streamId: string;
             streamType: string;
           },
@@ -1167,6 +1178,7 @@ export const components = componentsGeneric() as unknown as {
             eventType: string;
             globalSequence: number;
             metadata?: Record<string, string | number | boolean | null>;
+            namespace: string;
             payload?: any;
             session?: string;
             streamId: string;
@@ -1179,12 +1191,13 @@ export const components = componentsGeneric() as unknown as {
         getStream: FunctionReference<
           "query",
           "internal",
-          { streamId: string; streamType: string },
+          { namespace?: string; streamId: string; streamType: string },
           {
             _creationTime: number;
             _id: string;
             createdTime: number;
             lastEventSequence: number | null;
+            namespace: string;
             streamId: string;
             streamType: string;
             updatedTime: number;
@@ -1194,7 +1207,7 @@ export const components = componentsGeneric() as unknown as {
         getStreamVersion: FunctionReference<
           "query",
           "internal",
-          { streamId: string; streamType: string },
+          { namespace?: string; streamId: string; streamType: string },
           number
         >;
       };

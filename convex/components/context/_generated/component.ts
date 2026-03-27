@@ -366,6 +366,13 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           any,
           Name
         >;
+        getEntryAccessEvent: FunctionReference<
+          "query",
+          "internal",
+          { entryId: string; eventId: string; namespace: string },
+          any | null,
+          Name
+        >;
         getEntryAccessWeekByDay: FunctionReference<
           "query",
           "internal",

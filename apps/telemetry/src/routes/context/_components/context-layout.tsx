@@ -1,5 +1,6 @@
 "use client";
 
+import { BookOpenIcon, LayoutDashboardIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import {
   MobileSidebarSheet,
@@ -12,14 +13,13 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/layout/sidebar";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Button } from "@/components/ui/button";
-import { BookOpenIcon, LayoutDashboardIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 function MobileNav() {
   const { closeMobile } = useSidebar();

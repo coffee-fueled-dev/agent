@@ -105,6 +105,7 @@ export const search = action({
       for (let i = 0; i < enriched.length; i++) {
         await memoryEvents.append.appendToStream(ctx, {
           streamType: "contextMemory",
+          namespace: args.namespace,
           streamId: enriched[i].entryId,
           eventId: crypto.randomUUID(),
           eventType: "searched",

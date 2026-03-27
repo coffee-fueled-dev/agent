@@ -218,6 +218,7 @@ export const add = action({
 
     await memoryEvents.append.appendToStream(ctx, {
       streamType: "contextMemory",
+      namespace: args.namespace,
       streamId: result.entryId,
       eventId: crypto.randomUUID(),
       eventType: "added",
@@ -321,6 +322,7 @@ export const recordView = mutation({
         : crypto.randomUUID();
     await memoryEvents.append.appendToStream(ctx, {
       streamType: "contextMemory",
+      namespace: args.namespace,
       streamId: args.entryId,
       eventId,
       eventType: "viewed",
@@ -354,10 +356,36 @@ export const listEntryAccessEvents = query({
     }
     return await memoryEvents.read.listStreamEvents(ctx, {
       streamType: "contextMemory",
+      namespace: args.namespace,
       streamId: entry.entryId,
       paginationOpts: args.paginationOpts,
       order: "desc",
       eventTypes: [...ACCESS_EVENT_TYPES],
+    });
+  },
+});
+
+export const getEntryAccessEvent = query({
+  args: {
+    namespace: v.string(),
+    entryId: v.string(),
+    eventId: v.string(),
+  },
+  returns: v.union(v.any(), v.null()),
+  handler: async (ctx, args) => {
+    const entry = await resolveContextEntryInNamespace(
+      ctx,
+      args.namespace,
+      args.entryId,
+    );
+    if (!entry) {
+      return null;
+    }
+    return await memoryEvents.read.getEvent(ctx, {
+      streamType: "contextMemory",
+      namespace: args.namespace,
+      streamId: entry.entryId,
+      eventId: args.eventId,
     });
   },
 });
@@ -385,6 +413,7 @@ export const getEntryAccessWeekByDay = query({
     const weekStart = todayStart - 6 * 86_400_000;
     const events = await memoryEvents.read.listStreamEventsSince(ctx, {
       streamType: "contextMemory",
+      namespace: args.namespace,
       streamId: entry.entryId,
       minEventTime: weekStart,
       eventTypes: [...ACCESS_EVENT_TYPES],
@@ -437,6 +466,7 @@ export const remove = action({
 
     await memoryEvents.append.appendToStream(ctx, {
       streamType: "contextMemory",
+      namespace: args.namespace,
       streamId: args.entryId,
       eventId: crypto.randomUUID(),
       eventType: "deleted",
@@ -628,6 +658,7 @@ export const edit = action({
 
     await memoryEvents.append.appendToStream(ctx, {
       streamType: "contextMemory",
+      namespace: args.namespace,
       streamId: current.entryId,
       eventId: crypto.randomUUID(),
       eventType: "edited",

@@ -13,6 +13,8 @@ export type EventStreamTemplate = {
   streamType: string;
   eventTypes: readonly string[];
   payloads?: Record<string, PropertyValidators>;
+  /** When true, callers should pass a non-empty stream `namespace` for isolation. */
+  namespaceScoped?: boolean;
 };
 
 export type EventsConfig<
@@ -58,12 +60,15 @@ export type PayloadFor<
 
 export type EventRef<StreamType extends string = string> = {
   streamType: StreamType;
+  /** Omitted or empty string = default / unscoped stream. */
+  namespace?: string;
   streamId: string;
   eventId: string;
 };
 
 export type EventStreamRef<StreamType extends string = string> = {
   streamType: StreamType;
+  namespace?: string;
   streamId: string;
 };
 
@@ -73,6 +78,7 @@ export type EventStreamState<
   StreamType extends StreamTypeFor<Streams> = StreamTypeFor<Streams>,
 > = {
   streamType: StreamType;
+  namespace: string;
   streamId: string;
   version: number;
   lastEventSequence: number | null;
@@ -88,6 +94,7 @@ export type EventEntry<
   [EvType in EventTypeFor<Streams, StreamType>]: {
     globalSequence: number;
     streamType: StreamType;
+    namespace: string;
     streamId: string;
     streamVersion: number;
     eventId: string;
@@ -116,6 +123,7 @@ export type AppendArgs<Streams extends readonly EventStreamTemplate[]> = {
     [EvType in EventTypeFor<Streams, Stream>]: {
       streamType: Stream;
       streamId: string;
+      namespace?: string;
       eventId: string;
       eventType: EvType;
       payload?: PayloadFor<Streams, Stream, EvType & string>;

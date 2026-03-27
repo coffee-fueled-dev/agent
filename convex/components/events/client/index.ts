@@ -24,6 +24,8 @@ type RunMutationCtx = Pick<
 
 type StreamArgs<Streams extends readonly EventStreamTemplate[]> = {
   streamType: StreamTypeFor<Streams>;
+  /** Omitted or empty = unscoped stream identity. */
+  namespace?: string;
   streamId: string;
 };
 

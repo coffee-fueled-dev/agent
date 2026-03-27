@@ -15,16 +15,18 @@ const actorValidator = v.optional(
 export default defineSchema({
   event_streams: defineTable({
     streamType: v.string(),
+    namespace: v.string(),
     streamId: v.string(),
     version: v.number(),
     lastEventSequence: v.union(v.number(), v.null()),
     createdTime: v.number(),
     updatedTime: v.number(),
-  }).index("by_stream", ["streamType", "streamId"]),
+  }).index("by_stream", ["streamType", "namespace", "streamId"]),
 
   event_entries: defineTable({
     globalSequence: v.number(),
     streamType: v.string(),
+    namespace: v.string(),
     streamId: v.string(),
     streamVersion: v.number(),
     eventId: v.string(),
@@ -38,9 +40,24 @@ export default defineSchema({
     eventTime: v.number(),
   })
     .index("by_global_sequence", ["globalSequence"])
-    .index("by_stream_version", ["streamType", "streamId", "streamVersion"])
-    .index("by_stream_event_time", ["streamType", "streamId", "eventTime"])
-    .index("by_stream_event", ["streamType", "streamId", "eventId"])
+    .index("by_stream_version", [
+      "streamType",
+      "namespace",
+      "streamId",
+      "streamVersion",
+    ])
+    .index("by_stream_event_time", [
+      "streamType",
+      "namespace",
+      "streamId",
+      "eventTime",
+    ])
+    .index("by_stream_event", [
+      "streamType",
+      "namespace",
+      "streamId",
+      "eventId",
+    ])
     .index("by_type_sequence", ["streamType", "globalSequence"]),
 
   event_projector_checkpoints: defineTable({

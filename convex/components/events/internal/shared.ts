@@ -2,8 +2,16 @@ import { v } from "convex/values";
 import { doc } from "convex-helpers/validators";
 import schema from "../schema";
 
+/** Empty string means unscoped / default. */
+export function normalizeStreamNamespace(
+  namespace: string | undefined,
+): string {
+  return namespace ?? "";
+}
+
 export const streamRefFields = {
   streamType: v.string(),
+  namespace: v.optional(v.string()),
   streamId: v.string(),
 } as const;
 

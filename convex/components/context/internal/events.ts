@@ -6,6 +6,7 @@ const eventsConfig = {
   streams: [
     {
       streamType: "contextMemory",
+      namespaceScoped: true,
       eventTypes: ["searched", "viewed", "added", "edited", "deleted"],
       payloads: {
         searched: {

@@ -3,13 +3,13 @@ import { PageSection } from "@/components/layout/page-section";
 import { renderApp } from "../../../render-root";
 import { ContextLayout } from "../_components/context-layout.js";
 import { NamespaceProvider } from "../_hooks/use-namespace.js";
+import { ContextEntryHeader } from "./_components/context-entry-header.js";
 import { ContextEntryShell } from "./_components/context-entry-shell.js";
 import { EntryFileCard } from "./_components/entry-file-card";
 import { parseEntryOverviewPath } from "./_components/entry-path.js";
 import { LinkedNodes } from "./_components/linked-nodes";
 import { VersionChain } from "./_components/version-chain.js";
 import { useContextEntry } from "./_hooks/use-context-entry";
-import { ContextEntryHeader } from "./_components/context-entry-header.js";
 
 function ContextDetailRoute() {
   const parsed = parseEntryOverviewPath(window.location.pathname);

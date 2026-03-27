@@ -5,6 +5,7 @@ import { query } from "../_generated/server";
 import {
   eventEntryValidator,
   eventRefFields,
+  normalizeStreamNamespace,
   streamRefFields,
 } from "../internal/shared";
 import { loadEvent } from "../internal/store";
@@ -14,7 +15,8 @@ export const getEvent = query({
   args: eventRefFields,
   returns: v.union(eventEntryValidator, v.null()),
   handler: async (ctx, args) => {
-    return await loadEvent(ctx, args);
+    const namespace = normalizeStreamNamespace(args.namespace);
+    return await loadEvent(ctx, { ...args, namespace });
   },
 });
 
@@ -26,6 +28,7 @@ export const listStreamEvents = query({
     eventTypes: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
+    const namespace = normalizeStreamNamespace(args.namespace);
     const types = args.eventTypes;
     const hasTypes = types && types.length > 0;
 
@@ -33,7 +36,10 @@ export const listStreamEvents = query({
       paginator(ctx.db, schema)
         .query("event_entries")
         .withIndex("by_stream_version", (q) =>
-          q.eq("streamType", args.streamType).eq("streamId", args.streamId),
+          q
+            .eq("streamType", args.streamType)
+            .eq("namespace", namespace)
+            .eq("streamId", args.streamId),
         );
 
     /** convex-helpers paginator streams do not support `.filter()`; use `.filterWith()` (see stream.js). */
@@ -68,6 +74,7 @@ export const listStreamEventsSince = query({
   },
   returns: v.array(eventEntryValidator),
   handler: async (ctx, args) => {
+    const namespace = normalizeStreamNamespace(args.namespace);
     // Use by_stream_event_time so we range-scan from minEventTime instead of
     // scanning the entire stream (by_stream_version + filter timed out on large streams).
     const base = ctx.db
@@ -75,6 +82,7 @@ export const listStreamEventsSince = query({
       .withIndex("by_stream_event_time", (q) =>
         q
           .eq("streamType", args.streamType)
+          .eq("namespace", namespace)
           .eq("streamId", args.streamId)
           .gte("eventTime", args.minEventTime),
       );

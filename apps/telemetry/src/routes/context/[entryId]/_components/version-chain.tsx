@@ -4,6 +4,8 @@ import {
   HistoryIcon,
 } from "lucide-react";
 import { CollapsibleItemGroup } from "@/components/blocks/collapsible-item-group.js";
+import { formatTime } from "@/components/formatters";
+import { Badge } from "@/components/ui/badge";
 import {
   Item,
   ItemContent,
@@ -11,8 +13,6 @@ import {
   ItemMedia,
   ItemTitle,
 } from "@/components/ui/item.js";
-import { formatTime } from "@/components/formatters";
-import { Badge } from "@/components/ui/badge";
 
 export function VersionChain({
   chain,

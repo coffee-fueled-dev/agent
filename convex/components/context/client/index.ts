@@ -171,6 +171,18 @@ export class ContextClient {
     );
   };
 
+  getEntryAccessEvent = async (
+    ctx: RunQueryCtx,
+    args: FunctionArgs<
+      typeof this.component.public.entries.getEntryAccessEvent
+    >,
+  ) => {
+    return await ctx.runQuery(
+      this.component.public.entries.getEntryAccessEvent,
+      args,
+    );
+  };
+
   getEntryAccessWeekByDay = async (
     ctx: RunQueryCtx,
     args: FunctionArgs<

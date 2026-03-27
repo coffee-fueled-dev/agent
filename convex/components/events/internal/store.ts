@@ -1,5 +1,6 @@
 import type { Doc } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { normalizeStreamNamespace } from "./shared";
 
 type EventsCtx = MutationCtx | QueryCtx;
 
@@ -7,13 +8,18 @@ export async function loadStream(
   ctx: EventsCtx,
   args: {
     streamType: string;
+    namespace?: string;
     streamId: string;
   },
 ) {
+  const namespace = normalizeStreamNamespace(args.namespace);
   return await ctx.db
     .query("event_streams")
     .withIndex("by_stream", (q) =>
-      q.eq("streamType", args.streamType).eq("streamId", args.streamId),
+      q
+        .eq("streamType", args.streamType)
+        .eq("namespace", namespace)
+        .eq("streamId", args.streamId),
     )
     .first();
 }
@@ -22,15 +28,18 @@ export async function loadEvent(
   ctx: EventsCtx,
   args: {
     streamType: string;
+    namespace?: string;
     streamId: string;
     eventId: string;
   },
 ) {
+  const namespace = normalizeStreamNamespace(args.namespace);
   return await ctx.db
     .query("event_entries")
     .withIndex("by_stream_event", (q) =>
       q
         .eq("streamType", args.streamType)
+        .eq("namespace", namespace)
         .eq("streamId", args.streamId)
         .eq("eventId", args.eventId),
     )

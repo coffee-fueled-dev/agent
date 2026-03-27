@@ -599,6 +599,7 @@ export declare const components: {
             eventType: string;
             expectedVersion?: number;
             metadata?: Record<string, string | number | boolean | null>;
+            namespace?: string;
             payload?: any;
             session?: string;
             streamId: string;
@@ -615,6 +616,7 @@ export declare const components: {
             eventType: string;
             globalSequence: number;
             metadata?: Record<string, string | number | boolean | null>;
+            namespace: string;
             payload?: any;
             session?: string;
             streamId: string;
@@ -683,6 +685,7 @@ export declare const components: {
             eventType: string;
             globalSequence: number;
             metadata?: Record<string, string | number | boolean | null>;
+            namespace: string;
             payload?: any;
             session?: string;
             streamId: string;
@@ -710,7 +713,12 @@ export declare const components: {
         getEvent: FunctionReference<
           "query",
           "internal",
-          { eventId: string; streamId: string; streamType: string },
+          {
+            eventId: string;
+            namespace?: string;
+            streamId: string;
+            streamType: string;
+          },
           {
             _creationTime: number;
             _id: string;
@@ -722,6 +730,7 @@ export declare const components: {
             eventType: string;
             globalSequence: number;
             metadata?: Record<string, string | number | boolean | null>;
+            namespace: string;
             payload?: any;
             session?: string;
             streamId: string;
@@ -750,6 +759,7 @@ export declare const components: {
           "internal",
           {
             eventTypes?: Array<string>;
+            namespace?: string;
             order?: "asc" | "desc";
             paginationOpts: {
               cursor: string | null;
@@ -770,6 +780,7 @@ export declare const components: {
           {
             eventTypes?: Array<string>;
             minEventTime: number;
+            namespace?: string;
             streamId: string;
             streamType: string;
           },
@@ -784,6 +795,7 @@ export declare const components: {
             eventType: string;
             globalSequence: number;
             metadata?: Record<string, string | number | boolean | null>;
+            namespace: string;
             payload?: any;
             session?: string;
             streamId: string;
@@ -796,12 +808,13 @@ export declare const components: {
         getStream: FunctionReference<
           "query",
           "internal",
-          { streamId: string; streamType: string },
+          { namespace?: string; streamId: string; streamType: string },
           {
             _creationTime: number;
             _id: string;
             createdTime: number;
             lastEventSequence: number | null;
+            namespace: string;
             streamId: string;
             streamType: string;
             updatedTime: number;
@@ -811,7 +824,7 @@ export declare const components: {
         getStreamVersion: FunctionReference<
           "query",
           "internal",
-          { streamId: string; streamType: string },
+          { namespace?: string; streamId: string; streamType: string },
           number
         >;
       };
@@ -1366,6 +1379,12 @@ export declare const components: {
           "internal",
           { entryIds: Array<string> },
           any
+        >;
+        getEntryAccessEvent: FunctionReference<
+          "query",
+          "internal",
+          { entryId: string; eventId: string; namespace: string },
+          any | null
         >;
         getEntryAccessWeekByDay: FunctionReference<
           "query",

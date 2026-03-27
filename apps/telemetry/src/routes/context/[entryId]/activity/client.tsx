@@ -1,13 +1,13 @@
+import { PageSection } from "@/components/layout/page-section";
 import { renderApp } from "../../../../render-root";
 import { ContextLayout } from "../../_components/context-layout.js";
 import { NamespaceProvider } from "../../_hooks/use-namespace.js";
+import { ContextEntryHeader } from "../_components/context-entry-header.js";
 import { ContextEntryShell } from "../_components/context-entry-shell.js";
 import { parseEntrySubPath } from "../_components/entry-path.js";
-import { PageSection } from "@/components/layout/page-section";
 import { useContextEntry } from "../_hooks/use-context-entry.js";
-import { EntryAccessWeekChart } from "./_components/entry-access-week-chart.js";
 import { EntryAccessEventsList } from "./_components/entry-access-events-list.js";
-import { ContextEntryHeader } from "../_components/context-entry-header.js";
+import { EntryAccessWeekChart } from "./_components/entry-access-week-chart.js";
 
 function ActivityRoute() {
   const parsed = parseEntrySubPath(window.location.pathname, "activity");

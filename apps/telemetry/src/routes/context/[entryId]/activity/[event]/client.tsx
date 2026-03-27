@@ -1,0 +1,78 @@
+import { api } from "@backend/api.js";
+import { useQuery } from "convex/react";
+import { PageSection } from "@/components/layout/page-section";
+import { Spinner } from "@/components/ui/spinner";
+import { renderApp } from "../../../../../render-root";
+import { ContextLayout } from "../../../_components/context-layout.js";
+import { NamespaceProvider } from "../../../_hooks/use-namespace.js";
+import { ContextEntryHeader } from "../../_components/context-entry-header.js";
+import { ContextEntryShell } from "../../_components/context-entry-shell.js";
+import { parseEntryActivityEventPath } from "../../_components/entry-path.js";
+import { useContextEntry } from "../../_hooks/use-context-entry.js";
+
+function ActivityEventRoute() {
+  const parsed = parseEntryActivityEventPath(window.location.pathname);
+
+  if (!parsed) {
+    return (
+      <NamespaceProvider>
+        <ContextLayout current="context">
+          <div className="px-4 py-6 text-sm text-muted-foreground md:px-6">
+            Invalid context entry URL.
+          </div>
+        </ContextLayout>
+      </NamespaceProvider>
+    );
+  }
+
+  return (
+    <ContextEntryShell entryId={parsed.entryId} segment="activity">
+      <ContextEntryHeader />
+      <ActivityEventDetail eventId={parsed.eventId} />
+    </ContextEntryShell>
+  );
+}
+
+function ActivityEventDetail({ eventId }: { eventId: string }) {
+  const { namespace, entryId } = useContextEntry();
+  const data = useQuery(api.context.contextApi.getContextEntryAccessEvent, {
+    namespace,
+    entryId,
+    eventId,
+  });
+  const backHref = `/context/${encodeURIComponent(entryId)}/activity?namespace=${encodeURIComponent(namespace)}`;
+
+  if (data === undefined) {
+    return (
+      <PageSection.Body className="flex justify-center py-12">
+        <Spinner />
+      </PageSection.Body>
+    );
+  }
+
+  if (data === null) {
+    return (
+      <PageSection.Body className="gap-4">
+        <p className="text-sm text-muted-foreground">Event not found.</p>
+        <a href={backHref} className="text-sm text-primary underline">
+          Back to activity
+        </a>
+      </PageSection.Body>
+    );
+  }
+
+  return (
+    <PageSection.Body className="gap-4">
+      <p>
+        <a href={backHref} className="text-sm text-primary underline">
+          Back to activity
+        </a>
+      </p>
+      <pre className="overflow-auto rounded-lg border border-border bg-muted p-4 text-xs leading-relaxed whitespace-pre-wrap break-words font-mono">
+        {JSON.stringify(data, null, 2)}
+      </pre>
+    </PageSection.Body>
+  );
+}
+
+renderApp(<ActivityEventRoute />);

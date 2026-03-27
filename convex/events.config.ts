@@ -42,6 +42,7 @@ export const eventsConfig = {
     },
     {
       streamType: "contextMemory",
+      namespaceScoped: true,
       eventTypes: ["searched", "viewed", "added", "edited", "deleted"],
       payloads: {
         searched: {

@@ -87,6 +87,17 @@ export const listContextEntryAccessEvents = query({
   },
 });
 
+export const getContextEntryAccessEvent = query({
+  args: {
+    namespace: v.string(),
+    entryId: v.string(),
+    eventId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    return await createContextClient().getEntryAccessEvent(ctx, args);
+  },
+});
+
 export const getContextEntryAccessWeekByDay = query({
   args: { namespace: v.string(), entryId: v.string() },
   handler: async (ctx, args) => {

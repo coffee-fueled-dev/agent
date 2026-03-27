@@ -1,3 +1,4 @@
+import { api } from "@backend/api.js";
 import { ActivityIcon } from "lucide-react";
 import { CollapsibleItemGroup } from "@/components/blocks/collapsible-item-group.js";
 import { formatTime } from "@/components/formatters/index.js";
@@ -12,7 +13,6 @@ import {
   ItemDescription,
   ItemTitle,
 } from "@/components/ui/item.js";
-import { api } from "@backend/api.js";
 
 const PAGE_SIZE = 15;
 
@@ -20,12 +20,22 @@ type AccessEvent = {
   eventId: string;
   eventType: string;
   eventTime: number;
+  namespace?: string;
   payload?: { namespace?: string; rank?: number; score?: number };
   actor?: { byType: string; byId: string };
   session?: string;
 };
 
-function EventRow({ ev }: { ev: AccessEvent }) {
+function EventRow({
+  ev,
+  entryId,
+  namespace,
+}: {
+  ev: AccessEvent;
+  entryId: string;
+  namespace: string;
+}) {
+  const href = `/context/${encodeURIComponent(entryId)}/activity/${encodeURIComponent(ev.eventId)}?namespace=${encodeURIComponent(namespace)}`;
   const label =
     ev.eventType === "viewed"
       ? "Viewed"
@@ -46,27 +56,29 @@ function EventRow({ ev }: { ev: AccessEvent }) {
     : null;
 
   return (
-    <Item size="sm" variant="outline">
-      <ItemContent className="min-w-0 gap-0.5">
-        <span className="flex flex-wrap items-center gap-2">
-          <Badge variant="secondary" className="text-[10px] font-normal">
-            {label}
-          </Badge>
-          <ItemTitle className="text-xs font-normal text-muted-foreground">
-            {formatTime(ev.eventTime)}
-          </ItemTitle>
-        </span>
-        {detail ? (
-          <ItemDescription className="font-mono text-[11px]">
-            {detail}
-          </ItemDescription>
-        ) : null}
-        {(actorLabel || sessionLabel) && (
-          <ItemDescription className="text-[11px] text-muted-foreground">
-            {[actorLabel, sessionLabel].filter(Boolean).join(" · ")}
-          </ItemDescription>
-        )}
-      </ItemContent>
+    <Item size="sm" variant="outline" asChild>
+      <a href={href} className="no-underline">
+        <ItemContent className="min-w-0 gap-0.5">
+          <span className="flex flex-wrap items-center gap-2">
+            <Badge variant="secondary" className="text-[10px] font-normal">
+              {label}
+            </Badge>
+            <ItemTitle className="text-xs font-normal text-muted-foreground">
+              {formatTime(ev.eventTime)}
+            </ItemTitle>
+          </span>
+          {detail ? (
+            <ItemDescription className="font-mono text-[11px]">
+              {detail}
+            </ItemDescription>
+          ) : null}
+          {(actorLabel || sessionLabel) && (
+            <ItemDescription className="text-[11px] text-muted-foreground">
+              {[actorLabel, sessionLabel].filter(Boolean).join(" · ")}
+            </ItemDescription>
+          )}
+        </ItemContent>
+      </a>
     </Item>
   );
 }
@@ -110,7 +122,14 @@ export function EntryAccessEventsList({
                   <ListSection.Empty>
                     No views or searches recorded yet.
                   </ListSection.Empty>
-                  {(ev) => <EventRow key={ev.eventId} ev={ev} />}
+                  {(ev) => (
+                    <EventRow
+                      key={ev.eventId}
+                      ev={ev as AccessEvent}
+                      entryId={entryId}
+                      namespace={namespace}
+                    />
+                  )}
                 </ListSection>
                 <LoadMoreSentinel
                   onLoadMore={() => loadMore(PAGE_SIZE)}

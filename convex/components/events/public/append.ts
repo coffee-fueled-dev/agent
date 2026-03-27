@@ -5,6 +5,7 @@ import {
   actorValidator,
   eventEntryValidator,
   metadataValidator,
+  normalizeStreamNamespace,
   sessionValidator,
 } from "../internal/shared";
 import {
@@ -47,6 +48,7 @@ export const appendToStream = mutation({
   args: {
     streamType: v.string(),
     streamId: v.string(),
+    namespace: v.optional(v.string()),
     eventId: v.string(),
     eventType: v.string(),
     payload: v.optional(v.any()),
@@ -61,14 +63,15 @@ export const appendToStream = mutation({
   returns: eventEntryValidator,
   handler: async (ctx, args) => {
     assertRegisteredStream(args.streamType, args.eventType);
+    const namespace = normalizeStreamNamespace(args.namespace);
 
-    const existing = await loadEvent(ctx, args);
+    const existing = await loadEvent(ctx, { ...args, namespace });
     if (existing) {
       return existing;
     }
 
     const now = Date.now();
-    const stream = await loadStream(ctx, args);
+    const stream = await loadStream(ctx, { ...args, namespace });
     const currentVersion = stream?.version ?? 0;
 
     if (
@@ -86,6 +89,7 @@ export const appendToStream = mutation({
     const entry = {
       globalSequence,
       streamType: args.streamType,
+      namespace,
       streamId: args.streamId,
       streamVersion,
       eventId: args.eventId,
@@ -110,6 +114,7 @@ export const appendToStream = mutation({
     } else {
       await ctx.db.insert("event_streams", {
         streamType: args.streamType,
+        namespace,
         streamId: args.streamId,
         version: streamVersion,
         lastEventSequence: globalSequence,

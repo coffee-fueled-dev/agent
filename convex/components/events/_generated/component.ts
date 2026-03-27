@@ -37,6 +37,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             eventType: string;
             expectedVersion?: number;
             metadata?: Record<string, string | number | boolean | null>;
+            namespace?: string;
             payload?: any;
             session?: string;
             streamId: string;
@@ -53,6 +54,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             eventType: string;
             globalSequence: number;
             metadata?: Record<string, string | number | boolean | null>;
+            namespace: string;
             payload?: any;
             session?: string;
             streamId: string;
@@ -124,6 +126,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             eventType: string;
             globalSequence: number;
             metadata?: Record<string, string | number | boolean | null>;
+            namespace: string;
             payload?: any;
             session?: string;
             streamId: string;
@@ -153,7 +156,12 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         getEvent: FunctionReference<
           "query",
           "internal",
-          { eventId: string; streamId: string; streamType: string },
+          {
+            eventId: string;
+            namespace?: string;
+            streamId: string;
+            streamType: string;
+          },
           {
             _creationTime: number;
             _id: string;
@@ -165,6 +173,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             eventType: string;
             globalSequence: number;
             metadata?: Record<string, string | number | boolean | null>;
+            namespace: string;
             payload?: any;
             session?: string;
             streamId: string;
@@ -195,6 +204,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           "internal",
           {
             eventTypes?: Array<string>;
+            namespace?: string;
             order?: "asc" | "desc";
             paginationOpts: {
               cursor: string | null;
@@ -216,6 +226,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           {
             eventTypes?: Array<string>;
             minEventTime: number;
+            namespace?: string;
             streamId: string;
             streamType: string;
           },
@@ -230,6 +241,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             eventType: string;
             globalSequence: number;
             metadata?: Record<string, string | number | boolean | null>;
+            namespace: string;
             payload?: any;
             session?: string;
             streamId: string;
@@ -243,12 +255,13 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         getStream: FunctionReference<
           "query",
           "internal",
-          { streamId: string; streamType: string },
+          { namespace?: string; streamId: string; streamType: string },
           {
             _creationTime: number;
             _id: string;
             createdTime: number;
             lastEventSequence: number | null;
+            namespace: string;
             streamId: string;
             streamType: string;
             updatedTime: number;
@@ -259,7 +272,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         getStreamVersion: FunctionReference<
           "query",
           "internal",
-          { streamId: string; streamType: string },
+          { namespace?: string; streamId: string; streamType: string },
           number,
           Name
         >;
