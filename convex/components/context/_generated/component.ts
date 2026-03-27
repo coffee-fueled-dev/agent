@@ -404,6 +404,13 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           },
           Name
         >;
+        getAccessStatsBatch: FunctionReference<
+          "query",
+          "internal",
+          { entryIds: Array<string> },
+          any,
+          Name
+        >;
         recordView: FunctionReference<
           "mutation",
           "internal",
@@ -422,6 +429,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           "action",
           "internal",
           {
+            accessWeight?: number;
             apiKey?: string;
             fileEmbedding?: Array<number>;
             graphWeight?: number;
@@ -614,11 +622,14 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
               completionTime: number;
               jobId: string;
               points: Array<{
+                decayedScore?: number;
                 entryId: string;
                 key: string;
+                lastAccessTime?: number;
                 mimeType?: string;
                 textPreview: string;
                 title?: string;
+                totalAccesses?: number;
                 x: number;
                 y: number;
                 z: number;
@@ -646,11 +657,14 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
               completionTime: number;
               namespace: string;
               points: Array<{
+                decayedScore?: number;
                 entryId: string;
                 key: string;
+                lastAccessTime?: number;
                 mimeType?: string;
                 textPreview: string;
                 title?: string;
+                totalAccesses?: number;
                 x: number;
                 y: number;
                 z: number;
@@ -820,11 +834,14 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           {
             jobId: string;
             points: Array<{
+              decayedScore?: number;
               entryId: string;
               key: string;
+              lastAccessTime?: number;
               mimeType?: string;
               textPreview: string;
               title?: string;
+              totalAccesses?: number;
               x: number;
               y: number;
               z: number;

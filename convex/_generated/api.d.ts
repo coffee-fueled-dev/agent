@@ -1356,6 +1356,12 @@ export declare const components: {
             }>;
           }
         >;
+        getAccessStatsBatch: FunctionReference<
+          "query",
+          "internal",
+          { entryIds: Array<string> },
+          any
+        >;
         recordView: FunctionReference<
           "mutation",
           "internal",
@@ -1372,6 +1378,7 @@ export declare const components: {
           "action",
           "internal",
           {
+            accessWeight?: number;
             apiKey?: string;
             fileEmbedding?: Array<number>;
             graphWeight?: number;
@@ -1550,11 +1557,14 @@ export declare const components: {
               completionTime: number;
               jobId: string;
               points: Array<{
+                decayedScore?: number;
                 entryId: string;
                 key: string;
+                lastAccessTime?: number;
                 mimeType?: string;
                 textPreview: string;
                 title?: string;
+                totalAccesses?: number;
                 x: number;
                 y: number;
                 z: number;
@@ -1581,11 +1591,14 @@ export declare const components: {
               completionTime: number;
               namespace: string;
               points: Array<{
+                decayedScore?: number;
                 entryId: string;
                 key: string;
+                lastAccessTime?: number;
                 mimeType?: string;
                 textPreview: string;
                 title?: string;
+                totalAccesses?: number;
                 x: number;
                 y: number;
                 z: number;
@@ -1745,11 +1758,14 @@ export declare const components: {
           {
             jobId: string;
             points: Array<{
+              decayedScore?: number;
               entryId: string;
               key: string;
+              lastAccessTime?: number;
               mimeType?: string;
               textPreview: string;
               title?: string;
+              totalAccesses?: number;
               x: number;
               y: number;
               z: number;

@@ -9,6 +9,11 @@ import {
 import { MimeTypeIcon } from "./mime-type-icon.js";
 import { type ProjectionPoint, SCALE } from "./context-explore-types.js";
 
+function markerScale(decayedScore?: number): number {
+  if (!decayedScore || decayedScore <= 0) return 1;
+  return 1 + Math.log1p(decayedScore) * 0.3;
+}
+
 export function ContextExploreMarker({
   point,
   dimmed,
@@ -22,6 +27,7 @@ export function ContextExploreMarker({
   onHoverStart: (entryId: string) => void;
   onHoverEnd: (entryId: string) => void;
 }) {
+  const scale = markerScale(point.decayedScore);
   return (
     <group position={[point.x * SCALE, point.y * SCALE, point.z * SCALE]}>
       <Html center zIndexRange={[250, -250]}>
@@ -31,7 +37,10 @@ export function ContextExploreMarker({
               <Button
                 size="icon-sm"
                 className="rounded-full transition-opacity duration-200"
-                style={{ opacity: dimmed ? 0.15 : 1 }}
+                style={{
+                  opacity: dimmed ? 0.15 : 1,
+                  transform: `scale(${scale})`,
+                }}
                 onClick={() => onSelect(point)}
                 onPointerEnter={() => onHoverStart(point.entryId)}
                 onPointerLeave={() => onHoverEnd(point.entryId)}

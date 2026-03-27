@@ -26,6 +26,9 @@ export const pointValidator = v.object({
   x: v.number(),
   y: v.number(),
   z: v.number(),
+  decayedScore: v.optional(v.number()),
+  totalAccesses: v.optional(v.number()),
+  lastAccessTime: v.optional(v.number()),
 });
 
 export const versionDataValidator = v.union(
@@ -168,4 +171,16 @@ export default defineSchema({
     nodeId: v.string(),
     communityId: v.number(),
   }).index("by_jobId", ["jobId"]),
+
+  contextAccessStats: defineTable({
+    entryId: v.string(),
+    namespace: v.string(),
+    searchCount: v.number(),
+    viewCount: v.number(),
+    totalAccesses: v.number(),
+    decayedScore: v.number(),
+    lastAccessTime: v.number(),
+  })
+    .index("by_entryId", ["entryId"])
+    .index("by_namespace", ["namespace"]),
 });

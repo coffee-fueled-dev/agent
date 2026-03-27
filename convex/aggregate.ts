@@ -28,29 +28,17 @@ export type MemoryChartMetricNamespace =
   | ["memoryCharts", "namespace", string, MemoryChartMetric]
   | ["memoryCharts", "chart", string, Exclude<MemoryChartMetric, "charts">];
 
-const aggregateComponent = (
-  components as unknown as {
-    aggregate: ConstructorParameters<
-      typeof DirectAggregate<{
-        Key: null;
-        Id: string;
-        Namespace: MachineAgentMetricNamespace;
-      }>
-    >[0];
-  }
-).aggregate;
-
 export const machineAgentTelemetry = new DirectAggregate<{
   Key: null;
   Id: string;
   Namespace: MachineAgentMetricNamespace;
-}>(aggregateComponent);
+}>(components.aggregate);
 
 export const memoryChartTelemetry = new DirectAggregate<{
   Key: null;
   Id: string;
   Namespace: MemoryChartMetricNamespace;
-}>(aggregateComponent);
+}>(components.aggregate);
 
 export function globalMetricNamespace(
   metric: MachineAgentMetric,

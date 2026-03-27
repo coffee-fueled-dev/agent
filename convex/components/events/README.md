@@ -40,9 +40,12 @@ ergonomic reads and projector checkpoints.
 
 ## App Config
 
-Register stream types in app code:
+Register stream types in app code. Optionally add `payloads` to get typed
+payloads on `appendToStream` args and `EventEntry` results (uses Convex
+`PropertyValidators` + `ObjectType` for compile-time inference):
 
 ```ts
+import { v } from "convex/values";
 import type { EventsConfig } from "./components/events/types";
 
 export const eventsConfig = {
@@ -50,6 +53,11 @@ export const eventsConfig = {
     {
       streamType: "match",
       eventTypes: ["created", "started", "completed"],
+      payloads: {
+        created: { matchName: v.string() },
+        started: { startedBy: v.string() },
+        completed: { winnerId: v.string(), score: v.number() },
+      },
     },
   ],
 } as const satisfies EventsConfig;

@@ -1,6 +1,5 @@
 import type { PaginationResult } from "convex/server";
 import { v } from "convex/values";
-import { leiden } from "../components/graph/client";
 import { components, internal } from "../_generated/api";
 import {
   action,
@@ -8,6 +7,7 @@ import {
   internalMutation,
   query,
 } from "../_generated/server";
+import { leiden } from "../components/graph/client";
 import { pool } from "../workpool";
 
 const EMBEDDING_PAGE_SIZE = 100;
@@ -79,7 +79,10 @@ export const computeAndStageGraph = internalAction({
     });
 
     // Load current entry IDs (paginated, no embeddings needed in memory)
-    const currentEntryIds = await loadCurrentEntryIdsPaginated(ctx, job.namespace);
+    const currentEntryIds = await loadCurrentEntryIdsPaginated(
+      ctx,
+      job.namespace,
+    );
 
     await ctx.runMutation(communityApi.updatePhase, {
       jobId: args.jobId,
@@ -120,9 +123,10 @@ export const computeAndStageGraph = internalAction({
       for (const { entryId, neighbors } of batchResults) {
         for (const { entryId: neighborId, score } of neighbors) {
           if (!currentSet.has(neighborId)) continue;
-          const key = entryId < neighborId
-            ? `${entryId}:${neighborId}`
-            : `${neighborId}:${entryId}`;
+          const key =
+            entryId < neighborId
+              ? `${entryId}:${neighborId}`
+              : `${neighborId}:${entryId}`;
           edgeMap.set(key, Math.max(edgeMap.get(key) ?? 0, score));
         }
       }
@@ -134,11 +138,16 @@ export const computeAndStageGraph = internalAction({
       const batchResults: Array<{
         entryId: string;
         neighbors: Array<{ neighbor: string; score: number }>;
-      }> = await ctx.runQuery(communityApi.getNeighborEdgesBatch, { entryIds: batch });
+      }> = await ctx.runQuery(communityApi.getNeighborEdgesBatch, {
+        entryIds: batch,
+      });
       for (const { entryId, neighbors } of batchResults) {
         for (const { neighbor, score } of neighbors) {
           if (!currentSet.has(neighbor)) continue;
-          const key = entryId < neighbor ? `${entryId}:${neighbor}` : `${neighbor}:${entryId}`;
+          const key =
+            entryId < neighbor
+              ? `${entryId}:${neighbor}`
+              : `${neighbor}:${entryId}`;
           edgeMap.set(key, Math.max(edgeMap.get(key) ?? 0, score));
         }
       }
@@ -157,7 +166,11 @@ export const computeAndStageGraph = internalAction({
       });
     }
 
-    return { entryCount: currentEntryIds.length, edgeCount: allEdges.length, done: false };
+    return {
+      entryCount: currentEntryIds.length,
+      edgeCount: allEdges.length,
+      done: false,
+    };
   },
 });
 
@@ -183,7 +196,10 @@ export const computeAndStageLeiden = internalAction({
     while (!isDone) {
       const result: StagingEdgePage = await ctx.runQuery(
         staging.readStagingEdgePage,
-        { jobId: args.jobId, paginationOpts: { cursor, numItems: STAGING_EDGE_BATCH } },
+        {
+          jobId: args.jobId,
+          paginationOpts: { cursor, numItems: STAGING_EDGE_BATCH },
+        },
       );
       for (const row of result.page) {
         edges.push({ from: row.from, to: row.to, weight: row.weight });
@@ -193,7 +209,10 @@ export const computeAndStageLeiden = internalAction({
     }
 
     // Load current entry IDs as node set
-    const currentEntryIds = await loadCurrentEntryIdsPaginated(ctx, job.namespace);
+    const currentEntryIds = await loadCurrentEntryIdsPaginated(
+      ctx,
+      job.namespace,
+    );
 
     // Build adjacency and run Leiden
     const adj = new Map<string, Map<string, number>>();
@@ -235,10 +254,13 @@ export const clearOldSimilarityEdges = internalMutation({
     cursor: v.union(v.string(), v.null()),
   },
   handler: async (ctx, args) => {
-    const result: StagingEdgePage = await ctx.runQuery(staging.readStagingEdgePage, {
-      jobId: args.jobId,
-      paginationOpts: { cursor: args.cursor, numItems: GRAPH_EDGE_BATCH },
-    });
+    const result: StagingEdgePage = await ctx.runQuery(
+      staging.readStagingEdgePage,
+      {
+        jobId: args.jobId,
+        paginationOpts: { cursor: args.cursor, numItems: GRAPH_EDGE_BATCH },
+      },
+    );
 
     const nodesToClear = new Set<string>();
     for (const row of result.page) {
@@ -258,18 +280,26 @@ export const clearOldSimilarityEdges = internalMutation({
     }
 
     if (!result.isDone) {
-      await ctx.scheduler.runAfter(0, internal.context.communities.clearOldSimilarityEdges, {
-        jobId: args.jobId,
-        namespace: args.namespace,
-        cursor: result.continueCursor,
-      });
+      await ctx.scheduler.runAfter(
+        0,
+        internal.context.communities.clearOldSimilarityEdges,
+        {
+          jobId: args.jobId,
+          namespace: args.namespace,
+          cursor: result.continueCursor,
+        },
+      );
     } else {
       // Phase A complete — start Phase B: write new edges
-      await ctx.scheduler.runAfter(0, internal.context.communities.writeNewSimilarityEdges, {
-        jobId: args.jobId,
-        namespace: args.namespace,
-        cursor: null,
-      });
+      await ctx.scheduler.runAfter(
+        0,
+        internal.context.communities.writeNewSimilarityEdges,
+        {
+          jobId: args.jobId,
+          namespace: args.namespace,
+          cursor: null,
+        },
+      );
     }
   },
 });
@@ -282,10 +312,13 @@ export const writeNewSimilarityEdges = internalMutation({
     cursor: v.union(v.string(), v.null()),
   },
   handler: async (ctx, args) => {
-    const result: StagingEdgePage = await ctx.runQuery(staging.readStagingEdgePage, {
-      jobId: args.jobId,
-      paginationOpts: { cursor: args.cursor, numItems: GRAPH_EDGE_BATCH },
-    });
+    const result: StagingEdgePage = await ctx.runQuery(
+      staging.readStagingEdgePage,
+      {
+        jobId: args.jobId,
+        paginationOpts: { cursor: args.cursor, numItems: GRAPH_EDGE_BATCH },
+      },
+    );
 
     if (result.page.length > 0) {
       await ctx.runMutation(communityApi.createSimilarityEdgeBatch, {
@@ -298,19 +331,27 @@ export const writeNewSimilarityEdges = internalMutation({
     }
 
     if (!result.isDone) {
-      await ctx.scheduler.runAfter(0, internal.context.communities.writeNewSimilarityEdges, {
-        jobId: args.jobId,
-        namespace: args.namespace,
-        cursor: result.continueCursor,
-      });
+      await ctx.scheduler.runAfter(
+        0,
+        internal.context.communities.writeNewSimilarityEdges,
+        {
+          jobId: args.jobId,
+          namespace: args.namespace,
+          cursor: result.continueCursor,
+        },
+      );
     } else {
       // Phase B complete — move to applying assignments
-      await ctx.scheduler.runAfter(0, internal.context.communities.applyAssignmentResults, {
-        jobId: args.jobId,
-        namespace: args.namespace,
-        cursor: null,
-        clearedPrevious: false,
-      });
+      await ctx.scheduler.runAfter(
+        0,
+        internal.context.communities.applyAssignmentResults,
+        {
+          jobId: args.jobId,
+          namespace: args.namespace,
+          cursor: null,
+          clearedPrevious: false,
+        },
+      );
     }
   },
 });
@@ -325,25 +366,35 @@ export const applyAssignmentResults = internalMutation({
   handler: async (ctx, args) => {
     // Clear previous assignments first (paginated)
     if (!args.clearedPrevious) {
-      const latestCommunities = await ctx.runQuery(communityApi.getLatestCommunities, {
-        namespace: args.namespace,
-      });
+      const latestCommunities = await ctx.runQuery(
+        communityApi.getLatestCommunities,
+        {
+          namespace: args.namespace,
+        },
+      );
       if (
         latestCommunities &&
         "jobId" in latestCommunities &&
         latestCommunities.jobId !== args.jobId
       ) {
-        const clearResult = (await ctx.runMutation(communityApi.clearAssignments, {
-          jobId: latestCommunities.jobId,
-        })) as unknown as { hasMore: boolean };
+        const clearResult = (await ctx.runMutation(
+          communityApi.clearAssignments,
+          {
+            jobId: latestCommunities.jobId,
+          },
+        )) as unknown as { hasMore: boolean };
         if (clearResult.hasMore) {
           // Re-enqueue to continue clearing
-          await ctx.scheduler.runAfter(0, internal.context.communities.applyAssignmentResults, {
-            jobId: args.jobId,
-            namespace: args.namespace,
-            cursor: null,
-            clearedPrevious: false,
-          });
+          await ctx.scheduler.runAfter(
+            0,
+            internal.context.communities.applyAssignmentResults,
+            {
+              jobId: args.jobId,
+              namespace: args.namespace,
+              cursor: null,
+              clearedPrevious: false,
+            },
+          );
           return;
         }
       }
@@ -351,7 +402,13 @@ export const applyAssignmentResults = internalMutation({
 
     const result: StagingAssignmentPage = await ctx.runQuery(
       staging.readStagingAssignmentPage,
-      { jobId: args.jobId, paginationOpts: { cursor: args.cursor, numItems: STAGING_ASSIGNMENT_BATCH } },
+      {
+        jobId: args.jobId,
+        paginationOpts: {
+          cursor: args.cursor,
+          numItems: STAGING_ASSIGNMENT_BATCH,
+        },
+      },
     );
 
     if (result.page.length > 0) {
@@ -366,18 +423,26 @@ export const applyAssignmentResults = internalMutation({
     }
 
     if (!result.isDone) {
-      await ctx.scheduler.runAfter(0, internal.context.communities.applyAssignmentResults, {
-        jobId: args.jobId,
-        namespace: args.namespace,
-        cursor: result.continueCursor,
-        clearedPrevious: true,
-      });
+      await ctx.scheduler.runAfter(
+        0,
+        internal.context.communities.applyAssignmentResults,
+        {
+          jobId: args.jobId,
+          namespace: args.namespace,
+          cursor: result.continueCursor,
+          clearedPrevious: true,
+        },
+      );
     } else {
       // Build community summaries from staging data, then cleanup
-      await ctx.scheduler.runAfter(0, internal.context.communities.finalizeCommunities, {
-        jobId: args.jobId,
-        namespace: args.namespace,
-      });
+      await ctx.scheduler.runAfter(
+        0,
+        internal.context.communities.finalizeCommunities,
+        {
+          jobId: args.jobId,
+          namespace: args.namespace,
+        },
+      );
     }
   },
 });
@@ -393,7 +458,10 @@ export const finalizeCommunities = internalAction({
     while (!isDone) {
       const result: StagingAssignmentPage = await ctx.runQuery(
         staging.readStagingAssignmentPage,
-        { jobId: args.jobId, paginationOpts: { cursor, numItems: STAGING_ASSIGNMENT_BATCH } },
+        {
+          jobId: args.jobId,
+          paginationOpts: { cursor, numItems: STAGING_ASSIGNMENT_BATCH },
+        },
       );
       for (const row of result.page) {
         let members = communityMap.get(row.communityId);
@@ -421,11 +489,13 @@ export const finalizeCommunities = internalAction({
       isDone = result.isDone;
     }
 
-    const communities = Array.from(communityMap.entries()).map(([id, members]) => ({
-      id,
-      memberCount: members.length,
-      sampleEntryIds: members.slice(0, 5),
-    }));
+    const communities = Array.from(communityMap.entries()).map(
+      ([id, members]) => ({
+        id,
+        memberCount: members.length,
+        sampleEntryIds: members.slice(0, 5),
+      }),
+    );
 
     await ctx.runMutation(communityApi.markCompleted, {
       jobId: args.jobId,
@@ -444,9 +514,13 @@ export const finalizeCommunities = internalAction({
 export const scheduleCleanup = internalMutation({
   args: { jobId: v.string() },
   handler: async (ctx, args) => {
-    await ctx.scheduler.runAfter(0, internal.context.communities.cleanupStaging, {
-      jobId: args.jobId,
-    });
+    await ctx.scheduler.runAfter(
+      0,
+      internal.context.communities.cleanupStaging,
+      {
+        jobId: args.jobId,
+      },
+    );
   },
 });
 
@@ -457,9 +531,13 @@ export const cleanupStaging = internalMutation({
       jobId: args.jobId,
     })) as { hasMore: boolean };
     if (result.hasMore) {
-      await ctx.scheduler.runAfter(0, internal.context.communities.cleanupStaging, {
-        jobId: args.jobId,
-      });
+      await ctx.scheduler.runAfter(
+        0,
+        internal.context.communities.cleanupStaging,
+        {
+          jobId: args.jobId,
+        },
+      );
     }
   },
 });
@@ -508,7 +586,9 @@ export const onLeidenComplete = pool.defineOnComplete({
       return;
     }
 
-    const job = await ctx.runQuery(communityApi.getJob, { jobId: context.jobId });
+    const job = await ctx.runQuery(communityApi.getJob, {
+      jobId: context.jobId,
+    });
     if (!job) return;
 
     await ctx.runMutation(communityApi.updatePhase, {
@@ -517,11 +597,15 @@ export const onLeidenComplete = pool.defineOnComplete({
     });
 
     // Chain: start Phase A — clear old edges, then write new
-    await ctx.scheduler.runAfter(0, internal.context.communities.clearOldSimilarityEdges, {
-      jobId: context.jobId,
-      namespace: job.namespace,
-      cursor: null,
-    });
+    await ctx.scheduler.runAfter(
+      0,
+      internal.context.communities.clearOldSimilarityEdges,
+      {
+        jobId: context.jobId,
+        namespace: job.namespace,
+        cursor: null,
+      },
+    );
   },
 });
 
@@ -588,6 +672,8 @@ export const getCommunityForEntry = query({
   },
 });
 
+const contextApi = components.context.public.context;
+
 export const getEntryGraphContext = query({
   args: { namespace: v.string(), entryId: v.string() },
   handler: async (ctx, args) => {
@@ -610,16 +696,30 @@ export const getEntryGraphContext = query({
     }
 
     const neighborIds = neighbors.map((n) => n.neighbor);
-    const metas: Array<{
-      entryId: string;
-      title?: string;
-      textPreview: string;
-    }> = neighborIds.length
-      ? await ctx.runQuery(
-          (communityApi as any).getEntryMetas,
-          { namespace: args.namespace, entryIds: neighborIds },
-        )
-      : [];
+    const [metas, accessStats] = await Promise.all([
+      neighborIds.length
+        ? (ctx.runQuery(communityApi.getEntryMetas, {
+            namespace: args.namespace,
+            entryIds: neighborIds,
+          }) as Promise<
+            Array<{ entryId: string; title?: string; textPreview: string }>
+          >)
+        : Promise.resolve([]),
+      neighborIds.length
+        ? (ctx.runQuery(contextApi.getAccessStatsBatch, {
+            entryIds: neighborIds,
+          }) as Promise<
+            Record<
+              string,
+              {
+                decayedScore: number;
+                totalAccesses: number;
+                lastAccessTime: number;
+              }
+            >
+          >)
+        : Promise.resolve({} as Record<string, never>),
+    ]);
     const metaMap = new Map(metas.map((m) => [m.entryId, m]));
 
     const fileMap = new Map<string, string>();
@@ -638,6 +738,7 @@ export const getEntryGraphContext = query({
         title: metaMap.get(n.neighbor)?.title,
         textPreview: metaMap.get(n.neighbor)?.textPreview,
         mimeType: fileMap.get(n.neighbor),
+        decayedScore: accessStats[n.neighbor]?.decayedScore,
       })),
       communityMembers,
     };

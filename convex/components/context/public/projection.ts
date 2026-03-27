@@ -6,6 +6,7 @@ import { v } from "convex/values";
 import { paginator } from "convex-helpers/server/pagination";
 import { doc } from "convex-helpers/validators";
 import { mutation, query } from "../_generated/server";
+import { readTimeDecay } from "../internal/accessStats";
 import { hasStatus } from "../internal/status";
 import schema, { pointValidator } from "../schema";
 
@@ -241,19 +242,48 @@ export const getLatestProjection = query({
         .query("contextProjectionPoints")
         .withIndex("by_jobId", (q) => q.eq("jobId", job._id))
         .collect();
+      const now = Date.now();
+      const statsMap = new Map<
+        string,
+        { decayedScore: number; totalAccesses: number; lastAccessTime: number }
+      >();
+      for (const p of points) {
+        if (statsMap.has(p.entryId)) continue;
+        const stats = await ctx.db
+          .query("contextAccessStats")
+          .withIndex("by_entryId", (q) => q.eq("entryId", p.entryId))
+          .first();
+        if (stats) {
+          statsMap.set(p.entryId, {
+            decayedScore: readTimeDecay(
+              stats.decayedScore,
+              stats.lastAccessTime,
+              now,
+            ),
+            totalAccesses: stats.totalAccesses,
+            lastAccessTime: stats.lastAccessTime,
+          });
+        }
+      }
       return {
         jobId: job._id,
         status: "completed" as const,
-        points: points.map((p) => ({
-          entryId: p.entryId,
-          key: p.key,
-          title: p.title,
-          textPreview: p.textPreview,
-          mimeType: p.mimeType,
-          x: p.x,
-          y: p.y,
-          z: p.z,
-        })),
+        points: points.map((p) => {
+          const s = statsMap.get(p.entryId);
+          return {
+            entryId: p.entryId,
+            key: p.key,
+            title: p.title,
+            textPreview: p.textPreview,
+            mimeType: p.mimeType,
+            x: p.x,
+            y: p.y,
+            z: p.z,
+            decayedScore: s?.decayedScore,
+            totalAccesses: s?.totalAccesses,
+            lastAccessTime: s?.lastAccessTime,
+          };
+        }),
         completionTime: job.data.completionTime,
         stale: job.stale,
       };
@@ -336,18 +366,47 @@ export const getProjectionStatus = query({
         .query("contextProjectionPoints")
         .withIndex("by_jobId", (q) => q.eq("jobId", job._id))
         .collect();
+      const now = Date.now();
+      const statsMap2 = new Map<
+        string,
+        { decayedScore: number; totalAccesses: number; lastAccessTime: number }
+      >();
+      for (const p of points) {
+        if (statsMap2.has(p.entryId)) continue;
+        const stats = await ctx.db
+          .query("contextAccessStats")
+          .withIndex("by_entryId", (q) => q.eq("entryId", p.entryId))
+          .first();
+        if (stats) {
+          statsMap2.set(p.entryId, {
+            decayedScore: readTimeDecay(
+              stats.decayedScore,
+              stats.lastAccessTime,
+              now,
+            ),
+            totalAccesses: stats.totalAccesses,
+            lastAccessTime: stats.lastAccessTime,
+          });
+        }
+      }
       return {
         status: "completed" as const,
-        points: points.map((p) => ({
-          entryId: p.entryId,
-          key: p.key,
-          title: p.title,
-          textPreview: p.textPreview,
-          mimeType: p.mimeType,
-          x: p.x,
-          y: p.y,
-          z: p.z,
-        })),
+        points: points.map((p) => {
+          const s = statsMap2.get(p.entryId);
+          return {
+            entryId: p.entryId,
+            key: p.key,
+            title: p.title,
+            textPreview: p.textPreview,
+            mimeType: p.mimeType,
+            x: p.x,
+            y: p.y,
+            z: p.z,
+            decayedScore: s?.decayedScore,
+            totalAccesses: s?.totalAccesses,
+            lastAccessTime: s?.lastAccessTime,
+          };
+        }),
         completionTime: job.data.completionTime,
         stale: job.stale,
         namespace: job.namespace,

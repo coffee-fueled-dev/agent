@@ -149,6 +149,7 @@ export const searchContext = action({
     vectorWeight: v.optional(v.number()),
     lexicalWeight: v.optional(v.number()),
     graphWeight: v.optional(v.number()),
+    accessWeight: v.optional(v.number()),
     fileEmbedding: v.optional(v.array(v.number())),
   },
   handler: async (ctx, args) => {

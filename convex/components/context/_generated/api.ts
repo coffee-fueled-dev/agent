@@ -11,6 +11,7 @@
 import type * as client_index from "../client/index.js";
 import type * as graph from "../graph.js";
 import type * as history from "../history.js";
+import type * as internal_accessStats from "../internal/accessStats.js";
 import type * as internal_embedding from "../internal/embedding.js";
 import type * as internal_embeddingStore from "../internal/embeddingStore.js";
 import type * as internal_events from "../internal/events.js";
@@ -37,6 +38,7 @@ const fullApi: ApiFromModules<{
   "client/index": typeof client_index;
   graph: typeof graph;
   history: typeof history;
+  "internal/accessStats": typeof internal_accessStats;
   "internal/embedding": typeof internal_embedding;
   "internal/embeddingStore": typeof internal_embeddingStore;
   "internal/events": typeof internal_events;

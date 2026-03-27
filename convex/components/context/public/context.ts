@@ -11,6 +11,7 @@ import {
 } from "../_generated/server";
 import { graph } from "../graph";
 import { history } from "../history";
+import { readTimeDecay } from "../internal/accessStats";
 import { embedText } from "../internal/embedding";
 import { memoryEvents } from "../internal/events";
 import { createContextRag } from "../internal/rag";
@@ -95,6 +96,36 @@ const TEXT_PREVIEW_LENGTH = 280;
 function featureId(entryId: string) {
   return `context:entry:${entryId}`;
 }
+
+export const getAccessStatsBatch = query({
+  args: { entryIds: v.array(v.string()) },
+  returns: v.any(),
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const result: Record<
+      string,
+      { decayedScore: number; totalAccesses: number; lastAccessTime: number }
+    > = {};
+    for (const entryId of args.entryIds) {
+      const stats = await ctx.db
+        .query("contextAccessStats")
+        .withIndex("by_entryId", (q) => q.eq("entryId", entryId))
+        .first();
+      if (stats) {
+        result[entryId] = {
+          decayedScore: readTimeDecay(
+            stats.decayedScore,
+            stats.lastAccessTime,
+            now,
+          ),
+          totalAccesses: stats.totalAccesses,
+          lastAccessTime: stats.lastAccessTime,
+        };
+      }
+    }
+    return result;
+  },
+});
 
 export const getObservationTimes = internalQuery({
   args: { entryIds: v.array(v.string()) },
@@ -338,6 +369,24 @@ export const recordView = mutation({
       eventType: "viewed",
       payload: { namespace: args.namespace },
     });
+    await ctx.scheduler.runAfter(
+      0,
+      internal.internal.accessStats.flushAccessStats,
+      {},
+    );
+  },
+});
+
+export const scheduleAccessStatsFlush = internalMutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    await ctx.scheduler.runAfter(
+      0,
+      internal.internal.accessStats.flushAccessStats,
+      {},
+    );
+    return null;
   },
 });
 
@@ -583,6 +632,7 @@ export const search = action({
     vectorWeight: v.optional(v.number()),
     lexicalWeight: v.optional(v.number()),
     graphWeight: v.optional(v.number()),
+    accessWeight: v.optional(v.number()),
     fileEmbedding: v.optional(v.array(v.number())),
     apiKey: v.optional(v.string()),
   },
@@ -596,11 +646,13 @@ export const search = action({
       vectorWeight,
       lexicalWeight,
       graphWeight,
+      accessWeight: accessWeightArg,
       fileEmbedding,
       apiKey,
       ...args
     },
   ) => {
+    const accessWeight = accessWeightArg ?? 0.15;
     const rag = createContextRag(apiKey);
     const mode = retrievalMode ?? "hybrid";
     const limit = args.limit ?? 10;
@@ -610,28 +662,60 @@ export const search = action({
       hits: SearchHit[],
     ): Promise<SearchHit[]> => {
       if (!hits.length) return hits;
-      const times = (await ctx.runQuery(
-        internal.public.context.getObservationTimes,
-        { entryIds: hits.map((h) => h.entryId) },
-      )) as Record<string, number>;
-      const enriched = hits.map((h) => ({
-        ...h,
-        observationTime: times[h.entryId],
-      }));
-      for (let i = 0; i < enriched.length; i++) {
+      const [times, accessStats] = await Promise.all([
+        ctx.runQuery(internal.public.context.getObservationTimes, {
+          entryIds: hits.map((h) => h.entryId),
+        }) as Promise<Record<string, number>>,
+        ctx.runQuery(internal.internal.accessStats.getAccessStatsBatch, {
+          entryIds: hits.map((h) => h.entryId),
+        }) as Promise<
+          Record<
+            string,
+            {
+              decayedScore: number;
+              totalAccesses: number;
+              lastAccessTime: number;
+            }
+          >
+        >,
+      ]);
+      const now = Date.now();
+      const boosted = hits.map((h) => {
+        const stats = accessStats[h.entryId];
+        let boost = 1;
+        if (stats && accessWeight > 0) {
+          const currentScore = readTimeDecay(
+            stats.decayedScore,
+            stats.lastAccessTime,
+            now,
+          );
+          boost = 1 + accessWeight * currentScore;
+        }
+        return {
+          ...h,
+          score: h.score * boost,
+          observationTime: times[h.entryId],
+        };
+      });
+      boosted.sort((a, b) => b.score - a.score);
+      for (let i = 0; i < boosted.length; i++) {
         await memoryEvents.append.appendToStream(ctx, {
           streamType: "contextMemory",
-          streamId: enriched[i].entryId,
+          streamId: boosted[i].entryId,
           eventId: crypto.randomUUID(),
           eventType: "searched",
           payload: {
             namespace: args.namespace,
             rank: i,
-            score: enriched[i].score,
+            score: boosted[i].score,
           },
         });
       }
-      return enriched;
+      await ctx.runMutation(
+        internal.public.context.scheduleAccessStatsFlush,
+        {},
+      );
+      return boosted;
     };
 
     const filters = includeHistorical
