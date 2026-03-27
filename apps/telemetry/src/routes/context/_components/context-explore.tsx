@@ -56,39 +56,41 @@ function ContextExploreInner({
 
   return (
     <PageSection.Body variant="card" className="gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <PageSection.Title size="lg">Explore</PageSection.Title>
-          <PageSection.Description>{namespace}</PageSection.Description>
-        </div>
-        <div className="flex items-center gap-2">
-          {canRegenerate && (
-            <Button variant="outline" size="sm" onClick={launch}>
-              <RefreshCwIcon className="size-3.5" />
-              {hasNoData ? "Generate" : "Refresh"}
-            </Button>
-          )}
-          {isRefreshing && (
-            <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <Spinner />
-              {phase === "projecting" ? "Projecting" : "Loading"}
-            </span>
-          )}
-          <span className="text-sm text-muted-foreground">Limit</span>
-          <Select value={limit} onValueChange={setLimit}>
-            <SelectTrigger className="w-24">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {limitOptions.map((o) => (
-                <SelectItem key={o} value={o}>
-                  {o}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      <PageSection.Header>
+        <PageSection.HeaderRow className="flex-wrap items-start justify-between gap-3">
+          <PageSection.HeaderColumn>
+            <PageSection.Title size="lg">Explore</PageSection.Title>
+            <PageSection.Description>{namespace}</PageSection.Description>
+          </PageSection.HeaderColumn>
+          <PageSection.HeaderActions className="flex flex-row flex-wrap items-center gap-2">
+            {canRegenerate && (
+              <Button variant="outline" size="sm" onClick={launch}>
+                <RefreshCwIcon className="size-3.5" />
+                {hasNoData ? "Generate" : "Refresh"}
+              </Button>
+            )}
+            {isRefreshing && (
+              <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <Spinner />
+                {phase === "projecting" ? "Projecting" : "Loading"}
+              </span>
+            )}
+            <span className="text-sm text-muted-foreground">Limit</span>
+            <Select value={limit} onValueChange={setLimit}>
+              <SelectTrigger className="w-24">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {limitOptions.map((o) => (
+                  <SelectItem key={o} value={o}>
+                    {o}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </PageSection.HeaderActions>
+        </PageSection.HeaderRow>
+      </PageSection.Header>
 
       {isStale && (
         <p className="text-xs text-muted-foreground">

@@ -6,11 +6,29 @@ export function PageSection({
   ...props
 }: React.ComponentProps<"div">) {
   return (
-    <div className={cn("flex flex-col gap-21", className)} {...props}>
+    <div className={cn("flex flex-col gap-6", className)} {...props}>
       {children}
     </div>
   );
 }
+
+PageSection.Nav = function PageSectionNav({
+  children,
+  className,
+  ...props
+}: React.ComponentProps<"nav">) {
+  return (
+    <nav
+      className={cn(
+        "flex flex-wrap items-center gap-2 border-b border-border pb-3",
+        className,
+      )}
+      {...props}
+    >
+      {children}
+    </nav>
+  );
+};
 
 PageSection.Header = function PageSectionHeader({
   children,
@@ -87,8 +105,10 @@ PageSection.Title = function PageSectionTitle({
   size = "2xl",
   ...props
 }: React.ComponentProps<"h2"> & { size?: "lg" | "xl" | "2xl" }) {
+  const sizeClass =
+    size === "lg" ? "text-lg" : size === "xl" ? "text-xl" : "text-2xl";
   return (
-    <h2 className={cn("font-bold", `text-${size}`, className)} {...props}>
+    <h2 className={cn("font-bold", sizeClass, className)} {...props}>
       {children}
     </h2>
   );

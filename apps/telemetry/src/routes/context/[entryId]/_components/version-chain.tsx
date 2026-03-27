@@ -11,8 +11,8 @@ import {
   ItemMedia,
   ItemTitle,
 } from "@/components/ui/item.js";
-import { formatTime } from "../../../../components/formatters";
-import { Badge } from "../../../../components/ui/badge";
+import { formatTime } from "@/components/formatters";
+import { Badge } from "@/components/ui/badge";
 
 export function VersionChain({
   chain,
@@ -29,7 +29,7 @@ export function VersionChain({
   namespace: string;
 }) {
   return (
-    <CollapsibleItemGroup itemCount={chain.length}>
+    <CollapsibleItemGroup defaultOpen itemCount={chain.length}>
       <CollapsibleItemGroup.Title>
         <HistoryIcon className="size-3.5 text-muted-foreground" /> Version
         history
@@ -46,12 +46,10 @@ export function VersionChain({
 
             const contextItemContent = (
               <ItemContent key={entry.entryId}>
-                <span className="flex items-end gap-1">
-                  <ItemTitle>{title}</ItemTitle>
-                  <ItemDescription className="text-xs text-muted-foreground font-mono">
-                    {entry.entryId}
-                  </ItemDescription>
-                </span>
+                <ItemTitle>{title}</ItemTitle>
+                <ItemDescription className="text-xs text-muted-foreground font-mono">
+                  {entry.entryId}
+                </ItemDescription>
                 <span className="flex items-center gap-1">
                   {active && (
                     <Badge variant="outline" className="text-xs">

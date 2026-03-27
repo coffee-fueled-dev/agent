@@ -12,7 +12,7 @@ import {
   ItemDescription,
   ItemTitle,
 } from "@/components/ui/item.js";
-import { api } from "../../../../../../../convex/_generated/api.js";
+import { api } from "@backend/api.js";
 
 const PAGE_SIZE = 15;
 
@@ -94,12 +94,12 @@ export function EntryAccessEventsList({
             : results.length;
 
         return (
-          <CollapsibleItemGroup itemCount={countLabel}>
+          <CollapsibleItemGroup defaultOpen itemCount={countLabel}>
             <CollapsibleItemGroup.Title>
               <ActivityIcon className="size-3.5 text-muted-foreground" /> Access
               history
             </CollapsibleItemGroup.Title>
-            <CollapsibleItemGroup.Content className="h-64">
+            <CollapsibleItemGroup.Content className="h-96">
               <FadeOverflow className="h-full">
                 <ListSection
                   list={results}

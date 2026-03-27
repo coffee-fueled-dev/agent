@@ -8,12 +8,6 @@
  * @module
  */
 
-import type {
-  ApiFromModules,
-  FilterApi,
-  FunctionReference,
-} from "convex/server";
-import { anyApi, componentsGeneric } from "convex/server";
 import type * as client_index from "../client/index.js";
 import type * as internal_aggregate from "../internal/aggregate.js";
 import type * as internal_canonical from "../internal/canonical.js";
@@ -25,6 +19,13 @@ import type * as public_edges from "../public/edges.js";
 import type * as public_labels from "../public/labels.js";
 import type * as public_nodes from "../public/nodes.js";
 import type * as public_stats from "../public/stats.js";
+
+import type {
+  ApiFromModules,
+  FilterApi,
+  FunctionReference,
+} from "convex/server";
+import { anyApi, componentsGeneric } from "convex/server";
 
 const fullApi: ApiFromModules<{
   "client/index": typeof client_index;

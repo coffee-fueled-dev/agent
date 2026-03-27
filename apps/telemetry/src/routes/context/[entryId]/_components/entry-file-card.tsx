@@ -12,14 +12,11 @@ export function EntryFileCard({
   return (
     <Card className="relative w-full max-w-sm overflow-hidden pt-0 shadow-none mx-auto">
       {file.mimeType.startsWith("image/") && file.url ? (
-        <>
-          <div className="absolute inset-0 z-30" />
-          <img
-            src={file.url}
-            alt={title}
-            className="relative z-20 w-full object-cover"
-          />
-        </>
+        <img
+          src={file.url}
+          alt={title}
+          className="relative z-20 w-full object-cover"
+        />
       ) : null}
       {file.url ? (
         <CardFooter>

@@ -68,21 +68,26 @@ export const listStreamEventsSince = query({
   },
   returns: v.array(eventEntryValidator),
   handler: async (ctx, args) => {
-    return await ctx.db
+    // Use by_stream_event_time so we range-scan from minEventTime instead of
+    // scanning the entire stream (by_stream_version + filter timed out on large streams).
+    const base = ctx.db
       .query("event_entries")
-      .withIndex("by_stream_version", (q) =>
-        q.eq("streamType", args.streamType).eq("streamId", args.streamId),
+      .withIndex("by_stream_event_time", (q) =>
+        q
+          .eq("streamType", args.streamType)
+          .eq("streamId", args.streamId)
+          .gte("eventTime", args.minEventTime),
+      );
+    const types = args.eventTypes;
+    if (!types?.length) {
+      return await base.collect();
+    }
+    return await base
+      .filter((q) =>
+        types.length === 1
+          ? q.eq(q.field("eventType"), types[0] as string)
+          : q.or(...types.map((t) => q.eq(q.field("eventType"), t))),
       )
-      .filter((q) => {
-        const timeOk = q.gte(q.field("eventTime"), args.minEventTime);
-        const types = args.eventTypes;
-        if (!types?.length) return timeOk;
-        const typeOk =
-          types.length === 1
-            ? q.eq(q.field("eventType"), types[0] as string)
-            : q.or(...types.map((t) => q.eq(q.field("eventType"), t)));
-        return q.and(timeOk, typeOk);
-      })
       .collect();
   },
 });

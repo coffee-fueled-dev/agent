@@ -1,198 +1,82 @@
-import { api } from "@backend/api.js";
-import { ArrowLeftIcon, PencilIcon, Trash2Icon } from "lucide-react";
 import { formatTime } from "@/components/formatters";
-import { AppShell } from "@/components/layout/app-shell";
 import { PageSection } from "@/components/layout/page-section";
-import { RequiredResult } from "@/components/layout/required-result.js";
-import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip.js";
 import { renderApp } from "../../../render-root";
-import { MimeTypeIcon } from "../_components/mime-type-icon.js";
-import { NamespaceProvider, useNamespace } from "../_hooks/use-namespace.js";
-import { ContextEntryDeleteDialog } from "./_components/context-entry-delete-dialog.js";
-import { ContextEntryEditForm } from "./_components/context-entry-edit-form.js";
-import { ContextEntryProvider } from "./_components/context-entry-provider";
-import { EntryAccessEventsList } from "./_components/entry-access-events-list.js";
-import { EntryAccessWeekChart } from "./_components/entry-access-week-chart.js";
+import { ContextLayout } from "../_components/context-layout.js";
+import { NamespaceProvider } from "../_hooks/use-namespace.js";
+import { ContextEntryShell } from "./_components/context-entry-shell.js";
 import { EntryFileCard } from "./_components/entry-file-card";
+import { parseEntryOverviewPath } from "./_components/entry-path.js";
 import { LinkedNodes } from "./_components/linked-nodes";
-import { NotFoundBoundary } from "./_components/not-found-boundary.js";
-import { VersionChain } from "./_components/version-chain";
+import { VersionChain } from "./_components/version-chain.js";
 import { useContextEntry } from "./_hooks/use-context-entry";
-
-function getEntryIdFromPath(pathname: string) {
-  const prefix = "/context/";
-  if (!pathname.startsWith(prefix)) return null;
-  const [entryId] = pathname.slice(prefix.length).split("/");
-  const parsed = entryId ? decodeURIComponent(entryId).trim() : "";
-  return parsed || null;
-}
+import { ContextEntryHeader } from "./_components/context-entry-header.js";
 
 function ContextDetailRoute() {
-  const entryId = getEntryIdFromPath(window.location.pathname);
+  const parsed = parseEntryOverviewPath(window.location.pathname);
 
-  return (
-    <NamespaceProvider>
-      <AppShell
-        current="context"
-        eyebrow="Context"
-        title="Context detail"
-        description="View details for a context entry."
-      >
-        {entryId ? (
-          <ContextDetail entryId={entryId} />
-        ) : (
-          <div className="p-6 text-sm text-muted-foreground">
-            No entry ID provided.
+  if (!parsed) {
+    return (
+      <NamespaceProvider>
+        <ContextLayout current="context">
+          <div className="px-4 py-6 text-sm text-muted-foreground md:px-6">
+            Invalid context entry URL.
           </div>
-        )}
-      </AppShell>
-    </NamespaceProvider>
-  );
-}
-
-function ContextDetail({ entryId }: { entryId: string }) {
-  const { namespace } = useNamespace();
-  const backHref = `/context?namespace=${encodeURIComponent(namespace)}`;
+        </ContextLayout>
+      </NamespaceProvider>
+    );
+  }
 
   return (
-    <PageSection.Body variant="card" className="gap-4">
-      <span>
-        <Button asChild variant="link" size="sm">
-          <a href={backHref}>
-            <ArrowLeftIcon className="size-4" />
-            Back
-          </a>
-        </Button>
-      </span>
-      <NotFoundBoundary fallbackHref={backHref}>
-        <RequiredResult
-          query={api.context.contextApi.getContextDetail}
-          args={{ namespace, entryId }}
-        >
-          {(detail) => (
-            <ContextEntryProvider
-              detail={detail}
-              entryId={entryId}
-              namespace={namespace}
-            >
-              <DetailHeader />
-              <DetailBody />
-              <ContextEntryDeleteDialog />
-            </ContextEntryProvider>
-          )}
-        </RequiredResult>
-      </NotFoundBoundary>
-    </PageSection.Body>
+    <ContextEntryShell entryId={parsed.entryId} segment="overview">
+      <ContextEntryHeader />
+      <DetailView />
+    </ContextEntryShell>
   );
-}
-
-function DetailHeader() {
-  const { namespace, isCurrent, editing, startEditing, setShowDeleteDialog } =
-    useContextEntry();
-
-  return (
-    <PageSection.Header>
-      <PageSection.HeaderRow>
-        <PageSection.HeaderColumn>
-          <PageSection.Title size="lg">Context detail</PageSection.Title>
-          <PageSection.Description>{namespace}</PageSection.Description>
-        </PageSection.HeaderColumn>
-        <PageSection.HeaderActions className="flex flex-row items-center gap-2 justify-end">
-          {!editing && isCurrent && (
-            <>
-              <Button variant="outline" size="sm" onClick={startEditing}>
-                <PencilIcon className="size-4" />
-                Edit
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-destructive hover:bg-destructive/10"
-                onClick={() => setShowDeleteDialog(true)}
-              >
-                <Trash2Icon className="size-4" />
-                Delete
-              </Button>
-            </>
-          )}
-        </PageSection.HeaderActions>
-      </PageSection.HeaderRow>
-    </PageSection.Header>
-  );
-}
-
-function DetailBody() {
-  const ctx = useContextEntry();
-
-  if (ctx.editing) return <ContextEntryEditForm />;
-  return <DetailView />;
 }
 
 function DetailView() {
   const { detail, entryId, namespace, isCurrent } = useContextEntry();
 
   return (
-    <div className="space-y-4 rounded-xl border bg-muted/20 p-4">
-      <div className="flex items-center gap-2">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="flex items-center justify-center rounded-md border border-border bg-muted p-2">
-              <MimeTypeIcon
-                mimeType={detail.file?.mimeType}
-                className="size-4"
-              />
+    <PageSection.Body className="gap-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+        <div className="col-span-1 lg:col-span-3 gap-4 flex flex-col">
+          {!isCurrent && detail.version?.data.status === "historical" && (
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm text-amber-700 dark:text-amber-400">
+              This is a historical version. It was replaced by{" "}
+              <a
+                href={`/context/${encodeURIComponent(detail.version.data.replacedByEntryId)}?namespace=${encodeURIComponent(namespace)}`}
+                className="font-medium underline hover:no-underline"
+              >
+                a newer version
+              </a>{" "}
+              on {formatTime(detail.version.data.replacementTime)}.
             </div>
-          </TooltipTrigger>
-          {detail.file && (
-            <TooltipContent side="left">{detail.file.mimeType}</TooltipContent>
           )}
-        </Tooltip>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-base font-semibold">
-            {detail.title ?? detail.key}
-          </p>
+
+          <div className="rounded-lg bg-muted p-4 text-sm whitespace-pre-wrap">
+            {detail.fullText || detail.textPreview}
+          </div>
+
+          {detail.file && (
+            <EntryFileCard
+              file={detail.file}
+              title={detail.title ?? detail.key}
+            />
+          )}
+
+          <LinkedNodes namespace={namespace} entryId={entryId} />
+        </div>
+
+        <div className="col-span-3 lg:col-span-2 border rounded-lg border-border p-4 min-h-0">
+          <VersionChain
+            namespace={namespace}
+            chain={detail.versionChain}
+            currentEntryId={entryId}
+          />
         </div>
       </div>
-
-      {!isCurrent && detail.version?.data.status === "historical" && (
-        <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm text-amber-700 dark:text-amber-400">
-          This is a historical version. It was replaced by{" "}
-          <a
-            href={`/context/${encodeURIComponent(detail.version.data.replacedByEntryId)}?namespace=${encodeURIComponent(namespace)}`}
-            className="font-medium underline hover:no-underline"
-          >
-            a newer version
-          </a>{" "}
-          on {formatTime(detail.version.data.replacementTime)}.
-        </div>
-      )}
-
-      <div className="rounded-lg bg-muted p-4 text-sm whitespace-pre-wrap">
-        {detail.fullText || detail.textPreview}
-      </div>
-
-      {detail.file && (
-        <EntryFileCard file={detail.file} title={detail.title ?? detail.key} />
-      )}
-
-      {detail.versionChain.length >= 1 && (
-        <VersionChain
-          chain={detail.versionChain}
-          currentEntryId={entryId}
-          namespace={namespace}
-        />
-      )}
-
-      <LinkedNodes namespace={namespace} entryId={entryId} />
-
-      <EntryAccessWeekChart namespace={namespace} entryId={entryId} />
-      <EntryAccessEventsList namespace={namespace} entryId={entryId} />
-    </div>
+    </PageSection.Body>
   );
 }
 

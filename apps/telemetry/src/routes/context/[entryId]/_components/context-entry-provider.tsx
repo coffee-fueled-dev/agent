@@ -7,7 +7,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { api } from "../../../../../../../convex/_generated/api.js";
+import { api } from "@backend/api.js";
 
 export type ContextEntryDetail = NonNullable<
   FunctionReturnType<typeof api.context.contextApi.getContextDetail>
@@ -18,17 +18,13 @@ export type ContextEntryValue = {
   entryId: string;
   namespace: string;
   isCurrent: boolean;
-  editing: boolean;
   editTitle: string;
   setEditTitle: (v: string) => void;
   editText: string;
   setEditText: (v: string) => void;
-  startEditing: () => void;
-  cancelEditing: () => void;
+  resetEditDraft: () => void;
   handleSave: () => Promise<void>;
   saving: boolean;
-  showDeleteDialog: boolean;
-  setShowDeleteDialog: (v: boolean) => void;
   handleDelete: () => Promise<void>;
   deleting: boolean;
 };
@@ -74,9 +70,7 @@ export function ContextEntryProvider({
     void recordView({ namespace, entryId, idempotencyKey: viewIdempotencyKey });
   }, [recordView, namespace, entryId, viewIdempotencyKey]);
 
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [editText, setEditText] = useState("");
   const [saving, setSaving] = useState(false);
@@ -85,14 +79,9 @@ export function ContextEntryProvider({
   const status = detail.version?.data.status ?? "current";
   const isCurrent = status === "current";
 
-  function startEditing() {
+  function resetEditDraft() {
     setEditTitle(detail.title ?? "");
     setEditText(detail.fullText || detail.textPreview);
-    setEditing(true);
-  }
-
-  function cancelEditing() {
-    setEditing(false);
   }
 
   async function handleDelete() {
@@ -129,17 +118,13 @@ export function ContextEntryProvider({
         entryId,
         namespace,
         isCurrent,
-        editing,
         editTitle,
         setEditTitle,
         editText,
         setEditText,
-        startEditing,
-        cancelEditing,
+        resetEditDraft,
         handleSave,
         saving,
-        showDeleteDialog,
-        setShowDeleteDialog,
         handleDelete,
         deleting,
       }}

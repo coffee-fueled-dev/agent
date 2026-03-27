@@ -1,14 +1,13 @@
-import { useQuery } from "convex/react";
-import { BarChart3Icon } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, XAxis } from "recharts";
-import { CollapsibleItemGroup } from "@/components/blocks/collapsible-item-group.js";
+import { RequiredResult } from "@/components/layout/required-result.js";
 import {
   type ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart.js";
-import { api } from "../../../../../../../convex/_generated/api.js";
+import { Empty, EmptyContent } from "@/components/ui/empty.js";
+import { api } from "@backend/api.js";
 
 const chartConfig = {
   views: {
@@ -33,35 +32,34 @@ export function EntryAccessWeekChart({
   namespace: string;
   entryId: string;
 }) {
-  const data = useQuery(api.context.contextApi.getContextEntryAccessWeekByDay, {
-    namespace,
-    entryId,
-  });
-
-  const chartData =
-    data?.map((row) => ({
-      ...row,
-      label: shortDayLabel(row.day),
-    })) ?? [];
-
-  const total = chartData?.reduce((a, r) => a + r.views + r.searches, 0) ?? 0;
-
   return (
-    <CollapsibleItemGroup itemCount={total}>
-      <CollapsibleItemGroup.Title>
-        <BarChart3Icon className="size-3.5 text-muted-foreground" /> Usage (7
-        days)
-      </CollapsibleItemGroup.Title>
-      <CollapsibleItemGroup.Content>
-        {data === undefined ? (
-          <div className="text-sm text-muted-foreground py-4">
-            Loading chart…
-          </div>
-        ) : data.length === 0 ? (
-          <div className="text-sm text-muted-foreground py-4">
-            No usage data for this entry.
-          </div>
-        ) : (
+    <RequiredResult
+      query={api.context.contextApi.getContextEntryAccessWeekByDay}
+      args={{
+        namespace,
+        entryId,
+      }}
+    >
+      {(data) => {
+        const chartData =
+          data?.map((row) => ({
+            ...row,
+            label: shortDayLabel(row.day),
+          })) ?? [];
+
+        if (data.length === 0) {
+          return (
+            <Empty>
+              <EmptyContent>
+                <p className="text-sm text-muted-foreground">
+                  No usage data for this entry.
+                </p>
+              </EmptyContent>
+            </Empty>
+          );
+        }
+
+        return (
           <ChartContainer config={chartConfig} className="h-[220px] w-full">
             <BarChart accessibilityLayer data={chartData}>
               <CartesianGrid vertical={false} />
@@ -79,8 +77,8 @@ export function EntryAccessWeekChart({
               <Bar dataKey="searches" fill="var(--chart-2)" stackId="a" />
             </BarChart>
           </ChartContainer>
-        )}
-      </CollapsibleItemGroup.Content>
-    </CollapsibleItemGroup>
+        );
+      }}
+    </RequiredResult>
   );
 }

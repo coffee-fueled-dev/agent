@@ -39,6 +39,7 @@ export default defineSchema({
   })
     .index("by_global_sequence", ["globalSequence"])
     .index("by_stream_version", ["streamType", "streamId", "streamVersion"])
+    .index("by_stream_event_time", ["streamType", "streamId", "eventTime"])
     .index("by_stream_event", ["streamType", "streamId", "eventId"])
     .index("by_type_sequence", ["streamType", "globalSequence"]),
 

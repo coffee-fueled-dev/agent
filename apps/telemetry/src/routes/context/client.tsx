@@ -1,12 +1,13 @@
 import { PlusIcon, SearchIcon } from "lucide-react";
 import { useState } from "react";
 import { useDropzone } from "react-dropzone";
-import { AppShell } from "../../components/layout/app-shell";
+import { PageSection } from "../../components/layout/page-section";
 import { Button } from "../../components/ui/button";
 import { CommandDialog } from "../../components/ui/command";
 import { renderApp } from "../../render-root";
 import { AddContextDialog } from "./_components/add-context-dialog.js";
 import { ContextExplore } from "./_components/context-explore.js";
+import { ContextLayout } from "./_components/context-layout.js";
 import { ContextSearch } from "./_components/context-search.js";
 import { FileDropzoneProvider } from "./_components/file-dropzone.js";
 import { NamespaceProvider } from "./_hooks/use-namespace.js";
@@ -15,14 +16,9 @@ function ContextIndexRoute() {
   return (
     <NamespaceProvider>
       <FileDropzoneProvider>
-        <AppShell
-          current="context"
-          eyebrow="Context"
-          title="Add and search context"
-          description="Context entries indexed for semantic search. Add text or files and search across the namespace."
-        >
+        <ContextLayout current="context">
           <ContextIndex />
-        </AppShell>
+        </ContextLayout>
       </FileDropzoneProvider>
     </NamespaceProvider>
   );
@@ -34,43 +30,56 @@ function ContextIndex() {
   const [isSearchDialogOpen, setIsSearchDialogOpen] = useState(false);
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <AddContextDialog
-          open={isAddContextDialogOpen}
-          onOpenChange={setIsAddContextDialogOpen}
-        >
-          <AddContextDialog.Trigger asChild>
-            <Button variant="outline" size="sm">
-              <PlusIcon className="size-4" />
-              Context
+    <PageSection className="px-4 py-6 md:px-6">
+      <PageSection.Header>
+        <PageSection.HeaderRow className="flex-wrap items-start justify-between gap-4">
+          <PageSection.HeaderColumn>
+            <p className="text-sm font-medium text-muted-foreground">Context</p>
+            <PageSection.Title>Add and search context</PageSection.Title>
+            <PageSection.Description>
+              Context entries indexed for semantic search. Add text or files and
+              search across the namespace.
+            </PageSection.Description>
+          </PageSection.HeaderColumn>
+          <PageSection.HeaderActions className="flex flex-row flex-wrap items-center gap-2">
+            <AddContextDialog
+              open={isAddContextDialogOpen}
+              onOpenChange={setIsAddContextDialogOpen}
+            >
+              <AddContextDialog.Trigger asChild>
+                <Button variant="outline" size="sm">
+                  <PlusIcon className="size-4" />
+                  Context
+                </Button>
+              </AddContextDialog.Trigger>
+            </AddContextDialog>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setIsSearchDialogOpen(true)}
+            >
+              <SearchIcon className="size-4" />
+              Search
             </Button>
-          </AddContextDialog.Trigger>
-        </AddContextDialog>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => setIsSearchDialogOpen(true)}
-        >
-          <SearchIcon className="size-4" />
-          Search
-        </Button>
-        <CommandDialog
-          className="p-4"
-          open={isSearchDialogOpen}
-          onOpenChange={setIsSearchDialogOpen}
-          showCloseButton={false}
-        >
-          <ContextSearch />
-        </CommandDialog>
-      </div>
-
-      <ContextExplore
-        pushSceneBehind={
-          isAddContextDialogOpen || isDragActive || isSearchDialogOpen
-        }
-      />
-    </div>
+            <CommandDialog
+              className="p-4"
+              open={isSearchDialogOpen}
+              onOpenChange={setIsSearchDialogOpen}
+              showCloseButton={false}
+            >
+              <ContextSearch />
+            </CommandDialog>
+          </PageSection.HeaderActions>
+        </PageSection.HeaderRow>
+      </PageSection.Header>
+      <PageSection.Content>
+        <ContextExplore
+          pushSceneBehind={
+            isAddContextDialogOpen || isDragActive || isSearchDialogOpen
+          }
+        />
+      </PageSection.Content>
+    </PageSection>
   );
 }
 

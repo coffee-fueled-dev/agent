@@ -1,3 +1,5 @@
+import { mkdirSync } from "node:fs";
+import { dirname } from "node:path";
 import { Database } from "bun:sqlite";
 import {
   createPartFromBase64,
@@ -19,7 +21,9 @@ if (!convexBaseUrl) {
 }
 const callbackBaseUrl = convexBaseUrl;
 
-const cacheDbPath = process.env.EMBEDDING_CACHE_DB ?? "embedding-cache.sqlite";
+const cacheDbPath =
+  process.env.EMBEDDING_CACHE_DB ?? ".sqlite/embedding-cache.sqlite";
+mkdirSync(dirname(cacheDbPath), { recursive: true });
 const cacheDb = new Database(cacheDbPath, { create: true });
 cacheDb.run("PRAGMA journal_mode = WAL;");
 cacheDb.run(
