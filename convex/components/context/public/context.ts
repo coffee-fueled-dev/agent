@@ -662,52 +662,24 @@ export const search = action({
       hits: SearchHit[],
     ): Promise<SearchHit[]> => {
       if (!hits.length) return hits;
-      const [times, accessStats] = await Promise.all([
-        ctx.runQuery(internal.public.context.getObservationTimes, {
-          entryIds: hits.map((h) => h.entryId),
-        }) as Promise<Record<string, number>>,
-        ctx.runQuery(internal.internal.accessStats.getAccessStatsBatch, {
-          entryIds: hits.map((h) => h.entryId),
-        }) as Promise<
-          Record<
-            string,
-            {
-              decayedScore: number;
-              totalAccesses: number;
-              lastAccessTime: number;
-            }
-          >
-        >,
-      ]);
-      const now = Date.now();
-      const boosted = hits.map((h) => {
-        const stats = accessStats[h.entryId];
-        let boost = 1;
-        if (stats && accessWeight > 0) {
-          const currentScore = readTimeDecay(
-            stats.decayedScore,
-            stats.lastAccessTime,
-            now,
-          );
-          boost = 1 + accessWeight * currentScore;
-        }
-        return {
-          ...h,
-          score: h.score * boost,
-          observationTime: times[h.entryId],
-        };
-      });
-      boosted.sort((a, b) => b.score - a.score);
-      for (let i = 0; i < boosted.length; i++) {
+      const times = (await ctx.runQuery(
+        internal.public.context.getObservationTimes,
+        { entryIds: hits.map((h) => h.entryId) },
+      )) as Record<string, number>;
+      const enriched = hits.map((h) => ({
+        ...h,
+        observationTime: times[h.entryId],
+      }));
+      for (let i = 0; i < enriched.length; i++) {
         await memoryEvents.append.appendToStream(ctx, {
           streamType: "contextMemory",
-          streamId: boosted[i].entryId,
+          streamId: enriched[i].entryId,
           eventId: crypto.randomUUID(),
           eventType: "searched",
           payload: {
             namespace: args.namespace,
             rank: i,
-            score: boosted[i].score,
+            score: enriched[i].score,
           },
         });
       }
@@ -715,7 +687,7 @@ export const search = action({
         internal.public.context.scheduleAccessStatsFlush,
         {},
       );
-      return boosted;
+      return enriched;
     };
 
     const filters = includeHistorical
@@ -776,10 +748,50 @@ export const search = action({
       for (const r of fileVector) byId.set(r.entryId, r);
       for (const r of textVector) byId.set(r.entryId, r);
       const effectiveK = rrfK ?? Math.max(candidateLimit, 60);
-      const scores = fusedRank(
-        [textVector.map((r) => r.entryId), fileVector.map((r) => r.entryId)],
-        { k: effectiveK, weights: [vectorWeight ?? 1, vectorWeight ?? 1] },
-      );
+      const vecLists = [
+        textVector.map((r) => r.entryId),
+        fileVector.map((r) => r.entryId),
+      ];
+      const vecWeights = [vectorWeight ?? 1, vectorWeight ?? 1];
+      if (accessWeight > 0) {
+        const candidateIds = [...byId.keys()];
+        const accessStats = (await ctx.runQuery(
+          internal.internal.accessStats.getAccessStatsBatch,
+          { entryIds: candidateIds },
+        )) as Record<
+          string,
+          {
+            decayedScore: number;
+            totalAccesses: number;
+            lastAccessTime: number;
+          }
+        >;
+        const now = Date.now();
+        const accessRanked = candidateIds
+          .map((id) => {
+            const stats = accessStats[id];
+            if (!stats) return null;
+            const current = readTimeDecay(
+              stats.decayedScore,
+              stats.lastAccessTime,
+              now,
+            );
+            return { id, sortKey: Math.log1p(current) };
+          })
+          .filter(
+            (x): x is NonNullable<typeof x> => x != null && x.sortKey > 0,
+          )
+          .sort((a, b) => b.sortKey - a.sortKey)
+          .map((x) => x.id);
+        if (accessRanked.length) {
+          vecLists.push(accessRanked);
+          vecWeights.push(accessWeight);
+        }
+      }
+      const scores = fusedRank(vecLists, {
+        k: effectiveK,
+        weights: vecWeights,
+      });
       return finalizeResults(
         [...scores.entries()]
           .sort((a, b) => b[1] - a[1])
@@ -894,6 +906,37 @@ export const search = action({
       if (graphScored.length) {
         rankedLists.push(graphScored.map((g) => g.id));
         weights.push(adaptiveGraphWeight);
+      }
+    }
+
+    // Access frequency arm: rank candidates by decayed access score
+    if (accessWeight > 0) {
+      const candidateIds = [...byId.keys()];
+      const accessStats = (await ctx.runQuery(
+        internal.internal.accessStats.getAccessStatsBatch,
+        { entryIds: candidateIds },
+      )) as Record<
+        string,
+        { decayedScore: number; totalAccesses: number; lastAccessTime: number }
+      >;
+      const now = Date.now();
+      const accessRanked = candidateIds
+        .map((id) => {
+          const stats = accessStats[id];
+          if (!stats) return null;
+          const current = readTimeDecay(
+            stats.decayedScore,
+            stats.lastAccessTime,
+            now,
+          );
+          return { id, sortKey: Math.log1p(current) };
+        })
+        .filter((x): x is NonNullable<typeof x> => x != null && x.sortKey > 0)
+        .sort((a, b) => b.sortKey - a.sortKey)
+        .map((x) => x.id);
+      if (accessRanked.length) {
+        rankedLists.push(accessRanked);
+        weights.push(accessWeight);
       }
     }
 
