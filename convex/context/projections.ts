@@ -155,7 +155,10 @@ export const computeProjection = internalAction({
     while (!isDone) {
       const result: PaginatedEmbeddings = await ctx.runQuery(
         projectionApi.loadEmbeddingPage,
-        { namespace: job.namespace, paginationOpts: { cursor, numItems: EMBEDDING_PAGE_SIZE } },
+        {
+          namespace: job.namespace,
+          paginationOpts: { cursor, numItems: EMBEDDING_PAGE_SIZE },
+        },
       );
       embeddings.push(...result.page);
       cursor = result.continueCursor;
@@ -163,7 +166,10 @@ export const computeProjection = internalAction({
     }
 
     // 2. Load current entry IDs (paginated)
-    const currentEntryIds = await loadCurrentEntryIdsPaginated(ctx, job.namespace);
+    const currentEntryIds = await loadCurrentEntryIdsPaginated(
+      ctx,
+      job.namespace,
+    );
     const currentSet = new Set(currentEntryIds);
     let currentEmbeddings = embeddings.filter((e) => currentSet.has(e.entryId));
 
@@ -197,7 +203,13 @@ export const computeProjection = internalAction({
     while (!entriesDone) {
       const entryResult: PaginatedEntries = await ctx.runQuery(
         projectionApi.loadEntryPage,
-        { namespace: job.namespace, paginationOpts: { cursor: entryCursor, numItems: EMBEDDING_PAGE_SIZE } },
+        {
+          namespace: job.namespace,
+          paginationOpts: {
+            cursor: entryCursor,
+            numItems: EMBEDDING_PAGE_SIZE,
+          },
+        },
       );
       for (const entry of entryResult.page) {
         entryMap.set(entry.entryId, {

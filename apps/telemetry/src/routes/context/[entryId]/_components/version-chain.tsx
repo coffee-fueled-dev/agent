@@ -11,8 +11,8 @@ import {
   ItemMedia,
   ItemTitle,
 } from "@/components/ui/item.js";
-import { Badge } from "../../../../components/ui/badge";
 import { formatTime } from "../../../../components/formatters";
+import { Badge } from "../../../../components/ui/badge";
 
 export function VersionChain({
   chain,

@@ -1,8 +1,11 @@
 import type { EntryId } from "@convex-dev/rag";
-import { paginationOptsValidator, paginationResultValidator } from "convex/server";
+import {
+  paginationOptsValidator,
+  paginationResultValidator,
+} from "convex/server";
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
-import { action, mutation, query, type QueryCtx } from "../_generated/server";
+import { action, mutation, type QueryCtx, query } from "../_generated/server";
 import { graph } from "../graph";
 import { history } from "../history";
 import { readTimeDecay } from "../internal/accessStats";
@@ -38,9 +41,7 @@ async function resolveContextEntryInNamespace(
   if (!entry) {
     entry = await ctx.db
       .query("contextEntries")
-      .withIndex("by_legacyEntryId", (q) =>
-        q.eq("legacyEntryId", entryId),
-      )
+      .withIndex("by_legacyEntryId", (q) => q.eq("legacyEntryId", entryId))
       .first();
     if (entry && entry.namespace !== namespace) entry = null;
   }
@@ -203,14 +204,17 @@ export const add = action({
       key: result.entryId,
     });
 
-    await ctx.runMutation(internal.internal.similarity.scheduleSimilarityEdges, {
-      entryId: result.entryId,
-      namespace: args.namespace,
-      embedding,
-      apiKey: args.apiKey,
-      similarityK: args.similarityK,
-      similarityThreshold: args.similarityThreshold,
-    });
+    await ctx.runMutation(
+      internal.internal.similarity.scheduleSimilarityEdges,
+      {
+        entryId: result.entryId,
+        namespace: args.namespace,
+        embedding,
+        apiKey: args.apiKey,
+        similarityK: args.similarityK,
+        similarityThreshold: args.similarityThreshold,
+      },
+    );
 
     await memoryEvents.append.appendToStream(ctx, {
       streamType: "contextMemory",
@@ -313,11 +317,7 @@ export const recordView = mutation({
   handler: async (ctx, args) => {
     const eventId =
       args.idempotencyKey !== undefined
-        ? viewEventIdFromKey(
-            args.namespace,
-            args.entryId,
-            args.idempotencyKey,
-          )
+        ? viewEventIdFromKey(args.namespace, args.entryId, args.idempotencyKey)
         : crypto.randomUUID();
     await memoryEvents.append.appendToStream(ctx, {
       streamType: "contextMemory",
@@ -614,14 +614,17 @@ export const edit = action({
       key: current.entryId,
     });
 
-    await ctx.runMutation(internal.internal.similarity.scheduleSimilarityEdges, {
-      entryId: current.entryId,
-      namespace: args.namespace,
-      embedding,
-      apiKey: args.apiKey,
-      similarityK: args.similarityK,
-      similarityThreshold: args.similarityThreshold,
-    });
+    await ctx.runMutation(
+      internal.internal.similarity.scheduleSimilarityEdges,
+      {
+        entryId: current.entryId,
+        namespace: args.namespace,
+        embedding,
+        apiKey: args.apiKey,
+        similarityK: args.similarityK,
+        similarityThreshold: args.similarityThreshold,
+      },
+    );
 
     await memoryEvents.append.appendToStream(ctx, {
       streamType: "contextMemory",

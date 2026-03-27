@@ -123,7 +123,8 @@ function localMoving(
         if (candidateCom === currentCom) continue;
         const sigmaCandidate = getMap(communityStrength, candidateCom, 0);
         const gain =
-          (weightToCandidate - weightToCurrent) -
+          weightToCandidate -
+          weightToCurrent -
           (resolution * ki * (sigmaCandidate - sigmaCurrentWithout)) / m2;
         if (gain > bestGain) {
           bestGain = gain;

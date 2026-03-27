@@ -91,7 +91,8 @@ export const flushAccessStats = internalMutation({
       if (event.eventType === "searched") existing.searchDelta++;
       else existing.viewDelta++;
 
-      if (event.payload?.namespace) existing.namespace = event.payload.namespace;
+      if (event.payload?.namespace)
+        existing.namespace = event.payload.namespace;
       deltas.set(entryId, existing);
     }
 

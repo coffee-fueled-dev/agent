@@ -37,8 +37,9 @@ export const listStreamEvents = query({
         );
 
     /** convex-helpers paginator streams do not support `.filter()`; use `.filterWith()` (see stream.js). */
-    const filterByEventTypes = (t: string[]) => async (doc: { eventType: string }) =>
-      t.length === 1 ? doc.eventType === t[0] : t.includes(doc.eventType);
+    const filterByEventTypes =
+      (t: string[]) => async (doc: { eventType: string }) =>
+        t.length === 1 ? doc.eventType === t[0] : t.includes(doc.eventType);
 
     if (args.order === "desc") {
       const chain = hasTypes

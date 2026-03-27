@@ -48,7 +48,10 @@ export const flushDegreeUpdates = internalMutation({
 
     const accumulated = new Map<string, number>();
     for (const row of pending) {
-      accumulated.set(row.nodeKey, (accumulated.get(row.nodeKey) ?? 0) + row.delta);
+      accumulated.set(
+        row.nodeKey,
+        (accumulated.get(row.nodeKey) ?? 0) + row.delta,
+      );
     }
 
     for (const [nodeKey, delta] of accumulated) {
@@ -71,7 +74,11 @@ export const flushDegreeUpdates = internalMutation({
 
     const more = await ctx.db.query("pendingDegreeUpdates").first();
     if (more) {
-      await ctx.scheduler.runAfter(0, internal.public.stats.flushDegreeUpdates, {});
+      await ctx.scheduler.runAfter(
+        0,
+        internal.public.stats.flushDegreeUpdates,
+        {},
+      );
     }
 
     return null;

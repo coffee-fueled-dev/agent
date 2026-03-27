@@ -47,13 +47,14 @@ export type PayloadFor<
   Streams extends readonly EventStreamTemplate[],
   StreamType extends StreamTypeFor<Streams>,
   EvType extends string,
-> = Extract<Streams[number], { streamType: StreamType }> extends infer S
-  ? S extends { payloads: Record<string, PropertyValidators> }
-    ? EvType extends keyof S["payloads"]
-      ? ObjectType<S["payloads"][EvType]>
+> =
+  Extract<Streams[number], { streamType: StreamType }> extends infer S
+    ? S extends { payloads: Record<string, PropertyValidators> }
+      ? EvType extends keyof S["payloads"]
+        ? ObjectType<S["payloads"][EvType]>
+        : unknown
       : unknown
-    : unknown
-  : unknown;
+    : unknown;
 
 export type EventRef<StreamType extends string = string> = {
   streamType: StreamType;

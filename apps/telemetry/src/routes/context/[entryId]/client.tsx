@@ -1,18 +1,20 @@
+import { api } from "@backend/api.js";
 import { ArrowLeftIcon, PencilIcon, Trash2Icon } from "lucide-react";
+import { formatTime } from "@/components/formatters";
+import { AppShell } from "@/components/layout/app-shell";
+import { PageSection } from "@/components/layout/page-section";
 import { RequiredResult } from "@/components/layout/required-result.js";
+import { Button } from "@/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip.js";
-import { api } from "@backend/api.js";
-import { formatTime } from "@/components/formatters";
-import { AppShell } from "@/components/layout/app-shell";
-import { PageSection } from "@/components/layout/page-section";
-import { Button } from "@/components/ui/button";
 import { renderApp } from "../../../render-root";
 import { MimeTypeIcon } from "../_components/mime-type-icon.js";
 import { NamespaceProvider, useNamespace } from "../_hooks/use-namespace.js";
+import { ContextEntryDeleteDialog } from "./_components/context-entry-delete-dialog.js";
+import { ContextEntryEditForm } from "./_components/context-entry-edit-form.js";
 import { ContextEntryProvider } from "./_components/context-entry-provider";
 import { EntryAccessEventsList } from "./_components/entry-access-events-list.js";
 import { EntryAccessWeekChart } from "./_components/entry-access-week-chart.js";
@@ -21,8 +23,6 @@ import { LinkedNodes } from "./_components/linked-nodes";
 import { NotFoundBoundary } from "./_components/not-found-boundary.js";
 import { VersionChain } from "./_components/version-chain";
 import { useContextEntry } from "./_hooks/use-context-entry";
-import { ContextEntryEditForm } from "./_components/context-entry-edit-form.js";
-import { ContextEntryDeleteDialog } from "./_components/context-entry-delete-dialog.js";
 
 function getEntryIdFromPath(pathname: string) {
   const prefix = "/context/";
@@ -132,7 +132,6 @@ function DetailBody() {
   if (ctx.editing) return <ContextEntryEditForm />;
   return <DetailView />;
 }
-
 
 function DetailView() {
   const { detail, entryId, namespace, isCurrent } = useContextEntry();

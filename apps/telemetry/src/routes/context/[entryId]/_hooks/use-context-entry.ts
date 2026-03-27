@@ -6,6 +6,7 @@ import {
 
 export function useContextEntry(): ContextEntryValue {
   const ctx = useContext(ContextEntryContext);
-  if (!ctx) throw new Error("useContextEntry must be used within ContextEntryProvider");
+  if (!ctx)
+    throw new Error("useContextEntry must be used within ContextEntryProvider");
   return ctx;
 }

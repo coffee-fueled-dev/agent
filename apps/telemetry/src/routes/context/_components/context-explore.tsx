@@ -12,10 +12,7 @@ import {
   SelectValue,
 } from "../../../components/ui/select.js";
 import { Spinner } from "../../../components/ui/spinner.js";
-import {
-  ProjectionProvider,
-  useProjection,
-} from "../_hooks/use-projection.js";
+import { ProjectionProvider, useProjection } from "../_hooks/use-projection.js";
 import { ContextExploreDetailDialog } from "./context-explore-detail-dialog.js";
 import { ContextExploreScene } from "./context-explore-scene.js";
 
@@ -142,9 +139,7 @@ function ContextExploreInner({
       </div>
 
       {selected && (
-        <ContextExploreDetailDialog
-          onClose={() => setSelected(null)}
-        />
+        <ContextExploreDetailDialog onClose={() => setSelected(null)} />
       )}
     </PageSection.Body>
   );

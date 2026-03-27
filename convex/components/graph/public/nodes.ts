@@ -109,7 +109,10 @@ export const deleteNode = mutation({
       const degreeDeltas = new Map<string, number>();
       for (const edge of edges) {
         await ctx.db.delete(edge._id);
-        edgeLabelCounts.set(edge.label, (edgeLabelCounts.get(edge.label) ?? 0) + 1);
+        edgeLabelCounts.set(
+          edge.label,
+          (edgeLabelCounts.get(edge.label) ?? 0) + 1,
+        );
         degreeDeltas.set(edge.from, (degreeDeltas.get(edge.from) ?? 0) + 1);
         if (edge.from !== edge.to) {
           degreeDeltas.set(edge.to, (degreeDeltas.get(edge.to) ?? 0) + 1);
@@ -131,7 +134,11 @@ export const deleteNode = mutation({
         }
       }
       if (degreeDeltas.size > 1 || !degreeDeltas.has(args.key)) {
-        await ctx.scheduler.runAfter(0, internal.public.stats.flushDegreeUpdates, {});
+        await ctx.scheduler.runAfter(
+          0,
+          internal.public.stats.flushDegreeUpdates,
+          {},
+        );
       }
     }
 

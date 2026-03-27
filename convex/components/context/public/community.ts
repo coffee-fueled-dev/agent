@@ -1,12 +1,17 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { paginator } from "convex-helpers/server/pagination";
-import { action, internalMutation, mutation, query } from "../_generated/server";
 import { internal as componentInternal } from "../_generated/api";
-import schema from "../schema";
+import {
+  action,
+  internalMutation,
+  mutation,
+  query,
+} from "../_generated/server";
 import { graph } from "../graph";
 import { createContextRag } from "../internal/rag";
 import { hasStatus } from "../internal/status";
+import schema from "../schema";
 
 export const createJob = mutation({
   args: {
@@ -347,9 +352,7 @@ export const getCommunityMembers = query({
 
 export const getNeighborEdges = query({
   args: { entryId: v.string() },
-  returns: v.array(
-    v.object({ neighbor: v.string(), score: v.number() }),
-  ),
+  returns: v.array(v.object({ neighbor: v.string(), score: v.number() })),
   handler: async (ctx, args) => {
     const { page } = await graph.edges.neighbors(ctx, {
       label: "SIMILAR_TO",
@@ -358,8 +361,7 @@ export const getNeighborEdges = query({
     });
     return page.map((edge) => ({
       neighbor: edge.from === args.entryId ? edge.to : edge.from,
-      score:
-        (edge.properties as { score?: number } | undefined)?.score ?? 0,
+      score: (edge.properties as { score?: number } | undefined)?.score ?? 0,
     }));
   },
 });
@@ -369,7 +371,9 @@ export const getNeighborEdges = query({
 export const writeStagingEdges = mutation({
   args: {
     jobId: v.id("contextCommunityJobs"),
-    edges: v.array(v.object({ from: v.string(), to: v.string(), weight: v.number() })),
+    edges: v.array(
+      v.object({ from: v.string(), to: v.string(), weight: v.number() }),
+    ),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -401,7 +405,9 @@ export const readStagingEdgePage = query({
 export const writeStagingAssignments = mutation({
   args: {
     jobId: v.id("contextCommunityJobs"),
-    assignments: v.array(v.object({ nodeId: v.string(), communityId: v.number() })),
+    assignments: v.array(
+      v.object({ nodeId: v.string(), communityId: v.number() }),
+    ),
   },
   returns: v.null(),
   handler: async (ctx, args) => {

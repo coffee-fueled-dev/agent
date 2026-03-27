@@ -25,9 +25,7 @@ export function RebuildLinksButton({
   const [starting, setStarting] = useState(false);
 
   const isActive =
-    starting ||
-    latest?.status === "pending" ||
-    latest?.status === "running";
+    starting || latest?.status === "pending" || latest?.status === "running";
 
   async function handleClick() {
     setStarting(true);
