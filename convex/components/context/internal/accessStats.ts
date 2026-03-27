@@ -57,6 +57,11 @@ export const flushAccessStats = internalMutation({
   args: {},
   returns: v.null(),
   handler: async (ctx) => {
+    await memoryEvents.projectors.claimOrReadCheckpoint(ctx, {
+      projector: "accessStats",
+      streamType: "contextMemory",
+    });
+
     const events = await memoryEvents.projectors.listUnprocessed(ctx, {
       projector: "accessStats",
       streamType: "contextMemory",

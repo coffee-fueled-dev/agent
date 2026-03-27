@@ -983,10 +983,13 @@ export const components = componentsGeneric() as unknown as {
             expectedVersion?: number;
             metadata?: Record<string, string | number | boolean | null>;
             payload?: any;
+            session?: string;
             streamId: string;
             streamType: string;
           },
           {
+            _creationTime: number;
+            _id: string;
             actor?: { byId: string; byType: string };
             causationId?: string;
             correlationId?: string;
@@ -996,6 +999,7 @@ export const components = componentsGeneric() as unknown as {
             globalSequence: number;
             metadata?: Record<string, string | number | boolean | null>;
             payload?: any;
+            session?: string;
             streamId: string;
             streamType: string;
             streamVersion: number;
@@ -1014,6 +1018,8 @@ export const components = componentsGeneric() as unknown as {
             streamType: string;
           },
           {
+            _creationTime: number;
+            _id: string;
             lastSequence: number;
             leaseExpiresAt?: number;
             leaseOwner?: string;
@@ -1033,6 +1039,8 @@ export const components = componentsGeneric() as unknown as {
           },
           {
             checkpoint: {
+              _creationTime: number;
+              _id: string;
               lastSequence: number;
               leaseExpiresAt?: number;
               leaseOwner?: string;
@@ -1048,6 +1056,8 @@ export const components = componentsGeneric() as unknown as {
           "internal",
           { limit?: number; projector: string; streamType: string },
           Array<{
+            _creationTime: number;
+            _id: string;
             actor?: { byId: string; byType: string };
             causationId?: string;
             correlationId?: string;
@@ -1057,6 +1067,7 @@ export const components = componentsGeneric() as unknown as {
             globalSequence: number;
             metadata?: Record<string, string | number | boolean | null>;
             payload?: any;
+            session?: string;
             streamId: string;
             streamType: string;
             streamVersion: number;
@@ -1067,6 +1078,8 @@ export const components = componentsGeneric() as unknown as {
           "internal",
           { projector: string; streamType: string },
           {
+            _creationTime: number;
+            _id: string;
             lastSequence: number;
             leaseExpiresAt?: number;
             leaseOwner?: string;
@@ -1082,6 +1095,8 @@ export const components = componentsGeneric() as unknown as {
           "internal",
           { eventId: string; streamId: string; streamType: string },
           {
+            _creationTime: number;
+            _id: string;
             actor?: { byId: string; byType: string };
             causationId?: string;
             correlationId?: string;
@@ -1091,6 +1106,7 @@ export const components = componentsGeneric() as unknown as {
             globalSequence: number;
             metadata?: Record<string, string | number | boolean | null>;
             payload?: any;
+            session?: string;
             streamId: string;
             streamType: string;
             streamVersion: number;
@@ -1116,6 +1132,8 @@ export const components = componentsGeneric() as unknown as {
           "query",
           "internal",
           {
+            eventTypes?: Array<string>;
+            order?: "asc" | "desc";
             paginationOpts: {
               cursor: string | null;
               endCursor?: string | null;
@@ -1129,6 +1147,33 @@ export const components = componentsGeneric() as unknown as {
           },
           any
         >;
+        listStreamEventsSince: FunctionReference<
+          "query",
+          "internal",
+          {
+            eventTypes?: Array<string>;
+            minEventTime: number;
+            streamId: string;
+            streamType: string;
+          },
+          Array<{
+            _creationTime: number;
+            _id: string;
+            actor?: { byId: string; byType: string };
+            causationId?: string;
+            correlationId?: string;
+            eventId: string;
+            eventTime: number;
+            eventType: string;
+            globalSequence: number;
+            metadata?: Record<string, string | number | boolean | null>;
+            payload?: any;
+            session?: string;
+            streamId: string;
+            streamType: string;
+            streamVersion: number;
+          }>
+        >;
       };
       streams: {
         getStream: FunctionReference<
@@ -1136,6 +1181,8 @@ export const components = componentsGeneric() as unknown as {
           "internal",
           { streamId: string; streamType: string },
           {
+            _creationTime: number;
+            _id: string;
             createdTime: number;
             lastEventSequence: number | null;
             streamId: string;

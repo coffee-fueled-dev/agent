@@ -96,6 +96,7 @@ export type EventEntry<
     causationId?: string;
     correlationId?: string;
     actor?: EventActor;
+    session?: string;
     eventTime: number;
   };
 }[EventTypeFor<Streams, StreamType>];
@@ -122,6 +123,7 @@ export type AppendArgs<Streams extends readonly EventStreamTemplate[]> = {
       causationId?: string;
       correlationId?: string;
       actor?: EventActor;
+      session?: string;
       eventTime?: number;
     };
   }[EventTypeFor<Streams, Stream>];

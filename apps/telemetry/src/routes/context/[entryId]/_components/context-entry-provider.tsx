@@ -1,6 +1,12 @@
 import { useAction, useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { createContext, type ReactNode, useEffect, useState } from "react";
+import {
+  createContext,
+  type ReactNode,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { api } from "../../../../../../../convex/_generated/api.js";
 
 export type ContextEntryDetail = NonNullable<
@@ -11,7 +17,6 @@ export type ContextEntryValue = {
   detail: ContextEntryDetail;
   entryId: string;
   namespace: string;
-  backHref: string;
   isCurrent: boolean;
   editing: boolean;
   editTitle: string;
@@ -28,7 +33,9 @@ export type ContextEntryValue = {
   deleting: boolean;
 };
 
-export const ContextEntryContext = createContext<ContextEntryValue | null>(null);
+export const ContextEntryContext = createContext<ContextEntryValue | null>(
+  null,
+);
 
 export function ContextEntryProvider({
   detail,
@@ -45,9 +52,27 @@ export function ContextEntryProvider({
   const editAction = useAction(api.context.contextApi.editContext);
   const recordView = useMutation(api.context.contextApi.recordContextView);
 
+  const viewIdempotencyRef = useRef<{
+    namespace: string;
+    entryId: string;
+    key: string;
+  } | null>(null);
+  if (
+    viewIdempotencyRef.current === null ||
+    viewIdempotencyRef.current.namespace !== namespace ||
+    viewIdempotencyRef.current.entryId !== entryId
+  ) {
+    viewIdempotencyRef.current = {
+      namespace,
+      entryId,
+      key: crypto.randomUUID(),
+    };
+  }
+  const viewIdempotencyKey = viewIdempotencyRef.current.key;
+
   useEffect(() => {
-    void recordView({ namespace, entryId });
-  }, [recordView, namespace, entryId]);
+    void recordView({ namespace, entryId, idempotencyKey: viewIdempotencyKey });
+  }, [recordView, namespace, entryId, viewIdempotencyKey]);
 
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -103,7 +128,6 @@ export function ContextEntryProvider({
         detail,
         entryId,
         namespace,
-        backHref,
         isCurrent,
         editing,
         editTitle,

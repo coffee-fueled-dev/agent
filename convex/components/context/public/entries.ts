@@ -1,7 +1,8 @@
 import type { EntryId } from "@convex-dev/rag";
+import { paginationOptsValidator, paginationResultValidator } from "convex/server";
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
-import { action, mutation, query } from "../_generated/server";
+import { action, mutation, query, type QueryCtx } from "../_generated/server";
 import { graph } from "../graph";
 import { history } from "../history";
 import { readTimeDecay } from "../internal/accessStats";
@@ -12,6 +13,39 @@ import { sourceValidator, versionDataValidator } from "../schema";
 import { search as searchClient } from "../search";
 
 const TEXT_PREVIEW_LENGTH = 280;
+
+const ACCESS_EVENT_TYPES = ["viewed", "searched"] as const;
+
+function utcDayStartMs(ts: number): number {
+  const d = new Date(ts);
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+}
+
+function utcDateKey(ms: number): string {
+  return new Date(ms).toISOString().slice(0, 10);
+}
+
+async function resolveContextEntryInNamespace(
+  ctx: QueryCtx,
+  namespace: string,
+  entryId: string,
+) {
+  let entry = await ctx.db
+    .query("contextEntries")
+    .withIndex("by_entryId", (q) => q.eq("entryId", entryId))
+    .first();
+  if (entry && entry.namespace !== namespace) entry = null;
+  if (!entry) {
+    entry = await ctx.db
+      .query("contextEntries")
+      .withIndex("by_legacyEntryId", (q) =>
+        q.eq("legacyEntryId", entryId),
+      )
+      .first();
+    if (entry && entry.namespace !== namespace) entry = null;
+  }
+  return entry;
+}
 
 function featureId(entryId: string) {
   return `context:entry:${entryId}`;
@@ -252,22 +286,123 @@ export const get = query({
   },
 });
 
+const eventActorArgs = v.optional(
+  v.object({
+    byType: v.string(),
+    byId: v.string(),
+  }),
+);
+
+function viewEventIdFromKey(
+  namespace: string,
+  entryId: string,
+  idempotencyKey: string,
+) {
+  return `view:${idempotencyKey}:${namespace}:${entryId}`;
+}
+
 export const recordView = mutation({
-  args: { namespace: v.string(), entryId: v.string() },
+  args: {
+    namespace: v.string(),
+    entryId: v.string(),
+    actor: eventActorArgs,
+    session: v.optional(v.string()),
+    idempotencyKey: v.optional(v.string()),
+  },
   returns: v.null(),
   handler: async (ctx, args) => {
+    const eventId =
+      args.idempotencyKey !== undefined
+        ? viewEventIdFromKey(
+            args.namespace,
+            args.entryId,
+            args.idempotencyKey,
+          )
+        : crypto.randomUUID();
     await memoryEvents.append.appendToStream(ctx, {
       streamType: "contextMemory",
       streamId: args.entryId,
-      eventId: crypto.randomUUID(),
+      eventId,
       eventType: "viewed",
       payload: { namespace: args.namespace },
+      actor: args.actor,
+      session: args.session,
     });
     await ctx.scheduler.runAfter(
       0,
       internal.internal.accessStats.flushAccessStats,
       {},
     );
+  },
+});
+
+export const listEntryAccessEvents = query({
+  args: {
+    namespace: v.string(),
+    entryId: v.string(),
+    paginationOpts: paginationOptsValidator,
+  },
+  returns: paginationResultValidator(v.any()),
+  handler: async (ctx, args) => {
+    const entry = await resolveContextEntryInNamespace(
+      ctx,
+      args.namespace,
+      args.entryId,
+    );
+    if (!entry) {
+      return { page: [], isDone: true, continueCursor: "" };
+    }
+    return await memoryEvents.read.listStreamEvents(ctx, {
+      streamType: "contextMemory",
+      streamId: entry.entryId,
+      paginationOpts: args.paginationOpts,
+      order: "desc",
+      eventTypes: [...ACCESS_EVENT_TYPES],
+    });
+  },
+});
+
+export const getEntryAccessWeekByDay = query({
+  args: { namespace: v.string(), entryId: v.string() },
+  returns: v.array(
+    v.object({
+      day: v.string(),
+      views: v.number(),
+      searches: v.number(),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    const entry = await resolveContextEntryInNamespace(
+      ctx,
+      args.namespace,
+      args.entryId,
+    );
+    if (!entry) {
+      return [];
+    }
+    const now = Date.now();
+    const todayStart = utcDayStartMs(now);
+    const weekStart = todayStart - 6 * 86_400_000;
+    const events = await memoryEvents.read.listStreamEventsSince(ctx, {
+      streamType: "contextMemory",
+      streamId: entry.entryId,
+      minEventTime: weekStart,
+      eventTypes: [...ACCESS_EVENT_TYPES],
+    });
+    const rows: { day: string; views: number; searches: number }[] = [];
+    for (let i = 0; i < 7; i++) {
+      const dayStart = weekStart + i * 86_400_000;
+      rows.push({ day: utcDateKey(dayStart), views: 0, searches: 0 });
+    }
+    const byDay = new Map(rows.map((r) => [r.day, r]));
+    for (const ev of events) {
+      const key = utcDateKey(ev.eventTime);
+      const row = byDay.get(key);
+      if (!row) continue;
+      if (ev.eventType === "viewed") row.views++;
+      else if (ev.eventType === "searched") row.searches++;
+    }
+    return rows;
   },
 });
 

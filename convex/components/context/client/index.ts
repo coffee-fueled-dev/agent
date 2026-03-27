@@ -158,4 +158,24 @@ export class ContextClient {
       args,
     );
   };
+
+  listEntryAccessEvents = async (
+    ctx: RunQueryCtx,
+    args: FunctionArgs<typeof this.component.public.entries.listEntryAccessEvents>,
+  ) => {
+    return await ctx.runQuery(
+      this.component.public.entries.listEntryAccessEvents,
+      args,
+    );
+  };
+
+  getEntryAccessWeekByDay = async (
+    ctx: RunQueryCtx,
+    args: FunctionArgs<typeof this.component.public.entries.getEntryAccessWeekByDay>,
+  ) => {
+    return await ctx.runQuery(
+      this.component.public.entries.getEntryAccessWeekByDay,
+      args,
+    );
+  };
 }

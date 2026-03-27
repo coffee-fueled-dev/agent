@@ -5,30 +5,24 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip.js";
-import { api } from "../../../../../../convex/_generated/api.js";
-import { formatTime } from "../../../components/formatters";
-import { AppShell } from "../../../components/layout/app-shell";
-import { PageSection } from "../../../components/layout/page-section";
-import { Button } from "../../../components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "../../../components/ui/dialog";
-import { Input } from "../../../components/ui/input";
-import { Textarea } from "../../../components/ui/textarea";
+import { api } from "@backend/api.js";
+import { formatTime } from "@/components/formatters";
+import { AppShell } from "@/components/layout/app-shell";
+import { PageSection } from "@/components/layout/page-section";
+import { Button } from "@/components/ui/button";
 import { renderApp } from "../../../render-root";
 import { MimeTypeIcon } from "../_components/mime-type-icon.js";
 import { NamespaceProvider, useNamespace } from "../_hooks/use-namespace.js";
 import { ContextEntryProvider } from "./_components/context-entry-provider";
+import { EntryAccessEventsList } from "./_components/entry-access-events-list.js";
+import { EntryAccessWeekChart } from "./_components/entry-access-week-chart.js";
 import { EntryFileCard } from "./_components/entry-file-card";
 import { LinkedNodes } from "./_components/linked-nodes";
 import { NotFoundBoundary } from "./_components/not-found-boundary.js";
 import { VersionChain } from "./_components/version-chain";
 import { useContextEntry } from "./_hooks/use-context-entry";
+import { ContextEntryEditForm } from "./_components/context-entry-edit-form.js";
+import { ContextEntryDeleteDialog } from "./_components/context-entry-delete-dialog.js";
 
 function getEntryIdFromPath(pathname: string) {
   const prefix = "/context/";
@@ -67,6 +61,14 @@ function ContextDetail({ entryId }: { entryId: string }) {
 
   return (
     <PageSection.Body variant="card" className="gap-4">
+      <span>
+        <Button asChild variant="link" size="sm">
+          <a href={backHref}>
+            <ArrowLeftIcon className="size-4" />
+            Back
+          </a>
+        </Button>
+      </span>
       <NotFoundBoundary fallbackHref={backHref}>
         <RequiredResult
           query={api.context.contextApi.getContextDetail}
@@ -80,7 +82,7 @@ function ContextDetail({ entryId }: { entryId: string }) {
             >
               <DetailHeader />
               <DetailBody />
-              <DeleteDialog />
+              <ContextEntryDeleteDialog />
             </ContextEntryProvider>
           )}
         </RequiredResult>
@@ -90,14 +92,8 @@ function ContextDetail({ entryId }: { entryId: string }) {
 }
 
 function DetailHeader() {
-  const {
-    namespace,
-    backHref,
-    isCurrent,
-    editing,
-    startEditing,
-    setShowDeleteDialog,
-  } = useContextEntry();
+  const { namespace, isCurrent, editing, startEditing, setShowDeleteDialog } =
+    useContextEntry();
 
   return (
     <PageSection.Header>
@@ -124,12 +120,6 @@ function DetailHeader() {
               </Button>
             </>
           )}
-          <Button asChild variant="outline" size="sm">
-            <a href={backHref}>
-              <ArrowLeftIcon className="size-4" />
-              Back
-            </a>
-          </Button>
         </PageSection.HeaderActions>
       </PageSection.HeaderRow>
     </PageSection.Header>
@@ -139,66 +129,10 @@ function DetailHeader() {
 function DetailBody() {
   const ctx = useContextEntry();
 
-  if (ctx.editing) return <EditForm />;
+  if (ctx.editing) return <ContextEntryEditForm />;
   return <DetailView />;
 }
 
-function EditForm() {
-  const {
-    editTitle,
-    setEditTitle,
-    editText,
-    setEditText,
-    cancelEditing,
-    handleSave,
-    saving,
-  } = useContextEntry();
-
-  return (
-    <div className="space-y-4 rounded-xl border bg-muted/20 p-4">
-      <div className="space-y-2">
-        <label htmlFor="edit-title" className="text-sm font-medium">
-          Title
-        </label>
-        <Input
-          id="edit-title"
-          value={editTitle}
-          onChange={(e) => setEditTitle(e.target.value)}
-          placeholder="Entry title"
-        />
-      </div>
-      <div className="space-y-2">
-        <label htmlFor="edit-text" className="text-sm font-medium">
-          Text
-        </label>
-        <Textarea
-          id="edit-text"
-          value={editText}
-          onChange={(e) => setEditText(e.target.value)}
-          rows={10}
-          placeholder="Entry text content"
-        />
-      </div>
-      <div className="flex gap-2 justify-end">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={cancelEditing}
-          disabled={saving}
-        >
-          Cancel
-        </Button>
-        <Button
-          size="sm"
-          onClick={handleSave}
-          disabled={saving || !editText.trim()}
-        >
-          {saving ? "Saving..." : "Save"}
-        </Button>
-      </div>
-    </div>
-  );
-}
 
 function DetailView() {
   const { detail, entryId, namespace, isCurrent } = useContextEntry();
@@ -256,42 +190,10 @@ function DetailView() {
       )}
 
       <LinkedNodes namespace={namespace} entryId={entryId} />
+
+      <EntryAccessWeekChart namespace={namespace} entryId={entryId} />
+      <EntryAccessEventsList namespace={namespace} entryId={entryId} />
     </div>
-  );
-}
-
-function DeleteDialog() {
-  const { showDeleteDialog, setShowDeleteDialog, handleDelete, deleting } =
-    useContextEntry();
-
-  return (
-    <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Delete context entry</DialogTitle>
-          <DialogDescription>
-            This will permanently delete this entry, its embeddings, and any
-            associated files. This cannot be undone.
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => setShowDeleteDialog(false)}
-            disabled={deleting}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={handleDelete}
-            disabled={deleting}
-          >
-            {deleting ? "Deleting..." : "Delete"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }
 

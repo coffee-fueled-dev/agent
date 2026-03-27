@@ -34,6 +34,7 @@ export default defineSchema({
     causationId: v.optional(v.string()),
     correlationId: v.optional(v.string()),
     actor: actorValidator,
+    session: v.optional(v.string()),
     eventTime: v.number(),
   })
     .index("by_global_sequence", ["globalSequence"])

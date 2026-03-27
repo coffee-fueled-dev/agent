@@ -64,10 +64,25 @@ export class EventsClient<
       ctx: RunQueryCtx,
       args: StreamArgs<Streams> & {
         paginationOpts: PaginationOptions;
+        order?: "asc" | "desc";
+        eventTypes?: string[];
       },
     ): Promise<PaginationResult<EventEntry<Streams>>> => {
       return await ctx.runQuery(
         this.component.public.read.listStreamEvents,
+        args,
+      );
+    },
+
+    listStreamEventsSince: async (
+      ctx: RunQueryCtx,
+      args: StreamArgs<Streams> & {
+        minEventTime: number;
+        eventTypes?: string[];
+      },
+    ): Promise<EventEntry<Streams>[]> => {
+      return await ctx.runQuery(
+        this.component.public.read.listStreamEventsSince,
         args,
       );
     },

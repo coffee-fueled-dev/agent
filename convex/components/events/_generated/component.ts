@@ -38,10 +38,13 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             expectedVersion?: number;
             metadata?: Record<string, string | number | boolean | null>;
             payload?: any;
+            session?: string;
             streamId: string;
             streamType: string;
           },
           {
+            _creationTime: number;
+            _id: string;
             actor?: { byId: string; byType: string };
             causationId?: string;
             correlationId?: string;
@@ -51,6 +54,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             globalSequence: number;
             metadata?: Record<string, string | number | boolean | null>;
             payload?: any;
+            session?: string;
             streamId: string;
             streamType: string;
             streamVersion: number;
@@ -70,6 +74,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             streamType: string;
           },
           {
+            _creationTime: number;
+            _id: string;
             lastSequence: number;
             leaseExpiresAt?: number;
             leaseOwner?: string;
@@ -90,6 +96,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           },
           {
             checkpoint: {
+              _creationTime: number;
+              _id: string;
               lastSequence: number;
               leaseExpiresAt?: number;
               leaseOwner?: string;
@@ -106,6 +114,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           "internal",
           { limit?: number; projector: string; streamType: string },
           Array<{
+            _creationTime: number;
+            _id: string;
             actor?: { byId: string; byType: string };
             causationId?: string;
             correlationId?: string;
@@ -115,6 +125,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             globalSequence: number;
             metadata?: Record<string, string | number | boolean | null>;
             payload?: any;
+            session?: string;
             streamId: string;
             streamType: string;
             streamVersion: number;
@@ -126,6 +137,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           "internal",
           { projector: string; streamType: string },
           {
+            _creationTime: number;
+            _id: string;
             lastSequence: number;
             leaseExpiresAt?: number;
             leaseOwner?: string;
@@ -142,6 +155,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           "internal",
           { eventId: string; streamId: string; streamType: string },
           {
+            _creationTime: number;
+            _id: string;
             actor?: { byId: string; byType: string };
             causationId?: string;
             correlationId?: string;
@@ -151,6 +166,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             globalSequence: number;
             metadata?: Record<string, string | number | boolean | null>;
             payload?: any;
+            session?: string;
             streamId: string;
             streamType: string;
             streamVersion: number;
@@ -178,6 +194,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           "query",
           "internal",
           {
+            eventTypes?: Array<string>;
+            order?: "asc" | "desc";
             paginationOpts: {
               cursor: string | null;
               endCursor?: string | null;
@@ -192,6 +210,34 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           any,
           Name
         >;
+        listStreamEventsSince: FunctionReference<
+          "query",
+          "internal",
+          {
+            eventTypes?: Array<string>;
+            minEventTime: number;
+            streamId: string;
+            streamType: string;
+          },
+          Array<{
+            _creationTime: number;
+            _id: string;
+            actor?: { byId: string; byType: string };
+            causationId?: string;
+            correlationId?: string;
+            eventId: string;
+            eventTime: number;
+            eventType: string;
+            globalSequence: number;
+            metadata?: Record<string, string | number | boolean | null>;
+            payload?: any;
+            session?: string;
+            streamId: string;
+            streamType: string;
+            streamVersion: number;
+          }>,
+          Name
+        >;
       };
       streams: {
         getStream: FunctionReference<
@@ -199,6 +245,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           "internal",
           { streamId: string; streamType: string },
           {
+            _creationTime: number;
+            _id: string;
             createdTime: number;
             lastEventSequence: number | null;
             streamId: string;

@@ -76,6 +76,24 @@ export const getContextFile = query({
   },
 });
 
+export const listContextEntryAccessEvents = query({
+  args: {
+    namespace: v.string(),
+    entryId: v.string(),
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, args) => {
+    return await createContextClient().listEntryAccessEvents(ctx, args);
+  },
+});
+
+export const getContextEntryAccessWeekByDay = query({
+  args: { namespace: v.string(), entryId: v.string() },
+  handler: async (ctx, args) => {
+    return await createContextClient().getEntryAccessWeekByDay(ctx, args);
+  },
+});
+
 export const getContextDetail = query({
   args: {
     namespace: v.string(),
@@ -151,6 +169,13 @@ export const searchContext = action({
     graphWeight: v.optional(v.number()),
     accessWeight: v.optional(v.number()),
     fileEmbedding: v.optional(v.array(v.number())),
+    actor: v.optional(
+      v.object({
+        byType: v.string(),
+        byId: v.string(),
+      }),
+    ),
+    session: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     return await createContextClient().searchContext(ctx, args);
@@ -219,7 +244,18 @@ export const embedForSearch = action({
 });
 
 export const recordContextView = mutation({
-  args: { namespace: v.string(), entryId: v.string() },
+  args: {
+    namespace: v.string(),
+    entryId: v.string(),
+    actor: v.optional(
+      v.object({
+        byType: v.string(),
+        byId: v.string(),
+      }),
+    ),
+    session: v.optional(v.string()),
+    idempotencyKey: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
     await createContextClient().recordView(ctx, args);
   },

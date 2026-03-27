@@ -600,10 +600,13 @@ export declare const components: {
             expectedVersion?: number;
             metadata?: Record<string, string | number | boolean | null>;
             payload?: any;
+            session?: string;
             streamId: string;
             streamType: string;
           },
           {
+            _creationTime: number;
+            _id: string;
             actor?: { byId: string; byType: string };
             causationId?: string;
             correlationId?: string;
@@ -613,6 +616,7 @@ export declare const components: {
             globalSequence: number;
             metadata?: Record<string, string | number | boolean | null>;
             payload?: any;
+            session?: string;
             streamId: string;
             streamType: string;
             streamVersion: number;
@@ -631,6 +635,8 @@ export declare const components: {
             streamType: string;
           },
           {
+            _creationTime: number;
+            _id: string;
             lastSequence: number;
             leaseExpiresAt?: number;
             leaseOwner?: string;
@@ -650,6 +656,8 @@ export declare const components: {
           },
           {
             checkpoint: {
+              _creationTime: number;
+              _id: string;
               lastSequence: number;
               leaseExpiresAt?: number;
               leaseOwner?: string;
@@ -665,6 +673,8 @@ export declare const components: {
           "internal",
           { limit?: number; projector: string; streamType: string },
           Array<{
+            _creationTime: number;
+            _id: string;
             actor?: { byId: string; byType: string };
             causationId?: string;
             correlationId?: string;
@@ -674,6 +684,7 @@ export declare const components: {
             globalSequence: number;
             metadata?: Record<string, string | number | boolean | null>;
             payload?: any;
+            session?: string;
             streamId: string;
             streamType: string;
             streamVersion: number;
@@ -684,6 +695,8 @@ export declare const components: {
           "internal",
           { projector: string; streamType: string },
           {
+            _creationTime: number;
+            _id: string;
             lastSequence: number;
             leaseExpiresAt?: number;
             leaseOwner?: string;
@@ -699,6 +712,8 @@ export declare const components: {
           "internal",
           { eventId: string; streamId: string; streamType: string },
           {
+            _creationTime: number;
+            _id: string;
             actor?: { byId: string; byType: string };
             causationId?: string;
             correlationId?: string;
@@ -708,6 +723,7 @@ export declare const components: {
             globalSequence: number;
             metadata?: Record<string, string | number | boolean | null>;
             payload?: any;
+            session?: string;
             streamId: string;
             streamType: string;
             streamVersion: number;
@@ -733,6 +749,8 @@ export declare const components: {
           "query",
           "internal",
           {
+            eventTypes?: Array<string>;
+            order?: "asc" | "desc";
             paginationOpts: {
               cursor: string | null;
               endCursor?: string | null;
@@ -746,6 +764,33 @@ export declare const components: {
           },
           any
         >;
+        listStreamEventsSince: FunctionReference<
+          "query",
+          "internal",
+          {
+            eventTypes?: Array<string>;
+            minEventTime: number;
+            streamId: string;
+            streamType: string;
+          },
+          Array<{
+            _creationTime: number;
+            _id: string;
+            actor?: { byId: string; byType: string };
+            causationId?: string;
+            correlationId?: string;
+            eventId: string;
+            eventTime: number;
+            eventType: string;
+            globalSequence: number;
+            metadata?: Record<string, string | number | boolean | null>;
+            payload?: any;
+            session?: string;
+            streamId: string;
+            streamType: string;
+            streamVersion: number;
+          }>
+        >;
       };
       streams: {
         getStream: FunctionReference<
@@ -753,6 +798,8 @@ export declare const components: {
           "internal",
           { streamId: string; streamType: string },
           {
+            _creationTime: number;
+            _id: string;
             createdTime: number;
             lastEventSequence: number | null;
             streamId: string;
@@ -1320,10 +1367,45 @@ export declare const components: {
           { entryIds: Array<string> },
           any
         >;
+        getEntryAccessWeekByDay: FunctionReference<
+          "query",
+          "internal",
+          { entryId: string; namespace: string },
+          Array<{ day: string; searches: number; views: number }>
+        >;
+        listEntryAccessEvents: FunctionReference<
+          "query",
+          "internal",
+          {
+            entryId: string;
+            namespace: string;
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
+          },
+          {
+            continueCursor: string;
+            isDone: boolean;
+            page: Array<any>;
+            pageStatus?: "SplitRecommended" | "SplitRequired" | null;
+            splitCursor?: string | null;
+          }
+        >;
         recordView: FunctionReference<
           "mutation",
           "internal",
-          { entryId: string; namespace: string },
+          {
+            actor?: { byId: string; byType: string };
+            entryId: string;
+            idempotencyKey?: string;
+            namespace: string;
+            session?: string;
+          },
           null
         >;
         remove: FunctionReference<
@@ -1621,6 +1703,7 @@ export declare const components: {
           "internal",
           {
             accessWeight?: number;
+            actor?: { byId: string; byType: string };
             apiKey?: string;
             fileEmbedding?: Array<number>;
             graphWeight?: number;
@@ -1631,6 +1714,7 @@ export declare const components: {
             query: string | Array<number>;
             retrievalMode?: "vector" | "lexical" | "hybrid";
             rrfK?: number;
+            session?: string;
             vectorWeight?: number;
           },
           Array<{

@@ -5,6 +5,7 @@ import {
   actorValidator,
   eventEntryValidator,
   metadataValidator,
+  sessionValidator,
 } from "../internal/shared";
 import {
   loadEvent,
@@ -54,6 +55,7 @@ export const appendToStream = mutation({
     causationId: v.optional(v.string()),
     correlationId: v.optional(v.string()),
     actor: actorValidator,
+    session: sessionValidator,
     eventTime: v.optional(v.number()),
   },
   returns: eventEntryValidator,
@@ -93,10 +95,11 @@ export const appendToStream = mutation({
       causationId: args.causationId,
       correlationId: args.correlationId,
       actor: args.actor,
+      session: args.session,
       eventTime: args.eventTime ?? now,
     };
 
-    await ctx.db.insert("event_entries", entry);
+    const insertedId = await ctx.db.insert("event_entries", entry);
 
     if (stream) {
       await ctx.db.patch(stream._id, {
@@ -115,6 +118,8 @@ export const appendToStream = mutation({
       });
     }
 
-    return entry;
+    const inserted = await ctx.db.get(insertedId);
+    if (!inserted) throw new Error("Failed to load event after insert");
+    return inserted;
   },
 });

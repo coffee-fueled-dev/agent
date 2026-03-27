@@ -33,8 +33,10 @@ export const claimOrReadCheckpoint = mutation({
         leaseOwner: nextLeaseOwner,
         leaseExpiresAt: nextLeaseExpiresAt,
       };
-      await ctx.db.insert("event_projector_checkpoints", next);
-      return { checkpoint: next, claimed: nextLeaseOwner != null };
+      const id = await ctx.db.insert("event_projector_checkpoints", next);
+      const inserted = await ctx.db.get(id);
+      if (!inserted) throw new Error("Failed to load checkpoint after insert");
+      return { checkpoint: inserted, claimed: nextLeaseOwner != null };
     }
 
     if (
@@ -57,7 +59,9 @@ export const claimOrReadCheckpoint = mutation({
     };
 
     await ctx.db.patch(checkpoint._id, next);
-    return { checkpoint: next, claimed: nextLeaseOwner != null };
+    const updated = await ctx.db.get(checkpoint._id);
+    if (!updated) throw new Error("Failed to load checkpoint after patch");
+    return { checkpoint: updated, claimed: nextLeaseOwner != null };
   },
 });
 
@@ -96,7 +100,9 @@ export const advanceCheckpoint = mutation({
     };
 
     await ctx.db.patch(checkpoint._id, next);
-    return next;
+    const updated = await ctx.db.get(checkpoint._id);
+    if (!updated) throw new Error("Failed to load checkpoint after patch");
+    return updated;
   },
 });
 

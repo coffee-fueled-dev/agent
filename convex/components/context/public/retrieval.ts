@@ -38,6 +38,13 @@ export const search = action({
     accessWeight: v.optional(v.number()),
     fileEmbedding: v.optional(v.array(v.number())),
     apiKey: v.optional(v.string()),
+    actor: v.optional(
+      v.object({
+        byType: v.string(),
+        byId: v.string(),
+      }),
+    ),
+    session: v.optional(v.string()),
   },
   returns: v.array(
     v.object({
@@ -63,6 +70,8 @@ export const search = action({
       accessWeight: accessWeightArg,
       fileEmbedding,
       apiKey,
+      actor,
+      session,
       ...args
     },
   ) => {
@@ -104,6 +113,8 @@ export const search = action({
             rank: i,
             score: enriched[i].score,
           },
+          actor,
+          session,
         });
       }
       await ctx.runMutation(

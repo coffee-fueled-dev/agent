@@ -366,10 +366,47 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           any,
           Name
         >;
+        getEntryAccessWeekByDay: FunctionReference<
+          "query",
+          "internal",
+          { entryId: string; namespace: string },
+          Array<{ day: string; searches: number; views: number }>,
+          Name
+        >;
+        listEntryAccessEvents: FunctionReference<
+          "query",
+          "internal",
+          {
+            entryId: string;
+            namespace: string;
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
+          },
+          {
+            continueCursor: string;
+            isDone: boolean;
+            page: Array<any>;
+            pageStatus?: "SplitRecommended" | "SplitRequired" | null;
+            splitCursor?: string | null;
+          },
+          Name
+        >;
         recordView: FunctionReference<
           "mutation",
           "internal",
-          { entryId: string; namespace: string },
+          {
+            actor?: { byId: string; byType: string };
+            entryId: string;
+            idempotencyKey?: string;
+            namespace: string;
+            session?: string;
+          },
           null,
           Name
         >;
@@ -689,6 +726,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           "internal",
           {
             accessWeight?: number;
+            actor?: { byId: string; byType: string };
             apiKey?: string;
             fileEmbedding?: Array<number>;
             graphWeight?: number;
@@ -699,6 +737,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             query: string | Array<number>;
             retrievalMode?: "vector" | "lexical" | "hybrid";
             rrfK?: number;
+            session?: string;
             vectorWeight?: number;
           },
           Array<{

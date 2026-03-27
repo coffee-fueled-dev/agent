@@ -1,4 +1,6 @@
 import { v } from "convex/values";
+import { doc } from "convex-helpers/validators";
+import schema from "../schema";
 
 export const streamRefFields = {
   streamType: v.string(),
@@ -28,35 +30,10 @@ export const actorValidator = v.optional(
   }),
 );
 
-export const streamStateValidator = v.object({
-  streamType: v.string(),
-  streamId: v.string(),
-  version: v.number(),
-  lastEventSequence: v.union(v.number(), v.null()),
-  createdTime: v.number(),
-  updatedTime: v.number(),
-});
+export const sessionValidator = v.optional(v.string());
 
-export const eventEntryValidator = v.object({
-  globalSequence: v.number(),
-  streamType: v.string(),
-  streamId: v.string(),
-  streamVersion: v.number(),
-  eventId: v.string(),
-  eventType: v.string(),
-  payload: v.optional(v.any()),
-  metadata: metadataValidator,
-  causationId: v.optional(v.string()),
-  correlationId: v.optional(v.string()),
-  actor: actorValidator,
-  eventTime: v.number(),
-});
+export const streamStateValidator = doc(schema, "event_streams");
 
-export const checkpointValidator = v.object({
-  projector: v.string(),
-  streamType: v.string(),
-  lastSequence: v.number(),
-  updatedTime: v.number(),
-  leaseOwner: v.optional(v.string()),
-  leaseExpiresAt: v.optional(v.number()),
-});
+export const eventEntryValidator = doc(schema, "event_entries");
+
+export const checkpointValidator = doc(schema, "event_projector_checkpoints");
