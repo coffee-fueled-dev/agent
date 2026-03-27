@@ -672,7 +672,7 @@ export const getCommunityForEntry = query({
   },
 });
 
-const contextApi = components.context.public.context;
+const contextApi = components.context.public.entries;
 
 export const getEntryGraphContext = query({
   args: { namespace: v.string(), entryId: v.string() },

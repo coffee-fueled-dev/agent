@@ -5,7 +5,7 @@ import {
 import { v } from "convex/values";
 import { paginator } from "convex-helpers/server/pagination";
 import { doc } from "convex-helpers/validators";
-import { mutation, query } from "../_generated/server";
+import { internalMutation, mutation, query } from "../_generated/server";
 import { readTimeDecay } from "../internal/accessStats";
 import { hasStatus } from "../internal/status";
 import schema, { pointValidator } from "../schema";
@@ -309,7 +309,7 @@ export const getLatestProjection = query({
   },
 });
 
-export const markProjectionsStale = mutation({
+export const markProjectionsStale = internalMutation({
   args: { namespace: v.string() },
   returns: v.null(),
   handler: async (ctx, args) => {

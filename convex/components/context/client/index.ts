@@ -34,11 +34,11 @@ export class ContextClient {
   addContext = async (
     ctx: RunActionCtx,
     args: Omit<
-      FunctionArgs<typeof this.component.public.context.add>,
+      FunctionArgs<typeof this.component.public.entries.add>,
       "apiKey" | "similarityK" | "similarityThreshold"
     >,
   ) => {
-    return await ctx.runAction(this.component.public.context.add, {
+    return await ctx.runAction(this.component.public.entries.add, {
       ...args,
       apiKey: this.apiKey,
       similarityK: this.config.similarityK,
@@ -48,19 +48,19 @@ export class ContextClient {
 
   getContextDetail = async (
     ctx: RunQueryCtx,
-    args: FunctionArgs<typeof this.component.public.context.get>,
+    args: FunctionArgs<typeof this.component.public.entries.get>,
   ) => {
-    return await ctx.runQuery(this.component.public.context.get, args);
+    return await ctx.runQuery(this.component.public.entries.get, args);
   };
 
   deleteContext = async (
     ctx: RunActionCtx,
     args: Omit<
-      FunctionArgs<typeof this.component.public.context.remove>,
+      FunctionArgs<typeof this.component.public.entries.remove>,
       "apiKey"
     >,
   ) => {
-    return await ctx.runAction(this.component.public.context.remove, {
+    return await ctx.runAction(this.component.public.entries.remove, {
       ...args,
       apiKey: this.apiKey,
     });
@@ -69,11 +69,11 @@ export class ContextClient {
   editContext = async (
     ctx: RunActionCtx,
     args: Omit<
-      FunctionArgs<typeof this.component.public.context.edit>,
+      FunctionArgs<typeof this.component.public.entries.edit>,
       "apiKey" | "similarityK" | "similarityThreshold"
     >,
   ) => {
-    return await ctx.runAction(this.component.public.context.edit, {
+    return await ctx.runAction(this.component.public.entries.edit, {
       ...args,
       apiKey: this.apiKey,
       similarityK: this.config.similarityK,
@@ -84,11 +84,11 @@ export class ContextClient {
   searchContext = async (
     ctx: RunActionCtx,
     args: Omit<
-      FunctionArgs<typeof this.component.public.context.search>,
+      FunctionArgs<typeof this.component.public.retrieval.search>,
       "apiKey"
     >,
   ) => {
-    return await ctx.runAction(this.component.public.context.search, {
+    return await ctx.runAction(this.component.public.retrieval.search, {
       ...args,
       apiKey: this.apiKey,
     });
@@ -151,10 +151,10 @@ export class ContextClient {
 
   recordView = async (
     ctx: RunMutationCtx,
-    args: FunctionArgs<typeof this.component.public.context.recordView>,
+    args: FunctionArgs<typeof this.component.public.entries.recordView>,
   ) => {
     return await ctx.runMutation(
-      this.component.public.context.recordView,
+      this.component.public.entries.recordView,
       args,
     );
   };

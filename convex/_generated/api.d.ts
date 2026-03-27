@@ -1010,42 +1010,6 @@ export declare const components: {
   };
   context: {
     public: {
-      add: {
-        deleteEntry: FunctionReference<
-          "mutation",
-          "internal",
-          { entryId: string; namespace: string },
-          null
-        >;
-        insertEntry: FunctionReference<
-          "mutation",
-          "internal",
-          {
-            entryId: string;
-            key: string;
-            legacyEntryId?: string;
-            namespace: string;
-            observationTime?: number;
-            source:
-              | {
-                  document: string;
-                  documentId: string;
-                  entryId: string;
-                  key: string;
-                  kind: "document";
-                  sourceType: "text" | "binary";
-                }
-              | {
-                  contentId: string;
-                  kind: "content";
-                  sourceType: "text" | "binary";
-                };
-            textPreview: string;
-            title?: string;
-          },
-          null
-        >;
-      };
       community: {
         batchKnnSearch: FunctionReference<
           "action",
@@ -1159,12 +1123,6 @@ export declare const components: {
             neighbors: Array<{ neighbor: string; score: number }>;
           }>
         >;
-        markCommunitiesStale: FunctionReference<
-          "mutation",
-          "internal",
-          { namespace: string },
-          null
-        >;
         markCompleted: FunctionReference<
           "mutation",
           "internal",
@@ -1263,7 +1221,7 @@ export declare const components: {
           null
         >;
       };
-      context: {
+      entries: {
         add: FunctionReference<
           "action",
           "internal",
@@ -1374,119 +1332,8 @@ export declare const components: {
           { apiKey?: string; entryId: string; namespace: string },
           null
         >;
-        search: FunctionReference<
-          "action",
-          "internal",
-          {
-            accessWeight?: number;
-            apiKey?: string;
-            fileEmbedding?: Array<number>;
-            graphWeight?: number;
-            includeHistorical?: boolean;
-            lexicalWeight?: number;
-            limit?: number;
-            namespace: string;
-            query: string | Array<number>;
-            retrievalMode?: "vector" | "lexical" | "hybrid";
-            rrfK?: number;
-            vectorWeight?: number;
-          },
-          Array<{
-            entryId: string;
-            importance: number;
-            key: string;
-            metadata?: any;
-            observationTime?: number;
-            score: number;
-            text: string;
-            title?: string;
-          }>
-        >;
-      };
-      history: {
-        appendHistoryEntry: FunctionReference<
-          "mutation",
-          "internal",
-          {
-            entryId: string;
-            entryTime?: number;
-            kind: string;
-            parentEntryIds?: Array<string>;
-            payload?: any;
-            streamId: string;
-            streamType: string;
-          },
-          {
-            attrs?: Record<string, string | number | boolean | null>;
-            author?: { byId: string; byType: string };
-            entryId: string;
-            entryTime: number;
-            kind: string;
-            parentEntryIds: Array<string>;
-            payload?: any;
-            streamId: string;
-            streamType: string;
-          }
-        >;
-        getVersionChain: FunctionReference<
-          "query",
-          "internal",
-          { entryId: string; streamId: string; streamType: string },
-          Array<{
-            attrs?: Record<string, string | number | boolean | null>;
-            author?: { byId: string; byType: string };
-            entryId: string;
-            entryTime: number;
-            kind: string;
-            parentEntryIds: Array<string>;
-            payload?: any;
-            streamId: string;
-            streamType: string;
-          }>
-        >;
-        listHistoryHeads: FunctionReference<
-          "query",
-          "internal",
-          { streamId: string; streamType: string },
-          Array<{
-            entryId: string;
-            headKind?: string;
-            streamId: string;
-            streamType: string;
-          }>
-        >;
       };
       list: {
-        getEntryByLegacyId: FunctionReference<
-          "query",
-          "internal",
-          { legacyEntryId: string; namespace: string },
-          null | {
-            _creationTime: number;
-            _id: string;
-            entryId: string;
-            key: string;
-            legacyEntryId?: string;
-            namespace: string;
-            observationTime?: number;
-            source:
-              | {
-                  document: string;
-                  documentId: string;
-                  entryId: string;
-                  key: string;
-                  kind: "document";
-                  sourceType: "text" | "binary";
-                }
-              | {
-                  contentId: string;
-                  kind: "content";
-                  sourceType: "text" | "binary";
-                };
-            textPreview: string;
-            title?: string;
-          }
-        >;
         listEntries: FunctionReference<
           "query",
           "internal",
@@ -1730,12 +1577,6 @@ export declare const components: {
           { error: string; jobId: string },
           null
         >;
-        markProjectionsStale: FunctionReference<
-          "mutation",
-          "internal",
-          { namespace: string },
-          null
-        >;
         markRunning: FunctionReference<
           "mutation",
           "internal",
@@ -1774,52 +1615,34 @@ export declare const components: {
           null
         >;
       };
-      search: {
-        deleteSearchFeature: FunctionReference<
-          "mutation",
-          "internal",
-          { featureId: string; namespace: string },
-          any
-        >;
-        searchFeatures: FunctionReference<
-          "query",
+      retrieval: {
+        search: FunctionReference<
+          "action",
           "internal",
           {
+            accessWeight?: number;
+            apiKey?: string;
+            fileEmbedding?: Array<number>;
+            graphWeight?: number;
             includeHistorical?: boolean;
+            lexicalWeight?: number;
             limit?: number;
             namespace: string;
-            query: string;
-            sourceSystem?: string;
+            query: string | Array<number>;
+            retrievalMode?: "vector" | "lexical" | "hybrid";
+            rrfK?: number;
+            vectorWeight?: number;
           },
-          any
-        >;
-        upsertSearchFeature: FunctionReference<
-          "mutation",
-          "internal",
-          {
-            featureId: string;
-            namespace: string;
-            source:
-              | {
-                  document: string;
-                  documentId: string;
-                  entryId: string;
-                  key: string;
-                  kind: "document";
-                  sourceType: "text" | "binary";
-                }
-              | {
-                  contentId: string;
-                  kind: "content";
-                  sourceType: "text" | "binary";
-                };
-            sourceSystem: string;
-            status: "current" | "historical";
+          Array<{
+            entryId: string;
+            importance: number;
+            key: string;
+            metadata?: any;
+            observationTime?: number;
+            score: number;
             text: string;
             title?: string;
-            updatedAt?: number;
-          },
-          any
+          }>
         >;
       };
     };

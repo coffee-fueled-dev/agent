@@ -1,10 +1,10 @@
 import { v } from "convex/values";
 import { withoutSystemFields } from "convex-helpers";
 import { doc } from "convex-helpers/validators";
-import { mutation } from "../_generated/server";
+import { internalMutation } from "../_generated/server";
 import schema from "../schema";
 
-export const insertEntry = mutation({
+export const insertEntry = internalMutation({
   args: withoutSystemFields(doc(schema, "contextEntries").fields),
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -12,7 +12,7 @@ export const insertEntry = mutation({
   },
 });
 
-export const deleteEntry = mutation({
+export const deleteEntry = internalMutation({
   args: {
     namespace: v.string(),
     entryId: v.string(),

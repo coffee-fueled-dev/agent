@@ -1,7 +1,7 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { paginator } from "convex-helpers/server/pagination";
-import { action, mutation, query } from "../_generated/server";
+import { action, internalMutation, mutation, query } from "../_generated/server";
 import { internal as componentInternal } from "../_generated/api";
 import schema from "../schema";
 import { graph } from "../graph";
@@ -117,7 +117,7 @@ export const markFailed = mutation({
   },
 });
 
-export const markCommunitiesStale = mutation({
+export const markCommunitiesStale = internalMutation({
   args: { namespace: v.string() },
   returns: v.null(),
   handler: async (ctx, args) => {

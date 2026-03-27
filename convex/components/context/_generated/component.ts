@@ -24,44 +24,6 @@ import type { FunctionReference } from "convex/server";
 export type ComponentApi<Name extends string | undefined = string | undefined> =
   {
     public: {
-      add: {
-        deleteEntry: FunctionReference<
-          "mutation",
-          "internal",
-          { entryId: string; namespace: string },
-          null,
-          Name
-        >;
-        insertEntry: FunctionReference<
-          "mutation",
-          "internal",
-          {
-            entryId: string;
-            key: string;
-            legacyEntryId?: string;
-            namespace: string;
-            observationTime?: number;
-            source:
-              | {
-                  document: string;
-                  documentId: string;
-                  entryId: string;
-                  key: string;
-                  kind: "document";
-                  sourceType: "text" | "binary";
-                }
-              | {
-                  contentId: string;
-                  kind: "content";
-                  sourceType: "text" | "binary";
-                };
-            textPreview: string;
-            title?: string;
-          },
-          null,
-          Name
-        >;
-      };
       community: {
         batchKnnSearch: FunctionReference<
           "action",
@@ -194,13 +156,6 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           }>,
           Name
         >;
-        markCommunitiesStale: FunctionReference<
-          "mutation",
-          "internal",
-          { namespace: string },
-          null,
-          Name
-        >;
         markCompleted: FunctionReference<
           "mutation",
           "internal",
@@ -308,7 +263,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           Name
         >;
       };
-      context: {
+      entries: {
         add: FunctionReference<
           "action",
           "internal",
@@ -425,124 +380,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           null,
           Name
         >;
-        search: FunctionReference<
-          "action",
-          "internal",
-          {
-            accessWeight?: number;
-            apiKey?: string;
-            fileEmbedding?: Array<number>;
-            graphWeight?: number;
-            includeHistorical?: boolean;
-            lexicalWeight?: number;
-            limit?: number;
-            namespace: string;
-            query: string | Array<number>;
-            retrievalMode?: "vector" | "lexical" | "hybrid";
-            rrfK?: number;
-            vectorWeight?: number;
-          },
-          Array<{
-            entryId: string;
-            importance: number;
-            key: string;
-            metadata?: any;
-            observationTime?: number;
-            score: number;
-            text: string;
-            title?: string;
-          }>,
-          Name
-        >;
-      };
-      history: {
-        appendHistoryEntry: FunctionReference<
-          "mutation",
-          "internal",
-          {
-            entryId: string;
-            entryTime?: number;
-            kind: string;
-            parentEntryIds?: Array<string>;
-            payload?: any;
-            streamId: string;
-            streamType: string;
-          },
-          {
-            attrs?: Record<string, string | number | boolean | null>;
-            author?: { byId: string; byType: string };
-            entryId: string;
-            entryTime: number;
-            kind: string;
-            parentEntryIds: Array<string>;
-            payload?: any;
-            streamId: string;
-            streamType: string;
-          },
-          Name
-        >;
-        getVersionChain: FunctionReference<
-          "query",
-          "internal",
-          { entryId: string; streamId: string; streamType: string },
-          Array<{
-            attrs?: Record<string, string | number | boolean | null>;
-            author?: { byId: string; byType: string };
-            entryId: string;
-            entryTime: number;
-            kind: string;
-            parentEntryIds: Array<string>;
-            payload?: any;
-            streamId: string;
-            streamType: string;
-          }>,
-          Name
-        >;
-        listHistoryHeads: FunctionReference<
-          "query",
-          "internal",
-          { streamId: string; streamType: string },
-          Array<{
-            entryId: string;
-            headKind?: string;
-            streamId: string;
-            streamType: string;
-          }>,
-          Name
-        >;
       };
       list: {
-        getEntryByLegacyId: FunctionReference<
-          "query",
-          "internal",
-          { legacyEntryId: string; namespace: string },
-          null | {
-            _creationTime: number;
-            _id: string;
-            entryId: string;
-            key: string;
-            legacyEntryId?: string;
-            namespace: string;
-            observationTime?: number;
-            source:
-              | {
-                  document: string;
-                  documentId: string;
-                  entryId: string;
-                  key: string;
-                  kind: "document";
-                  sourceType: "text" | "binary";
-                }
-              | {
-                  contentId: string;
-                  kind: "content";
-                  sourceType: "text" | "binary";
-                };
-            textPreview: string;
-            title?: string;
-          },
-          Name
-        >;
         listEntries: FunctionReference<
           "query",
           "internal",
@@ -803,13 +642,6 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           null,
           Name
         >;
-        markProjectionsStale: FunctionReference<
-          "mutation",
-          "internal",
-          { namespace: string },
-          null,
-          Name
-        >;
         markRunning: FunctionReference<
           "mutation",
           "internal",
@@ -851,54 +683,34 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           Name
         >;
       };
-      search: {
-        deleteSearchFeature: FunctionReference<
-          "mutation",
-          "internal",
-          { featureId: string; namespace: string },
-          any,
-          Name
-        >;
-        searchFeatures: FunctionReference<
-          "query",
+      retrieval: {
+        search: FunctionReference<
+          "action",
           "internal",
           {
+            accessWeight?: number;
+            apiKey?: string;
+            fileEmbedding?: Array<number>;
+            graphWeight?: number;
             includeHistorical?: boolean;
+            lexicalWeight?: number;
             limit?: number;
             namespace: string;
-            query: string;
-            sourceSystem?: string;
+            query: string | Array<number>;
+            retrievalMode?: "vector" | "lexical" | "hybrid";
+            rrfK?: number;
+            vectorWeight?: number;
           },
-          any,
-          Name
-        >;
-        upsertSearchFeature: FunctionReference<
-          "mutation",
-          "internal",
-          {
-            featureId: string;
-            namespace: string;
-            source:
-              | {
-                  document: string;
-                  documentId: string;
-                  entryId: string;
-                  key: string;
-                  kind: "document";
-                  sourceType: "text" | "binary";
-                }
-              | {
-                  contentId: string;
-                  kind: "content";
-                  sourceType: "text" | "binary";
-                };
-            sourceSystem: string;
-            status: "current" | "historical";
+          Array<{
+            entryId: string;
+            importance: number;
+            key: string;
+            metadata?: any;
+            observationTime?: number;
+            score: number;
             text: string;
             title?: string;
-            updatedAt?: number;
-          },
-          any,
+          }>,
           Name
         >;
       };

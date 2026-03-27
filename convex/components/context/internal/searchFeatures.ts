@@ -1,8 +1,8 @@
 import { v } from "convex/values";
-import { mutation, query } from "../_generated/server";
+import { internalMutation, internalQuery } from "../_generated/server";
 import { search } from "../search";
 
-export const upsertSearchFeature = mutation({
+export const upsertSearchFeature = internalMutation({
   args: {
     namespace: v.string(),
     featureId: v.string(),
@@ -32,7 +32,7 @@ export const upsertSearchFeature = mutation({
   },
 });
 
-export const deleteSearchFeature = mutation({
+export const deleteSearchFeature = internalMutation({
   args: {
     namespace: v.string(),
     featureId: v.string(),
@@ -42,7 +42,7 @@ export const deleteSearchFeature = mutation({
   },
 });
 
-export const searchFeatures = query({
+export const searchFeatures = internalQuery({
   args: {
     namespace: v.string(),
     query: v.string(),

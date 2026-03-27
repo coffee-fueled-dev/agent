@@ -5,7 +5,7 @@ import {
 import { v } from "convex/values";
 import { paginator } from "convex-helpers/server/pagination";
 import { doc } from "convex-helpers/validators";
-import { query } from "../_generated/server";
+import { internalQuery, query } from "../_generated/server";
 import schema from "../schema";
 
 export const listEntries = query({
@@ -23,7 +23,7 @@ export const listEntries = query({
   },
 });
 
-export const getEntryByLegacyId = query({
+export const getEntryByLegacyId = internalQuery({
   args: {
     namespace: v.string(),
     legacyEntryId: v.string(),

@@ -3,6 +3,34 @@ import { internal } from "../_generated/api";
 import { internalMutation, internalQuery } from "../_generated/server";
 import { memoryEvents } from "./events";
 
+export const scheduleAccessStatsFlush = internalMutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    await ctx.scheduler.runAfter(
+      0,
+      internal.internal.accessStats.flushAccessStats,
+      {},
+    );
+    return null;
+  },
+});
+
+export const getObservationTimes = internalQuery({
+  args: { entryIds: v.array(v.string()) },
+  handler: async (ctx, args) => {
+    const result: Record<string, number> = {};
+    for (const entryId of args.entryIds) {
+      const entry = await ctx.db
+        .query("contextEntries")
+        .withIndex("by_entryId", (q) => q.eq("entryId", entryId))
+        .first();
+      if (entry?.observationTime) result[entryId] = entry.observationTime;
+    }
+    return result;
+  },
+});
+
 export const HALF_LIFE = 7 * 86_400_000; // 7 days in ms
 
 export function applyDecay(

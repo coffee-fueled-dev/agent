@@ -14,17 +14,19 @@ import type * as history from "../history.js";
 import type * as internal_accessStats from "../internal/accessStats.js";
 import type * as internal_embedding from "../internal/embedding.js";
 import type * as internal_embeddingStore from "../internal/embeddingStore.js";
+import type * as internal_entryStore from "../internal/entryStore.js";
 import type * as internal_events from "../internal/events.js";
+import type * as internal_historyOps from "../internal/historyOps.js";
 import type * as internal_rag from "../internal/rag.js";
+import type * as internal_searchFeatures from "../internal/searchFeatures.js";
+import type * as internal_similarity from "../internal/similarity.js";
 import type * as internal_status from "../internal/status.js";
 import type * as internal_versionStore from "../internal/versionStore.js";
-import type * as public_add from "../public/add.js";
 import type * as public_community from "../public/community.js";
-import type * as public_context from "../public/context.js";
-import type * as public_history from "../public/history.js";
+import type * as public_entries from "../public/entries.js";
 import type * as public_list from "../public/list.js";
 import type * as public_projection from "../public/projection.js";
-import type * as public_search from "../public/search.js";
+import type * as public_retrieval from "../public/retrieval.js";
 import type * as search from "../search.js";
 
 import type {
@@ -41,17 +43,19 @@ const fullApi: ApiFromModules<{
   "internal/accessStats": typeof internal_accessStats;
   "internal/embedding": typeof internal_embedding;
   "internal/embeddingStore": typeof internal_embeddingStore;
+  "internal/entryStore": typeof internal_entryStore;
   "internal/events": typeof internal_events;
+  "internal/historyOps": typeof internal_historyOps;
   "internal/rag": typeof internal_rag;
+  "internal/searchFeatures": typeof internal_searchFeatures;
+  "internal/similarity": typeof internal_similarity;
   "internal/status": typeof internal_status;
   "internal/versionStore": typeof internal_versionStore;
-  "public/add": typeof public_add;
   "public/community": typeof public_community;
-  "public/context": typeof public_context;
-  "public/history": typeof public_history;
+  "public/entries": typeof public_entries;
   "public/list": typeof public_list;
   "public/projection": typeof public_projection;
-  "public/search": typeof public_search;
+  "public/retrieval": typeof public_retrieval;
   search: typeof search;
 }> = anyApi as any;
 

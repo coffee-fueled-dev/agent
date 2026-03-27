@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query } from "../_generated/server";
+import { internalMutation, internalQuery } from "../_generated/server";
 import { history } from "../history";
 
 const historyEntryValidator = v.object({
@@ -19,7 +19,7 @@ const historyEntryValidator = v.object({
   ),
 });
 
-export const appendHistoryEntry = mutation({
+export const appendHistoryEntry = internalMutation({
   args: {
     streamType: v.string(),
     streamId: v.string(),
@@ -38,7 +38,7 @@ export const appendHistoryEntry = mutation({
   },
 });
 
-export const getVersionChain = query({
+export const getVersionChain = internalQuery({
   args: {
     streamType: v.string(),
     streamId: v.string(),
@@ -53,7 +53,7 @@ export const getVersionChain = query({
   },
 });
 
-export const listHistoryHeads = query({
+export const listHistoryHeads = internalQuery({
   args: {
     streamType: v.string(),
     streamId: v.string(),
