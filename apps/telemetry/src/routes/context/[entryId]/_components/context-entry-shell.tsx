@@ -45,7 +45,7 @@ export function ContextEntryShellInner({
       <PageSection className="px-4 py-6 md:px-6">
         <NotFoundBoundary fallbackHref={backHref}>
           <RequiredResult
-            query={api.context.contextApi.getContextDetail}
+            query={api.context.entryQueries.getContextDetail}
             args={{ namespace, entryId }}
           >
             {(detail) => (

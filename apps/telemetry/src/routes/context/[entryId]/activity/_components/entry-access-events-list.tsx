@@ -92,7 +92,7 @@ export function EntryAccessEventsList({
 }) {
   return (
     <RequiredPaginatedResult
-      query={api.context.contextApi.listContextEntryAccessEvents}
+      query={api.context.entryAccess.listContextEntryAccessEvents}
       args={{ namespace, entryId }}
       initialNumItems={PAGE_SIZE}
     >

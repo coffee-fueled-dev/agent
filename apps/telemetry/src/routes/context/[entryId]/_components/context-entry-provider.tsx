@@ -10,7 +10,7 @@ import {
 } from "react";
 
 export type ContextEntryDetail = NonNullable<
-  FunctionReturnType<typeof api.context.contextApi.getContextDetail>
+  FunctionReturnType<typeof api.context.entryQueries.getContextDetail>
 >;
 
 export type ContextEntryValue = {
@@ -44,9 +44,9 @@ export function ContextEntryProvider({
   namespace: string;
   children: ReactNode;
 }) {
-  const deleteAction = useAction(api.context.contextApi.deleteContext);
-  const editAction = useAction(api.context.contextApi.editContext);
-  const recordView = useMutation(api.context.contextApi.recordContextView);
+  const deleteAction = useAction(api.context.mutations.deleteContext);
+  const editAction = useAction(api.context.mutations.editContext);
+  const recordView = useMutation(api.context.mutations.recordContextView);
 
   const viewIdempotencyRef = useRef<{
     namespace: string;

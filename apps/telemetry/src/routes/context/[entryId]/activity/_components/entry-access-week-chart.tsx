@@ -34,7 +34,7 @@ export function EntryAccessWeekChart({
 }) {
   return (
     <RequiredResult
-      query={api.context.contextApi.getContextEntryAccessWeekByDay}
+      query={api.context.entryAccess.getContextEntryAccessWeekByDay}
       args={{
         namespace,
         entryId,

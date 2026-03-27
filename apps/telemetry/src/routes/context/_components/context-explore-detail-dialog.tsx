@@ -20,7 +20,7 @@ export function ContextExploreDetailDialog({
 }) {
   const { selected: point, namespace } = useProjection();
   const file = useQuery(
-    api.context.contextApi.getContextFile,
+    api.context.entryQueries.getContextFile,
     point ? { entryId: point.entryId } : "skip",
   );
 

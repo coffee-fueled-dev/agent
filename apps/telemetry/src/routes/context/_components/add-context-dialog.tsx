@@ -61,7 +61,7 @@ export function AddContextDialog({
 }: AddContextDialogProps) {
   const { namespace } = useNamespace();
   const { files, addFiles, clearFiles, removeFile } = useFiles();
-  const addContext = useAction(api.context.contextApi.addContext);
+  const addContext = useAction(api.context.mutations.addContext);
   const addFileContext = useAction(api.context.files.addFileContext);
   const generateUploadUrl = useMutation(
     api.context.files.generateContextUploadUrl,

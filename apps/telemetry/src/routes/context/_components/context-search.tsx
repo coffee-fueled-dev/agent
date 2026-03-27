@@ -25,12 +25,12 @@ import { useNamespace } from "../_hooks/use-namespace.js";
 import { MimeTypeIcon } from "./mime-type-icon.js";
 
 type SearchResults = FunctionReturnType<
-  typeof api.context.contextApi.searchContext
+  typeof api.context.search.searchContext
 >;
 
 export function ContextSearch() {
-  const searchContext = useAction(api.context.contextApi.searchContext);
-  const embedForSearch = useAction(api.context.contextApi.embedForSearch);
+  const searchContext = useAction(api.context.search.searchContext);
+  const embedForSearch = useAction(api.context.search.embedForSearch);
   const generateUploadUrl = useMutation(
     api.context.files.generateContextUploadUrl,
   );

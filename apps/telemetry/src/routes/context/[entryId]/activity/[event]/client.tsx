@@ -35,7 +35,7 @@ function ActivityEventRoute() {
 
 function ActivityEventDetail({ eventId }: { eventId: string }) {
   const { namespace, entryId } = useContextEntry();
-  const data = useQuery(api.context.contextApi.getContextEntryAccessEvent, {
+  const data = useQuery(api.context.entryAccess.getContextEntryAccessEvent, {
     namespace,
     entryId,
     eventId,
