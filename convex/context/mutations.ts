@@ -5,6 +5,7 @@ import type { Id } from "../_generated/dataModel";
 import { internalAction } from "../_generated/server";
 import { sessionAction, sessionMutation } from "../customFunctions";
 import { accountActor } from "../eventAttribution";
+import { assertAccountNamespace } from "../models/auth/contextNamespace";
 import { createContextClient } from "./contextClient";
 
 export const addContext = sessionAction({
@@ -22,6 +23,7 @@ export const addContext = sessionAction({
       internal.sessionResolve.getAccountIdForConvexSession,
       { convexSessionId: sessionId },
     );
+    assertAccountNamespace(accountId, args.namespace);
     return await createContextClient().addContext(ctx, {
       ...rest,
       actor: accountId ? accountActor(accountId) : undefined,
@@ -60,6 +62,7 @@ export const deleteContext = sessionAction({
       internal.sessionResolve.getAccountIdForConvexSession,
       { convexSessionId: sessionId },
     );
+    assertAccountNamespace(accountId, args.namespace);
     await createContextClient().deleteContext(ctx, {
       ...rest,
       actor: accountId ? accountActor(accountId) : undefined,
@@ -103,6 +106,7 @@ export const editContext = sessionAction({
       internal.sessionResolve.getAccountIdForConvexSession,
       { convexSessionId: sessionId },
     );
+    assertAccountNamespace(accountId, args.namespace);
     const result = await createContextClient().editContext(ctx, {
       ...rest,
       actor: accountId ? accountActor(accountId) : undefined,
@@ -152,6 +156,7 @@ export const recordContextView = sessionMutation({
     idempotencyKey: z.string().optional(),
   },
   handler: async (ctx, args) => {
+    assertAccountNamespace(ctx.account._id, args.namespace);
     await createContextClient().recordView(ctx, {
       ...args,
       session: args.session ?? ctx.convexSessionId,

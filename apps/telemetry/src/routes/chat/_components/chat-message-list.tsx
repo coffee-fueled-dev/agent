@@ -82,10 +82,10 @@ function ChatMessageBubble({ message }: { message: UIMessage }) {
   const isUser = message.role === "user";
   return (
     <div
-      className={`flex flex-col gap-2 rounded-lg border px-3 py-2 text-sm ${
+      className={`flex flex-col gap-2 rounded-lg text-sm ${
         isUser
-          ? "border-primary/30 bg-primary/5 max-w-lg self-end"
-          : "border-border bg-card"
+          ? "px-3 py-2 border border-primary/30 bg-primary/5 max-w-lg self-end"
+          : "bg-card"
       }`}
     >
       <div className="text-muted-foreground text-[10px] font-medium uppercase">

@@ -132,6 +132,8 @@ export const sendMessage = sessionAction({
   args: {
     threadId: z.string(),
     prompt: z.string(),
+    /** Same value as `createThread` — required for actions because `sessions.account` may be unset until this runs. */
+    token: z.string().min(1),
     attachments: z.array(attachmentSchema).optional(),
   },
   handler: async (ctx: SessionActionCtx, args) => {
@@ -140,6 +142,8 @@ export const sendMessage = sessionAction({
     const { namespace, userId } = await resolveThreadContext(
       ctx,
       args.threadId,
+      args.sessionId,
+      { token: args.token },
     );
 
     const hasAttachments = Boolean(attachments?.length);

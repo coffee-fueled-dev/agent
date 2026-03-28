@@ -1,5 +1,6 @@
 import { z } from "zod/v4";
 import { sessionQuery } from "../customFunctions";
+import { assertAccountNamespace } from "../models/auth/contextNamespace";
 import { createContextClient } from "./contextClient";
 
 export const getContextFile = sessionQuery({
@@ -21,6 +22,7 @@ export const getContextDetail = sessionQuery({
     entryId: z.string(),
   },
   handler: async (ctx, args) => {
+    assertAccountNamespace(ctx.account?._id, args.namespace);
     const detail = await createContextClient().getContextDetail(ctx, args);
     if (!detail) return null;
 

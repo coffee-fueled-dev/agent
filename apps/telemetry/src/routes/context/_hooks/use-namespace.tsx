@@ -1,8 +1,11 @@
+import { api } from "@backend/api.js";
+import { useSessionQuery } from "convex-helpers/react/sessions";
 import {
   createContext,
   type PropsWithChildren,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useSyncExternalStore,
 } from "react";
@@ -41,11 +44,32 @@ const NamespaceContext = createContext<NamespaceContextValue | null>(null);
 
 export function NamespaceProvider({ children }: PropsWithChildren) {
   const search = useSyncExternalStore(subscribe, getSearchSnapshot, () => "");
-  const namespace = useMemo(
+  const urlNamespace = useMemo(
     () =>
       new URLSearchParams(search).get("namespace")?.trim() || DEFAULT_NAMESPACE,
     [search],
   );
+
+  const sessionNamespaceResult = useSessionQuery(
+    api.context.sessionNamespace.getSessionContextNamespace,
+    {},
+  );
+
+  const namespace = useMemo(() => {
+    if (sessionNamespaceResult === undefined) return urlNamespace;
+    if (sessionNamespaceResult === null) return urlNamespace;
+    return sessionNamespaceResult.namespace;
+  }, [sessionNamespaceResult, urlNamespace]);
+
+  useEffect(() => {
+    if (
+      sessionNamespaceResult?.namespace != null &&
+      sessionNamespaceResult.namespace !== urlNamespace
+    ) {
+      writeNamespace(sessionNamespaceResult.namespace);
+    }
+  }, [sessionNamespaceResult, urlNamespace]);
+
   const setNamespace = useCallback((ns: string) => writeNamespace(ns), []);
 
   const value = useMemo(

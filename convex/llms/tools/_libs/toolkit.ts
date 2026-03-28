@@ -1,7 +1,9 @@
 import { createTool } from "@convex-dev/agent";
-import type { Tool } from "ai";
+import type { Tool, ToolCallOptions } from "ai";
 import type { FunctionReference } from "convex/server";
+import { scheduleThreadToolTelemetry } from "../../../chat/toolTelemetry";
 import type {
+  ThreadToolTelemetryScheduleArgs,
   ToolExecutionContext,
   ToolkitContext,
   ToolPolicyArgs,
@@ -43,6 +45,97 @@ export function sharedPolicy(
 export type SharedPolicy = ReturnType<typeof sharedPolicy>;
 
 type PolicyResultMap = Map<SharedPolicy, boolean>;
+
+function emitPolicyLifecycle(
+  ctx: ToolkitContext,
+  policy: SharedPolicy,
+  phase: "start" | "result",
+  ok?: boolean,
+) {
+  const st = ctx.scheduleTelemetry;
+  const tc = ctx.toolContext;
+  if (!st || !tc) return;
+  const base = `${tc.messageId}:${policy.id}`;
+  if (phase === "start") {
+    const ev: ThreadToolTelemetryScheduleArgs = {
+      eventType: "policy_eval_started",
+      eventId: `${base}:policy_start`,
+      payload: { policyId: policy.id },
+    };
+    st(ev);
+  } else {
+    const ev: ThreadToolTelemetryScheduleArgs = {
+      eventType: "policy_eval_result",
+      eventId: `${base}:policy_result`,
+      payload: { policyId: policy.id, ok: ok ?? false },
+    };
+    st(ev);
+  }
+}
+
+function wrapToolHandlerWithTelemetry<INPUT, OUTPUT>(
+  toolName: string,
+  namespace: string,
+  handler: (
+    ctx: ToolExecutionContext,
+    args: INPUT,
+    options: ToolCallOptions,
+  ) => Promise<OUTPUT> | AsyncIterable<OUTPUT>,
+) {
+  return async (
+    ctx: ToolExecutionContext,
+    args: INPUT,
+    options: ToolCallOptions,
+  ) => {
+    const base = `${ctx.messageId}:${toolName}`;
+    scheduleThreadToolTelemetry(ctx, {
+      namespace,
+      streamId: ctx.threadId,
+      eventId: `${base}:tool_start`,
+      eventType: "tool_started",
+      payload: { toolName, messageId: ctx.messageId },
+      metadata: {
+        messageId: ctx.messageId,
+        sessionId: ctx.sessionId,
+      },
+      session: ctx.sessionId,
+    });
+    try {
+      const result = await handler(ctx, args, options);
+      scheduleThreadToolTelemetry(ctx, {
+        namespace,
+        streamId: ctx.threadId,
+        eventId: `${base}:tool_ok`,
+        eventType: "tool_succeeded",
+        payload: { toolName, messageId: ctx.messageId },
+        metadata: {
+          messageId: ctx.messageId,
+          sessionId: ctx.sessionId,
+        },
+        session: ctx.sessionId,
+      });
+      return result;
+    } catch (e) {
+      scheduleThreadToolTelemetry(ctx, {
+        namespace,
+        streamId: ctx.threadId,
+        eventId: `${base}:tool_fail`,
+        eventType: "tool_failed",
+        payload: {
+          toolName,
+          messageId: ctx.messageId,
+          error: e instanceof Error ? e.message : String(e),
+        },
+        metadata: {
+          messageId: ctx.messageId,
+          sessionId: ctx.sessionId,
+        },
+        session: ctx.sessionId,
+      });
+      throw e;
+    }
+  };
+}
 
 export type DynamicToolDef<
   NAME extends string = string,
@@ -130,30 +223,64 @@ export function dynamicTool<NAME extends string, INPUT, OUTPUT, ARGS>({
   description,
   args,
   instructions,
+  telemetry,
+  telemetryNamespace,
   ...toolArgs
 }: Parameters<typeof createTool<INPUT, OUTPUT, ToolExecutionContext>>[0] & {
   name: NAME;
   args: ARGS;
   policies?: SharedPolicy[];
   instructions?: string[];
+  /** When true with `telemetryNamespace`, wrap handler with tool lifecycle events. */
+  telemetry?: boolean;
+  /** Required when `telemetry` is true; must match chat namespace for unified timeline. */
+  telemetryNamespace?: string;
 }): DynamicToolDef<NAME, ARGS, Tool<INPUT, OUTPUT>> {
   const policies = policiesConfig ?? [];
-  const tool = createTool({ description, args, ...toolArgs });
+  const rawHandler = toolArgs.handler;
+  const useToolTelemetry =
+    Boolean(telemetry) &&
+    telemetryNamespace != null &&
+    telemetryNamespace.length > 0;
 
   async function evaluate(
     ctx: ToolkitContext,
     resolvedPolicies?: PolicyResultMap,
   ): Promise<ToolkitResult<Record<NAME, Tool<INPUT, OUTPUT>>>> {
     for (const policy of policies) {
+      emitPolicyLifecycle(ctx, policy, "start");
       const ok =
         resolvedPolicies?.get(policy) ??
         (await ctx.runPolicyQuery(policy.query));
+      emitPolicyLifecycle(ctx, policy, "result", ok);
       if (!ok)
         return {
           tools: {} as Record<NAME, Tool<INPUT, OUTPUT>>,
           instructions: "",
         };
     }
+
+    const handler = (
+      useToolTelemetry
+        ? wrapToolHandlerWithTelemetry<INPUT, OUTPUT>(
+            name,
+            telemetryNamespace,
+            rawHandler as (
+              ctx: ToolExecutionContext,
+              args: INPUT,
+              options: ToolCallOptions,
+            ) => Promise<OUTPUT> | AsyncIterable<OUTPUT>,
+          )
+        : rawHandler
+    ) as typeof rawHandler;
+
+    const tool = createTool<INPUT, OUTPUT, ToolExecutionContext>({
+      description,
+      args,
+      ...toolArgs,
+      handler,
+    });
+
     return {
       tools: { [name]: tool } as Record<NAME, Tool<INPUT, OUTPUT>>,
       instructions: (instructions ?? []).join("\n\n"),
@@ -205,7 +332,10 @@ export function toolkit<
     const unique = [...new Set(unresolved)];
     await Promise.all(
       unique.map(async (p) => {
-        resolved.set(p, await ctx.runPolicyQuery(p.query));
+        emitPolicyLifecycle(ctx, p, "start");
+        const ok = await ctx.runPolicyQuery(p.query);
+        emitPolicyLifecycle(ctx, p, "result", ok);
+        resolved.set(p, ok);
       }),
     );
 
@@ -283,8 +413,10 @@ export function dynamicToolkit<const NAME extends string>({
     const resolved = resolvedPolicies ?? new Map<SharedPolicy, boolean>();
 
     for (const policy of policies) {
+      emitPolicyLifecycle(ctx, policy, "start");
       const ok =
         resolved.get(policy) ?? (await ctx.runPolicyQuery(policy.query));
+      emitPolicyLifecycle(ctx, policy, "result", ok);
       if (!ok) return { tools: {}, instructions: "" };
     }
 
@@ -295,7 +427,10 @@ export function dynamicToolkit<const NAME extends string>({
     const unique = [...new Set(unresolved)];
     await Promise.all(
       unique.map(async (p) => {
-        resolved.set(p, await ctx.runPolicyQuery(p.query));
+        emitPolicyLifecycle(ctx, p, "start");
+        const ok = await ctx.runPolicyQuery(p.query);
+        emitPolicyLifecycle(ctx, p, "result", ok);
+        resolved.set(p, ok);
       }),
     );
 

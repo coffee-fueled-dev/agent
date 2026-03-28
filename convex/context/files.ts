@@ -3,6 +3,7 @@ import { components, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { ContextClient } from "../components/context/client";
 import { sessionAction, sessionMutation } from "../customFunctions";
+import { assertAccountNamespace } from "../models/auth/contextNamespace";
 
 function createContextClient() {
   return new ContextClient(components.context, {
@@ -53,6 +54,11 @@ export const addFileContext = sessionAction({
     | { entryId: string; status: "completed" }
     | { processId: Id<"contextFileProcesses">; status: "dispatched" }
   > => {
+    const accountId = await ctx.runQuery(
+      internal.sessionResolve.getAccountIdForConvexSession,
+      { convexSessionId: args.sessionId },
+    );
+    assertAccountNamespace(accountId, args.namespace);
     const {
       text,
       storageId: storageIdArg,

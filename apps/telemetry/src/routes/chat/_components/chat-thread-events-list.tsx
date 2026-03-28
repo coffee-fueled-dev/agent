@@ -1,7 +1,14 @@
 "use client";
 
 import { api } from "@backend/api.js";
+import type { Doc } from "@backend/dataModel.js";
+import type {
+  FunctionReference,
+  PaginationOptions,
+  PaginationResult,
+} from "convex/server";
 import { useSessionPaginatedQuery } from "convex-helpers/react/sessions";
+import type { SessionId } from "convex-helpers/server/sessions";
 import { FadeOverflow } from "@/components/layout/fade-overflow";
 import LoadMoreSentinel from "@/components/layout/load-more-sentinel";
 import { Empty } from "@/components/ui/empty";
@@ -9,9 +16,18 @@ import { Spinner } from "@/components/ui/spinner";
 
 const PAGE_SIZE = 25;
 
+/** zCustomQuery widens args; assert session + pagination shape for useSessionPaginatedQuery. */
+const listUnifiedTimelineQuery = api.chat.unifiedTimeline
+  .listUnifiedTimeline as FunctionReference<
+  "query",
+  "public",
+  { sessionId: SessionId; threadId: string; paginationOpts: PaginationOptions },
+  PaginationResult<Doc<"unifiedTimeline">>
+>;
+
 export function ChatThreadEventsList({ threadId }: { threadId: string }) {
   const paginated = useSessionPaginatedQuery(
-    api.chat.unifiedTimeline.listUnifiedTimeline,
+    listUnifiedTimelineQuery,
     { threadId },
     { initialNumItems: PAGE_SIZE },
   );
@@ -31,14 +47,14 @@ export function ChatThreadEventsList({ threadId }: { threadId: string }) {
   return (
     <div className="flex h-full min-h-0 flex-col gap-2">
       <div className="text-muted-foreground border-b border-border pb-2 text-xs font-medium uppercase tracking-wide">
-        Unified timeline
+        Chat events
       </div>
       <FadeOverflow className="min-h-0 flex-1">
         <ul className="flex flex-col gap-1.5 pr-1">
           {results.length === 0 && !isLoading ? (
             <li className="text-muted-foreground text-xs">
-              No projected events yet. Identity and context memory events appear
-              here after the projector runs.
+              Nothing yet. Events will appear here as they happen as a result of
+              the thread.
             </li>
           ) : null}
           {results.map((row) => (

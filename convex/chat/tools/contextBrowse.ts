@@ -9,6 +9,8 @@ const PAGE_SIZE = 20;
 
 export function listContextTool(namespace: string) {
   return dynamicTool({
+    telemetry: true,
+    telemetryNamespace: namespace,
     name: "listContext" as const,
     description:
       "List context entries in the user's namespace (paginated). Use cursor from a previous page for more.",

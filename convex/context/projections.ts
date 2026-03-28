@@ -5,6 +5,7 @@ import { z } from "zod/v4";
 import { components, internal } from "../_generated/api";
 import { internalAction, internalQuery } from "../_generated/server";
 import { sessionAction, sessionQuery } from "../customFunctions";
+import { assertAccountNamespace } from "../models/auth/contextNamespace";
 import { pool } from "../workpool";
 
 const DEFAULT_LIMIT = 120;
@@ -349,6 +350,11 @@ export const startContextProjection = sessionAction({
     limit: z.number().optional(),
   },
   handler: async (ctx, args) => {
+    const accountId = await ctx.runQuery(
+      internal.sessionResolve.getAccountIdForConvexSession,
+      { convexSessionId: args.sessionId },
+    );
+    assertAccountNamespace(accountId, args.namespace);
     const limit = clampLimit(args.limit);
     const jobId = await ctx.runMutation(projectionApi.createJob, {
       namespace: args.namespace,
@@ -395,6 +401,7 @@ export const getContextProjectionStatus = sessionQuery({
 export const getLatestProjection = sessionQuery({
   args: { namespace: z.string() },
   handler: async (ctx, args) => {
+    assertAccountNamespace(ctx.account?._id, args.namespace);
     return await ctx.runQuery(projectionApi.getLatestProjection, args);
   },
 });

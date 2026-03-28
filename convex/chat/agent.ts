@@ -2,9 +2,13 @@ import { Agent } from "@convex-dev/agent";
 import type { Tool } from "ai";
 import type { SessionId } from "convex-helpers/server/sessions";
 import { components } from "../_generated/api";
-import type { ActionCtx } from "../_generated/server";
+import type { SessionActionCtx } from "../customFunctions";
 import { languageModels } from "../llms/models";
-import type { ToolkitContext } from "../llms/tools/_libs/customFunctions";
+import {
+  createToolkitContext,
+  type ToolBuilderContext,
+  type ToolkitContext,
+} from "../llms/tools/_libs/customFunctions";
 import { type Composable, toolkit } from "../llms/tools/_libs/toolkit";
 import baseInstructions from "./_instructions";
 import {
@@ -39,10 +43,11 @@ export const chatAgentDefinition: RegisteredMachineAgent =
     staticProps: chatComposedForDefinition.staticProps,
   });
 
-export type ChatAgentIdentityCtx = ActionCtx & {
+export type ChatAgentIdentityCtx = SessionActionCtx & {
   threadId: string;
   messageId: string;
   namespace: string;
+  /** Required for tool policy + telemetry; omit only when not using session-scoped tools. */
   sessionId?: SessionId;
 };
 
@@ -59,8 +64,16 @@ export async function createChatAgent(
     instructions: [baseInstructions],
   });
 
+  const toolkitCtx: ToolkitContext =
+    identity != null && identity.sessionId != null
+      ? createToolkitContext(
+          { ...identity, sessionId: identity.sessionId } as ToolBuilderContext,
+          { telemetry: { namespace: identity.namespace } },
+        )
+      : staticToolkitContext;
+
   const { tools, instructions, effectiveStaticProps } =
-    await composed.evaluate(staticToolkitContext);
+    await composed.evaluate(toolkitCtx);
 
   if (identity) {
     await recordRegisteredMachineAgentTurn(identity, {

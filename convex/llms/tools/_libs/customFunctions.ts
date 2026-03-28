@@ -10,6 +10,8 @@ import {
   internalAction as rawInternalAction,
   internalQuery as rawInternalQuery,
 } from "../../../_generated/server";
+import type { ToolTelemetryEventType } from "../../../chat/toolTelemetry";
+import { scheduleThreadToolTelemetry } from "../../../chat/toolTelemetry";
 import type { SessionActionCtx } from "../../../customFunctions";
 
 export type ToolBuilderContext = Omit<SessionActionCtx, "sessionId"> & {
@@ -65,6 +67,14 @@ export const toolBuilderAction = customAction(rawInternalAction, {
   }),
 });
 
+/** Args for scheduled threadIdentity telemetry (policy + toolkit evaluate). */
+export type ThreadToolTelemetryScheduleArgs = {
+  eventType: ToolTelemetryEventType;
+  eventId: string;
+  payload: Record<string, unknown>;
+  metadata?: Record<string, string | number | boolean | null>;
+};
+
 export type ToolkitContext = {
   runPolicyQuery: (
     query: FunctionReference<"query", "internal", ToolPolicyArgs, boolean>,
@@ -72,6 +82,10 @@ export type ToolkitContext = {
   runDependencyQuery: <T>(
     query: FunctionReference<"query", "internal", ToolPolicyArgs, T>,
   ) => Promise<T>;
+  /** Present when `createToolkitContext` is called with `telemetry: { namespace }`. */
+  scheduleTelemetry?: (event: ThreadToolTelemetryScheduleArgs) => void;
+  /** Message/thread ids for stable telemetry event keys when `scheduleTelemetry` is set. */
+  toolContext?: { messageId: string; threadId: string };
 };
 
 function getToolContextArgs(ctx: ToolBuilderContext): ToolPolicyArgs {
@@ -82,10 +96,41 @@ function getToolContextArgs(ctx: ToolBuilderContext): ToolPolicyArgs {
   };
 }
 
-export function createToolkitContext(ctx: ToolBuilderContext): ToolkitContext {
+export function createToolkitContext(
+  ctx: ToolBuilderContext,
+  options?: { telemetry?: { namespace: string } },
+): ToolkitContext {
   const args = getToolContextArgs(ctx);
+  const telemetryNs = options?.telemetry;
+  const scheduleTelemetry =
+    telemetryNs != null
+      ? (event: ThreadToolTelemetryScheduleArgs) => {
+          scheduleThreadToolTelemetry(ctx, {
+            namespace: telemetryNs.namespace,
+            streamId: ctx.threadId,
+            eventId: event.eventId,
+            eventType: event.eventType,
+            payload: {
+              messageId: ctx.messageId,
+              ...event.payload,
+            },
+            metadata: {
+              ...event.metadata,
+              messageId: ctx.messageId,
+              sessionId: ctx.sessionId,
+            },
+            session: ctx.sessionId,
+          });
+        }
+      : undefined;
+
   return {
     runPolicyQuery: (query) => ctx.runSessionQuery(query, args),
     runDependencyQuery: (query) => ctx.runSessionQuery(query, args),
+    scheduleTelemetry,
+    toolContext:
+      scheduleTelemetry != null
+        ? { messageId: ctx.messageId, threadId: ctx.threadId }
+        : undefined,
   };
 }

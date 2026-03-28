@@ -1,7 +1,9 @@
 import { v } from "convex/values";
 import { z } from "zod/v4";
+import { internal } from "../_generated/api";
 import { internalAction, internalMutation } from "../_generated/server";
 import { sessionAction, sessionQuery } from "../customFunctions";
+import { assertAccountNamespace } from "../models/auth/contextNamespace";
 import { pool } from "../workpool";
 import {
   applyAssignmentResultsHandler,
@@ -90,17 +92,24 @@ export const startContextCommunityWorkflow = sessionAction({
     k: z.number().optional(),
     resolution: z.number().optional(),
   },
-  handler: async (ctx, args) =>
-    startContextCommunityWorkflowHandler(ctx, {
+  handler: async (ctx, args) => {
+    const accountId = await ctx.runQuery(
+      internal.sessionResolve.getAccountIdForConvexSession,
+      { convexSessionId: args.sessionId },
+    );
+    assertAccountNamespace(accountId, args.namespace);
+    return startContextCommunityWorkflowHandler(ctx, {
       namespace: args.namespace,
       k: args.k ?? 12,
       resolution: args.resolution ?? 1.0,
-    }),
+    });
+  },
 });
 
 export const getLatestCommunities = sessionQuery({
   args: { namespace: z.string() },
   handler: async (ctx, args) => {
+    assertAccountNamespace(ctx.account?._id, args.namespace);
     return await ctx.runQuery(communityApi.getLatestCommunities, args);
   },
 });
@@ -108,11 +117,15 @@ export const getLatestCommunities = sessionQuery({
 export const getCommunityForEntry = sessionQuery({
   args: { namespace: z.string(), entryId: z.string() },
   handler: async (ctx, args) => {
+    assertAccountNamespace(ctx.account?._id, args.namespace);
     return await ctx.runQuery(communityApi.getCommunityForEntry, args);
   },
 });
 
 export const getEntryGraphContext = sessionQuery({
   args: { namespace: z.string(), entryId: z.string() },
-  handler: async (ctx, args) => getEntryGraphContextHandler(ctx, args),
+  handler: async (ctx, args) => {
+    assertAccountNamespace(ctx.account?._id, args.namespace);
+    return getEntryGraphContextHandler(ctx, args);
+  },
 });

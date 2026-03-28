@@ -10,6 +10,11 @@ export const eventsConfig = {
         "registration_seen",
         "static_version_created",
         "runtime_version_created",
+        "policy_eval_started",
+        "policy_eval_result",
+        "tool_started",
+        "tool_succeeded",
+        "tool_failed",
       ],
       payloads: {
         turn_bound: {
@@ -37,6 +42,28 @@ export const eventsConfig = {
           codeId: v.string(),
           runtimeVersionId: v.string(),
           runtimeHash: v.string(),
+        },
+        policy_eval_started: {
+          policyId: v.string(),
+          messageId: v.string(),
+        },
+        policy_eval_result: {
+          policyId: v.string(),
+          messageId: v.string(),
+          ok: v.boolean(),
+        },
+        tool_started: {
+          toolName: v.string(),
+          messageId: v.string(),
+        },
+        tool_succeeded: {
+          toolName: v.string(),
+          messageId: v.string(),
+        },
+        tool_failed: {
+          toolName: v.string(),
+          messageId: v.string(),
+          error: v.string(),
         },
       },
     },

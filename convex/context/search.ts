@@ -5,6 +5,7 @@ import type { Id } from "../_generated/dataModel";
 import { internalAction } from "../_generated/server";
 import { sessionAction } from "../customFunctions";
 import { accountActor } from "../eventAttribution";
+import { assertAccountNamespace } from "../models/auth/contextNamespace";
 import {
   createContextClient,
   getConvexSiteUrl,
@@ -52,6 +53,7 @@ export const searchContext = sessionAction({
       internal.sessionResolve.getAccountIdForConvexSession,
       { convexSessionId: sessionId },
     );
+    assertAccountNamespace(accountId, args.namespace);
     return await createContextClient().searchContext(ctx, {
       ...rest,
       actor: args.actor ?? (accountId ? accountActor(accountId) : undefined),

@@ -68,6 +68,7 @@ export function ChatComposer({
       await sendMessage({
         threadId,
         prompt: trimmed,
+        token,
         attachments,
       });
       setText("");

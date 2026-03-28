@@ -9,6 +9,8 @@ import { chatAgentDefinition } from "../agent";
 
 export function searchContextTool(namespace: string) {
   return dynamicTool({
+    telemetry: true,
+    telemetryNamespace: namespace,
     name: "searchContext" as const,
     description:
       "Search the user's context entries using hybrid semantic and lexical retrieval.",

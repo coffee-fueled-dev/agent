@@ -10,6 +10,8 @@ import { chatAgentDefinition } from "../agent";
 
 function addContextTool(namespace: string) {
   return dynamicTool({
+    telemetry: true,
+    telemetryNamespace: namespace,
     instructions: [
       `Use the addContextTool tool to store memories relevant to the user or to your own experiences. 
       These memories can be retrieved later to help you answer questions or reflect on past events.
@@ -58,6 +60,8 @@ function addContextTool(namespace: string) {
 
 function editContextTool(namespace: string) {
   return dynamicTool({
+    telemetry: true,
+    telemetryNamespace: namespace,
     name: "editContext" as const,
     description: "Edit an existing context entry by entry id.",
     args: z.object({
@@ -97,6 +101,8 @@ function editContextTool(namespace: string) {
 
 function deleteContextTool(namespace: string) {
   return dynamicTool({
+    telemetry: true,
+    telemetryNamespace: namespace,
     name: "deleteContext" as const,
     description: "Delete a context entry by entry id.",
     args: z.object({
