@@ -8,12 +8,6 @@
  * @module
  */
 
-import type {
-  ApiFromModules,
-  FilterApi,
-  FunctionReference,
-} from "convex/server";
-import { anyApi, componentsGeneric } from "convex/server";
 import type * as client_index from "../client/index.js";
 import type * as internal_evaluate from "../internal/evaluate.js";
 import type * as internal_shared from "../internal/shared.js";
@@ -21,6 +15,13 @@ import type * as public_access from "../public/access.js";
 import type * as public_features from "../public/features.js";
 import type * as public_scopes from "../public/scopes.js";
 import type * as types from "../types.js";
+
+import type {
+  ApiFromModules,
+  FilterApi,
+  FunctionReference,
+} from "convex/server";
+import { anyApi, componentsGeneric } from "convex/server";
 
 const fullApi: ApiFromModules<{
   "client/index": typeof client_index;
