@@ -4,8 +4,8 @@ import {
   useSessionQuery,
 } from "convex-helpers/react/sessions";
 import { PageSection } from "@/components/layout/page-section";
-import { eventsList, Link } from "@/navigation/index.js";
 import { Spinner } from "@/components/ui/spinner";
+import { eventsList, Link } from "@/navigation/index.js";
 import { renderApp } from "../../../render-root";
 import { AppLayout } from "../../_components/app-layout.js";
 import { NamespaceProvider } from "../../context/_hooks/use-namespace.js";

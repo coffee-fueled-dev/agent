@@ -10,7 +10,9 @@ export function ChatMessagePartReasoning({ text }: { text: string }) {
     <Item size="sm" variant="muted" className="text-xs">
       <ItemContent>
         <ItemTitle className="text-muted-foreground">Reasoning</ItemTitle>
-        <ItemDescription className="font-mono text-[11px]">{text}</ItemDescription>
+        <ItemDescription className="font-mono text-[11px]">
+          {text}
+        </ItemDescription>
       </ItemContent>
     </Item>
   );

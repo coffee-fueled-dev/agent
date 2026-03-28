@@ -3,7 +3,6 @@
 import { api } from "@backend/api.js";
 import { useSessionQuery } from "convex-helpers/react/sessions";
 import { Button } from "@/components/ui/button.js";
-import { contextEntry, Link } from "@/navigation/index.js";
 import {
   Dialog,
   DialogClose,
@@ -13,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.js";
+import { contextEntry, Link } from "@/navigation/index.js";
 import { useProjection } from "../_hooks/use-projection.js";
 import { MimeTypeIcon } from "./mime-type-icon.js";
 

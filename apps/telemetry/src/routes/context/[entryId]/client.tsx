@@ -1,6 +1,6 @@
 import { formatTime } from "@/components/formatters";
-import { contextEntry, Link } from "@/navigation/index.js";
 import { PageSection } from "@/components/layout/page-section";
+import { contextEntry, Link } from "@/navigation/index.js";
 import { renderApp } from "../../../render-root";
 import { AppLayout } from "../../_components/app-layout.js";
 import { NamespaceProvider } from "../_hooks/use-namespace.js";

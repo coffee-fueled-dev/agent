@@ -1,7 +1,4 @@
-import {
-  Item,
-  ItemDescription,
-} from "@/components/ui/item.js";
+import { Item, ItemDescription } from "@/components/ui/item.js";
 
 export function ChatMessagePartData({ data }: { data: unknown }) {
   return (

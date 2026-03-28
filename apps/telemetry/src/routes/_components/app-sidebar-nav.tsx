@@ -25,12 +25,7 @@ import {
 } from "@/components/ui/tooltip";
 import { usePublicEnv } from "@/env/index.js";
 import { cn } from "@/lib/utils";
-import {
-  chat,
-  contextList,
-  eventsList,
-  Link,
-} from "@/navigation/index.js";
+import { chat, contextList, eventsList, Link } from "@/navigation/index.js";
 
 const PAGE_SIZE = 15;
 

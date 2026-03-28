@@ -1,5 +1,5 @@
-import { assignLocation } from "@/navigation/assign-location.js";
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import { assignLocation } from "@/navigation/assign-location.js";
 
 export class NotFoundBoundary extends Component<
   { fallbackHref: string; children: ReactNode },

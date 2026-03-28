@@ -32,13 +32,9 @@ export function ChatMessagePart({
       }
       return <ChatMessagePartUserText text={part.text} />;
     case "reasoning":
-      return part.text ? (
-        <ChatMessagePartReasoning text={part.text} />
-      ) : null;
+      return part.text ? <ChatMessagePartReasoning text={part.text} /> : null;
     case "source-url":
-      return (
-        <ChatMessagePartSourceUrl title={part.title} url={part.url} />
-      );
+      return <ChatMessagePartSourceUrl title={part.title} url={part.url} />;
     case "source-document":
       return <ChatMessagePartSourceDocument title={part.title} />;
     case "file":

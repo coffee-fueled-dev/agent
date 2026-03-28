@@ -19,7 +19,10 @@ export function contextList(opts?: { namespace?: string }): string {
   return `${path}?namespace=${encodeURIComponent(opts.namespace)}`;
 }
 
-export function contextEntry(entryId: string, opts?: { namespace?: string }): string {
+export function contextEntry(
+  entryId: string,
+  opts?: { namespace?: string },
+): string {
   const base = `/context/${encodeURIComponent(entryId)}`;
   if (!opts?.namespace) return base;
   return `${base}?namespace=${encodeURIComponent(opts.namespace)}`;

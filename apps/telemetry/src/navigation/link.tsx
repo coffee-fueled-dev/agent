@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  forwardRef,
-  type ComponentProps,
-  type MouseEvent,
-} from "react";
+import { type ComponentProps, forwardRef, type MouseEvent } from "react";
 import { assignLocation } from "./assign-location.js";
 
 export type LinkProps = Omit<ComponentProps<"a">, "href"> & {

@@ -1,8 +1,8 @@
 import { api } from "@backend/api.js";
 import { useSessionQuery } from "convex-helpers/react/sessions";
 import { PageSection } from "@/components/layout/page-section";
-import { contextActivity, Link } from "@/navigation/index.js";
 import { Spinner } from "@/components/ui/spinner";
+import { contextActivity, Link } from "@/navigation/index.js";
 import { renderApp } from "../../../../../render-root";
 import { AppLayout } from "../../../../_components/app-layout.js";
 import { NamespaceProvider } from "../../../_hooks/use-namespace.js";
