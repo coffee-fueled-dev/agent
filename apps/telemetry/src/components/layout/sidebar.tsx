@@ -238,6 +238,7 @@ export function MobileSidebarSheet({
       <SheetContent
         side="left"
         className="flex w-[min(100vw,20rem)] flex-col gap-0 p-0 md:hidden"
+        onCloseAutoFocus={(e) => e.preventDefault()}
       >
         <div className="bg-sidebar text-sidebar-foreground flex min-h-0 flex-1 flex-col">
           <div className="flex min-h-0 flex-1 flex-col">

@@ -1,3 +1,5 @@
+"use client";
+
 import { api } from "@backend/api.js";
 import type { FunctionReturnType } from "convex/server";
 import {
@@ -11,6 +13,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { contextEntry, contextList, useNavigate } from "@/navigation/index.js";
 
 export type ContextEntryDetail = NonNullable<
   FunctionReturnType<typeof api.context.entryQueries.getContextDetail>
@@ -79,8 +82,9 @@ export function ContextEntryProvider({
   const [editTitle, setEditTitle] = useState("");
   const [editText, setEditText] = useState("");
   const [saving, setSaving] = useState(false);
+  const navigate = useNavigate();
 
-  const backHref = `/context?namespace=${encodeURIComponent(namespace)}`;
+  const backHref = contextList({ namespace });
   const status = detail.version?.data.status ?? "current";
   const isCurrent = status === "current";
 
@@ -93,7 +97,7 @@ export function ContextEntryProvider({
     setDeleting(true);
     try {
       await deleteAction({ namespace, entryId });
-      window.location.href = backHref;
+      navigate(backHref);
     } catch (e) {
       console.error(e);
       setDeleting(false);
@@ -109,7 +113,7 @@ export function ContextEntryProvider({
         title: editTitle || undefined,
         text: editText,
       });
-      window.location.href = `/context/${encodeURIComponent(result.entryId)}?namespace=${encodeURIComponent(namespace)}`;
+      navigate(contextEntry(result.entryId, { namespace }));
     } catch (e) {
       console.error(e);
       setSaving(false);

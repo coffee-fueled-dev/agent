@@ -4,6 +4,7 @@ import {
   useSessionQuery,
 } from "convex-helpers/react/sessions";
 import { PageSection } from "@/components/layout/page-section";
+import { eventsList, Link } from "@/navigation/index.js";
 import { Spinner } from "@/components/ui/spinner";
 import { renderApp } from "../../../render-root";
 import { AppLayout } from "../../_components/app-layout.js";
@@ -60,9 +61,9 @@ function UnifiedEventDetail({ eventId }: { eventId: string }) {
     return (
       <PageSection.Body className="gap-4">
         <p className="text-muted-foreground text-sm">Event not found.</p>
-        <a href={backHref} className="text-primary text-sm underline">
+        <Link href={backHref} className="text-primary text-sm underline">
           Back to events
-        </a>
+        </Link>
       </PageSection.Body>
     );
   }
@@ -70,9 +71,9 @@ function UnifiedEventDetail({ eventId }: { eventId: string }) {
   return (
     <PageSection.Body className="gap-4">
       <p>
-        <a href={backHref} className="text-primary text-sm underline">
+        <Link href={backHref} className="text-primary text-sm underline">
           Back to events
-        </a>
+        </Link>
       </p>
       <pre className="border-border bg-muted max-h-[min(70vh,48rem)] overflow-auto rounded-lg border p-4 font-mono text-xs leading-relaxed break-words whitespace-pre-wrap">
         {JSON.stringify(data, null, 2)}

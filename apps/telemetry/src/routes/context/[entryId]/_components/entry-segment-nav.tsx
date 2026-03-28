@@ -1,9 +1,12 @@
+"use client";
+
 import {
   NavigationMenu,
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
 } from "@/components/ui/navigation-menu";
+import { contextActivity, contextEntry, Link } from "@/navigation/index.js";
 import type { EntrySegment } from "./entry-path.js";
 
 export function EntrySegmentNav({
@@ -15,13 +18,17 @@ export function EntrySegmentNav({
   namespace: string;
   current: EntrySegment;
 }) {
-  const q = `?namespace=${encodeURIComponent(namespace)}`;
-  const id = encodeURIComponent(entryId);
-  const base = `/context/${id}`;
-
   const items: { href: string; label: string; segment: EntrySegment }[] = [
-    { href: `${base}${q}`, label: "Overview", segment: "overview" },
-    { href: `${base}/activity${q}`, label: "Activity", segment: "activity" },
+    {
+      href: contextEntry(entryId, { namespace }),
+      label: "Overview",
+      segment: "overview",
+    },
+    {
+      href: contextActivity(entryId, { namespace }),
+      label: "Activity",
+      segment: "activity",
+    },
   ];
 
   return (
@@ -30,7 +37,7 @@ export function EntrySegmentNav({
         {items.map(({ href, label, segment }) => (
           <NavigationMenuItem key={segment}>
             <NavigationMenuLink asChild active={current === segment}>
-              <a href={href}>{label}</a>
+              <Link href={href}>{label}</Link>
             </NavigationMenuLink>
           </NavigationMenuItem>
         ))}

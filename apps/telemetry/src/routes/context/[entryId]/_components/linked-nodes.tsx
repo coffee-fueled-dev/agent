@@ -10,6 +10,7 @@ import {
   ItemMedia,
   ItemTitle,
 } from "@/components/ui/item.js";
+import { contextEntry, Link } from "@/navigation/index.js";
 import { MimeTypeIcon } from "../../_components/mime-type-icon.js";
 import { RebuildLinksButton } from "../../_components/rebuild-links-button.js";
 
@@ -52,11 +53,11 @@ export function LinkedNodes({
       <CollapsibleItemGroup.Content>
         <CollapsibleItemGroup.ItemGroup>
           {sorted.map((neighbor) => {
-            const href = `/context/${encodeURIComponent(neighbor.id)}?namespace=${encodeURIComponent(namespace)}`;
+            const href = contextEntry(neighbor.id, { namespace });
             const label = neighbor.title || neighbor.id;
             return (
               <Item key={neighbor.id} asChild size="sm">
-                <a href={href}>
+                <Link href={href}>
                   <ItemMedia variant="icon">
                     <MimeTypeIcon
                       mimeType={neighbor.mimeType}
@@ -72,7 +73,7 @@ export function LinkedNodes({
                   <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">
                     {neighbor.score.toFixed(3)}
                   </span>
-                </a>
+                </Link>
               </Item>
             );
           })}

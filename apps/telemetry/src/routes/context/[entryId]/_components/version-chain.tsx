@@ -13,6 +13,7 @@ import {
   ItemMedia,
   ItemTitle,
 } from "@/components/ui/item.js";
+import { contextEntry, Link } from "@/navigation/index.js";
 
 export function VersionChain({
   chain,
@@ -41,7 +42,7 @@ export function VersionChain({
               | { title?: string; textPreview?: string }
               | undefined;
             const active = entry.entryId === currentEntryId;
-            const href = `/context/${encodeURIComponent(entry.entryId)}?namespace=${encodeURIComponent(namespace)}`;
+            const href = contextEntry(entry.entryId, { namespace });
             const title = payload?.title ?? entry.entryId.slice(0, 12);
 
             const contextItemContent = (
@@ -75,12 +76,12 @@ export function VersionChain({
             }
             return (
               <Item key={entry.entryId} asChild size="sm">
-                <a href={href}>
+                <Link href={href}>
                   <ItemMedia variant="icon">
                     <GitCommitVerticalIcon />
                   </ItemMedia>
                   {contextItemContent}
-                </a>
+                </Link>
               </Item>
             );
           })}

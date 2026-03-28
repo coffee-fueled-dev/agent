@@ -1,9 +1,12 @@
+"use client";
+
 import { api } from "@backend/api.js";
 import { ArrowLeftIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { PageSection } from "@/components/layout/page-section";
 import { RequiredResult } from "@/components/layout/required-result.js";
 import { Button } from "@/components/ui/button";
+import { contextList, Link } from "@/navigation/index.js";
 import { AppLayout } from "../../../_components/app-layout.js";
 import { NamespaceProvider, useNamespace } from "../../_hooks/use-namespace.js";
 import { ContextEntryProvider } from "./context-entry-provider";
@@ -21,17 +24,17 @@ export function ContextEntryShellInner({
   children: ReactNode;
 }) {
   const { namespace } = useNamespace();
-  const backHref = `/context?namespace=${encodeURIComponent(namespace)}`;
+  const backHref = contextList({ namespace });
 
   return (
     <AppLayout
       current="context"
       segmentLead={
         <Button asChild variant="ghost" size="sm" className="shrink-0">
-          <a href={backHref}>
+          <Link href={backHref}>
             <ArrowLeftIcon className="size-4" />
             All Context
-          </a>
+          </Link>
         </Button>
       }
       segmentTrail={

@@ -25,6 +25,12 @@ import {
 } from "@/components/ui/tooltip";
 import { usePublicEnv } from "@/env/index.js";
 import { cn } from "@/lib/utils";
+import {
+  chat,
+  contextList,
+  eventsList,
+  Link,
+} from "@/navigation/index.js";
 
 const PAGE_SIZE = 15;
 
@@ -74,13 +80,13 @@ function ChatThreadHistoryList({ onNavigate }: { onNavigate?: () => void }) {
       <div className="flex flex-col gap-0.5 pr-1">
         {results.map((row) => (
           <SidebarGroupButton key={row._id} depth={1} asChild>
-            <a
-              href={`/chat?thread=${encodeURIComponent(row._id)}`}
-              onClick={onNavigate}
+            <Link
+              href={chat({ thread: row._id })}
+              onBeforeNavigate={onNavigate}
               className="block min-w-0 truncate"
             >
               {row.title?.trim() || "Untitled"}
-            </a>
+            </Link>
           </SidebarGroupButton>
         ))}
       </div>
@@ -119,9 +125,6 @@ export function AppSidebarNav({
 }) {
   const { isExpanded } = useSidebar();
   const showText = forceExpanded || isExpanded;
-  const go = () => {
-    onNavigate?.();
-  };
 
   if (!showText) {
     return (
@@ -134,9 +137,13 @@ export function AppSidebarNav({
         <Tooltip>
           <TooltipTrigger asChild>
             <SidebarGroupButton collapsed asChild>
-              <a href="/chat?new=1" onClick={go} aria-label="New chat">
+              <Link
+                href={chat({ new: true })}
+                onBeforeNavigate={onNavigate}
+                aria-label="New chat"
+              >
                 <PlusIcon className="size-4" />
-              </a>
+              </Link>
             </SidebarGroupButton>
           </TooltipTrigger>
           <TooltipContent side="right">New chat</TooltipContent>
@@ -148,9 +155,13 @@ export function AppSidebarNav({
               variant={current === "events" ? "secondary" : "ghost"}
               asChild
             >
-              <a href="/events" onClick={go} aria-label="Events">
+              <Link
+                href={eventsList()}
+                onBeforeNavigate={onNavigate}
+                aria-label="Events"
+              >
                 <ActivityIcon className="size-4" />
-              </a>
+              </Link>
             </SidebarGroupButton>
           </TooltipTrigger>
           <TooltipContent side="right">Events</TooltipContent>
@@ -162,9 +173,13 @@ export function AppSidebarNav({
               variant={current === "context" ? "secondary" : "ghost"}
               asChild
             >
-              <a href="/context" onClick={go} aria-label="Memories">
+              <Link
+                href={contextList()}
+                onBeforeNavigate={onNavigate}
+                aria-label="Memories"
+              >
                 <BookOpenIcon className="size-4" />
-              </a>
+              </Link>
             </SidebarGroupButton>
           </TooltipTrigger>
           <TooltipContent side="right">Memories</TooltipContent>
@@ -182,14 +197,14 @@ export function AppSidebarNav({
             variant={current === "chat" ? "secondary" : "ghost"}
             asChild
           >
-            <a
-              href="/chat?new=1"
-              onClick={go}
+            <Link
+              href={chat({ new: true })}
+              onBeforeNavigate={onNavigate}
               className="flex items-center gap-2"
             >
               <PlusIcon className="size-4 shrink-0" />
               Chat
-            </a>
+            </Link>
           </SidebarGroupButton>
           <ChatThreadHistoryList onNavigate={onNavigate} />
         </SidebarGroupContent>
@@ -201,19 +216,27 @@ export function AppSidebarNav({
             variant={current === "events" ? "secondary" : "ghost"}
             asChild
           >
-            <a href="/events" onClick={go} className="flex items-center gap-2">
+            <Link
+              href={eventsList()}
+              onBeforeNavigate={onNavigate}
+              className="flex items-center gap-2"
+            >
               <ActivityIcon className="size-4 shrink-0" />
               Events
-            </a>
+            </Link>
           </SidebarGroupButton>
           <SidebarGroupButton
             variant={current === "context" ? "secondary" : "ghost"}
             asChild
           >
-            <a href="/context" onClick={go} className="flex items-center gap-2">
+            <Link
+              href={contextList()}
+              onBeforeNavigate={onNavigate}
+              className="flex items-center gap-2"
+            >
               <BookOpenIcon className="size-4 shrink-0" />
               Memories
-            </a>
+            </Link>
           </SidebarGroupButton>
         </SidebarGroupContent>
       </SidebarGroup>

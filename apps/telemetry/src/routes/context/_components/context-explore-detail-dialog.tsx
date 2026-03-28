@@ -1,6 +1,9 @@
+"use client";
+
 import { api } from "@backend/api.js";
 import { useSessionQuery } from "convex-helpers/react/sessions";
 import { Button } from "@/components/ui/button.js";
+import { contextEntry, Link } from "@/navigation/index.js";
 import {
   Dialog,
   DialogClose,
@@ -49,11 +52,9 @@ export function ContextExploreDetailDialog({
         )}
         <DialogFooter>
           <Button asChild variant="outline">
-            <a
-              href={`/context/${encodeURIComponent(point.entryId)}?namespace=${encodeURIComponent(namespace)}`}
-            >
+            <Link href={contextEntry(point.entryId, { namespace })}>
               View details
-            </a>
+            </Link>
           </Button>
           <DialogClose>Close</DialogClose>
         </DialogFooter>

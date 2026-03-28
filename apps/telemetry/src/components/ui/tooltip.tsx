@@ -4,7 +4,8 @@ import type * as React from "react";
 import { cn } from "@/lib/utils";
 
 function TooltipProvider({
-  delayDuration = 0,
+  /** Avoid first tap going to tooltip instead of sidebar links on touch / fast clicks. */
+  delayDuration = 300,
   ...props
 }: React.ComponentProps<typeof TooltipPrimitive.Provider>) {
   return (

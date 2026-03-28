@@ -15,6 +15,7 @@ import {
   ItemDescription,
   ItemTitle,
 } from "@/components/ui/item.js";
+import { contextActivityEvent, Link } from "@/navigation/index.js";
 
 const PAGE_SIZE = 15;
 const ESTIMATE_ACCESS_ROW = 72;
@@ -60,7 +61,7 @@ function EventRow({
 
   return (
     <Item size="sm" variant="outline" asChild>
-      <a href={href} className="no-underline">
+      <Link href={href} className="no-underline">
         <ItemContent className="min-w-0 gap-0.5">
           <span className="flex flex-wrap items-center gap-2">
             <Badge variant="secondary" className="text-[10px] font-normal">
@@ -81,7 +82,7 @@ function EventRow({
             </ItemDescription>
           )}
         </ItemContent>
-      </a>
+      </Link>
     </Item>
   );
 }

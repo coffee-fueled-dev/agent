@@ -1,3 +1,5 @@
+"use client";
+
 import { api } from "@backend/api.js";
 import { contentHashFromArrayBuffer } from "@convex-dev/rag";
 import type { FunctionReturnType } from "convex/server";
@@ -25,6 +27,7 @@ import {
   InputGroupButton,
   InputGroupInput,
 } from "@/components/ui/input-group.js";
+import { contextEntry, useNavigate } from "@/navigation/index.js";
 import { useNamespace } from "../_hooks/use-namespace.js";
 import { MimeTypeIcon } from "./mime-type-icon.js";
 
@@ -43,6 +46,7 @@ export function ContextSearch() {
   const [searching, setSearching] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
   const { namespace } = useNamespace();
+  const navigate = useNavigate();
 
   // File attachment state
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
@@ -254,7 +258,7 @@ export function ContextSearch() {
                     key={r.entryId}
                     value={r.entryId}
                     onSelect={() => {
-                      window.location.href = `/context/${encodeURIComponent(r.entryId)}?namespace=${encodeURIComponent(namespace)}`;
+                      navigate(contextEntry(r.entryId, { namespace }));
                     }}
                     className="cursor-pointer"
                   >

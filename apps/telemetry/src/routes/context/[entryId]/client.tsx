@@ -1,4 +1,5 @@
 import { formatTime } from "@/components/formatters";
+import { contextEntry, Link } from "@/navigation/index.js";
 import { PageSection } from "@/components/layout/page-section";
 import { renderApp } from "../../../render-root";
 import { AppLayout } from "../../_components/app-layout.js";
@@ -44,12 +45,14 @@ function DetailView() {
           {!isCurrent && detail.version?.data.status === "historical" && (
             <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm text-amber-700 dark:text-amber-400">
               This is a historical version. It was replaced by{" "}
-              <a
-                href={`/context/${encodeURIComponent(detail.version.data.replacedByEntryId)}?namespace=${encodeURIComponent(namespace)}`}
+              <Link
+                href={contextEntry(detail.version.data.replacedByEntryId, {
+                  namespace,
+                })}
                 className="font-medium underline hover:no-underline"
               >
                 a newer version
-              </a>{" "}
+              </Link>{" "}
               on {formatTime(detail.version.data.replacementTime)}.
             </div>
           )}

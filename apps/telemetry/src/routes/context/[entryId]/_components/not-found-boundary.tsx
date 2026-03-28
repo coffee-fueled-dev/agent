@@ -1,3 +1,4 @@
+import { assignLocation } from "@/navigation/assign-location.js";
 import { Component, type ErrorInfo, type ReactNode } from "react";
 
 export class NotFoundBoundary extends Component<
@@ -11,7 +12,7 @@ export class NotFoundBoundary extends Component<
   override componentDidCatch(_error: Error, _info: ErrorInfo) {}
   override render() {
     if (this.state.hasError) {
-      window.location.href = this.props.fallbackHref;
+      assignLocation(this.props.fallbackHref);
       return (
         <div className="p-6 text-sm text-muted-foreground">Redirecting...</div>
       );

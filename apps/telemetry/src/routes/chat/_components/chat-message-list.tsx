@@ -166,14 +166,9 @@ function ChatMessageBubble({ message }: { message: UIMessage }) {
   return (
     <div
       className={`flex flex-col gap-2 rounded-lg text-sm ${
-        isUser
-          ? "max-w-lg self-end border border-primary/30 bg-primary/5 px-3 py-2"
-          : "bg-card"
+        isUser ? "max-w-lg self-end bg-primary/5 px-3 py-2" : "bg-card"
       }`}
     >
-      <div className="text-muted-foreground text-[10px] font-medium uppercase">
-        {message.role}
-      </div>
       <div className="flex flex-col gap-2">
         {message.parts.map((part, i) => (
           <ChatMessagePart

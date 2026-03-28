@@ -1,9 +1,12 @@
+"use client";
+
 import {
   NavigationMenu,
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
 } from "@/components/ui/navigation-menu";
+import { chat, contextList, home, Link } from "@/navigation/index.js";
 
 type AppNavProps = {
   current: "telemetry" | "context" | "memory" | "chat";
@@ -15,17 +18,17 @@ export function AppNav({ current }: AppNavProps) {
       <NavigationMenuList>
         <NavigationMenuItem>
           <NavigationMenuLink asChild active={current === "telemetry"}>
-            <a href="/">Telemetry</a>
+            <Link href={home()}>Telemetry</Link>
           </NavigationMenuLink>
         </NavigationMenuItem>
         <NavigationMenuItem>
           <NavigationMenuLink asChild active={current === "context"}>
-            <a href="/context">Context</a>
+            <Link href={contextList()}>Context</Link>
           </NavigationMenuLink>
         </NavigationMenuItem>
         <NavigationMenuItem>
           <NavigationMenuLink asChild active={current === "chat"}>
-            <a href="/chat">Chat</a>
+            <Link href={chat()}>Chat</Link>
           </NavigationMenuLink>
         </NavigationMenuItem>
       </NavigationMenuList>

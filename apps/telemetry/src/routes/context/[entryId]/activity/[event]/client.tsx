@@ -1,6 +1,7 @@
 import { api } from "@backend/api.js";
 import { useSessionQuery } from "convex-helpers/react/sessions";
 import { PageSection } from "@/components/layout/page-section";
+import { contextActivity, Link } from "@/navigation/index.js";
 import { Spinner } from "@/components/ui/spinner";
 import { renderApp } from "../../../../../render-root";
 import { AppLayout } from "../../../../_components/app-layout.js";
@@ -43,7 +44,7 @@ function ActivityEventDetail({ eventId }: { eventId: string }) {
       eventId,
     },
   );
-  const backHref = `/context/${encodeURIComponent(entryId)}/activity?namespace=${encodeURIComponent(namespace)}`;
+  const backHref = contextActivity(entryId, { namespace });
 
   if (data === undefined) {
     return (
@@ -57,9 +58,9 @@ function ActivityEventDetail({ eventId }: { eventId: string }) {
     return (
       <PageSection.Body className="gap-4">
         <p className="text-sm text-muted-foreground">Event not found.</p>
-        <a href={backHref} className="text-sm text-primary underline">
+        <Link href={backHref} className="text-sm text-primary underline">
           Back to activity
-        </a>
+        </Link>
       </PageSection.Body>
     );
   }
@@ -67,9 +68,9 @@ function ActivityEventDetail({ eventId }: { eventId: string }) {
   return (
     <PageSection.Body className="gap-4">
       <p>
-        <a href={backHref} className="text-sm text-primary underline">
+        <Link href={backHref} className="text-sm text-primary underline">
           Back to activity
-        </a>
+        </Link>
       </p>
       <pre className="overflow-auto rounded-lg border border-border bg-muted p-4 text-xs leading-relaxed whitespace-pre-wrap break-words font-mono">
         {JSON.stringify(data, null, 2)}

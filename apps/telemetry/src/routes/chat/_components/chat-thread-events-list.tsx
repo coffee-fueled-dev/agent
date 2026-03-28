@@ -16,6 +16,7 @@ import { ListSection } from "@/components/layout/list-section";
 import LoadMoreSentinel from "@/components/layout/load-more-sentinel";
 import { RequiredPaginatedResult } from "@/components/layout/required-result";
 import { Item, ItemHeader, ItemTitle } from "@/components/ui/item";
+import { eventsDetail, Link } from "@/navigation/index.js";
 
 const PAGE_SIZE = 25;
 const ESTIMATE_EVENT_ROW = 72;
@@ -30,7 +31,7 @@ const listUnifiedTimelineQuery = api.chat.unifiedTimeline
 >;
 
 function ThreadEventRowLink({ row }: { row: Doc<"unifiedTimeline"> }) {
-  const href = `/events/${encodeURIComponent(row._id)}`;
+  const href = eventsDetail(row._id);
   return (
     <Item
       size="sm"
@@ -38,7 +39,7 @@ function ThreadEventRowLink({ row }: { row: Doc<"unifiedTimeline"> }) {
       asChild
       className="flex-col items-stretch"
     >
-      <a href={href} className="no-underline">
+      <Link href={href} className="no-underline">
         <ItemHeader className="min-w-0 gap-2">
           <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5">
             <ItemTitle className="w-full min-w-0 max-w-full truncate text-xs">
@@ -52,7 +53,7 @@ function ThreadEventRowLink({ row }: { row: Doc<"unifiedTimeline"> }) {
             {new Date(row.eventTime).toLocaleString()}
           </span>
         </ItemHeader>
-      </a>
+      </Link>
     </Item>
   );
 }
