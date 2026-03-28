@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { z } from "zod/v4";
-import { internal } from "../_generated/api";
+import { components, internal } from "../_generated/api";
 import {
   type ActionCtx,
   internalMutation,
@@ -147,8 +147,10 @@ export async function recordRegisteredMachineAgentTurn(
 async function appendThreadIdentityEvents(
   ctx: MutationCtx,
   args: {
+    namespace: string;
     threadId: string;
     messageId: string;
+    sessionId?: string;
     codeId: string;
     registrationId: string;
     staticVersionId: string;
@@ -170,14 +172,40 @@ async function appendThreadIdentityEvents(
       | undefined;
   },
 ) {
-  if (args.created.binding) {
-    await events.append.appendToStream(ctx, {
+  const baseMeta: Record<string, string | number | boolean | null> = {
+    threadId: args.threadId,
+    messageId: args.messageId,
+  };
+  if (args.sessionId) {
+    baseMeta.sessionId = args.sessionId;
+  }
+
+  let parentEventId: string | undefined;
+
+  const appendOne = async (params: {
+    eventId: string;
+    eventType: "turn_bound" | "registration_seen" | "static_version_created" | "runtime_version_created";
+    payload: Record<string, unknown>;
+    extraMetadata?: Record<string, string | number | boolean | null>;
+  }) => {
+    const entry = await events.append.appendToStream(ctx, {
       streamType: "threadIdentity",
+      namespace: args.namespace,
       streamId: args.threadId,
+      eventId: params.eventId,
+      eventType: params.eventType,
+      ...(parentEventId ? { correlationId: parentEventId } : {}),
+      causationId: args.threadId,
+      payload: params.payload as never,
+      metadata: { ...baseMeta, ...params.extraMetadata },
+    });
+    parentEventId = entry.eventId;
+  };
+
+  if (args.created.binding) {
+    await appendOne({
       eventId: `${args.messageId}:turn_bound`,
       eventType: "turn_bound",
-      correlationId: args.messageId,
-      causationId: args.messageId,
       payload: {
         messageId: args.messageId,
         codeId: args.codeId,
@@ -187,7 +215,7 @@ async function appendThreadIdentityEvents(
         staticHash: args.staticHash,
         runtimeHash: args.runtimeHash,
       },
-      metadata: {
+      extraMetadata: {
         identityChanged:
           args.previousBinding == null ||
           args.previousBinding.codeId !== args.codeId ||
@@ -202,13 +230,9 @@ async function appendThreadIdentityEvents(
     (args.previousBinding == null ||
       args.previousBinding.codeId !== args.codeId)
   ) {
-    await events.append.appendToStream(ctx, {
-      streamType: "threadIdentity",
-      streamId: args.threadId,
+    await appendOne({
       eventId: `${args.messageId}:registration_seen`,
       eventType: "registration_seen",
-      correlationId: args.messageId,
-      causationId: args.messageId,
       payload: {
         messageId: args.messageId,
         codeId: args.codeId,
@@ -218,13 +242,9 @@ async function appendThreadIdentityEvents(
   }
 
   if (args.created.staticVersion) {
-    await events.append.appendToStream(ctx, {
-      streamType: "threadIdentity",
-      streamId: args.threadId,
+    await appendOne({
       eventId: `${args.messageId}:static_version_created`,
       eventType: "static_version_created",
-      correlationId: args.messageId,
-      causationId: args.messageId,
       payload: {
         messageId: args.messageId,
         codeId: args.codeId,
@@ -235,13 +255,9 @@ async function appendThreadIdentityEvents(
   }
 
   if (args.created.runtimeVersion) {
-    await events.append.appendToStream(ctx, {
-      streamType: "threadIdentity",
-      streamId: args.threadId,
+    await appendOne({
       eventId: `${args.messageId}:runtime_version_created`,
       eventType: "runtime_version_created",
-      correlationId: args.messageId,
-      causationId: args.messageId,
       payload: {
         messageId: args.messageId,
         codeId: args.codeId,
@@ -424,9 +440,19 @@ export const recordTurnIdentity = internalMutation({
       created,
     });
 
+    const threadMeta = await ctx.runQuery(components.agent.threads.getThread, {
+      threadId: args.threadId,
+    });
+    if (!threadMeta?.userId) {
+      throw new Error(`Thread ${args.threadId} not found or missing owner`);
+    }
+    const namespace = `account:${threadMeta.userId}`;
+
     await appendThreadIdentityEvents(ctx, {
+      namespace,
       threadId: args.threadId,
       messageId: args.messageId,
+      sessionId: args.sessionId,
       codeId: args.codeId,
       registrationId: registration._id,
       staticVersionId: staticVersion._id,

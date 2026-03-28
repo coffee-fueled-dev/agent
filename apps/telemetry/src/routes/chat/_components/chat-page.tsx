@@ -7,6 +7,7 @@ import { AppLayout } from "../../_components/app-layout.js";
 import { useChatThread } from "../_hooks/use-chat-thread.js";
 import { ChatComposer } from "./chat-composer.js";
 import { ChatMessageList } from "./chat-message-list.js";
+import { ChatThreadEventsList } from "./chat-thread-events-list.js";
 import { SidebarInsetFill } from "@/components/layout/sidebar.js";
 
 export function ChatBenchmarkPage() {
@@ -60,13 +61,18 @@ export function ChatBenchmarkPage() {
             <FileDropzoneProvider limit={10}>
               <FileDropzone className="flex flex-col gap-4 rounded-lg">
                 <SidebarInsetFill>
-                  <PageSection.Body className="flex flex-col p-2 h-full">
-                    <div className="flex-1 overflow-auto">
-                      <ChatMessageList threadId={threadId} />
+                  <PageSection.Body className="flex h-full min-h-0 flex-col gap-2 p-2 lg:flex-row">
+                    <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+                      <div className="min-h-0 flex-1 overflow-auto">
+                        <ChatMessageList threadId={threadId} />
+                      </div>
+                      <div className="flex-shrink-0">
+                        <ChatComposer threadId={threadId} token={token} />
+                      </div>
                     </div>
-                    <div className="flex-shrink-0">
-                      <ChatComposer threadId={threadId} token={token} />
-                    </div>
+                    <aside className="border-border flex min-h-[10rem] shrink-0 flex-col border-t pt-2 lg:min-h-0 lg:w-72 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-3">
+                      <ChatThreadEventsList threadId={threadId} />
+                    </aside>
                   </PageSection.Body>
                 </SidebarInsetFill>
               </FileDropzone>

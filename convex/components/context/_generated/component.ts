@@ -735,6 +735,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             accessWeight?: number;
             actor?: { byId: string; byType: string };
             apiKey?: string;
+            clientSessionId?: string;
             fileEmbedding?: Array<number>;
             graphWeight?: number;
             includeHistorical?: boolean;
@@ -745,6 +746,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             retrievalMode?: "vector" | "lexical" | "hybrid";
             rrfK?: number;
             session?: string;
+            threadId?: string;
             vectorWeight?: number;
           },
           Array<{

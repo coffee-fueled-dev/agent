@@ -30,6 +30,8 @@ export const searchContext = action({
       }),
     ),
     session: v.optional(v.string()),
+    threadId: v.optional(v.string()),
+    clientSessionId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     return await createContextClient().searchContext(ctx, args);

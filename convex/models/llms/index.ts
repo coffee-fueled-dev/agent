@@ -1,3 +1,4 @@
+import { unifiedTimeline } from "../events/unifiedTimeline";
 import { identityMetricDedup } from "./identityMetricDedup";
 import {
   machineAgentRegistrations,
@@ -15,4 +16,5 @@ export default {
   machineAgentRuntimeVersions,
   machineAgentTurnBindings,
   identityMetricDedup,
+  unifiedTimeline,
 };

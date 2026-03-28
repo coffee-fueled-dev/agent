@@ -1,6 +1,6 @@
 import { createContext, type ReactNode, useContext, useMemo } from "react";
 
-type PublicEnv = { convexUrl: string; accountToken: string };
+export type PublicEnv = { convexUrl: string; accountToken: string };
 const emptyPublicEnv: PublicEnv = { convexUrl: "", accountToken: "" };
 
 const PublicEnvContext = createContext<PublicEnv | null>(null);

@@ -167,6 +167,7 @@ export const sendMessage = action({
         query: searchQuery || args.prompt || "files",
         limit: 10,
         retrievalMode: "hybrid",
+        threadId: args.threadId,
       },
     );
     const hits = searchResults as SearchHit[];

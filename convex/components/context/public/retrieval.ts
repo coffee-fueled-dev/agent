@@ -45,6 +45,9 @@ export const search = action({
       }),
     ),
     session: v.optional(v.string()),
+    /** When set (e.g. chat search), stored on contextMemory events for unified timeline projection. */
+    threadId: v.optional(v.string()),
+    clientSessionId: v.optional(v.string()),
   },
   returns: v.array(
     v.object({
@@ -72,6 +75,8 @@ export const search = action({
       apiKey,
       actor,
       session,
+      threadId: threadIdArg,
+      clientSessionId: clientSessionIdArg,
       ...args
     },
   ) => {
@@ -102,6 +107,10 @@ export const search = action({
         ...h,
         observationTime: times[h.entryId],
       }));
+      const timelineMeta: Record<string, string | number | boolean | null> = {};
+      if (threadIdArg) timelineMeta.threadId = threadIdArg;
+      if (clientSessionIdArg) timelineMeta.sessionId = clientSessionIdArg;
+
       for (let i = 0; i < enriched.length; i++) {
         await memoryEvents.append.appendToStream(ctx, {
           streamType: "contextMemory",
@@ -116,6 +125,9 @@ export const search = action({
           },
           actor,
           session,
+          ...(Object.keys(timelineMeta).length > 0
+            ? { metadata: timelineMeta }
+            : {}),
         });
       }
       await ctx.runMutation(

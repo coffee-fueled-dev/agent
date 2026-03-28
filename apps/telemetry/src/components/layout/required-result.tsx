@@ -3,9 +3,11 @@
 import {
   type PaginatedQueryArgs,
   type UsePaginatedQueryReturnType,
-  usePaginatedQuery,
   useQuery,
 } from "convex/react";
+import type { BetterOmit } from "convex-helpers";
+import { useSessionPaginatedQuery } from "convex-helpers/react/sessions";
+import type { SessionId } from "convex-helpers/server/sessions";
 import type {
   FunctionArgs,
   FunctionReference,
@@ -13,7 +15,6 @@ import type {
   PaginationOptions,
   PaginationResult,
 } from "convex/server";
-import type { BetterOmit } from "convex-helpers";
 import type React from "react";
 import { Empty } from "../ui/empty";
 import { Spinner } from "../ui/spinner";
@@ -48,14 +49,17 @@ export function RequiredResult<Query extends FunctionReference<"query">>({
   return <>{children(result)}</>;
 }
 
-type PaginatedQuery = FunctionReference<
+type SessionPaginatedQuery = FunctionReference<
   "query",
   "public",
-  { paginationOpts: PaginationOptions },
+  { sessionId: SessionId; paginationOpts: PaginationOptions } & Record<
+    string,
+    unknown
+  >,
   PaginationResult<unknown>
 >;
 
-export function RequiredPaginatedResult<QUERY extends PaginatedQuery>({
+export function RequiredPaginatedResult<QUERY extends SessionPaginatedQuery>({
   query,
   args,
   initialNumItems = 10,
@@ -63,12 +67,14 @@ export function RequiredPaginatedResult<QUERY extends PaginatedQuery>({
   children,
 }: {
   query: QUERY;
-  args: PaginatedQueryArgs<QUERY>;
+  args: BetterOmit<PaginatedQueryArgs<QUERY>, "sessionId">;
   initialNumItems?: number;
   fallback?: React.ReactNode;
   children: (result: UsePaginatedQueryReturnType<QUERY>) => React.ReactNode;
 }) {
-  const result = usePaginatedQuery(query, args, { initialNumItems });
+  const result = useSessionPaginatedQuery(query, args as never, {
+    initialNumItems,
+  });
 
   if (!result) return fallback;
 

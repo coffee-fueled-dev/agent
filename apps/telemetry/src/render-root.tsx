@@ -1,6 +1,7 @@
 import "../styles/globals.css";
 
 import { ConvexProvider, ConvexReactClient } from "convex/react";
+import { SessionProvider } from "convex-helpers/react/sessions";
 import { type ReactNode, StrictMode, useMemo } from "react";
 import { createRoot } from "react-dom/client";
 import { TooltipProvider } from "./components/ui/tooltip";
@@ -26,7 +27,9 @@ function Root({ children }: { children: ReactNode }) {
         </div>
       ) : (
         <ConvexProvider client={client}>
-          <TooltipProvider>{children}</TooltipProvider>
+          <SessionProvider>
+            <TooltipProvider>{children}</TooltipProvider>
+          </SessionProvider>
         </ConvexProvider>
       )}
     </PublicEnvProvider>

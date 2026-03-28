@@ -18,6 +18,7 @@ import type * as chat_tools_contextAuthoring from "../chat/tools/contextAuthorin
 import type * as chat_tools_contextBrowse from "../chat/tools/contextBrowse.js";
 import type * as chat_tools_contextSearch from "../chat/tools/contextSearch.js";
 import type * as chat_tools_index from "../chat/tools/index.js";
+import type * as chat_unifiedTimeline from "../chat/unifiedTimeline.js";
 import type * as context_communities from "../context/communities.js";
 import type * as context_communitiesLib_applyPipeline from "../context/communitiesLib/applyPipeline.js";
 import type * as context_communitiesLib_constants from "../context/communitiesLib/constants.js";
@@ -43,6 +44,7 @@ import type * as context_list from "../context/list.js";
 import type * as context_mutations from "../context/mutations.js";
 import type * as context_projections from "../context/projections.js";
 import type * as context_search from "../context/search.js";
+import type * as crons from "../crons.js";
 import type * as customFunctions from "../customFunctions.js";
 import type * as events from "../events.js";
 import type * as history from "../history.js";
@@ -78,6 +80,7 @@ import type * as models_index from "../models/index.js";
 import type * as models_llms_identityMetricDedup from "../models/llms/identityMetricDedup.js";
 import type * as models_llms_index from "../models/llms/index.js";
 import type * as models_llms_machineAgent from "../models/llms/machineAgent.js";
+import type * as models_llms_unifiedTimeline from "../models/events/unifiedTimeline.js";
 import type * as policy from "../policy.js";
 import type * as resolvers_auth from "../resolvers/auth.js";
 import type * as resolvers_geo from "../resolvers/geo.js";
@@ -102,6 +105,7 @@ declare const fullApi: ApiFromModules<{
   "chat/tools/contextBrowse": typeof chat_tools_contextBrowse;
   "chat/tools/contextSearch": typeof chat_tools_contextSearch;
   "chat/tools/index": typeof chat_tools_index;
+  "chat/unifiedTimeline": typeof chat_unifiedTimeline;
   "context/communities": typeof context_communities;
   "context/communitiesLib/applyPipeline": typeof context_communitiesLib_applyPipeline;
   "context/communitiesLib/constants": typeof context_communitiesLib_constants;
@@ -127,6 +131,7 @@ declare const fullApi: ApiFromModules<{
   "context/mutations": typeof context_mutations;
   "context/projections": typeof context_projections;
   "context/search": typeof context_search;
+  crons: typeof crons;
   customFunctions: typeof customFunctions;
   events: typeof events;
   history: typeof history;
@@ -162,6 +167,7 @@ declare const fullApi: ApiFromModules<{
   "models/llms/identityMetricDedup": typeof models_llms_identityMetricDedup;
   "models/llms/index": typeof models_llms_index;
   "models/llms/machineAgent": typeof models_llms_machineAgent;
+  "models/llms/unifiedTimeline": typeof models_llms_unifiedTimeline;
   policy: typeof policy;
   "resolvers/auth": typeof resolvers_auth;
   "resolvers/geo": typeof resolvers_geo;
@@ -1355,6 +1361,7 @@ export declare const components: {
             accessWeight?: number;
             actor?: { byId: string; byType: string };
             apiKey?: string;
+            clientSessionId?: string;
             fileEmbedding?: Array<number>;
             graphWeight?: number;
             includeHistorical?: boolean;
@@ -1365,6 +1372,7 @@ export declare const components: {
             retrievalMode?: "vector" | "lexical" | "hybrid";
             rrfK?: number;
             session?: string;
+            threadId?: string;
             vectorWeight?: number;
           },
           Array<{

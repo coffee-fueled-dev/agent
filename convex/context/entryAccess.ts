@@ -1,14 +1,9 @@
-import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
+import { sessionContextEntryPaginatedQuery } from "../customFunctions";
 import { query } from "../_generated/server";
 import { createContextClient } from "./contextClient";
 
-export const listContextEntryAccessEvents = query({
-  args: {
-    namespace: v.string(),
-    entryId: v.string(),
-    paginationOpts: paginationOptsValidator,
-  },
+export const listContextEntryAccessEvents = sessionContextEntryPaginatedQuery({
   handler: async (ctx, args) => {
     return await createContextClient().listEntryAccessEvents(ctx, args);
   },

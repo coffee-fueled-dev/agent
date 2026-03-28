@@ -1,4 +1,8 @@
-import { type PaginationOptions, paginationOptsValidator } from "convex/server";
+import {
+  type PaginationOptions,
+  paginationOptsValidator,
+} from "convex/server";
+import { v } from "convex/values";
 import {
   type RunSessionFunctions,
   runSessionFunctions,
@@ -112,6 +116,71 @@ export const sessionPaginatedQuery = zCustomQuery(query, {
     return {
       ctx: { ...ctx, session, account, convexSessionId },
       args: {
+        paginationOpts: paginationOpts ?? { numItems: 10, cursor: null },
+      },
+    };
+  },
+});
+
+/** Paginated query with session + `threadId` (e.g. unified timeline). */
+export const sessionThreadPaginatedQuery = zCustomQuery(query, {
+  args: {
+    ...SessionIdArg,
+    threadId: v.string(),
+    paginationOpts: paginationOptsValidator,
+  },
+  input: async (
+    ctx,
+    {
+      sessionId: convexSessionId,
+      threadId,
+      paginationOpts,
+    },
+  ): Promise<{
+    ctx: SessionQueryCtx;
+    args: { threadId: string; paginationOpts: PaginationOptions };
+  }> => {
+    const { session, account } = await resolveSession(ctx, convexSessionId);
+    return {
+      ctx: { ...ctx, session, account, convexSessionId },
+      args: {
+        threadId,
+        paginationOpts: paginationOpts ?? { numItems: 10, cursor: null },
+      },
+    };
+  },
+});
+
+/** Paginated query with session + context `namespace` + `entryId`. */
+export const sessionContextEntryPaginatedQuery = zCustomQuery(query, {
+  args: {
+    ...SessionIdArg,
+    namespace: v.string(),
+    entryId: v.string(),
+    paginationOpts: paginationOptsValidator,
+  },
+  input: async (
+    ctx,
+    {
+      sessionId: convexSessionId,
+      namespace,
+      entryId,
+      paginationOpts,
+    },
+  ): Promise<{
+    ctx: SessionQueryCtx;
+    args: {
+      namespace: string;
+      entryId: string;
+      paginationOpts: PaginationOptions;
+    };
+  }> => {
+    const { session, account } = await resolveSession(ctx, convexSessionId);
+    return {
+      ctx: { ...ctx, session, account, convexSessionId },
+      args: {
+        namespace,
+        entryId,
         paginationOpts: paginationOpts ?? { numItems: 10, cursor: null },
       },
     };
