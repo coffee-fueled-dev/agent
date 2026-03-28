@@ -53,7 +53,7 @@ export function ChatBenchmarkPage() {
               </span>
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="bottom">
+          <TooltipContent side="left">
             {eventsSidebarVisible
               ? "Hide telemetry event stream"
               : "Show telemetry event stream"}
