@@ -22,7 +22,6 @@ function ContextExploreInner({
   pushSceneBehind: boolean;
 }) {
   const {
-    namespace,
     points,
     isLoading,
     isRefreshing,

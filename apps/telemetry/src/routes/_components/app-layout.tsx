@@ -1,10 +1,3 @@
-"use client";
-
-import {
-  BookOpenIcon,
-  LayoutDashboardIcon,
-  MessageSquareIcon,
-} from "lucide-react";
 import type { ReactNode } from "react";
 import {
   MobileSidebarSheet,
@@ -15,22 +8,8 @@ import {
   SidebarProvider,
   SidebarRailToggle,
   SidebarTrigger,
-  useSidebar,
 } from "@/components/layout/sidebar";
-import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
-
-function MobileNav({ current }: { current: "telemetry" | "context" | "chat" }) {
-  const { closeMobile } = useSidebar();
-  return (
-    <SidebarNav current={current} onNavigate={closeMobile} forceExpanded />
-  );
-}
+import { AppSidebarMobileNav, AppSidebarNav } from "./app-sidebar-nav";
 
 export function AppLayout({
   children,
@@ -39,7 +18,7 @@ export function AppLayout({
   segmentTrail,
 }: {
   children: ReactNode;
-  current: "telemetry" | "context" | "chat";
+  current: "context" | "chat";
   /** Left cluster after menu trigger (e.g. Back). */
   segmentLead?: ReactNode;
   /** Right-aligned inner segment nav (e.g. entry sub-tabs). */
@@ -56,7 +35,7 @@ export function AppLayout({
               </div>
             </SidebarHeader>
             <SidebarMain>
-              <SidebarNav current={current} />
+              <AppSidebarNav current={current} />
             </SidebarMain>
           </Sidebar>
         </aside>
@@ -83,113 +62,8 @@ export function AppLayout({
         </SidebarInset>
       </div>
       <MobileSidebarSheet>
-        <MobileNav current={current} />
+        <AppSidebarMobileNav current={current} />
       </MobileSidebarSheet>
     </SidebarProvider>
-  );
-}
-
-/** `forceExpanded`: always show text links (e.g. mobile sheet when desktop rail is collapsed). */
-function SidebarNav({
-  current,
-  onNavigate,
-  className,
-  forceExpanded,
-}: {
-  current: "telemetry" | "context" | "chat";
-  onNavigate?: () => void;
-  className?: string;
-  forceExpanded?: boolean;
-}) {
-  const { isExpanded } = useSidebar();
-  const showText = forceExpanded || isExpanded;
-  const go = () => {
-    onNavigate?.();
-  };
-
-  if (!showText) {
-    return (
-      <nav
-        className={cn(
-          "flex flex-col items-center gap-1 self-center",
-          className,
-        )}
-      >
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant={current === "telemetry" ? "secondary" : "ghost"}
-              size="icon"
-              asChild
-            >
-              <a href="/" onClick={go} aria-label="Telemetry">
-                <LayoutDashboardIcon className="size-4" />
-              </a>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="right">Telemetry</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant={current === "context" ? "secondary" : "ghost"}
-              size="icon"
-              asChild
-            >
-              <a href="/context" onClick={go} aria-label="Context">
-                <BookOpenIcon className="size-4" />
-              </a>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="right">Context</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant={current === "chat" ? "secondary" : "ghost"}
-              size="icon"
-              asChild
-            >
-              <a href="/chat" onClick={go} aria-label="Chat">
-                <MessageSquareIcon className="size-4" />
-              </a>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="right">Chat</TooltipContent>
-        </Tooltip>
-      </nav>
-    );
-  }
-
-  return (
-    <nav className={cn("flex flex-col gap-1", className)}>
-      <Button
-        variant={current === "telemetry" ? "secondary" : "ghost"}
-        className="w-full justify-start"
-        asChild
-      >
-        <a href="/" onClick={go}>
-          <LayoutDashboardIcon className="size-4" /> Telemetry
-        </a>
-      </Button>
-      <Button
-        variant={current === "context" ? "secondary" : "ghost"}
-        className="w-full justify-start"
-        asChild
-      >
-        <a href="/context" onClick={go}>
-          <BookOpenIcon className="size-4" /> Context
-        </a>
-      </Button>
-      <Button
-        variant={current === "chat" ? "secondary" : "ghost"}
-        className="w-full justify-start"
-        asChild
-      >
-        <a href="/chat" onClick={go}>
-          <MessageSquareIcon className="size-4" /> Chat
-        </a>
-      </Button>
-    </nav>
   );
 }

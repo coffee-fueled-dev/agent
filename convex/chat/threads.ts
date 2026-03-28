@@ -22,6 +22,7 @@ import {
   ensureMachineAccount,
   ensureTokenAccount,
   grantThreadAccessToAccount,
+  resolveAccountByAlias,
 } from "../lib/auth";
 import type { UIMessage } from "../llms/uiMessage";
 import { chatAgentDefinition, createChatAgent } from "./agent";
@@ -245,6 +246,33 @@ export const sendMessage = sessionAction({
 type ListThreadMessagesPage = PaginationResult<UIMessage> & {
   streams: SyncStreamsReturnValue;
 };
+
+export const listRecentThreads = sessionPaginatedQuery({
+  args: {
+    token: z.string(),
+  },
+  handler: async (
+    ctx: SessionQueryCtx,
+    args: { token: string; paginationOpts: PaginationOptions },
+  ) => {
+    const owner = await resolveAccountByAlias(ctx, {
+      kind: "token",
+      value: args.token,
+    });
+    if (!owner) {
+      return {
+        page: [],
+        isDone: true,
+        continueCursor: "",
+      };
+    }
+    return await ctx.runQuery(components.agent.threads.listThreadsByUserId, {
+      userId: String(owner._id),
+      order: "desc",
+      paginationOpts: args.paginationOpts,
+    });
+  },
+});
 
 export const listThreadMessages = sessionPaginatedQuery({
   args: {
