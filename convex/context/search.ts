@@ -12,7 +12,7 @@ import {
   getFileEmbeddingSecret,
 } from "./contextClient";
 
-type SearchContextHit = {
+export type SearchContextHit = {
   entryId: string;
   key: string;
   title?: string;

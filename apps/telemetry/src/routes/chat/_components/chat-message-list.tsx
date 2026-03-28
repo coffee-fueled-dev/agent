@@ -1,7 +1,11 @@
 import { api } from "@backend/api.js";
 import type { UIMessage } from "@backend/llms/uiMessage.js";
-import { useUIMessages } from "@convex-dev/agent/react";
+import type { SyncStreamsReturnValue } from "@convex-dev/agent";
+import { type UIMessagesQuery, useUIMessages } from "@convex-dev/agent/react";
+import type { StreamArgs } from "@convex-dev/agent/validators";
+import type { FunctionReference } from "convex/server";
 import { useSessionIdArg } from "convex-helpers/react/sessions";
+import type { SessionId } from "convex-helpers/server/sessions";
 import { FadeOverflow } from "@/components/layout/fade-overflow";
 import { ListSection } from "@/components/layout/list-section";
 import LoadMoreSentinel from "@/components/layout/load-more-sentinel";
@@ -11,11 +15,30 @@ import { ChatMessagePart } from "./chat-message-part.js";
 
 const PAGE_SIZE = 15;
 
+/** Same shape as `StreamQuery<{ sessionId: SessionId }>` from `@convex-dev/agent` (not exported from `react`). */
+type StreamQueryWithSession = FunctionReference<
+  "query",
+  "public",
+  { threadId: string; streamArgs?: StreamArgs } & { sessionId: SessionId },
+  { streams: SyncStreamsReturnValue }
+>;
+
+/**
+ * Session + zod queries do not codegen as `UIMessagesQuery` / `StreamQuery`; this matches
+ * `listThreadMessages` (session + `streamArgs` + `syncStreams` return).
+ */
+const listThreadMessagesQuery = api.chat.threads
+  .listThreadMessages as UIMessagesQuery<{ sessionId: SessionId }, UIMessage> &
+  StreamQueryWithSession;
+
 export function ChatMessageList({ threadId }: { threadId: string }) {
   const paginated = useUIMessages(
-    api.chat.threads.listThreadMessages,
+    listThreadMessagesQuery,
     useSessionIdArg({ threadId }),
-    { initialNumItems: PAGE_SIZE, stream: true },
+    {
+      initialNumItems: PAGE_SIZE,
+      stream: true,
+    },
   );
 
   if (!paginated) {
@@ -43,7 +66,7 @@ export function ChatMessageList({ threadId }: { threadId: string }) {
             No messages yet. Send a prompt below.
           </span>
         </ListSection.Empty>
-        {(row) => <ChatMessageBubble key={row.id} message={row as UIMessage} />}
+        {(row) => <ChatMessageBubble key={row.id} message={row} />}
       </ListSection>
       <LoadMoreSentinel
         onLoadMore={() => loadMore(PAGE_SIZE)}

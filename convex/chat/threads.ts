@@ -1,9 +1,16 @@
-import { listUIMessages, syncStreams } from "@convex-dev/agent";
+import {
+  listUIMessages,
+  type SyncStreamsReturnValue,
+  syncStreams,
+} from "@convex-dev/agent";
 import type { StreamArgs } from "@convex-dev/agent/validators";
-import type { PaginationResult } from "convex/server";
+import type { UserContent, UserModelMessage } from "ai";
+import type { PaginationOptions, PaginationResult } from "convex/server";
+import { zid } from "convex-helpers/server/zod4";
 import { z } from "zod/v4";
 import { api, components } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
+import type { ActionCtx } from "../_generated/server";
+import type { SearchContextHit } from "../context/search";
 import {
   type SessionActionCtx,
   type SessionQueryCtx,
@@ -20,14 +27,14 @@ import type { UIMessage } from "../llms/uiMessage";
 import { chatAgentDefinition, createChatAgent } from "./agent";
 import { resolveThreadContext } from "./resolveNamespace";
 
-type SearchHit = {
-  entryId: string;
-  title?: string;
-  text: string;
-  score: number;
-};
+/** Convex `Agent` expects `ActionCtx & Record<string, unknown>`; session actions add `runSession*` without an index signature. */
+function agentActionCtx(
+  ctx: SessionActionCtx,
+): ActionCtx & Record<string, unknown> {
+  return ctx as unknown as ActionCtx & Record<string, unknown>;
+}
 
-function buildInjectedContext(hits: SearchHit[]): string | undefined {
+function buildInjectedContext(hits: SearchContextHit[]): string | undefined {
   if (!hits.length) return undefined;
   const lines = hits.slice(0, 3).map((r, i) => {
     const title = r.title ? `${r.title}\n` : "";
@@ -46,10 +53,10 @@ function isTextLikeMime(mime: string) {
 }
 
 async function buildSearchQueryFromAttachments(
-  ctx: { storage: { get: (id: Id<"_storage">) => Promise<Blob | null> } },
+  ctx: SessionActionCtx,
   prompt: string,
   attachments:
-    | { storageId: Id<"_storage">; fileName: string; mimeType: string }[]
+    | { storageId: string; fileName: string; mimeType: string }[]
     | undefined,
 ): Promise<string> {
   const parts: string[] = [];
@@ -70,10 +77,26 @@ async function buildSearchQueryFromAttachments(
 }
 
 const attachmentSchema = z.object({
-  storageId: z.string(),
+  storageId: zid("_storage"),
   fileName: z.string(),
   mimeType: z.string(),
 });
+
+const streamArgsSchema = z.union([
+  z.object({
+    kind: z.literal("list"),
+    startOrder: z.number().optional(),
+  }),
+  z.object({
+    kind: z.literal("deltas"),
+    cursors: z.array(
+      z.object({
+        streamId: z.string(),
+        cursor: z.number(),
+      }),
+    ),
+  }),
+]);
 
 export const createThread = sessionMutation({
   args: {
@@ -112,10 +135,7 @@ export const sendMessage = sessionAction({
     attachments: z.array(attachmentSchema).optional(),
   },
   handler: async (ctx: SessionActionCtx, args) => {
-    const attachments = args.attachments?.map((a) => ({
-      ...a,
-      storageId: a.storageId as Id<"_storage">,
-    }));
+    const attachments = args.attachments;
 
     const { namespace, userId } = await resolveThreadContext(
       ctx,
@@ -139,7 +159,7 @@ export const sendMessage = sessionAction({
       });
       promptMessageId = saved.messageId;
     } else {
-      const content: Array<Record<string, unknown>> = [];
+      const content: UserContent = [];
       if (args.prompt.trim()) {
         content.push({ type: "text", text: args.prompt.trim() });
       }
@@ -148,18 +168,19 @@ export const sendMessage = sessionAction({
         if (!blob) {
           throw new Error(`Missing file in storage: ${a.fileName}`);
         }
-        const data = new Uint8Array(await blob.arrayBuffer());
+        const data = await blob.arrayBuffer();
         content.push({
           type: "file",
           data,
-          mimeType: a.mimeType || "application/octet-stream",
+          mediaType: a.mimeType || "application/octet-stream",
           filename: a.fileName,
         });
       }
+      const message: UserModelMessage = { role: "user", content };
       const saved = await baseAgent.saveMessage(ctx, {
         threadId: args.threadId,
         userId,
-        message: { role: "user", content } as never,
+        message,
       });
       promptMessageId = saved.messageId;
     }
@@ -170,7 +191,7 @@ export const sendMessage = sessionAction({
       attachments,
     );
 
-    const searchResults = await ctx.runAction(
+    const searchResults: SearchContextHit[] = await ctx.runAction(
       api.context.search.searchContext,
       {
         sessionId: args.sessionId,
@@ -181,8 +202,7 @@ export const sendMessage = sessionAction({
         threadId: args.threadId,
       },
     );
-    const hits = searchResults as SearchHit[];
-    const injected = buildInjectedContext(hits);
+    const injected = buildInjectedContext(searchResults);
 
     const agent = await createChatAgent({
       ...ctx,
@@ -192,19 +212,16 @@ export const sendMessage = sessionAction({
       sessionId: args.sessionId,
     });
 
-    const { thread } = await agent.continueThread(
-      ctx as unknown as Parameters<typeof agent.continueThread>[0],
-      {
-        threadId: args.threadId,
-        userId,
-      },
-    );
+    const { thread } = await agent.continueThread(agentActionCtx(ctx), {
+      threadId: args.threadId,
+      userId,
+    });
 
     const result = await thread.streamText(
       {
         promptMessageId,
         system: injected ?? undefined,
-      } as unknown as Parameters<typeof thread.streamText>[0],
+      },
       {
         saveStreamDeltas: { throttleMs: 50 },
         contextOptions: {
@@ -221,22 +238,26 @@ export const sendMessage = sessionAction({
   },
 });
 
+type ListThreadMessagesPage = PaginationResult<UIMessage> & {
+  streams: SyncStreamsReturnValue;
+};
+
 export const listThreadMessages = sessionPaginatedQuery({
   args: {
     threadId: z.string(),
-    streamArgs: z.any(),
+    streamArgs: streamArgsSchema.optional(),
   },
   handler: async (
     ctx: SessionQueryCtx,
     args: {
       threadId: string;
-      paginationOpts: import("convex/server").PaginationOptions;
-      streamArgs: unknown;
+      paginationOpts: PaginationOptions;
+      streamArgs?: z.infer<typeof streamArgsSchema>;
     },
-  ) => {
+  ): Promise<ListThreadMessagesPage> => {
     const streamArgs: StreamArgs =
       args.streamArgs != null
-        ? (args.streamArgs as StreamArgs)
+        ? streamArgsSchema.parse(args.streamArgs)
         : { kind: "list" };
     const agentArgs = {
       threadId: args.threadId,
@@ -248,8 +269,6 @@ export const listThreadMessages = sessionPaginatedQuery({
     return {
       ...paginated,
       streams,
-    } as PaginationResult<UIMessage> & {
-      streams: Awaited<ReturnType<typeof syncStreams>>;
     };
   },
 });

@@ -1,9 +1,13 @@
 import "../styles/globals.css";
 
-import { ConvexProvider, ConvexReactClient } from "convex/react";
-import { SessionProvider } from "convex-helpers/react/sessions";
-import { type ReactNode, StrictMode, useMemo } from "react";
+import { ConvexProvider } from "convex/react";
+import {
+  ConvexReactSessionClient,
+  SessionProvider,
+} from "convex-helpers/react/sessions";
+import { type ReactNode, StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { useLocalStorage } from "usehooks-ts";
 import { TooltipProvider } from "./components/ui/tooltip";
 import { PublicEnvProvider } from "./env/index.js";
 
@@ -11,13 +15,7 @@ function Root({ children }: { children: ReactNode }) {
   const convexUrl = String(process.env.BUN_PUBLIC_CONVEX_URL ?? "");
   const accountToken = String(process.env.BUN_PUBLIC_ACCOUNT_TOKEN ?? "");
 
-  const client = useMemo(() => {
-    if (!convexUrl) {
-      return null;
-    }
-
-    return new ConvexReactClient(convexUrl);
-  }, [convexUrl]);
+  const client = new ConvexReactSessionClient(convexUrl);
 
   return (
     <PublicEnvProvider value={{ convexUrl, accountToken }}>
@@ -27,7 +25,7 @@ function Root({ children }: { children: ReactNode }) {
         </div>
       ) : (
         <ConvexProvider client={client}>
-          <SessionProvider>
+          <SessionProvider useStorage={useLocalStorage}>
             <TooltipProvider>{children}</TooltipProvider>
           </SessionProvider>
         </ConvexProvider>
@@ -35,6 +33,8 @@ function Root({ children }: { children: ReactNode }) {
     </PublicEnvProvider>
   );
 }
+
+let rootSingleton: ReturnType<typeof createRoot> | undefined;
 
 export function renderApp(children: ReactNode) {
   const elem = document.getElementById("root");
@@ -61,6 +61,7 @@ export function renderApp(children: ReactNode) {
 
     root.render(app);
   } else {
-    createRoot(elem).render(app);
+    rootSingleton ??= createRoot(elem);
+    rootSingleton.render(app);
   }
 }
