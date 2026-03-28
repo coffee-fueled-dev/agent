@@ -1,3 +1,4 @@
+import { RefreshCcwIcon } from "lucide-react";
 import { FileDropzone, FileDropzoneProvider } from "@/components/files";
 import { PageSection } from "@/components/layout/page-section";
 import { SidebarInsetFill } from "@/components/layout/sidebar.js";
@@ -15,7 +16,26 @@ export function ChatBenchmarkPage() {
     useChatThread();
 
   return (
-    <AppLayout current="chat">
+    <AppLayout
+      current="chat"
+      segmentLead={
+        <span className="text-muted-foreground text-xs font-medium uppercase tracking-wide space-x-2">
+          <b>Chat</b>
+          <span className="font-thin">{threadId}</span>
+        </span>
+      }
+      segmentTrail={
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="w-fit"
+          onClick={resetThread}
+        >
+          <RefreshCcwIcon className="size-3.5" /> Reset chat
+        </Button>
+      }
+    >
       {!hasToken ? (
         <Empty>
           <p className="text-muted-foreground text-sm">
@@ -27,7 +47,7 @@ export function ChatBenchmarkPage() {
         <Empty>
           <p className="text-destructive text-sm">{initError}</p>
           <Button type="button" variant="outline" onClick={resetThread}>
-            Clear thread and retry
+            Reset chat
           </Button>
         </Empty>
       ) : creating || !threadId ? (
@@ -36,27 +56,6 @@ export function ChatBenchmarkPage() {
         </Empty>
       ) : (
         <PageSection>
-          <PageSection.Header>
-            <PageSection.HeaderRow>
-              <PageSection.HeaderColumn className="flex-row items-center justify-start gap-2">
-                <PageSection.Title size="lg">Thread</PageSection.Title>
-                <PageSection.Description className="font-mono text-xs">
-                  {threadId}
-                </PageSection.Description>
-              </PageSection.HeaderColumn>
-              <PageSection.HeaderActions>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="w-fit"
-                  onClick={resetThread}
-                >
-                  New thread
-                </Button>
-              </PageSection.HeaderActions>
-            </PageSection.HeaderRow>
-          </PageSection.Header>
           <PageSection.Content>
             <FileDropzoneProvider limit={10}>
               <FileDropzone className="flex flex-col gap-4 rounded-lg">

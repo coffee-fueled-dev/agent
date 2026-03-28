@@ -37,15 +37,17 @@ export function RequiredResult<Query extends FunctionReference<"query">>({
   args,
   fallback = defaultFallback,
   children,
+  onMissing = () => null,
 }: {
   query: Query;
   args: SessionQueryArgs<Query>;
   fallback?: React.ReactNode;
   children: (result: NonNullable<FunctionReturnType<Query>>) => React.ReactNode;
+  onMissing?: () => null | undefined | React.ReactNode;
 }) {
   const result = useSessionQuery(query, args as never);
 
-  if (result === null) throw new Error("Not found");
+  if (result === null) onMissing();
   if (!result) return fallback;
 
   return <>{children(result)}</>;
@@ -69,7 +71,7 @@ export function RequiredPaginatedResult<QUERY extends SessionPaginatedQuery>({
   children,
 }: {
   query: QUERY;
-  args: BetterOmit<PaginatedQueryArgs<QUERY>, "sessionId">;
+  args: BetterOmit<PaginatedQueryArgs<QUERY>, "sessionId"> | "skip";
   initialNumItems?: number;
   fallback?: React.ReactNode;
   children: (result: UsePaginatedQueryReturnType<QUERY>) => React.ReactNode;

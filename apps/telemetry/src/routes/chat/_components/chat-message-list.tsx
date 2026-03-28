@@ -63,7 +63,7 @@ export function ChatMessageList({ threadId }: { threadId: string }) {
         <ListSection.Loading />
         <ListSection.Empty>
           <span className="text-muted-foreground text-sm">
-            No messages yet. Send a prompt below.
+            No messages yet.
           </span>
         </ListSection.Empty>
         {(row) => <ChatMessageBubble key={row.id} message={row} />}

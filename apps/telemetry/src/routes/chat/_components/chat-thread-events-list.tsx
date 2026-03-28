@@ -7,12 +7,19 @@ import type {
   PaginationOptions,
   PaginationResult,
 } from "convex/server";
-import { useSessionPaginatedQuery } from "convex-helpers/react/sessions";
 import type { SessionId } from "convex-helpers/server/sessions";
+import { CollapsibleItemGroup } from "@/components/blocks/collapsible-item-group";
 import { FadeOverflow } from "@/components/layout/fade-overflow";
+import { ListSection } from "@/components/layout/list-section";
 import LoadMoreSentinel from "@/components/layout/load-more-sentinel";
-import { Empty } from "@/components/ui/empty";
-import { Spinner } from "@/components/ui/spinner";
+import { RequiredPaginatedResult } from "@/components/layout/required-result";
+import {
+  Item,
+  ItemContent,
+  ItemDescription,
+  ItemHeader,
+  ItemTitle,
+} from "@/components/ui/item";
 
 const PAGE_SIZE = 25;
 
@@ -26,81 +33,91 @@ const listUnifiedTimelineQuery = api.chat.unifiedTimeline
 >;
 
 export function ChatThreadEventsList({ threadId }: { threadId: string }) {
-  const paginated = useSessionPaginatedQuery(
-    listUnifiedTimelineQuery,
-    { threadId },
-    { initialNumItems: PAGE_SIZE },
-  );
-
-  if (!paginated) {
-    return (
-      <Empty className="min-h-[8rem] py-6">
-        <Spinner />
-      </Empty>
-    );
-  }
-
-  const { results, status, loadMore, isLoading } = paginated;
-  const canLoadMore = status === "CanLoadMore";
-  const isLoadingMore = status === "LoadingMore";
-
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2">
-      <div className="text-muted-foreground border-b border-border pb-2 text-xs font-medium uppercase tracking-wide">
-        Chat events
-      </div>
-      <FadeOverflow className="min-h-0 flex-1">
-        <ul className="flex flex-col gap-1.5 pr-1">
-          {results.length === 0 && !isLoading ? (
-            <li className="text-muted-foreground text-xs">
-              Nothing yet. Events will appear here as they happen as a result of
-              the thread.
-            </li>
-          ) : null}
-          {results.map((row) => (
-            <li
-              key={`${row.sourceStreamType}-${row.sourceEventId}-${row.sourceGlobalSequence}`}
-              className="bg-card/80 rounded-md border border-border/80 px-2 py-1.5 text-[11px] leading-snug"
-            >
-              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                <span className="text-foreground font-medium">
-                  {row.eventType}
-                </span>
-                <span className="text-muted-foreground">
-                  {row.sourceStreamType}
-                </span>
-                <span className="text-muted-foreground ml-auto shrink-0 font-mono text-[10px]">
-                  {new Date(row.eventTime).toLocaleString()}
-                </span>
-              </div>
-              {row.actor ? (
-                <div className="text-muted-foreground mt-0.5 text-[10px]">
-                  {row.actor.byType} ·{" "}
-                  <span className="font-mono">
-                    {row.actor.byId.slice(0, 10)}…
-                  </span>
-                </div>
-              ) : null}
-              {row.session ? (
-                <div className="text-muted-foreground font-mono text-[10px]">
-                  session {row.session.slice(0, 14)}…
-                </div>
-              ) : null}
-              {row.correlationId ? (
-                <div className="text-muted-foreground mt-0.5 font-mono text-[10px]">
-                  correlation → {row.correlationId.slice(0, 12)}…
-                </div>
-              ) : null}
-            </li>
-          ))}
-        </ul>
-        <LoadMoreSentinel
-          onLoadMore={() => loadMore(PAGE_SIZE)}
-          canLoadMore={canLoadMore}
-          isLoadingMore={isLoadingMore}
-          scrollContainerSelector='[data-slot="scroll-area-viewport"]'
-        />
-      </FadeOverflow>
+    <div className="flex h-full min-h-0 flex-1 flex-col">
+      <CollapsibleItemGroup defaultOpen={false} className="min-h-0 flex-1">
+        <CollapsibleItemGroup.Title className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+          Event Stream
+        </CollapsibleItemGroup.Title>
+        <CollapsibleItemGroup.Content>
+          <RequiredPaginatedResult
+            query={listUnifiedTimelineQuery}
+            args={{ threadId }}
+            initialNumItems={PAGE_SIZE}
+          >
+            {({ results, status, loadMore, isLoading }) => {
+              const canLoadMore = status === "CanLoadMore";
+              const isLoadingMore = status === "LoadingMore";
+
+              return (
+                <FadeOverflow className="min-h-0 flex-1">
+                  <CollapsibleItemGroup.ItemGroup className="pr-1">
+                    <ListSection
+                      list={results}
+                      loading={isLoading}
+                      className="gap-1.5"
+                    >
+                      <ListSection.Loading />
+                      <ListSection.Empty>
+                        <span className="text-muted-foreground text-xs">
+                          Nothing yet.
+                        </span>
+                      </ListSection.Empty>
+                      {(row) => (
+                        <Item
+                          key={`${row.sourceStreamType}-${row.sourceEventId}-${row.sourceGlobalSequence}`}
+                          variant="outline"
+                          size="sm"
+                          className="flex-col items-stretch"
+                        >
+                          <ItemHeader className="min-w-0 gap-2">
+                            <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                              <ItemTitle className="w-full min-w-0 max-w-full truncate text-xs">
+                                {row.eventType}
+                              </ItemTitle>
+                              <span className="text-muted-foreground min-w-0 max-w-full truncate text-xs">
+                                {row.sourceStreamType}
+                              </span>
+                            </div>
+                            <span className="text-muted-foreground shrink-0 font-mono text-[10px] tabular-nums">
+                              {new Date(row.eventTime).toLocaleString()}
+                            </span>
+                          </ItemHeader>
+                          {(row.actor ?? row.session ?? row.correlationId) ? (
+                            <ItemContent className="min-w-0 gap-0.5">
+                              {row.actor ? (
+                                <ItemDescription className="min-w-0 line-clamp-1 font-mono text-xs">
+                                  {row.actor.byType} · {row.actor.byId}
+                                </ItemDescription>
+                              ) : null}
+                              {row.session ? (
+                                <ItemDescription className="min-w-0 line-clamp-1 font-mono text-xs">
+                                  session {row.session}
+                                </ItemDescription>
+                              ) : null}
+                              {row.correlationId ? (
+                                <ItemDescription className="min-w-0 line-clamp-1 font-mono text-xs">
+                                  correlation → {row.correlationId}
+                                </ItemDescription>
+                              ) : null}
+                            </ItemContent>
+                          ) : null}
+                        </Item>
+                      )}
+                    </ListSection>
+                  </CollapsibleItemGroup.ItemGroup>
+                  <LoadMoreSentinel
+                    onLoadMore={() => loadMore(PAGE_SIZE)}
+                    canLoadMore={canLoadMore}
+                    isLoadingMore={isLoadingMore}
+                    scrollContainerSelector='[data-slot="scroll-area-viewport"]'
+                  />
+                </FadeOverflow>
+              );
+            }}
+          </RequiredPaginatedResult>
+        </CollapsibleItemGroup.Content>
+      </CollapsibleItemGroup>
     </div>
   );
 }

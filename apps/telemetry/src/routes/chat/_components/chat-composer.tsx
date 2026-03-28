@@ -96,7 +96,7 @@ export function ChatComposer({
       {error ? <p className="text-destructive text-xs">{error}</p> : null}
       <InputGroup className="items-stretch">
         <InputGroupTextarea
-          placeholder="Message…"
+          placeholder="Accomplish anything..."
           value={text}
           onChange={(e) => setText(e.currentTarget.value)}
           rows={3}
