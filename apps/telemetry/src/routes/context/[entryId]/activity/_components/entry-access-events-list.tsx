@@ -1,5 +1,7 @@
 import { api } from "@backend/api.js";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { ActivityIcon } from "lucide-react";
+import { useRef } from "react";
 import { CollapsibleItemGroup } from "@/components/blocks/collapsible-item-group.js";
 import { formatTime } from "@/components/formatters/index.js";
 import { FadeOverflow } from "@/components/layout/fade-overflow.js";
@@ -15,6 +17,7 @@ import {
 } from "@/components/ui/item.js";
 
 const PAGE_SIZE = 15;
+const ESTIMATE_ACCESS_ROW = 72;
 
 type AccessEvent = {
   eventId: string;
@@ -83,6 +86,61 @@ function EventRow({
   );
 }
 
+function EntryAccessVirtualized({
+  results,
+  entryId,
+  namespace,
+  loadMore,
+  canLoadMore,
+  isLoadingMore,
+}: {
+  results: AccessEvent[];
+  entryId: string;
+  namespace: string;
+  loadMore: (n: number) => void;
+  canLoadMore: boolean;
+  isLoadingMore: boolean;
+}) {
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const virtualizer = useVirtualizer({
+    count: results.length,
+    getScrollElement: () => viewportRef.current,
+    estimateSize: () => ESTIMATE_ACCESS_ROW,
+    overscan: 8,
+  });
+
+  return (
+    <FadeOverflow viewportRef={viewportRef} className="h-full">
+      <div
+        className="relative pr-2"
+        style={{ height: virtualizer.getTotalSize() }}
+      >
+        {virtualizer.getVirtualItems().map((vi) => {
+          const ev = results[vi.index] as AccessEvent | undefined;
+          if (!ev) return null;
+          return (
+            <div
+              key={ev.eventId}
+              data-index={vi.index}
+              ref={virtualizer.measureElement}
+              className="absolute top-0 left-0 w-full pb-2"
+              style={{ transform: `translateY(${vi.start}px)` }}
+            >
+              <EventRow ev={ev} entryId={entryId} namespace={namespace} />
+            </div>
+          );
+        })}
+      </div>
+      <LoadMoreSentinel
+        onLoadMore={() => loadMore(PAGE_SIZE)}
+        canLoadMore={canLoadMore}
+        isLoadingMore={isLoadingMore}
+        scrollContainerSelector='[data-slot="scroll-area-viewport"]'
+      />
+    </FadeOverflow>
+  );
+}
+
 export function EntryAccessEventsList({
   namespace,
   entryId,
@@ -112,32 +170,43 @@ export function EntryAccessEventsList({
               history
             </CollapsibleItemGroup.Title>
             <CollapsibleItemGroup.Content className="h-96">
-              <FadeOverflow className="h-full">
-                <ListSection
-                  list={results}
-                  loading={isLoading}
-                  className="gap-2 pr-2"
-                >
-                  <ListSection.Loading />
-                  <ListSection.Empty>
-                    No views or searches recorded yet.
-                  </ListSection.Empty>
-                  {(ev) => (
-                    <EventRow
-                      key={ev.eventId}
-                      ev={ev as AccessEvent}
-                      entryId={entryId}
-                      namespace={namespace}
-                    />
-                  )}
-                </ListSection>
-                <LoadMoreSentinel
-                  onLoadMore={() => loadMore(PAGE_SIZE)}
+              {results.length > 0 ? (
+                <EntryAccessVirtualized
+                  results={results as AccessEvent[]}
+                  entryId={entryId}
+                  namespace={namespace}
+                  loadMore={loadMore}
                   canLoadMore={canLoadMore}
                   isLoadingMore={isLoadingMore}
-                  scrollContainerSelector='[data-slot="scroll-area-viewport"]'
                 />
-              </FadeOverflow>
+              ) : (
+                <FadeOverflow className="h-full">
+                  <ListSection
+                    list={results}
+                    loading={isLoading}
+                    className="gap-2 pr-2"
+                  >
+                    <ListSection.Loading />
+                    <ListSection.Empty>
+                      No views or searches recorded yet.
+                    </ListSection.Empty>
+                    {(ev) => (
+                      <EventRow
+                        key={ev.eventId}
+                        ev={ev as AccessEvent}
+                        entryId={entryId}
+                        namespace={namespace}
+                      />
+                    )}
+                  </ListSection>
+                  <LoadMoreSentinel
+                    onLoadMore={() => loadMore(PAGE_SIZE)}
+                    canLoadMore={canLoadMore}
+                    isLoadingMore={isLoadingMore}
+                    scrollContainerSelector='[data-slot="scroll-area-viewport"]'
+                  />
+                </FadeOverflow>
+              )}
             </CollapsibleItemGroup.Content>
           </CollapsibleItemGroup>
         );

@@ -1,19 +1,29 @@
-import { RefreshCcwIcon } from "lucide-react";
+import { ActivityIcon } from "lucide-react";
+import { useLocalStorage } from "usehooks-ts";
 import { FileDropzone, FileDropzoneProvider } from "@/components/files";
 import { PageSection } from "@/components/layout/page-section";
 import { SidebarInsetFill } from "@/components/layout/sidebar.js";
 import { Button } from "@/components/ui/button";
 import { Empty } from "@/components/ui/empty";
-import { Spinner } from "@/components/ui/spinner";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { AppLayout } from "../../_components/app-layout.js";
 import { useChatThread } from "../_hooks/use-chat-thread.js";
 import { ChatComposer } from "./chat-composer.js";
 import { ChatMessageList } from "./chat-message-list.js";
 import { ChatThreadEventsList } from "./chat-thread-events-list.js";
 
+const EVENTS_SIDEBAR_STORAGE_KEY = "telemetry_chat_events_sidebar_visible";
+
 export function ChatBenchmarkPage() {
-  const { threadId, token, hasToken, creating, initError, resetThread } =
-    useChatThread();
+  const { threadId, token, hasToken, setThreadId } = useChatThread();
+  const [eventsSidebarVisible, setEventsSidebarVisible] = useLocalStorage(
+    EVENTS_SIDEBAR_STORAGE_KEY,
+    false,
+  );
 
   return (
     <AppLayout
@@ -25,15 +35,30 @@ export function ChatBenchmarkPage() {
         </span>
       }
       segmentTrail={
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="w-fit"
-          onClick={resetThread}
-        >
-          <RefreshCcwIcon className="size-3.5" /> Reset chat
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-8 shrink-0"
+              onClick={() => setEventsSidebarVisible((v) => !v)}
+              aria-pressed={eventsSidebarVisible}
+            >
+              <ActivityIcon className="size-4" />
+              <span className="sr-only">
+                {eventsSidebarVisible
+                  ? "Hide telemetry event stream"
+                  : "Show telemetry event stream"}
+              </span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            {eventsSidebarVisible
+              ? "Hide telemetry event stream"
+              : "Show telemetry event stream"}
+          </TooltipContent>
+        </Tooltip>
       }
     >
       {!hasToken ? (
@@ -43,35 +68,48 @@ export function ChatBenchmarkPage() {
             your environment for this app build.
           </p>
         </Empty>
-      ) : initError ? (
-        <Empty>
-          <p className="text-destructive text-sm">{initError}</p>
-          <Button type="button" variant="outline" onClick={resetThread}>
-            Reset chat
-          </Button>
-        </Empty>
-      ) : creating || !threadId ? (
-        <Empty className="min-h-[12rem]">
-          <Spinner />
-        </Empty>
       ) : (
         <PageSection>
           <PageSection.Content>
             <FileDropzoneProvider limit={10}>
               <FileDropzone className="flex flex-col gap-4 rounded-lg">
                 <SidebarInsetFill>
-                  <PageSection.Body className="flex h-full min-h-0 flex-col gap-2 p-2 lg:flex-row">
-                    <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-                      <div className="min-h-0 flex-1 overflow-auto">
-                        <ChatMessageList threadId={threadId} />
+                  <PageSection.Body
+                    className={
+                      eventsSidebarVisible
+                        ? "flex h-full min-h-0 flex-col gap-2 p-2 lg:flex-row"
+                        : "flex h-full min-h-0 flex-col gap-2 p-2"
+                    }
+                  >
+                    <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
+                      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                        {threadId ? (
+                          <ChatMessageList threadId={threadId} />
+                        ) : (
+                          <div className="text-muted-foreground flex min-h-[8rem] items-center justify-center text-sm">
+                            No messages yet. Send a message to start a thread.
+                          </div>
+                        )}
                       </div>
                       <div className="flex-shrink-0">
-                        <ChatComposer threadId={threadId} token={token} />
+                        <ChatComposer
+                          threadId={threadId}
+                          token={token}
+                          setThreadId={setThreadId}
+                        />
                       </div>
                     </div>
-                    <aside className="border-border flex min-h-[10rem] shrink-0 flex-col border-t pt-2 lg:min-h-0 lg:w-72 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-3">
-                      <ChatThreadEventsList threadId={threadId} />
-                    </aside>
+                    {eventsSidebarVisible ? (
+                      <aside className="border-border flex min-h-[10rem] shrink-0 flex-col border-t pt-2 lg:min-h-0 lg:w-72 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-3">
+                        {threadId ? (
+                          <ChatThreadEventsList threadId={threadId} />
+                        ) : (
+                          <div className="text-muted-foreground flex min-h-[6rem] items-center justify-center text-center text-xs">
+                            Event stream appears after you start a thread.
+                          </div>
+                        )}
+                      </aside>
+                    ) : null}
                   </PageSection.Body>
                 </SidebarInsetFill>
               </FileDropzone>

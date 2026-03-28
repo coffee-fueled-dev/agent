@@ -1,7 +1,6 @@
 "use client";
 
 import { api } from "@backend/api.js";
-import { BookOpenIcon, PlusIcon } from "lucide-react";
 import type {
   FunctionReference,
   PaginationOptions,
@@ -9,7 +8,9 @@ import type {
 } from "convex/server";
 import { useSessionPaginatedQuery } from "convex-helpers/react/sessions";
 import type { SessionId } from "convex-helpers/server/sessions";
+import { ActivityIcon, BookOpenIcon, PlusIcon } from "lucide-react";
 import { FadeOverflow } from "@/components/layout/fade-overflow";
+import LoadMoreSentinel from "@/components/layout/load-more-sentinel";
 import {
   SidebarGroup,
   SidebarGroupButton,
@@ -17,7 +18,6 @@ import {
   SidebarGroupLabel,
   useSidebar,
 } from "@/components/layout/sidebar";
-import LoadMoreSentinel from "@/components/layout/load-more-sentinel";
 import {
   Tooltip,
   TooltipContent,
@@ -34,7 +34,8 @@ type ThreadRow = {
   title?: string;
 };
 
-const listRecentThreadsQuery = api.chat.threads.listRecentThreads as FunctionReference<
+const listRecentThreadsQuery = api.chat.threads
+  .listRecentThreads as FunctionReference<
   "query",
   "public",
   { sessionId: SessionId; token: string; paginationOpts: PaginationOptions },
@@ -96,7 +97,7 @@ function ChatThreadHistoryList({ onNavigate }: { onNavigate?: () => void }) {
 export function AppSidebarMobileNav({
   current,
 }: {
-  current: "context" | "chat";
+  current: "context" | "chat" | "events";
 }) {
   const { closeMobile } = useSidebar();
   return (
@@ -111,7 +112,7 @@ export function AppSidebarNav({
   className,
   forceExpanded,
 }: {
-  current: "context" | "chat";
+  current: "context" | "chat" | "events";
   onNavigate?: () => void;
   className?: string;
   forceExpanded?: boolean;
@@ -144,6 +145,20 @@ export function AppSidebarNav({
           <TooltipTrigger asChild>
             <SidebarGroupButton
               collapsed
+              variant={current === "events" ? "secondary" : "ghost"}
+              asChild
+            >
+              <a href="/events" onClick={go} aria-label="Events">
+                <ActivityIcon className="size-4" />
+              </a>
+            </SidebarGroupButton>
+          </TooltipTrigger>
+          <TooltipContent side="right">Events</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <SidebarGroupButton
+              collapsed
               variant={current === "context" ? "secondary" : "ghost"}
               asChild
             >
@@ -167,7 +182,11 @@ export function AppSidebarNav({
             variant={current === "chat" ? "secondary" : "ghost"}
             asChild
           >
-            <a href="/chat?new=1" onClick={go} className="flex items-center gap-2">
+            <a
+              href="/chat?new=1"
+              onClick={go}
+              className="flex items-center gap-2"
+            >
               <PlusIcon className="size-4 shrink-0" />
               Chat
             </a>
@@ -178,6 +197,15 @@ export function AppSidebarNav({
 
       <SidebarGroup>
         <SidebarGroupContent>
+          <SidebarGroupButton
+            variant={current === "events" ? "secondary" : "ghost"}
+            asChild
+          >
+            <a href="/events" onClick={go} className="flex items-center gap-2">
+              <ActivityIcon className="size-4 shrink-0" />
+              Events
+            </a>
+          </SidebarGroupButton>
           <SidebarGroupButton
             variant={current === "context" ? "secondary" : "ghost"}
             asChild

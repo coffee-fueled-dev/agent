@@ -4,6 +4,8 @@ import contextEntryActivityEvent from "./routes/context/[entryId]/activity/[even
 import contextEntryActivity from "./routes/context/[entryId]/activity/page.html";
 import contextEntryOverview from "./routes/context/[entryId]/page.html";
 import contextPage from "./routes/context/page.html";
+import eventsEventDetail from "./routes/events/[event]/page.html";
+import eventsPage from "./routes/events/page.html";
 import homePage from "./routes/home/page.html";
 
 const server = serve({
@@ -12,6 +14,8 @@ const server = serve({
     "/context/:entryId/activity": contextEntryActivity,
     "/context/:entryId": contextEntryOverview,
     "/context": contextPage,
+    "/events/:event": eventsEventDetail,
+    "/events": eventsPage,
     "/chat": chatPage,
     "/": homePage,
     "/*": homePage,

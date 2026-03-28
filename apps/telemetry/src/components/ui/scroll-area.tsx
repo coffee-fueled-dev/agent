@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 interface ScrollAreaProps
   extends React.ComponentProps<typeof ScrollAreaPrimitive.Root> {
   orientation?: "vertical" | "horizontal" | "both";
-  viewportRef?: React.RefObject<HTMLDivElement | null>;
+  viewportRef?: React.Ref<HTMLDivElement | null>;
   viewportClassName?: string;
 }
 

@@ -17,6 +17,7 @@
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
     "@tanstack/react-form": "^1.28.5",
+    "@tanstack/react-virtual": "^3.13.23",
     "ai": "^5.0.82",
     "bun-plugin-tailwind": "^0.1.2",
     "class-variance-authority": "^0.7.1",

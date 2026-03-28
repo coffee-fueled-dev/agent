@@ -1,20 +1,36 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ClassNameValue } from "tailwind-merge";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "../ui/scroll-area";
+
+function assignRef<T>(ref: React.Ref<T> | undefined, value: T | null) {
+  if (!ref) return;
+  if (typeof ref === "function") ref(value);
+  else (ref as React.MutableRefObject<T | null>).current = value;
+}
 
 export function FadeOverflow({
   children,
   orientation = "vertical",
   className,
+  viewportRef: viewportRefProp,
 }: {
   children: React.ReactNode;
   orientation?: "vertical" | "horizontal";
   className?: ClassNameValue;
+  /** Merged with the internal viewport ref (scroll root for virtualizers, observers). */
+  viewportRef?: React.Ref<HTMLDivElement | null>;
 }) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const setViewportRef = useCallback(
+    (el: HTMLDivElement | null) => {
+      scrollContainerRef.current = el;
+      assignRef(viewportRefProp, el);
+    },
+    [viewportRefProp],
+  );
   const [showTopFade, setShowTopFade] = useState(false);
   const [showBottomFade, setShowBottomFade] = useState(false);
   const [showLeftFade, setShowLeftFade] = useState(false);
@@ -85,7 +101,7 @@ export function FadeOverflow({
   return (
     <ScrollArea
       orientation={orientation}
-      viewportRef={scrollContainerRef}
+      viewportRef={setViewportRef}
       className={cn(className)}
       viewportClassName={cn(
         orientation === "vertical" &&

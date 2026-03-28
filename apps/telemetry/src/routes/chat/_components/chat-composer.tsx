@@ -17,10 +17,13 @@ import {
 export function ChatComposer({
   threadId,
   token,
+  setThreadId,
 }: {
-  threadId: string;
+  threadId: string | null;
   token: string;
+  setThreadId: (id: string) => void;
 }) {
+  const createThread = useSessionMutation(api.chat.threads.createThread);
   const sendMessage = useSessionAction(api.chat.threads.sendMessage);
   const generateUploadUrl = useSessionMutation(
     api.context.files.generateContextUploadUrl,
@@ -54,6 +57,13 @@ export function ChatComposer({
     setSending(true);
     setError(null);
     try {
+      let activeThreadId = threadId;
+      if (!activeThreadId) {
+        const created = await createThread({ token, title: "Telemetry chat" });
+        activeThreadId = created.threadId;
+        setThreadId(activeThreadId);
+      }
+
       const attachments =
         files.length > 0
           ? await Promise.all(
@@ -66,7 +76,7 @@ export function ChatComposer({
           : undefined;
 
       await sendMessage({
-        threadId,
+        threadId: activeThreadId,
         prompt: trimmed,
         token,
         attachments,

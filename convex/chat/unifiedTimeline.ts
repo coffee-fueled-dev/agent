@@ -1,11 +1,14 @@
 import type { PaginationOptions } from "convex/server";
 import { z } from "zod/v4";
+import type { Id } from "../_generated/dataModel";
 import { components } from "../_generated/api";
 import { internalMutation, type MutationCtx } from "../_generated/server";
 import {
   type SessionQueryCtx,
   sessionPaginatedQuery,
+  sessionQuery,
 } from "../customFunctions";
+import { expectedAccountNamespace } from "../models/auth/contextNamespace";
 
 export const PROJECTOR_ID = "unifiedThreadTimeline@v1";
 const STREAM_TYPES = ["threadIdentity", "contextMemory"] as const;
@@ -163,5 +166,36 @@ export const listUnifiedTimeline = sessionPaginatedQuery({
       )
       .order("desc")
       .paginate(args.paginationOpts);
+  },
+});
+
+export const listUnifiedTimelineByNamespace = sessionPaginatedQuery({
+  args: {},
+  handler: async (
+    ctx: SessionQueryCtx,
+    args: { paginationOpts: PaginationOptions },
+  ) => {
+    if (!ctx.account) {
+      return { page: [], isDone: true, continueCursor: "" };
+    }
+    const namespace = expectedAccountNamespace(ctx.account._id);
+    return await ctx.db
+      .query("unifiedTimeline")
+      .withIndex("by_namespace_eventTime", (q) =>
+        q.eq("sourceNamespace", namespace),
+      )
+      .order("desc")
+      .paginate(args.paginationOpts);
+  },
+});
+
+export const getUnifiedTimelineEvent = sessionQuery({
+  args: { id: z.string() },
+  handler: async (ctx: SessionQueryCtx, args: { id: string }) => {
+    if (!ctx.account) return null;
+    const expected = expectedAccountNamespace(ctx.account._id);
+    const doc = await ctx.db.get(args.id as Id<"unifiedTimeline">);
+    if (!doc || doc.sourceNamespace !== expected) return null;
+    return doc;
   },
 });

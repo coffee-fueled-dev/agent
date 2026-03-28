@@ -2,12 +2,10 @@ import type { ReactNode } from "react";
 import {
   MobileSidebarSheet,
   Sidebar,
-  SidebarHeader,
   SidebarInset,
   SidebarMain,
+  SidebarPanelControl,
   SidebarProvider,
-  SidebarRailToggle,
-  SidebarTrigger,
 } from "@/components/layout/sidebar";
 import { AppSidebarMobileNav, AppSidebarNav } from "./app-sidebar-nav";
 
@@ -18,7 +16,7 @@ export function AppLayout({
   segmentTrail,
 }: {
   children: ReactNode;
-  current: "context" | "chat";
+  current: "context" | "chat" | "events";
   /** Left cluster after menu trigger (e.g. Back). */
   segmentLead?: ReactNode;
   /** Right-aligned inner segment nav (e.g. entry sub-tabs). */
@@ -29,11 +27,6 @@ export function AppLayout({
       <div className="grid min-h-dvh w-full grid-cols-1 md:grid-cols-[auto_minmax(0,1fr)]">
         <aside className="hidden min-h-0 self-stretch border-sidebar-border md:flex md:min-h-dvh md:border-r">
           <Sidebar>
-            <SidebarHeader>
-              <div className="flex items-center gap-2">
-                <SidebarRailToggle />
-              </div>
-            </SidebarHeader>
             <SidebarMain>
               <AppSidebarNav current={current} />
             </SidebarMain>
@@ -41,7 +34,7 @@ export function AppLayout({
         </aside>
         <SidebarInset className="col-span-1 md:col-start-2">
           <header className="flex shrink-0 flex-wrap items-center gap-2 border-b px-3 py-2 md:px-4">
-            <SidebarTrigger />
+            <SidebarPanelControl />
             {segmentLead ? (
               <span className="flex shrink-0 items-center gap-2">
                 {segmentLead}

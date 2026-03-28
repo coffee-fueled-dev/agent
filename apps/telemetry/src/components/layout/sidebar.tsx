@@ -1,5 +1,6 @@
 import { PanelLeftIcon } from "lucide-react";
 import {
+  type ComponentProps,
   createContext,
   useCallback,
   useContext,
@@ -193,39 +194,38 @@ export const SidebarGroupButton = ({
   );
 };
 
-/** Opens the mobile navigation sheet (visible below `md` only). */
-export const SidebarTrigger = () => {
-  const { openMobile } = useSidebar();
+/**
+ * Opens the mobile nav sheet below `md`, toggles the desktop sidebar rail at `md+`.
+ * Visibility is controlled by the caller via `className` / layout.
+ */
+export function SidebarPanelControl({
+  className,
+  ...props
+}: Omit<ComponentProps<typeof Button>, "onClick" | "children">) {
+  const { openMobile, toggleExpanded } = useSidebar();
   return (
     <Button
+      type="button"
       variant="ghost"
       size="icon"
-      className="md:hidden"
-      type="button"
-      onClick={openMobile}
+      className={cn("shrink-0", className)}
+      onClick={() => {
+        if (
+          typeof window !== "undefined" &&
+          window.matchMedia("(min-width: 768px)").matches
+        ) {
+          toggleExpanded();
+        } else {
+          openMobile();
+        }
+      }}
+      {...props}
     >
       <PanelLeftIcon />
       <span className="sr-only">Open menu</span>
     </Button>
   );
-};
-
-/** Collapse/expand the desktop sidebar rail (hidden below `md`). */
-export const SidebarRailToggle = () => {
-  const { toggleExpanded } = useSidebar();
-  return (
-    <Button
-      variant="ghost"
-      size="icon"
-      type="button"
-      className="hidden shrink-0 md:inline-flex"
-      onClick={toggleExpanded}
-    >
-      <PanelLeftIcon />
-      <span className="sr-only">Toggle sidebar width</span>
-    </Button>
-  );
-};
+}
 
 export function MobileSidebarSheet({
   children,

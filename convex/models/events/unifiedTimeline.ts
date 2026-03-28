@@ -36,4 +36,5 @@ export const unifiedTimeline = defineTable({
     "sourceNamespace",
     "sourceStreamId",
     "sourceEventId",
-  ]);
+  ])
+  .index("by_namespace_eventTime", ["sourceNamespace", "eventTime"]);
