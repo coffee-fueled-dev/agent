@@ -9,7 +9,7 @@
     "includes": [
       "**",
       "!!**/dist",
-      "!!**/convex/_generated",
+      "!!**/convex/**/_generated/**",
       "!!**/node_modules",
       "!!**/routeTree.gen.ts"
     ]
