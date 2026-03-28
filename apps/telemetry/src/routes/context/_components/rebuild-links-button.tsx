@@ -1,13 +1,13 @@
+import { api } from "@backend/api.js";
 import { useAction, useQuery } from "convex/react";
 import { useState } from "react";
-import { api } from "../../../../../../convex/_generated/api.js";
-import { Button } from "../../../components/ui/button.js";
-import { Spinner } from "../../../components/ui/spinner.js";
+import { Button } from "@/components/ui/button.js";
+import { Spinner } from "@/components/ui/spinner.js";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "../../../components/ui/tooltip.js";
+} from "@/components/ui/tooltip.js";
 import { useNamespace } from "../_hooks/use-namespace.js";
 
 export function RebuildLinksButton({

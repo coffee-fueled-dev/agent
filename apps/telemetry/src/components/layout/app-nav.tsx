@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/navigation-menu";
 
 type AppNavProps = {
-  current: "telemetry" | "context" | "memory";
+  current: "telemetry" | "context" | "memory" | "chat";
 };
 
 export function AppNav({ current }: AppNavProps) {
@@ -21,6 +21,11 @@ export function AppNav({ current }: AppNavProps) {
         <NavigationMenuItem>
           <NavigationMenuLink asChild active={current === "context"}>
             <a href="/context">Context</a>
+          </NavigationMenuLink>
+        </NavigationMenuItem>
+        <NavigationMenuItem>
+          <NavigationMenuLink asChild active={current === "chat"}>
+            <a href="/chat">Chat</a>
           </NavigationMenuLink>
         </NavigationMenuItem>
       </NavigationMenuList>

@@ -4,9 +4,11 @@ import { ConvexProvider, ConvexReactClient } from "convex/react";
 import { type ReactNode, StrictMode, useMemo } from "react";
 import { createRoot } from "react-dom/client";
 import { TooltipProvider } from "./components/ui/tooltip";
+import { PublicEnvProvider } from "./env/index.js";
 
 function Root({ children }: { children: ReactNode }) {
-  const convexUrl = process.env.BUN_PUBLIC_CONVEX_URL;
+  const convexUrl = String(process.env.BUN_PUBLIC_CONVEX_URL ?? "");
+  const accountToken = String(process.env.BUN_PUBLIC_ACCOUNT_TOKEN ?? "");
 
   const client = useMemo(() => {
     if (!convexUrl) {
@@ -16,18 +18,18 @@ function Root({ children }: { children: ReactNode }) {
     return new ConvexReactClient(convexUrl);
   }, [convexUrl]);
 
-  if (!client) {
-    return (
-      <div className="p-6 text-sm text-muted-foreground">
-        `BUN_PUBLIC_CONVEX_URL` is not configured for this app.
-      </div>
-    );
-  }
-
   return (
-    <ConvexProvider client={client}>
-      <TooltipProvider>{children}</TooltipProvider>
-    </ConvexProvider>
+    <PublicEnvProvider value={{ convexUrl, accountToken }}>
+      {!client ? (
+        <div className="p-6 text-sm text-muted-foreground">
+          Missing variable.
+        </div>
+      ) : (
+        <ConvexProvider client={client}>
+          <TooltipProvider>{children}</TooltipProvider>
+        </ConvexProvider>
+      )}
+    </PublicEnvProvider>
   );
 }
 

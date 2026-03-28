@@ -1,3 +1,4 @@
+import { identityMetricDedup } from "./identityMetricDedup";
 import {
   machineAgentRegistrations,
   machineAgentRuntimeVersions,
@@ -5,6 +6,7 @@ import {
   machineAgentTurnBindings,
 } from "./machineAgent";
 
+export * from "./identityMetricDedup";
 export * from "./machineAgent";
 
 export default {
@@ -12,4 +14,5 @@ export default {
   machineAgentStaticVersions,
   machineAgentRuntimeVersions,
   machineAgentTurnBindings,
+  identityMetricDedup,
 };

@@ -1,14 +1,14 @@
+import { api } from "@backend/api.js";
 import { contentHashFromArrayBuffer } from "@convex-dev/rag";
 import { useAction, useMutation } from "convex/react";
-import { XIcon } from "lucide-react";
 import {
   type ComponentProps,
   type PropsWithChildren,
   useMemo,
   useState,
 } from "react";
-import { api } from "../../../../../../convex/_generated/api.js";
-import { Button } from "../../../components/ui/button.js";
+import { FileDropzone, FilePreviewRow, useFiles } from "@/components/files";
+import { Button } from "@/components/ui/button.js";
 import {
   Dialog,
   DialogClose,
@@ -17,12 +17,11 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "../../../components/ui/dialog.js";
-import { Field, FieldError, FieldLabel } from "../../../components/ui/field.js";
-import { Input } from "../../../components/ui/input.js";
-import { Textarea } from "../../../components/ui/textarea.js";
+} from "@/components/ui/dialog.js";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field.js";
+import { Input } from "@/components/ui/input.js";
+import { Textarea } from "@/components/ui/textarea.js";
 import { useNamespace } from "../_hooks/use-namespace.js";
-import { FileDropzone, useFiles } from "./file-dropzone.js";
 
 function buildKey(title: string, file?: File | null) {
   const base = (title.trim() || file?.name || "context")
@@ -165,7 +164,7 @@ export function AddContextDialog({
             <Field>
               <FieldLabel htmlFor="ctx-file">File</FieldLabel>
               {file ? (
-                <FileItem
+                <FilePreviewRow
                   file={file}
                   onRemove={() => removeFile(file?.name ?? "")}
                 />
@@ -231,31 +230,6 @@ export function AddContextDialog({
         </FileDropzone>
       </DialogContent>
     </Dialog>
-  );
-}
-
-function FileItem({
-  file,
-  onRemove,
-}: {
-  file: File | null;
-  onRemove: () => void;
-}) {
-  if (!file) return null;
-
-  return (
-    <div className="flex items-center justify-between rounded-md border bg-muted/50 px-3 py-2 text-sm">
-      <div className="min-w-0">
-        <div className="truncate font-medium">{file.name}</div>
-        <div className="text-muted-foreground">
-          {file.type || "application/octet-stream"} ·{" "}
-          {Math.max(1, Math.round(file.size / 1024))} KB
-        </div>
-      </div>
-      <Button type="button" variant="ghost" size="icon-sm" onClick={onRemove}>
-        <XIcon />
-      </Button>
-    </div>
   );
 }
 

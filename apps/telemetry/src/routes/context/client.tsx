@@ -1,36 +1,36 @@
 import { PlusIcon, SearchIcon } from "lucide-react";
 import { useState } from "react";
 import { useDropzone } from "react-dropzone";
+import { FileDropzoneProvider } from "@/components/files";
 import { PageSection } from "../../components/layout/page-section";
 import { Button } from "../../components/ui/button";
 import { CommandDialog } from "../../components/ui/command";
 import { renderApp } from "../../render-root";
+import { AppLayout } from "../_components/app-layout.js";
 import { AddContextDialog } from "./_components/add-context-dialog.js";
 import { ContextExplore } from "./_components/context-explore.js";
-import { ContextLayout } from "./_components/context-layout.js";
 import { ContextSearch } from "./_components/context-search.js";
-import { FileDropzoneProvider } from "./_components/file-dropzone.js";
 import { NamespaceProvider } from "./_hooks/use-namespace.js";
 
 function ContextIndexRoute() {
   return (
     <NamespaceProvider>
       <FileDropzoneProvider>
-        <ContextLayout current="context">
-          <ContextIndex />
-        </ContextLayout>
+        <AppLayout current="context">
+          <ContextPage />
+        </AppLayout>
       </FileDropzoneProvider>
     </NamespaceProvider>
   );
 }
 
-function ContextIndex() {
+function ContextPage() {
   const [isAddContextDialogOpen, setIsAddContextDialogOpen] = useState(false);
   const { isDragActive } = useDropzone();
   const [isSearchDialogOpen, setIsSearchDialogOpen] = useState(false);
 
   return (
-    <PageSection className="px-4 py-6 md:px-6">
+    <PageSection>
       <PageSection.Header>
         <PageSection.HeaderRow className="flex-wrap items-start justify-between gap-4">
           <PageSection.HeaderColumn>

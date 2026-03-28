@@ -1,7 +1,7 @@
 import { formatTime } from "@/components/formatters";
 import { PageSection } from "@/components/layout/page-section";
 import { renderApp } from "../../../render-root";
-import { ContextLayout } from "../_components/context-layout.js";
+import { AppLayout } from "../../_components/app-layout.js";
 import { NamespaceProvider } from "../_hooks/use-namespace.js";
 import { ContextEntryHeader } from "./_components/context-entry-header.js";
 import { ContextEntryShell } from "./_components/context-entry-shell.js";
@@ -17,11 +17,11 @@ function ContextDetailRoute() {
   if (!parsed) {
     return (
       <NamespaceProvider>
-        <ContextLayout current="context">
+        <AppLayout current="context">
           <div className="px-4 py-6 text-sm text-muted-foreground md:px-6">
             Invalid context entry URL.
           </div>
-        </ContextLayout>
+        </AppLayout>
       </NamespaceProvider>
     );
   }

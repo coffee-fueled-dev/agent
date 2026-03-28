@@ -1,3 +1,4 @@
+import { api } from "@backend/api.js";
 import { useQuery } from "convex/react";
 import { NetworkIcon } from "lucide-react";
 import { useMemo } from "react";
@@ -9,7 +10,6 @@ import {
   ItemMedia,
   ItemTitle,
 } from "@/components/ui/item.js";
-import { api } from "../../../../../../../convex/_generated/api.js";
 import { MimeTypeIcon } from "../../_components/mime-type-icon.js";
 import { RebuildLinksButton } from "../../_components/rebuild-links-button.js";
 

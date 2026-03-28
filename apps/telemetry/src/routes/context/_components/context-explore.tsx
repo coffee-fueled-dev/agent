@@ -1,17 +1,17 @@
 import { RefreshCwIcon } from "lucide-react";
-import { LoaderWithMessage } from "../../../components/blocks/loader-with-message.js";
-import { PageSection } from "../../../components/layout/page-section.js";
-import { Button } from "../../../components/ui/button.js";
-import { Empty } from "../../../components/ui/empty.js";
-import { Kbd } from "../../../components/ui/kbd.js";
+import { LoaderWithMessage } from "@/components/blocks/loader-with-message.js";
+import { PageSection } from "@/components/layout/page-section.js";
+import { Button } from "@/components/ui/button.js";
+import { Empty } from "@/components/ui/empty.js";
+import { Kbd } from "@/components/ui/kbd.js";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../../../components/ui/select.js";
-import { Spinner } from "../../../components/ui/spinner.js";
+} from "@/components/ui/select.js";
+import { Spinner } from "@/components/ui/spinner.js";
 import { ProjectionProvider, useProjection } from "../_hooks/use-projection.js";
 import { ContextExploreDetailDialog } from "./context-explore-detail-dialog.js";
 import { ContextExploreScene } from "./context-explore-scene.js";
@@ -55,7 +55,7 @@ function ContextExploreInner({
   } = useProjection();
 
   return (
-    <PageSection.Body variant="card" className="gap-4">
+    <PageSection.Body className="gap-4">
       <PageSection.Header>
         <PageSection.HeaderRow className="flex-wrap items-start justify-between gap-3">
           <PageSection.HeaderColumn>

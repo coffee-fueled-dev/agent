@@ -1,6 +1,10 @@
 "use client";
 
-import { BookOpenIcon, LayoutDashboardIcon } from "lucide-react";
+import {
+  BookOpenIcon,
+  LayoutDashboardIcon,
+  MessageSquareIcon,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import {
   MobileSidebarSheet,
@@ -21,18 +25,21 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
-function MobileNav() {
+function MobileNav({ current }: { current: "telemetry" | "context" | "chat" }) {
   const { closeMobile } = useSidebar();
-  return <SidebarNav onNavigate={closeMobile} forceExpanded />;
+  return (
+    <SidebarNav current={current} onNavigate={closeMobile} forceExpanded />
+  );
 }
 
-export function ContextLayout({
+export function AppLayout({
   children,
+  current,
   segmentLead,
   segmentTrail,
 }: {
   children: ReactNode;
-  current: "telemetry" | "context";
+  current: "telemetry" | "context" | "chat";
   /** Left cluster after menu trigger (e.g. Back). */
   segmentLead?: ReactNode;
   /** Right-aligned inner segment nav (e.g. entry sub-tabs). */
@@ -49,7 +56,7 @@ export function ContextLayout({
               </div>
             </SidebarHeader>
             <SidebarMain>
-              <SidebarNav />
+              <SidebarNav current={current} />
             </SidebarMain>
           </Sidebar>
         </aside>
@@ -70,13 +77,13 @@ export function ContextLayout({
               </>
             ) : null}
           </header>
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-auto">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-auto p-8">
             {children}
           </div>
         </SidebarInset>
       </div>
       <MobileSidebarSheet>
-        <MobileNav />
+        <MobileNav current={current} />
       </MobileSidebarSheet>
     </SidebarProvider>
   );
@@ -84,10 +91,12 @@ export function ContextLayout({
 
 /** `forceExpanded`: always show text links (e.g. mobile sheet when desktop rail is collapsed). */
 function SidebarNav({
+  current,
   onNavigate,
   className,
   forceExpanded,
 }: {
+  current: "telemetry" | "context" | "chat";
   onNavigate?: () => void;
   className?: string;
   forceExpanded?: boolean;
@@ -108,7 +117,11 @@ function SidebarNav({
       >
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" asChild>
+            <Button
+              variant={current === "telemetry" ? "secondary" : "ghost"}
+              size="icon"
+              asChild
+            >
               <a href="/" onClick={go} aria-label="Telemetry">
                 <LayoutDashboardIcon className="size-4" />
               </a>
@@ -118,7 +131,11 @@ function SidebarNav({
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" asChild>
+            <Button
+              variant={current === "context" ? "secondary" : "ghost"}
+              size="icon"
+              asChild
+            >
               <a href="/context" onClick={go} aria-label="Context">
                 <BookOpenIcon className="size-4" />
               </a>
@@ -126,20 +143,51 @@ function SidebarNav({
           </TooltipTrigger>
           <TooltipContent side="right">Context</TooltipContent>
         </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={current === "chat" ? "secondary" : "ghost"}
+              size="icon"
+              asChild
+            >
+              <a href="/chat" onClick={go} aria-label="Chat">
+                <MessageSquareIcon className="size-4" />
+              </a>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="right">Chat</TooltipContent>
+        </Tooltip>
       </nav>
     );
   }
 
   return (
     <nav className={cn("flex flex-col gap-1", className)}>
-      <Button variant="ghost" className="w-full justify-start" asChild>
+      <Button
+        variant={current === "telemetry" ? "secondary" : "ghost"}
+        className="w-full justify-start"
+        asChild
+      >
         <a href="/" onClick={go}>
           <LayoutDashboardIcon className="size-4" /> Telemetry
         </a>
       </Button>
-      <Button variant="ghost" className="w-full justify-start" asChild>
+      <Button
+        variant={current === "context" ? "secondary" : "ghost"}
+        className="w-full justify-start"
+        asChild
+      >
         <a href="/context" onClick={go}>
           <BookOpenIcon className="size-4" /> Context
+        </a>
+      </Button>
+      <Button
+        variant={current === "chat" ? "secondary" : "ghost"}
+        className="w-full justify-start"
+        asChild
+      >
+        <a href="/chat" onClick={go}>
+          <MessageSquareIcon className="size-4" /> Chat
         </a>
       </Button>
     </nav>

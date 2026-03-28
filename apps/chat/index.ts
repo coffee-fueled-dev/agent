@@ -16,7 +16,7 @@ if (!accountToken) {
 
 const client = new ConvexClient(convexUrl);
 
-const chatApi = api.chat;
+const chatApi = api.chat.threads;
 const rl = createInterface({ input: stdin, output: stdout });
 const emptyPage = { cursor: null, numItems: 0 };
 

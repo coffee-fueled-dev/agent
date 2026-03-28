@@ -1,3 +1,4 @@
+import { api } from "@backend/api.js";
 import { useAction, useQuery } from "convex/react";
 import {
   createContext,
@@ -9,7 +10,6 @@ import {
   useState,
 } from "react";
 import { useDebounceValue } from "usehooks-ts";
-import { api } from "../../../../../../convex/_generated/api.js";
 import type { ProjectionPoint } from "../_components/context-explore-types.js";
 import { useNamespace } from "./use-namespace.js";
 

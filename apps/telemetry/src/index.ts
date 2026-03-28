@@ -1,4 +1,5 @@
 import { serve } from "bun";
+import chatPage from "./routes/chat/page.html";
 import contextEntryActivityEvent from "./routes/context/[entryId]/activity/[event]/page.html";
 import contextEntryActivity from "./routes/context/[entryId]/activity/page.html";
 import contextEntryOverview from "./routes/context/[entryId]/page.html";
@@ -11,6 +12,7 @@ const server = serve({
     "/context/:entryId/activity": contextEntryActivity,
     "/context/:entryId": contextEntryOverview,
     "/context": contextPage,
+    "/chat": chatPage,
     "/": homePage,
     "/*": homePage,
   },

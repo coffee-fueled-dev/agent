@@ -149,6 +149,12 @@ const result = await Bun.build({
   sourcemap: "linked",
   define: {
     "process.env.NODE_ENV": JSON.stringify("production"),
+    "process.env.BUN_PUBLIC_CONVEX_URL": JSON.stringify(
+      process.env.BUN_PUBLIC_CONVEX_URL ?? "",
+    ),
+    "process.env.BUN_PUBLIC_ACCOUNT_TOKEN": JSON.stringify(
+      process.env.BUN_PUBLIC_ACCOUNT_TOKEN ?? "",
+    ),
   },
   ...cliConfig,
 });

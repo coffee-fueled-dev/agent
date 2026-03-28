@@ -1,6 +1,6 @@
+import { api } from "@backend/api.js";
 import { useQuery } from "convex/react";
-import { api } from "../../../../../../convex/_generated/api.js";
-import { Button } from "../../../components/ui/button.js";
+import { Button } from "@/components/ui/button.js";
 import {
   Dialog,
   DialogClose,
@@ -9,7 +9,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "../../../components/ui/dialog.js";
+} from "@/components/ui/dialog.js";
 import { useProjection } from "../_hooks/use-projection.js";
 import { MimeTypeIcon } from "./mime-type-icon.js";
 

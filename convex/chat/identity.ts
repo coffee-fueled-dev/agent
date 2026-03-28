@@ -1,164 +1,147 @@
 import { v } from "convex/values";
-import { internalMutation, type MutationCtx } from "../_generated/server";
+import { z } from "zod/v4";
+import { internal } from "../_generated/api";
 import {
-  agentMetricNamespace,
-  globalMetricNamespace,
-  machineAgentTelemetry,
-  threadMetricNamespace,
-} from "../aggregate";
+  type ActionCtx,
+  internalMutation,
+  type MutationCtx,
+} from "../_generated/server";
 import { events } from "../events";
-import { history } from "../history";
 import { ensureMachineAccount, grantThreadAccessToAccount } from "../lib/auth";
+import { updateIdentityCounters } from "./identityCounters";
 
-async function appendMachineAgentHistory(
-  ctx: MutationCtx,
-  args: {
-    agentId: string;
-    staticHash: string;
-    runtimeHash: string;
-    created: {
-      registration: boolean;
-      staticVersion: boolean;
-      runtimeVersion: boolean;
-    };
-  },
-) {
-  if (
-    !args.created.registration &&
-    !args.created.staticVersion &&
-    !args.created.runtimeVersion
-  ) {
-    return;
-  }
+type IdentityRunner = Pick<ActionCtx, "runMutation" | "runQuery">;
 
-  let parentEntryIds = (
-    await history.listHeads(ctx, {
-      streamType: "machineAgent",
-      streamId: args.agentId,
-    })
-  ).map((head) => head.entryId);
+type JsonValue =
+  | null
+  | boolean
+  | number
+  | string
+  | JsonValue[]
+  | { [key: string]: JsonValue };
 
-  if (args.created.registration) {
-    await history.append(ctx, {
-      streamType: "machineAgent",
-      streamId: args.agentId,
-      entryId: `registered:${args.agentId}`,
-      kind: "registered",
-      parentEntryIds,
-    });
-    parentEntryIds = [`registered:${args.agentId}`];
-  }
+export type RegisteredMachineAgent<STATIC_PROPS = unknown> = {
+  agentId: string;
+  name: string;
+  staticProps: STATIC_PROPS;
+  getStaticIdentityInput: () => STATIC_PROPS;
+  getRuntimeIdentityInput: (runtimeStaticProps?: unknown) => unknown;
+};
 
-  if (args.created.staticVersion) {
-    const entryId = `static:${args.staticHash}`;
-    await history.append(ctx, {
-      streamType: "machineAgent",
-      streamId: args.agentId,
-      entryId,
-      kind: "static_version_added",
-      parentEntryIds,
-      payload: { staticHash: args.staticHash },
-    });
-    parentEntryIds = [entryId];
-  }
-
-  if (args.created.runtimeVersion) {
-    await history.append(ctx, {
-      streamType: "machineAgent",
-      streamId: args.agentId,
-      entryId: `runtime:${args.runtimeHash}`,
-      kind: "runtime_version_seen",
-      parentEntryIds,
-      payload: { runtimeHash: args.runtimeHash },
-    });
-  }
+export function defineRegisteredMachineAgent<STATIC_PROPS>(args: {
+  agentId: string;
+  name: string;
+  staticProps: STATIC_PROPS;
+}) {
+  return {
+    agentId: args.agentId,
+    name: args.name,
+    staticProps: args.staticProps,
+    getStaticIdentityInput: () => args.staticProps,
+    getRuntimeIdentityInput: (runtimeStaticProps?: unknown) =>
+      runtimeStaticProps ?? args.staticProps,
+  } satisfies RegisteredMachineAgent<STATIC_PROPS>;
 }
 
-async function appendThreadIdentityHistory(
-  ctx: MutationCtx,
+function isZodSchema(value: unknown): value is z.ZodType {
+  return typeof value === "object" && value !== null && "_zod" in value;
+}
+
+function normalizeValue(value: unknown): JsonValue {
+  if (value === null) {
+    return null;
+  }
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return value;
+  }
+  if (value === undefined) {
+    return null;
+  }
+  if (Array.isArray(value)) {
+    return value.map(normalizeValue);
+  }
+  if (isZodSchema(value)) {
+    return normalizeValue(z.toJSONSchema(value));
+  }
+  if (typeof value === "function") {
+    return `[function:${value.name || "anonymous"}]`;
+  }
+  if (typeof value === "object") {
+    if ("id" in value && "query" in value) {
+      return String(value.id);
+    }
+    const entries = Object.entries(value)
+      .filter(
+        ([key, entryValue]) => entryValue !== undefined && !key.startsWith("$"),
+      )
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, entryValue]) => [key, normalizeValue(entryValue)] as const);
+    return Object.fromEntries(entries);
+  }
+  return String(value);
+}
+
+export function normalizeStaticProps(value: unknown) {
+  return normalizeValue(value);
+}
+
+async function sha256Hex(value: string) {
+  const bytes = new TextEncoder().encode(value);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest), (part) =>
+    part.toString(16).padStart(2, "0"),
+  ).join("");
+}
+
+export async function hashIdentityInput(value: unknown) {
+  return await sha256Hex(JSON.stringify(normalizeStaticProps(value)));
+}
+
+export async function recordRegisteredMachineAgentTurn(
+  ctx: IdentityRunner,
   args: {
+    definition: RegisteredMachineAgent;
+    runtimeStaticProps?: unknown;
     threadId: string;
     messageId: string;
-    codeId: string;
-    staticHash: string;
-    runtimeHash: string;
-    previousBinding:
-      | {
-          codeId: string;
-          staticVersionId: string;
-          runtimeVersionId: string;
-        }
-      | undefined;
-    currentBinding: {
-      staticVersionId: string;
-      runtimeVersionId: string;
-    };
-    bindingCreated: boolean;
+    sessionId?: string;
   },
 ) {
-  if (!args.bindingCreated) {
-    return;
-  }
+  const staticSnapshot = normalizeStaticProps(
+    args.definition.getStaticIdentityInput(),
+  );
+  const runtimeSnapshot = normalizeStaticProps(
+    args.definition.getRuntimeIdentityInput(args.runtimeStaticProps),
+  );
+  const staticHash = await hashIdentityInput(staticSnapshot);
+  const runtimeHash = await hashIdentityInput(runtimeSnapshot);
 
-  const turnEntryId = `turn:${args.messageId}`;
-  const parentEntryIds = (
-    await history.listHeads(ctx, {
-      streamType: "threadIdentity",
-      streamId: args.threadId,
-    })
-  ).map((head) => head.entryId);
-
-  await history.append(ctx, {
-    streamType: "threadIdentity",
-    streamId: args.threadId,
-    entryId: turnEntryId,
-    kind: "turn_bound",
-    parentEntryIds,
-    payload: {
+  const recorded = await ctx.runMutation(
+    internal.chat.identity.recordTurnIdentity,
+    {
+      codeId: args.definition.agentId,
+      name: args.definition.name,
+      staticHash,
+      staticSnapshot,
+      runtimeHash,
+      runtimeSnapshot,
+      threadId: args.threadId,
       messageId: args.messageId,
-      codeId: args.codeId,
-      staticHash: args.staticHash,
-      runtimeHash: args.runtimeHash,
+      sessionId: args.sessionId,
     },
-  });
+  );
 
-  let nextParents = [turnEntryId];
-  const identityChanged =
-    args.previousBinding == null ||
-    args.previousBinding.codeId !== args.codeId ||
-    args.previousBinding.staticVersionId !==
-      args.currentBinding.staticVersionId ||
-    args.previousBinding.runtimeVersionId !==
-      args.currentBinding.runtimeVersionId;
-
-  if (identityChanged) {
-    const identityEntryId = `identity:${args.messageId}`;
-    await history.append(ctx, {
-      streamType: "threadIdentity",
-      streamId: args.threadId,
-      entryId: identityEntryId,
-      kind: "identity_changed",
-      parentEntryIds: nextParents,
-      payload: {
-        messageId: args.messageId,
-        codeId: args.codeId,
-        previousCodeId: args.previousBinding?.codeId,
-      },
-    });
-    nextParents = [identityEntryId];
-  }
-
-  await history.append(ctx, {
-    streamType: "threadIdentity",
-    streamId: args.threadId,
-    entryId: `runtime:${args.messageId}`,
-    kind: "runtime_version_seen",
-    parentEntryIds: nextParents,
-    payload: {
-      messageId: args.messageId,
-      runtimeHash: args.runtimeHash,
-    },
-  });
+  return {
+    ...recorded,
+    staticHash,
+    runtimeHash,
+    staticSnapshot,
+    runtimeSnapshot,
+  };
 }
 
 async function appendThreadIdentityEvents(
@@ -265,103 +248,6 @@ async function appendThreadIdentityEvents(
         runtimeVersionId: args.runtimeVersionId,
         runtimeHash: args.runtimeHash,
       },
-    });
-  }
-}
-
-async function updateIdentityAggregates(
-  ctx: MutationCtx,
-  args: {
-    codeId: string;
-    threadId: string;
-    messageId: string;
-    registrationId: string;
-    staticVersionId: string;
-    runtimeVersionId: string;
-    created: {
-      registration: boolean;
-      staticVersion: boolean;
-      runtimeVersion: boolean;
-      binding: boolean;
-    };
-  },
-) {
-  if (args.created.registration) {
-    await machineAgentTelemetry.insertIfDoesNotExist(ctx, {
-      namespace: globalMetricNamespace("registrations"),
-      key: null,
-      id: args.registrationId,
-    });
-    await machineAgentTelemetry.insertIfDoesNotExist(ctx, {
-      namespace: agentMetricNamespace(args.codeId, "registrations"),
-      key: null,
-      id: args.registrationId,
-    });
-  }
-
-  if (args.created.staticVersion) {
-    await machineAgentTelemetry.insertIfDoesNotExist(ctx, {
-      namespace: globalMetricNamespace("staticVersions"),
-      key: null,
-      id: args.staticVersionId,
-    });
-    await machineAgentTelemetry.insertIfDoesNotExist(ctx, {
-      namespace: agentMetricNamespace(args.codeId, "staticVersions"),
-      key: null,
-      id: args.staticVersionId,
-    });
-  }
-
-  if (args.created.runtimeVersion) {
-    await machineAgentTelemetry.insertIfDoesNotExist(ctx, {
-      namespace: globalMetricNamespace("runtimeVersions"),
-      key: null,
-      id: args.runtimeVersionId,
-    });
-    await machineAgentTelemetry.insertIfDoesNotExist(ctx, {
-      namespace: agentMetricNamespace(args.codeId, "runtimeVersions"),
-      key: null,
-      id: args.runtimeVersionId,
-    });
-  }
-
-  if (args.created.binding) {
-    for (const namespace of [
-      globalMetricNamespace("bindings"),
-      agentMetricNamespace(args.codeId, "bindings"),
-      threadMetricNamespace(args.threadId, "bindings"),
-      globalMetricNamespace("messages"),
-      agentMetricNamespace(args.codeId, "messages"),
-      threadMetricNamespace(args.threadId, "messages"),
-    ] as const) {
-      await machineAgentTelemetry.insertIfDoesNotExist(ctx, {
-        namespace,
-        key: null,
-        id: args.messageId,
-      });
-    }
-  }
-
-  for (const namespace of [
-    globalMetricNamespace("threads"),
-    agentMetricNamespace(args.codeId, "threads"),
-  ] as const) {
-    await machineAgentTelemetry.insertIfDoesNotExist(ctx, {
-      namespace,
-      key: null,
-      id: args.threadId,
-    });
-  }
-
-  for (const [metric, id] of [
-    ["registrations", args.registrationId],
-    ["staticVersions", args.staticVersionId],
-    ["runtimeVersions", args.runtimeVersionId],
-  ] as const) {
-    await machineAgentTelemetry.insertIfDoesNotExist(ctx, {
-      namespace: threadMetricNamespace(args.threadId, metric),
-      key: null,
-      id,
     });
   }
 }
@@ -528,7 +414,7 @@ export const recordTurnIdentity = internalMutation({
       binding: bindingCreated,
     };
 
-    await updateIdentityAggregates(ctx, {
+    await updateIdentityCounters(ctx, {
       codeId: args.codeId,
       threadId: args.threadId,
       messageId: args.messageId,
@@ -536,33 +422,6 @@ export const recordTurnIdentity = internalMutation({
       staticVersionId: staticVersion._id,
       runtimeVersionId: runtimeVersion._id,
       created,
-    });
-
-    await appendMachineAgentHistory(ctx, {
-      agentId: args.codeId,
-      staticHash: args.staticHash,
-      runtimeHash: args.runtimeHash,
-      created,
-    });
-
-    await appendThreadIdentityHistory(ctx, {
-      threadId: args.threadId,
-      messageId: args.messageId,
-      codeId: args.codeId,
-      staticHash: args.staticHash,
-      runtimeHash: args.runtimeHash,
-      previousBinding: previousBinding
-        ? {
-            codeId: previousBinding.codeId,
-            staticVersionId: previousBinding.staticVersionId,
-            runtimeVersionId: previousBinding.runtimeVersionId,
-          }
-        : undefined,
-      currentBinding: {
-        staticVersionId: staticVersion._id,
-        runtimeVersionId: runtimeVersion._id,
-      },
-      bindingCreated,
     });
 
     await appendThreadIdentityEvents(ctx, {

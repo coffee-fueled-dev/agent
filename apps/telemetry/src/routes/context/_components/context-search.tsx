@@ -1,26 +1,26 @@
+import { api } from "@backend/api.js";
 import { contentHashFromArrayBuffer } from "@convex-dev/rag";
 import { useAction, useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { LoaderIcon, PaperclipIcon, SearchIcon, XIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDropzone } from "react-dropzone";
-import { api } from "../../../../../../convex/_generated/api.js";
-import { LoaderWithMessage } from "../../../components/blocks/loader-with-message.js";
-import { Button } from "../../../components/ui/button.js";
+import { LoaderWithMessage } from "@/components/blocks/loader-with-message.js";
+import { Button } from "@/components/ui/button.js";
 import {
   Command,
   CommandEmpty,
   CommandGroup,
   CommandItem,
   CommandList,
-} from "../../../components/ui/command.js";
-import { Empty } from "../../../components/ui/empty.js";
+} from "@/components/ui/command.js";
+import { Empty } from "@/components/ui/empty.js";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
   InputGroupInput,
-} from "../../../components/ui/input-group.js";
+} from "@/components/ui/input-group.js";
 import { useNamespace } from "../_hooks/use-namespace.js";
 import { MimeTypeIcon } from "./mime-type-icon.js";
 

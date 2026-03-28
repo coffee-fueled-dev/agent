@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { PageSection } from "@/components/layout/page-section";
 import { RequiredResult } from "@/components/layout/required-result.js";
 import { Button } from "@/components/ui/button";
-import { ContextLayout } from "../../_components/context-layout.js";
+import { AppLayout } from "../../../_components/app-layout.js";
 import { NamespaceProvider, useNamespace } from "../../_hooks/use-namespace.js";
 import { ContextEntryProvider } from "./context-entry-provider";
 import type { EntrySegment } from "./entry-path.js";
@@ -24,7 +24,7 @@ export function ContextEntryShellInner({
   const backHref = `/context?namespace=${encodeURIComponent(namespace)}`;
 
   return (
-    <ContextLayout
+    <AppLayout
       current="context"
       segmentLead={
         <Button asChild variant="ghost" size="sm" className="shrink-0">
@@ -42,7 +42,7 @@ export function ContextEntryShellInner({
         />
       }
     >
-      <PageSection className="px-4 py-6 md:px-6">
+      <PageSection>
         <NotFoundBoundary fallbackHref={backHref}>
           <RequiredResult
             query={api.context.entryQueries.getContextDetail}
@@ -60,7 +60,7 @@ export function ContextEntryShellInner({
           </RequiredResult>
         </NotFoundBoundary>
       </PageSection>
-    </ContextLayout>
+    </AppLayout>
   );
 }
 

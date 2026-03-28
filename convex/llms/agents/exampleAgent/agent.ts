@@ -3,7 +3,7 @@ import { components } from "../../../_generated/api";
 import {
   defineRegisteredMachineAgent,
   recordRegisteredMachineAgentTurn,
-} from "../../identity";
+} from "../../../chat/identity";
 import { languageModels } from "../../models";
 import {
   createToolkitContext,
