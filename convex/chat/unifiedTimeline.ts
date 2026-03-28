@@ -1,7 +1,8 @@
 import type { PaginationOptions } from "convex/server";
+import { z } from "zod/v4";
 import { components } from "../_generated/api";
 import {
-  sessionThreadPaginatedQuery,
+  sessionPaginatedQuery,
   type SessionQueryCtx,
 } from "../customFunctions";
 import { internalMutation, type MutationCtx } from "../_generated/server";
@@ -20,6 +21,8 @@ type SourceEvent = {
   eventTime: number;
   correlationId?: string;
   causationId?: string;
+  actor?: { byType: string; byId: string };
+  session?: string;
   metadata?: Record<string, string | number | boolean | null>;
 };
 
@@ -54,6 +57,16 @@ export const runProjectorTick = internalMutation({
   args: {},
   handler: async (ctx) => {
     for (const streamType of STREAM_TYPES) {
+      // Ensure a checkpoint row exists; listUnprocessedEvents tolerates missing
+      // checkpoints (treats as 0) but advanceCheckpoint requires the row.
+      await ctx.runMutation(
+        components.events.public.projectors.claimOrReadCheckpoint,
+        {
+          projector: PROJECTOR_ID,
+          streamType,
+        },
+      );
+
       const batch = await ctx.runQuery(
         components.events.public.projectors.listUnprocessedEvents,
         {
@@ -77,6 +90,8 @@ export const runProjectorTick = internalMutation({
           eventTime: ev.eventTime,
           correlationId: ev.correlationId,
           causationId: ev.causationId,
+          actor: ev.actor ?? undefined,
+          session: ev.session ?? undefined,
           metadata: ev.metadata,
         };
         const pk = partitionKeyForEvent(src);
@@ -105,6 +120,8 @@ export const runProjectorTick = internalMutation({
           eventTime: src.eventTime,
           correlationId: src.correlationId,
           causationId: src.causationId,
+          actor: src.actor,
+          session: src.session,
           metadata: src.metadata,
         });
         await trimPartition(ctx, pk);
@@ -120,7 +137,8 @@ export const runProjectorTick = internalMutation({
   },
 });
 
-export const listUnifiedTimeline = sessionThreadPaginatedQuery({
+export const listUnifiedTimeline = sessionPaginatedQuery({
+  args: { threadId: z.string() },
   handler: async (
     ctx: SessionQueryCtx,
     args: { threadId: string; paginationOpts: PaginationOptions },

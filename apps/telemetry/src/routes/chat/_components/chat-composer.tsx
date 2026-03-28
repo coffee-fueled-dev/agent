@@ -1,6 +1,9 @@
 import { api } from "@backend/api.js";
 import type { Id } from "@backend/dataModel.js";
-import { useAction, useMutation } from "convex/react";
+import {
+  useSessionAction,
+  useSessionMutation,
+} from "convex-helpers/react/sessions";
 import { PaperclipIcon } from "lucide-react";
 import { useCallback, useState } from "react";
 import { FilePreviewRow, useFiles } from "@/components/files";
@@ -18,8 +21,8 @@ export function ChatComposer({
   threadId: string;
   token: string;
 }) {
-  const sendMessage = useAction(api.chat.threads.sendMessage);
-  const generateUploadUrl = useMutation(
+  const sendMessage = useSessionAction(api.chat.threads.sendMessage);
+  const generateUploadUrl = useSessionMutation(
     api.context.files.generateContextUploadUrl,
   );
   const { files, addFiles, clearFiles, removeFile } = useFiles();

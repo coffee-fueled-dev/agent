@@ -1,6 +1,10 @@
 import { v } from "convex/values";
-import { api } from "../_generated/api";
-import { action } from "../_generated/server";
+import { z } from "zod/v4";
+import { internal } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
+import { internalAction } from "../_generated/server";
+import { sessionAction } from "../customFunctions";
+import { accountActor } from "../eventAttribution";
 import {
   createContextClient,
   getConvexSiteUrl,
@@ -8,7 +12,57 @@ import {
   getFileEmbeddingSecret,
 } from "./contextClient";
 
-export const searchContext = action({
+type SearchContextHit = {
+  entryId: string;
+  key: string;
+  title?: string;
+  text: string;
+  importance: number;
+  score: number;
+  observationTime?: number;
+  metadata?: unknown;
+};
+
+export const searchContext = sessionAction({
+  args: {
+    namespace: z.string(),
+    query: z.union([z.string(), z.array(z.number())]),
+    limit: z.number().optional(),
+    includeHistorical: z.boolean().optional(),
+    retrievalMode: z.enum(["vector", "lexical", "hybrid"]).optional(),
+    rrfK: z.number().optional(),
+    vectorWeight: z.number().optional(),
+    lexicalWeight: z.number().optional(),
+    graphWeight: z.number().optional(),
+    accessWeight: z.number().optional(),
+    fileEmbedding: z.array(z.number()).optional(),
+    actor: z
+      .object({
+        byType: z.string(),
+        byId: z.string(),
+      })
+      .optional(),
+    session: z.string().optional(),
+    threadId: z.string().optional(),
+    clientSessionId: z.string().optional(),
+  },
+  handler: async (ctx, args): Promise<SearchContextHit[]> => {
+    const { sessionId, ...rest } = args;
+    const accountId: Id<"accounts"> | null = await ctx.runQuery(
+      internal.sessionResolve.getAccountIdForConvexSession,
+      { convexSessionId: sessionId },
+    );
+    return await createContextClient().searchContext(ctx, {
+      ...rest,
+      actor: args.actor ?? (accountId ? accountActor(accountId) : undefined),
+      session: args.session ?? sessionId,
+      clientSessionId: args.clientSessionId ?? sessionId,
+    });
+  },
+});
+
+/** Server-only (e.g. agent tools) — no browser session. */
+export const searchContextInternal = internalAction({
   args: {
     namespace: v.string(),
     query: v.union(v.string(), v.array(v.number())),
@@ -38,23 +92,24 @@ export const searchContext = action({
   },
 });
 
-export const embedForSearch = action({
+export const embedForSearch = sessionAction({
   args: {
-    storageId: v.id("_storage"),
-    mimeType: v.string(),
-    contentHash: v.string(),
-    text: v.optional(v.string()),
+    storageId: z.string(),
+    mimeType: z.string(),
+    contentHash: z.string(),
+    text: z.string().optional(),
   },
   handler: async (ctx, args) => {
     const cached = await ctx.runQuery(
-      api.context.embeddingCacheStore.getByHash,
+      internal.context.embeddingCacheStore.getByHashInternal,
       { contentHash: args.contentHash },
     );
     if (cached) return;
 
-    const fileUrl = await ctx.storage.getUrl(args.storageId);
+    const storageId = args.storageId as import("../_generated/dataModel").Id<"_storage">;
+    const fileUrl = await ctx.storage.getUrl(storageId);
     if (!fileUrl)
-      throw new Error(`Could not resolve URL for ${args.storageId}`);
+      throw new Error(`Could not resolve URL for ${storageId}`);
 
     const baseUrl = getConvexSiteUrl();
     const response = await fetch(

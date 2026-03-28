@@ -846,33 +846,6 @@ export const components = componentsGeneric() as unknown as {
             splitCursor?: string | null;
           }
         >;
-        searchLabels: FunctionReference<
-          "query",
-          "internal",
-          {
-            paginationOpts: {
-              cursor: string | null;
-              endCursor?: string | null;
-              id?: number;
-              maximumBytesRead?: number;
-              maximumRowsRead?: number;
-              numItems: number;
-            };
-            query: string;
-          },
-          {
-            continueCursor: string;
-            isDone: boolean;
-            page: Array<{
-              _creationTime: number;
-              _id: string;
-              displayValue: string;
-              value: string;
-            }>;
-            pageStatus?: "SplitRecommended" | "SplitRequired" | null;
-            splitCursor?: string | null;
-          }
-        >;
         upsertLabel: FunctionReference<
           "mutation",
           "internal",

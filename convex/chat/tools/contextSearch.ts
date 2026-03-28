@@ -1,9 +1,11 @@
 import { z } from "zod/v4";
-import { api } from "../../_generated/api";
+import { internal } from "../../_generated/api";
+import { machineActor } from "../../eventAttribution";
 import {
   dynamicTool,
   withFormattedResults,
 } from "../../llms/tools/_libs/toolkit";
+import { chatAgentDefinition } from "../agent";
 
 export function searchContextTool(namespace: string) {
   return dynamicTool({
@@ -21,13 +23,24 @@ export function searchContextTool(namespace: string) {
     handler: async (ctx, args) => {
       return await withFormattedResults(
         (async () => {
+          const { accountId } = await ctx.runMutation(
+            internal.sessionResolve.ensureMachineAccountInternal,
+            {
+              codeId: chatAgentDefinition.agentId,
+              name: chatAgentDefinition.name,
+            },
+          );
           const results = await ctx.runAction(
-            api.context.search.searchContext,
+            internal.context.search.searchContextInternal,
             {
               namespace,
               query: args.query,
               limit: args.limit,
               retrievalMode: args.retrievalMode,
+              threadId: ctx.threadId,
+              session: ctx.sessionId,
+              clientSessionId: ctx.sessionId,
+              actor: machineActor(accountId),
             },
           );
           return { results };

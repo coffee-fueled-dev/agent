@@ -268,12 +268,14 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           "action",
           "internal",
           {
+            actor?: { byId: string; byType: string };
             apiKey?: string;
             chunks?: Array<{ embedding: Array<number>; text: string }>;
             key: string;
             namespace: string;
             observationTime?: number;
             searchText?: string;
+            session?: string;
             similarityK?: number;
             similarityThreshold?: number;
             source?:
@@ -292,6 +294,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                 };
             sourceType?: "text" | "binary";
             text: string;
+            threadId?: string;
             title?: string;
           },
           { entryId: string },
@@ -301,13 +304,16 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           "action",
           "internal",
           {
+            actor?: { byId: string; byType: string };
             apiKey?: string;
             entryId: string;
             namespace: string;
             observationTime?: number;
+            session?: string;
             similarityK?: number;
             similarityThreshold?: number;
             text: string;
+            threadId?: string;
             title?: string;
           },
           { entryId: string },
@@ -420,7 +426,14 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         remove: FunctionReference<
           "action",
           "internal",
-          { apiKey?: string; entryId: string; namespace: string },
+          {
+            actor?: { byId: string; byType: string };
+            apiKey?: string;
+            entryId: string;
+            namespace: string;
+            session?: string;
+            threadId?: string;
+          },
           null,
           Name
         >;

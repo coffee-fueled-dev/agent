@@ -1,5 +1,5 @@
 import { api } from "@backend/api.js";
-import { useQuery } from "convex/react";
+import { useSessionQuery } from "convex-helpers/react/sessions";
 import { Button } from "@/components/ui/button.js";
 import {
   Dialog,
@@ -19,7 +19,7 @@ export function ContextExploreDetailDialog({
   onClose: () => void;
 }) {
   const { selected: point, namespace } = useProjection();
-  const file = useQuery(
+  const file = useSessionQuery(
     api.context.entryQueries.getContextFile,
     point ? { entryId: point.entryId } : "skip",
   );

@@ -1,7 +1,7 @@
-import { v } from "convex/values";
+import { z } from "zod/v4";
 import { components, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
-import { action, mutation } from "../_generated/server";
+import { sessionAction, sessionMutation } from "../customFunctions";
 import { ContextClient } from "../components/context/client";
 
 function createContextClient() {
@@ -28,23 +28,23 @@ function getConvexSiteUrl() {
   return url.replace(/\/+$/, "");
 }
 
-export const generateContextUploadUrl = mutation({
-  args: {},
+export const generateContextUploadUrl = sessionMutation({
+  args: z.object({}),
   handler: async (ctx) => {
     return await ctx.storage.generateUploadUrl();
   },
 });
 
-export const addFileContext = action({
+export const addFileContext = sessionAction({
   args: {
-    namespace: v.string(),
-    key: v.string(),
-    title: v.optional(v.string()),
-    text: v.optional(v.string()),
-    storageId: v.id("_storage"),
-    mimeType: v.string(),
-    fileName: v.optional(v.string()),
-    contentHash: v.optional(v.string()),
+    namespace: z.string(),
+    key: z.string(),
+    title: z.string().optional(),
+    text: z.string().optional(),
+    storageId: z.string(),
+    mimeType: z.string(),
+    fileName: z.string().optional(),
+    contentHash: z.string().optional(),
   },
   handler: async (
     ctx,
@@ -55,12 +55,13 @@ export const addFileContext = action({
   > => {
     const {
       text,
-      storageId,
+      storageId: storageIdArg,
       mimeType,
       fileName,
       contentHash: _,
       ...entry
     } = args;
+    const storageId = storageIdArg as Id<"_storage">;
 
     if (text) {
       const client = createContextClient();
@@ -75,7 +76,6 @@ export const addFileContext = action({
       return { entryId: result.entryId, status: "completed" };
     }
 
-    // Binary file — dispatch to embedding server
     const processId: Id<"contextFileProcesses"> = await ctx.runMutation(
       internal.context.fileStore.createFileProcess,
       {

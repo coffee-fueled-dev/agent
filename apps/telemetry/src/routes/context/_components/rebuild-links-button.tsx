@@ -1,5 +1,8 @@
 import { api } from "@backend/api.js";
-import { useAction, useQuery } from "convex/react";
+import {
+  useSessionAction,
+  useSessionQuery,
+} from "convex-helpers/react/sessions";
 import { useState } from "react";
 import { Button } from "@/components/ui/button.js";
 import { Spinner } from "@/components/ui/spinner.js";
@@ -16,10 +19,10 @@ export function RebuildLinksButton({
   ...buttonProps
 }: React.ComponentProps<typeof Button> & { tooltip?: string }) {
   const { namespace } = useNamespace();
-  const startCommunity = useAction(
+  const startCommunity = useSessionAction(
     api.context.communities.startContextCommunityWorkflow,
   );
-  const latest = useQuery(api.context.communities.getLatestCommunities, {
+  const latest = useSessionQuery(api.context.communities.getLatestCommunities, {
     namespace,
   });
   const [starting, setStarting] = useState(false);

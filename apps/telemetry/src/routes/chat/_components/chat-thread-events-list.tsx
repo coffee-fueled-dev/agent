@@ -57,6 +57,17 @@ export function ChatThreadEventsList({ threadId }: { threadId: string }) {
                   {new Date(row.eventTime).toLocaleString()}
                 </span>
               </div>
+              {row.actor ? (
+                <div className="text-muted-foreground mt-0.5 text-[10px]">
+                  {row.actor.byType} ·{" "}
+                  <span className="font-mono">{row.actor.byId.slice(0, 10)}…</span>
+                </div>
+              ) : null}
+              {row.session ? (
+                <div className="text-muted-foreground font-mono text-[10px]">
+                  session {row.session.slice(0, 14)}…
+                </div>
+              ) : null}
               {row.correlationId ? (
                 <div className="text-muted-foreground mt-0.5 font-mono text-[10px]">
                   correlation → {row.correlationId.slice(0, 12)}…

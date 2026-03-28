@@ -1,5 +1,5 @@
 import { api } from "@backend/api.js";
-import { useQuery } from "convex/react";
+import { useSessionQuery } from "convex-helpers/react/sessions";
 import { NetworkIcon } from "lucide-react";
 import { useMemo } from "react";
 import { CollapsibleItemGroup } from "@/components/blocks/collapsible-item-group.js";
@@ -20,10 +20,13 @@ export function LinkedNodes({
   namespace: string;
   entryId: string;
 }) {
-  const graphContext = useQuery(api.context.communities.getEntryGraphContext, {
-    namespace,
-    entryId,
-  });
+  const graphContext = useSessionQuery(
+    api.context.communities.getEntryGraphContext,
+    {
+      namespace,
+      entryId,
+    },
+  );
 
   const sorted = useMemo(() => {
     if (!graphContext?.neighbors) return [];

@@ -1,6 +1,7 @@
 import { api } from "@backend/api.js";
 import type { UIMessage } from "@backend/llms/uiMessage.js";
 import { useUIMessages } from "@convex-dev/agent/react";
+import { useSessionIdArg } from "convex-helpers/react/sessions";
 import { FadeOverflow } from "@/components/layout/fade-overflow";
 import { ListSection } from "@/components/layout/list-section";
 import LoadMoreSentinel from "@/components/layout/load-more-sentinel";
@@ -13,7 +14,7 @@ const PAGE_SIZE = 15;
 export function ChatMessageList({ threadId }: { threadId: string }) {
   const paginated = useUIMessages(
     api.chat.threads.listThreadMessages,
-    { threadId },
+    useSessionIdArg({ threadId }),
     { initialNumItems: PAGE_SIZE, stream: true },
   );
 

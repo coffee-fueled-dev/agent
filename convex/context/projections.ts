@@ -1,12 +1,12 @@
 import type { PaginationResult } from "convex/server";
 import { v } from "convex/values";
+import { z } from "zod/v4";
 import { UMAP } from "umap-js";
 import { components, internal } from "../_generated/api";
+import { sessionAction, sessionQuery } from "../customFunctions";
 import {
-  action,
   internalAction,
   internalQuery,
-  query,
 } from "../_generated/server";
 import { pool } from "../workpool";
 
@@ -346,10 +346,10 @@ export const loadFileMetas = internalQuery({
 // Public entry point
 // ---------------------------------------------------------------------------
 
-export const startContextProjection = action({
+export const startContextProjection = sessionAction({
   args: {
-    namespace: v.string(),
-    limit: v.optional(v.number()),
+    namespace: z.string(),
+    limit: z.number().optional(),
   },
   handler: async (ctx, args) => {
     const limit = clampLimit(args.limit);
@@ -388,15 +388,15 @@ export const startContextProjection = action({
 // Query wrappers
 // ---------------------------------------------------------------------------
 
-export const getContextProjectionStatus = query({
-  args: { jobId: v.string() },
+export const getContextProjectionStatus = sessionQuery({
+  args: { jobId: z.string() },
   handler: async (ctx, args) => {
     return await ctx.runQuery(projectionApi.getProjectionStatus, args);
   },
 });
 
-export const getLatestProjection = query({
-  args: { namespace: v.string() },
+export const getLatestProjection = sessionQuery({
+  args: { namespace: z.string() },
   handler: async (ctx, args) => {
     return await ctx.runQuery(projectionApi.getLatestProjection, args);
   },

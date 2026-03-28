@@ -109,6 +109,13 @@ const contextDetailValidator = v.union(
   }),
 );
 
+const eventActorArgs = v.optional(
+  v.object({
+    byType: v.string(),
+    byId: v.string(),
+  }),
+);
+
 export const add = action({
   args: {
     namespace: v.string(),
@@ -125,6 +132,9 @@ export const add = action({
     apiKey: v.optional(v.string()),
     similarityK: v.optional(v.number()),
     similarityThreshold: v.optional(v.number()),
+    actor: eventActorArgs,
+    session: v.optional(v.string()),
+    threadId: v.optional(v.string()),
   },
   returns: v.object({ entryId: v.string() }),
   handler: async (ctx, args) => {
@@ -223,6 +233,11 @@ export const add = action({
       eventId: crypto.randomUUID(),
       eventType: "added",
       payload: { namespace: args.namespace, key: args.key },
+      ...(args.actor ? { actor: args.actor } : {}),
+      ...(args.session ? { session: args.session } : {}),
+      ...(args.threadId
+        ? { metadata: { threadId: args.threadId } }
+        : {}),
     });
 
     return { entryId: result.entryId };
@@ -290,13 +305,6 @@ export const get = query({
     };
   },
 });
-
-const eventActorArgs = v.optional(
-  v.object({
-    byType: v.string(),
-    byId: v.string(),
-  }),
-);
 
 function viewEventIdFromKey(
   namespace: string,
@@ -440,6 +448,9 @@ export const remove = action({
     namespace: v.string(),
     entryId: v.string(),
     apiKey: v.optional(v.string()),
+    actor: eventActorArgs,
+    session: v.optional(v.string()),
+    threadId: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -471,6 +482,11 @@ export const remove = action({
       eventId: crypto.randomUUID(),
       eventType: "deleted",
       payload: { namespace: args.namespace },
+      ...(args.actor ? { actor: args.actor } : {}),
+      ...(args.session ? { session: args.session } : {}),
+      ...(args.threadId
+        ? { metadata: { threadId: args.threadId } }
+        : {}),
     });
   },
 });
@@ -485,6 +501,9 @@ export const edit = action({
     apiKey: v.optional(v.string()),
     similarityK: v.optional(v.number()),
     similarityThreshold: v.optional(v.number()),
+    actor: eventActorArgs,
+    session: v.optional(v.string()),
+    threadId: v.optional(v.string()),
   },
   returns: v.object({ entryId: v.string() }),
   handler: async (ctx, args) => {
@@ -663,6 +682,11 @@ export const edit = action({
       eventId: crypto.randomUUID(),
       eventType: "edited",
       payload: { namespace: args.namespace, oldEntryId: args.entryId },
+      ...(args.actor ? { actor: args.actor } : {}),
+      ...(args.session ? { session: args.session } : {}),
+      ...(args.threadId
+        ? { metadata: { threadId: args.threadId } }
+        : {}),
     });
 
     return { entryId: current.entryId };

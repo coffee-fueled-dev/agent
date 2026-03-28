@@ -135,16 +135,6 @@ export class GraphClient<
     ) => {
       return await ctx.runQuery(this.component.public.labels.listLabels, args);
     },
-
-    search: async (
-      ctx: RunQueryCtx,
-      args: { query: string; paginationOpts: PaginationOptions },
-    ) => {
-      return await ctx.runQuery(
-        this.component.public.labels.searchLabels,
-        args,
-      );
-    },
   };
 
   nodes = {

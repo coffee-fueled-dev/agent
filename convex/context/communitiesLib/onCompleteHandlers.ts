@@ -1,10 +1,10 @@
 import { internal } from "../../_generated/api";
-import type { ActionCtx } from "../../_generated/server";
+import type { MutationCtx } from "../../_generated/server";
 import { pool } from "../../workpool";
 import { communityApi } from "./deps";
 
 export async function handleGraphComplete(
-  ctx: ActionCtx,
+  ctx: MutationCtx,
   {
     context,
     result,
@@ -40,7 +40,7 @@ export async function handleGraphComplete(
 }
 
 export async function handleLeidenComplete(
-  ctx: ActionCtx,
+  ctx: MutationCtx,
   {
     context,
     result,

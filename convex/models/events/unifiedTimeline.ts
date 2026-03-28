@@ -1,6 +1,13 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
 
+const actorOptional = v.optional(
+  v.object({
+    byType: v.string(),
+    byId: v.string(),
+  }),
+);
+
 /** Capped read model: merged view of events from the events component (audit stays in event_entries). */
 export const unifiedTimeline = defineTable({
   partitionKey: v.string(),
@@ -13,6 +20,8 @@ export const unifiedTimeline = defineTable({
   eventTime: v.number(),
   correlationId: v.optional(v.string()),
   causationId: v.optional(v.string()),
+  actor: actorOptional,
+  session: v.optional(v.string()),
   metadata: v.optional(
     v.record(v.string(), v.union(v.string(), v.number(), v.boolean(), v.null())),
   ),

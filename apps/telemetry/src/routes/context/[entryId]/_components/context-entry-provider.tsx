@@ -1,5 +1,8 @@
 import { api } from "@backend/api.js";
-import { useAction, useMutation } from "convex/react";
+import {
+  useSessionAction,
+  useSessionMutation,
+} from "convex-helpers/react/sessions";
 import type { FunctionReturnType } from "convex/server";
 import {
   createContext,
@@ -44,9 +47,9 @@ export function ContextEntryProvider({
   namespace: string;
   children: ReactNode;
 }) {
-  const deleteAction = useAction(api.context.mutations.deleteContext);
-  const editAction = useAction(api.context.mutations.editContext);
-  const recordView = useMutation(api.context.mutations.recordContextView);
+  const deleteAction = useSessionAction(api.context.mutations.deleteContext);
+  const editAction = useSessionAction(api.context.mutations.editContext);
+  const recordView = useSessionMutation(api.context.mutations.recordContextView);
 
   const viewIdempotencyRef = useRef<{
     namespace: string;

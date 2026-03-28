@@ -1,12 +1,14 @@
 import { v } from "convex/values";
 import { z } from "zod/v4";
 import { components, internal } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
 import {
   type ActionCtx,
   internalMutation,
   type MutationCtx,
 } from "../_generated/server";
 import { events } from "../events";
+import { machineActor } from "../eventAttribution";
 import { ensureMachineAccount, grantThreadAccessToAccount } from "../lib/auth";
 import { updateIdentityCounters } from "./identityCounters";
 
@@ -151,6 +153,7 @@ async function appendThreadIdentityEvents(
     threadId: string;
     messageId: string;
     sessionId?: string;
+    machineAccountId: Id<"accounts">;
     codeId: string;
     registrationId: string;
     staticVersionId: string;
@@ -198,6 +201,8 @@ async function appendThreadIdentityEvents(
       causationId: args.threadId,
       payload: params.payload as never,
       metadata: { ...baseMeta, ...params.extraMetadata },
+      actor: machineActor(args.machineAccountId),
+      ...(args.sessionId ? { session: args.sessionId } : {}),
     });
     parentEventId = entry.eventId;
   };
@@ -453,6 +458,7 @@ export const recordTurnIdentity = internalMutation({
       threadId: args.threadId,
       messageId: args.messageId,
       sessionId: args.sessionId,
+      machineAccountId: machineAccount._id,
       codeId: args.codeId,
       registrationId: registration._id,
       staticVersionId: staticVersion._id,

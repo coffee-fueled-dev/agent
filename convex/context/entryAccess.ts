@@ -1,27 +1,33 @@
-import { v } from "convex/values";
-import { sessionContextEntryPaginatedQuery } from "../customFunctions";
-import { query } from "../_generated/server";
+import { z } from "zod/v4";
+import {
+  sessionPaginatedQuery,
+  sessionQuery,
+} from "../customFunctions";
 import { createContextClient } from "./contextClient";
 
-export const listContextEntryAccessEvents = sessionContextEntryPaginatedQuery({
+export const listContextEntryAccessEvents = sessionPaginatedQuery({
+  args: {
+    namespace: z.string(),
+    entryId: z.string(),
+  },
   handler: async (ctx, args) => {
     return await createContextClient().listEntryAccessEvents(ctx, args);
   },
 });
 
-export const getContextEntryAccessEvent = query({
+export const getContextEntryAccessEvent = sessionQuery({
   args: {
-    namespace: v.string(),
-    entryId: v.string(),
-    eventId: v.string(),
+    namespace: z.string(),
+    entryId: z.string(),
+    eventId: z.string(),
   },
   handler: async (ctx, args) => {
     return await createContextClient().getEntryAccessEvent(ctx, args);
   },
 });
 
-export const getContextEntryAccessWeekByDay = query({
-  args: { namespace: v.string(), entryId: v.string() },
+export const getContextEntryAccessWeekByDay = sessionQuery({
+  args: { namespace: z.string(), entryId: z.string() },
   handler: async (ctx, args) => {
     return await createContextClient().getEntryAccessWeekByDay(ctx, args);
   },

@@ -1,10 +1,7 @@
 import { v } from "convex/values";
-import {
-  action,
-  internalAction,
-  internalMutation,
-  query,
-} from "../_generated/server";
+import { z } from "zod/v4";
+import { internalAction, internalMutation } from "../_generated/server";
+import { sessionAction, sessionQuery } from "../customFunctions";
 import { pool } from "../workpool";
 import {
   applyAssignmentResultsHandler,
@@ -87,11 +84,11 @@ export const onLeidenComplete = pool.defineOnComplete({
   handler: async (ctx, payload) => handleLeidenComplete(ctx, payload),
 });
 
-export const startContextCommunityWorkflow = action({
+export const startContextCommunityWorkflow = sessionAction({
   args: {
-    namespace: v.string(),
-    k: v.optional(v.number()),
-    resolution: v.optional(v.number()),
+    namespace: z.string(),
+    k: z.number().optional(),
+    resolution: z.number().optional(),
   },
   handler: async (ctx, args) =>
     startContextCommunityWorkflowHandler(ctx, {
@@ -101,21 +98,21 @@ export const startContextCommunityWorkflow = action({
     }),
 });
 
-export const getLatestCommunities = query({
-  args: { namespace: v.string() },
+export const getLatestCommunities = sessionQuery({
+  args: { namespace: z.string() },
   handler: async (ctx, args) => {
     return await ctx.runQuery(communityApi.getLatestCommunities, args);
   },
 });
 
-export const getCommunityForEntry = query({
-  args: { namespace: v.string(), entryId: v.string() },
+export const getCommunityForEntry = sessionQuery({
+  args: { namespace: z.string(), entryId: z.string() },
   handler: async (ctx, args) => {
     return await ctx.runQuery(communityApi.getCommunityForEntry, args);
   },
 });
 
-export const getEntryGraphContext = query({
-  args: { namespace: v.string(), entryId: v.string() },
+export const getEntryGraphContext = sessionQuery({
+  args: { namespace: z.string(), entryId: z.string() },
   handler: async (ctx, args) => getEntryGraphContextHandler(ctx, args),
 });

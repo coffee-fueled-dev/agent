@@ -46,6 +46,7 @@ import type * as context_projections from "../context/projections.js";
 import type * as context_search from "../context/search.js";
 import type * as crons from "../crons.js";
 import type * as customFunctions from "../customFunctions.js";
+import type * as eventAttribution from "../eventAttribution.js";
 import type * as events from "../events.js";
 import type * as history from "../history.js";
 import type * as http from "../http.js";
@@ -73,6 +74,8 @@ import type * as models_context_contextFile from "../models/context/contextFile.
 import type * as models_context_contextFileProcess from "../models/context/contextFileProcess.js";
 import type * as models_context_embeddingCache from "../models/context/embeddingCache.js";
 import type * as models_context_index from "../models/context/index.js";
+import type * as models_events_index from "../models/events/index.js";
+import type * as models_events_unifiedTimeline from "../models/events/unifiedTimeline.js";
 import type * as models_geo_index from "../models/geo/index.js";
 import type * as models_geo_libs_upsert_index from "../models/geo/libs/upsert/index.js";
 import type * as models_geo_location from "../models/geo/location.js";
@@ -80,12 +83,12 @@ import type * as models_index from "../models/index.js";
 import type * as models_llms_identityMetricDedup from "../models/llms/identityMetricDedup.js";
 import type * as models_llms_index from "../models/llms/index.js";
 import type * as models_llms_machineAgent from "../models/llms/machineAgent.js";
-import type * as models_llms_unifiedTimeline from "../models/events/unifiedTimeline.js";
 import type * as policy from "../policy.js";
 import type * as resolvers_auth from "../resolvers/auth.js";
 import type * as resolvers_geo from "../resolvers/geo.js";
 import type * as resolvers_index from "../resolvers/index.js";
 import type * as seeds from "../seeds.js";
+import type * as sessionResolve from "../sessionResolve.js";
 import type * as workpool from "../workpool.js";
 
 import type {
@@ -133,6 +136,7 @@ declare const fullApi: ApiFromModules<{
   "context/search": typeof context_search;
   crons: typeof crons;
   customFunctions: typeof customFunctions;
+  eventAttribution: typeof eventAttribution;
   events: typeof events;
   history: typeof history;
   http: typeof http;
@@ -160,6 +164,8 @@ declare const fullApi: ApiFromModules<{
   "models/context/contextFileProcess": typeof models_context_contextFileProcess;
   "models/context/embeddingCache": typeof models_context_embeddingCache;
   "models/context/index": typeof models_context_index;
+  "models/events/index": typeof models_events_index;
+  "models/events/unifiedTimeline": typeof models_events_unifiedTimeline;
   "models/geo/index": typeof models_geo_index;
   "models/geo/libs/upsert/index": typeof models_geo_libs_upsert_index;
   "models/geo/location": typeof models_geo_location;
@@ -167,12 +173,12 @@ declare const fullApi: ApiFromModules<{
   "models/llms/identityMetricDedup": typeof models_llms_identityMetricDedup;
   "models/llms/index": typeof models_llms_index;
   "models/llms/machineAgent": typeof models_llms_machineAgent;
-  "models/llms/unifiedTimeline": typeof models_llms_unifiedTimeline;
   policy: typeof policy;
   "resolvers/auth": typeof resolvers_auth;
   "resolvers/geo": typeof resolvers_geo;
   "resolvers/index": typeof resolvers_index;
   seeds: typeof seeds;
+  sessionResolve: typeof sessionResolve;
   workpool: typeof workpool;
 }>;
 
@@ -923,12 +929,14 @@ export declare const components: {
           "action",
           "internal",
           {
+            actor?: { byId: string; byType: string };
             apiKey?: string;
             chunks?: Array<{ embedding: Array<number>; text: string }>;
             key: string;
             namespace: string;
             observationTime?: number;
             searchText?: string;
+            session?: string;
             similarityK?: number;
             similarityThreshold?: number;
             source?:
@@ -947,6 +955,7 @@ export declare const components: {
                 };
             sourceType?: "text" | "binary";
             text: string;
+            threadId?: string;
             title?: string;
           },
           { entryId: string }
@@ -955,13 +964,16 @@ export declare const components: {
           "action",
           "internal",
           {
+            actor?: { byId: string; byType: string };
             apiKey?: string;
             entryId: string;
             namespace: string;
             observationTime?: number;
+            session?: string;
             similarityK?: number;
             similarityThreshold?: number;
             text: string;
+            threadId?: string;
             title?: string;
           },
           { entryId: string }
@@ -1067,7 +1079,14 @@ export declare const components: {
         remove: FunctionReference<
           "action",
           "internal",
-          { apiKey?: string; entryId: string; namespace: string },
+          {
+            actor?: { byId: string; byType: string };
+            apiKey?: string;
+            entryId: string;
+            namespace: string;
+            session?: string;
+            threadId?: string;
+          },
           null
         >;
       };

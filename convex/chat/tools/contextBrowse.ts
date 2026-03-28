@@ -1,5 +1,5 @@
 import { z } from "zod/v4";
-import { api } from "../../_generated/api";
+import { internal } from "../../_generated/api";
 import {
   dynamicTool,
   withFormattedResults,
@@ -21,7 +21,7 @@ export function listContextTool(namespace: string) {
     handler: async (ctx, args) => {
       return await withFormattedResults(
         (async () => {
-          return await ctx.runQuery(api.context.list.listContextWithFiles, {
+          return await ctx.runQuery(internal.context.list.listContextWithFiles, {
             namespace,
             paginationOpts: {
               cursor: args.cursor ?? null,

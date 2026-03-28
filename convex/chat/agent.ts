@@ -1,5 +1,6 @@
 import { Agent } from "@convex-dev/agent";
 import type { Tool } from "ai";
+import type { SessionId } from "convex-helpers/server/sessions";
 import { components } from "../_generated/api";
 import type { ActionCtx } from "../_generated/server";
 import { languageModels } from "../llms/models";
@@ -42,6 +43,7 @@ export type ChatAgentIdentityCtx = ActionCtx & {
   threadId: string;
   messageId: string;
   namespace: string;
+  sessionId?: SessionId;
 };
 
 /**
@@ -66,6 +68,7 @@ export async function createChatAgent(
       runtimeStaticProps: effectiveStaticProps,
       threadId: identity.threadId,
       messageId: identity.messageId,
+      sessionId: identity.sessionId,
     });
   }
 

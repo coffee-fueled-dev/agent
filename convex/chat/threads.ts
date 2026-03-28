@@ -1,9 +1,16 @@
-import { listUIMessages, syncStreams, vStreamArgs } from "@convex-dev/agent";
-import { type PaginationResult, paginationOptsValidator } from "convex/server";
-import { v } from "convex/values";
+import { listUIMessages, syncStreams } from "@convex-dev/agent";
+import type { StreamArgs } from "@convex-dev/agent/validators";
+import type { PaginationResult } from "convex/server";
+import { z } from "zod/v4";
 import { api, components } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
-import { action, mutation, query } from "../_generated/server";
+import {
+  sessionAction,
+  sessionMutation,
+  sessionPaginatedQuery,
+  type SessionActionCtx,
+  type SessionQueryCtx,
+} from "../customFunctions";
 import {
   ensureMachineAccount,
   ensureTokenAccount,
@@ -62,10 +69,16 @@ async function buildSearchQueryFromAttachments(
   return parts.join("\n\n");
 }
 
-export const createThread = mutation({
+const attachmentSchema = z.object({
+  storageId: z.string(),
+  fileName: z.string(),
+  mimeType: z.string(),
+});
+
+export const createThread = sessionMutation({
   args: {
-    token: v.string(),
-    title: v.optional(v.string()),
+    token: z.string(),
+    title: z.string().optional(),
   },
   handler: async (ctx, args) => {
     const agent = await createChatAgent();
@@ -92,27 +105,24 @@ export const createThread = mutation({
   },
 });
 
-export const sendMessage = action({
+export const sendMessage = sessionAction({
   args: {
-    threadId: v.string(),
-    prompt: v.string(),
-    attachments: v.optional(
-      v.array(
-        v.object({
-          storageId: v.id("_storage"),
-          fileName: v.string(),
-          mimeType: v.string(),
-        }),
-      ),
-    ),
+    threadId: z.string(),
+    prompt: z.string(),
+    attachments: z.array(attachmentSchema).optional(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: SessionActionCtx, args) => {
+    const attachments = args.attachments?.map((a) => ({
+      ...a,
+      storageId: a.storageId as Id<"_storage">,
+    }));
+
     const { namespace, userId } = await resolveThreadContext(
       ctx,
       args.threadId,
     );
 
-    const hasAttachments = Boolean(args.attachments?.length);
+    const hasAttachments = Boolean(attachments?.length);
     if (!args.prompt.trim() && !hasAttachments) {
       throw new Error("Message must include text or at least one attachment.");
     }
@@ -133,7 +143,7 @@ export const sendMessage = action({
       if (args.prompt.trim()) {
         content.push({ type: "text", text: args.prompt.trim() });
       }
-      for (const a of args.attachments ?? []) {
+      for (const a of attachments ?? []) {
         const blob = await ctx.storage.get(a.storageId);
         if (!blob) {
           throw new Error(`Missing file in storage: ${a.fileName}`);
@@ -157,19 +167,17 @@ export const sendMessage = action({
     const searchQuery = await buildSearchQueryFromAttachments(
       ctx,
       args.prompt,
-      args.attachments,
+      attachments,
     );
 
-    const searchResults = await ctx.runAction(
-      api.context.search.searchContext,
-      {
-        namespace,
-        query: searchQuery || args.prompt || "files",
-        limit: 10,
-        retrievalMode: "hybrid",
-        threadId: args.threadId,
-      },
-    );
+    const searchResults = await ctx.runAction(api.context.search.searchContext, {
+      sessionId: args.sessionId,
+      namespace,
+      query: searchQuery || args.prompt || "files",
+      limit: 10,
+      retrievalMode: "hybrid",
+      threadId: args.threadId,
+    });
     const hits = searchResults as SearchHit[];
     const injected = buildInjectedContext(hits);
 
@@ -178,6 +186,7 @@ export const sendMessage = action({
       threadId: args.threadId,
       messageId: promptMessageId,
       namespace,
+      sessionId: args.sessionId,
     });
 
     const { thread } = await agent.continueThread(
@@ -209,15 +218,30 @@ export const sendMessage = action({
   },
 });
 
-export const listThreadMessages = query({
+export const listThreadMessages = sessionPaginatedQuery({
   args: {
-    threadId: v.string(),
-    paginationOpts: paginationOptsValidator,
-    streamArgs: vStreamArgs,
+    threadId: z.string(),
+    streamArgs: z.any(),
   },
-  handler: async (ctx, args) => {
-    const paginated = await listUIMessages(ctx, components.agent, args);
-    const streams = await syncStreams(ctx, components.agent, args);
+  handler: async (
+    ctx: SessionQueryCtx,
+    args: {
+      threadId: string;
+      paginationOpts: import("convex/server").PaginationOptions;
+      streamArgs: unknown;
+    },
+  ) => {
+    const streamArgs: StreamArgs =
+      args.streamArgs != null
+        ? (args.streamArgs as StreamArgs)
+        : { kind: "list" };
+    const agentArgs = {
+      threadId: args.threadId,
+      paginationOpts: args.paginationOpts,
+      streamArgs,
+    };
+    const paginated = await listUIMessages(ctx, components.agent, agentArgs);
+    const streams = await syncStreams(ctx, components.agent, agentArgs);
     return {
       ...paginated,
       streams,

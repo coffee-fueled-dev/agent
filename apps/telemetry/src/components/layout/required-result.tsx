@@ -1,12 +1,14 @@
 "use client";
 
-import {
-  type PaginatedQueryArgs,
-  type UsePaginatedQueryReturnType,
-  useQuery,
+import type {
+  PaginatedQueryArgs,
+  UsePaginatedQueryReturnType,
 } from "convex/react";
 import type { BetterOmit } from "convex-helpers";
-import { useSessionPaginatedQuery } from "convex-helpers/react/sessions";
+import {
+  useSessionPaginatedQuery,
+  useSessionQuery,
+} from "convex-helpers/react/sessions";
 import type { SessionId } from "convex-helpers/server/sessions";
 import type {
   FunctionArgs,
@@ -41,7 +43,7 @@ export function RequiredResult<Query extends FunctionReference<"query">>({
   fallback?: React.ReactNode;
   children: (result: NonNullable<FunctionReturnType<Query>>) => React.ReactNode;
 }) {
-  const result = useQuery(query, args as never);
+  const result = useSessionQuery(query, args as never);
 
   if (result === null) throw new Error("Not found");
   if (!result) return fallback;

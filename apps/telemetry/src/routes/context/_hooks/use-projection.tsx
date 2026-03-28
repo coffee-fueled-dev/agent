@@ -1,5 +1,8 @@
 import { api } from "@backend/api.js";
-import { useAction, useQuery } from "convex/react";
+import {
+  useSessionAction,
+  useSessionQuery,
+} from "convex-helpers/react/sessions";
 import {
   createContext,
   type PropsWithChildren,
@@ -53,20 +56,20 @@ export function ProjectionProvider({ children }: PropsWithChildren) {
   const { namespace } = useNamespace();
   const [limit, setLimit] = useState(LIMIT_OPTIONS[1] || "96");
 
-  const cached = useQuery(api.context.projections.getLatestProjection, {
+  const cached = useSessionQuery(api.context.projections.getLatestProjection, {
     namespace,
   });
 
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [startError, setStartError] = useState<string | null>(null);
   const [isStarting, setIsStarting] = useState(false);
-  const startProjection = useAction(
+  const startProjection = useSessionAction(
     api.context.projections.startContextProjection,
   );
-  const startCommunity = useAction(
+  const startCommunity = useSessionAction(
     api.context.communities.startContextCommunityWorkflow,
   );
-  const activeStatus = useQuery(
+  const activeStatus = useSessionQuery(
     api.context.projections.getContextProjectionStatus,
     activeJobId ? { jobId: activeJobId } : "skip",
   );
@@ -146,7 +149,7 @@ export function ProjectionProvider({ children }: PropsWithChildren) {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  const hoverData = useQuery(
+  const hoverData = useSessionQuery(
     api.context.communities.getEntryGraphContext,
     debouncedHoveredId ? { namespace, entryId: debouncedHoveredId } : "skip",
   );

@@ -1,6 +1,9 @@
 import { api } from "@backend/api.js";
 import { contentHashFromArrayBuffer } from "@convex-dev/rag";
-import { useAction, useMutation } from "convex/react";
+import {
+  useSessionAction,
+  useSessionMutation,
+} from "convex-helpers/react/sessions";
 import {
   type ComponentProps,
   type PropsWithChildren,
@@ -60,9 +63,9 @@ export function AddContextDialog({
 }: AddContextDialogProps) {
   const { namespace } = useNamespace();
   const { files, addFiles, clearFiles, removeFile } = useFiles();
-  const addContext = useAction(api.context.mutations.addContext);
-  const addFileContext = useAction(api.context.files.addFileContext);
-  const generateUploadUrl = useMutation(
+  const addContext = useSessionAction(api.context.mutations.addContext);
+  const addFileContext = useSessionAction(api.context.files.addFileContext);
+  const generateUploadUrl = useSessionMutation(
     api.context.files.generateContextUploadUrl,
   );
   const [title, setTitle] = useState("");

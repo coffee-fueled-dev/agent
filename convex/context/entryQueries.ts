@@ -1,9 +1,9 @@
-import { v } from "convex/values";
-import { query } from "../_generated/server";
+import { z } from "zod/v4";
+import { sessionQuery } from "../customFunctions";
 import { createContextClient } from "./contextClient";
 
-export const getContextFile = query({
-  args: { entryId: v.string() },
+export const getContextFile = sessionQuery({
+  args: { entryId: z.string() },
   handler: async (ctx, args) => {
     const file = await ctx.db
       .query("contextFiles")
@@ -15,10 +15,10 @@ export const getContextFile = query({
   },
 });
 
-export const getContextDetail = query({
+export const getContextDetail = sessionQuery({
   args: {
-    namespace: v.string(),
-    entryId: v.string(),
+    namespace: z.string(),
+    entryId: z.string(),
   },
   handler: async (ctx, args) => {
     const detail = await createContextClient().getContextDetail(ctx, args);

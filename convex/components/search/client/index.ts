@@ -30,11 +30,23 @@ export type SearchSourceConfig<
   fields: readonly FieldKeysFor<DATA_MODEL, TABLE_NAME>[];
 };
 
+/** Union of per-table configs so `fields` is validated against the chosen `document`, not the intersection of all tables' keys. */
+export type SearchSourceConfigForAnyTable<
+  DATA_MODEL extends GenericDataModel,
+  SOURCE_SYSTEM extends string,
+> = {
+  [T in TableNameFor<DATA_MODEL>]: SearchSourceConfig<
+    DATA_MODEL,
+    SOURCE_SYSTEM,
+    T
+  >;
+}[TableNameFor<DATA_MODEL>];
+
 export type SearchClientConfig<
   DATA_MODEL extends GenericDataModel,
   SOURCE_SYSTEM extends string = string,
 > = {
-  sources: readonly SearchSourceConfig<DATA_MODEL, SOURCE_SYSTEM>[];
+  sources: readonly SearchSourceConfigForAnyTable<DATA_MODEL, SOURCE_SYSTEM>[];
 };
 
 type Name = string | undefined;

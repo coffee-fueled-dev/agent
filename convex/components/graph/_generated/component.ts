@@ -151,34 +151,6 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           },
           Name
         >;
-        searchLabels: FunctionReference<
-          "query",
-          "internal",
-          {
-            paginationOpts: {
-              cursor: string | null;
-              endCursor?: string | null;
-              id?: number;
-              maximumBytesRead?: number;
-              maximumRowsRead?: number;
-              numItems: number;
-            };
-            query: string;
-          },
-          {
-            continueCursor: string;
-            isDone: boolean;
-            page: Array<{
-              _creationTime: number;
-              _id: string;
-              displayValue: string;
-              value: string;
-            }>;
-            pageStatus?: "SplitRecommended" | "SplitRequired" | null;
-            splitCursor?: string | null;
-          },
-          Name
-        >;
         upsertLabel: FunctionReference<
           "mutation",
           "internal",

@@ -1,5 +1,5 @@
 import { api } from "@backend/api.js";
-import { useQuery } from "convex/react";
+import { useSessionQuery } from "convex-helpers/react/sessions";
 import { PageSection } from "@/components/layout/page-section";
 import { Spinner } from "@/components/ui/spinner";
 import { renderApp } from "../../../../../render-root";
@@ -35,11 +35,14 @@ function ActivityEventRoute() {
 
 function ActivityEventDetail({ eventId }: { eventId: string }) {
   const { namespace, entryId } = useContextEntry();
-  const data = useQuery(api.context.entryAccess.getContextEntryAccessEvent, {
-    namespace,
-    entryId,
-    eventId,
-  });
+  const data = useSessionQuery(
+    api.context.entryAccess.getContextEntryAccessEvent,
+    {
+      namespace,
+      entryId,
+      eventId,
+    },
+  );
   const backHref = `/context/${encodeURIComponent(entryId)}/activity?namespace=${encodeURIComponent(namespace)}`;
 
   if (data === undefined) {

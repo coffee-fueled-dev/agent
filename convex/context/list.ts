@@ -1,9 +1,9 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
-import { query } from "../_generated/server";
+import { internalQuery } from "../_generated/server";
 import { createContextClient } from "./contextClient";
 
-export const listContext = query({
+export const listContext = internalQuery({
   args: {
     namespace: v.string(),
     paginationOpts: paginationOptsValidator,
@@ -13,7 +13,7 @@ export const listContext = query({
   },
 });
 
-export const listContextWithFiles = query({
+export const listContextWithFiles = internalQuery({
   args: {
     namespace: v.string(),
     paginationOpts: paginationOptsValidator,

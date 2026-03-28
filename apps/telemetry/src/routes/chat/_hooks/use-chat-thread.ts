@@ -1,5 +1,5 @@
 import { api } from "@backend/api.js";
-import { useMutation } from "convex/react";
+import { useSessionMutation } from "convex-helpers/react/sessions";
 import { useEffect, useState } from "react";
 import { usePublicEnv } from "../../../env/index.js";
 
@@ -7,7 +7,7 @@ const STORAGE_KEY = "telemetry_chat_thread_id";
 
 export function useChatThread() {
   const { accountToken: token } = usePublicEnv();
-  const createThread = useMutation(api.chat.threads.createThread);
+  const createThread = useSessionMutation(api.chat.threads.createThread);
   const [threadId, setThreadId] = useState<string | null>(() => {
     if (typeof sessionStorage === "undefined") return null;
     return sessionStorage.getItem(STORAGE_KEY);

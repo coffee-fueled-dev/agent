@@ -1,10 +1,12 @@
 import { z } from "zod/v4";
-import { api } from "../../_generated/api";
+import { internal } from "../../_generated/api";
+import { machineActor } from "../../eventAttribution";
 import {
   dynamicTool,
   toolkit,
   withFormattedResults,
 } from "../../llms/tools/_libs/toolkit";
+import { chatAgentDefinition } from "../agent";
 
 function addContextTool(namespace: string) {
   return dynamicTool({
@@ -27,13 +29,23 @@ function addContextTool(namespace: string) {
     handler: async (ctx, args) => {
       return await withFormattedResults(
         (async () => {
+          const { accountId } = await ctx.runMutation(
+            internal.sessionResolve.ensureMachineAccountInternal,
+            {
+              codeId: chatAgentDefinition.agentId,
+              name: chatAgentDefinition.name,
+            },
+          );
           const key = `chat-${crypto.randomUUID()}`;
-          return await ctx.runAction(api.context.mutations.addContext, {
+          return await ctx.runAction(internal.context.mutations.addContextInternal, {
             namespace,
             key,
             title: args.title,
             text: args.text,
             observationTime: args.observationTime,
+            actor: machineActor(accountId),
+            session: ctx.sessionId,
+            threadId: ctx.threadId,
           });
         })(),
       );
@@ -54,12 +66,22 @@ function editContextTool(namespace: string) {
     handler: async (ctx, args) => {
       return await withFormattedResults(
         (async () => {
-          return await ctx.runAction(api.context.mutations.editContext, {
+          const { accountId } = await ctx.runMutation(
+            internal.sessionResolve.ensureMachineAccountInternal,
+            {
+              codeId: chatAgentDefinition.agentId,
+              name: chatAgentDefinition.name,
+            },
+          );
+          return await ctx.runAction(internal.context.mutations.editContextInternal, {
             namespace,
             entryId: args.entryId,
             title: args.title,
             text: args.text,
             observationTime: args.observationTime,
+            actor: machineActor(accountId),
+            session: ctx.sessionId,
+            threadId: ctx.threadId,
           });
         })(),
       );
@@ -77,9 +99,19 @@ function deleteContextTool(namespace: string) {
     handler: async (ctx, args) => {
       return await withFormattedResults(
         (async () => {
-          await ctx.runAction(api.context.mutations.deleteContext, {
+          const { accountId } = await ctx.runMutation(
+            internal.sessionResolve.ensureMachineAccountInternal,
+            {
+              codeId: chatAgentDefinition.agentId,
+              name: chatAgentDefinition.name,
+            },
+          );
+          await ctx.runAction(internal.context.mutations.deleteContextInternal, {
             namespace,
             entryId: args.entryId,
+            actor: machineActor(accountId),
+            session: ctx.sessionId,
+            threadId: ctx.threadId,
           });
           return { deleted: true as const, entryId: args.entryId };
         })(),

@@ -50,19 +50,3 @@ export const listLabels = query({
       .paginate(args.paginationOpts);
   },
 });
-
-export const searchLabels = query({
-  args: {
-    query: v.string(),
-    paginationOpts: paginationOptsValidator,
-  },
-  returns: paginationResultValidator(doc(schema, "labels")),
-  handler: async (ctx, args) => {
-    return await paginator(ctx.db, schema)
-      .query("labels")
-      .withSearchIndex("search_displayValue", (q) =>
-        q.search("displayValue", args.query),
-      )
-      .paginate(args.paginationOpts);
-  },
-});

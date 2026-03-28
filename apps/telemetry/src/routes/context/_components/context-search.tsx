@@ -1,6 +1,10 @@
 import { api } from "@backend/api.js";
 import { contentHashFromArrayBuffer } from "@convex-dev/rag";
-import { useAction, useMutation, useQuery } from "convex/react";
+import {
+  useSessionAction,
+  useSessionMutation,
+  useSessionQuery,
+} from "convex-helpers/react/sessions";
 import type { FunctionReturnType } from "convex/server";
 import { LoaderIcon, PaperclipIcon, SearchIcon, XIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -29,9 +33,9 @@ type SearchResults = FunctionReturnType<
 >;
 
 export function ContextSearch() {
-  const searchContext = useAction(api.context.search.searchContext);
-  const embedForSearch = useAction(api.context.search.embedForSearch);
-  const generateUploadUrl = useMutation(
+  const searchContext = useSessionAction(api.context.search.searchContext);
+  const embedForSearch = useSessionAction(api.context.search.embedForSearch);
+  const generateUploadUrl = useSessionMutation(
     api.context.files.generateContextUploadUrl,
   );
   const [results, setResults] = useState<SearchResults>([]);
@@ -47,7 +51,7 @@ export function ContextSearch() {
   const [embeddingPending, setEmbeddingPending] = useState(false);
 
   // Reactive query for the embedding cache
-  const cachedEntry = useQuery(
+  const cachedEntry = useSessionQuery(
     api.context.embeddingCacheStore.getByHash,
     contentHash ? { contentHash } : "skip",
   );
