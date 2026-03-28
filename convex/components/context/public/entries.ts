@@ -235,9 +235,7 @@ export const add = action({
       payload: { namespace: args.namespace, key: args.key },
       ...(args.actor ? { actor: args.actor } : {}),
       ...(args.session ? { session: args.session } : {}),
-      ...(args.threadId
-        ? { metadata: { threadId: args.threadId } }
-        : {}),
+      ...(args.threadId ? { metadata: { threadId: args.threadId } } : {}),
     });
 
     return { entryId: result.entryId };
@@ -484,9 +482,7 @@ export const remove = action({
       payload: { namespace: args.namespace },
       ...(args.actor ? { actor: args.actor } : {}),
       ...(args.session ? { session: args.session } : {}),
-      ...(args.threadId
-        ? { metadata: { threadId: args.threadId } }
-        : {}),
+      ...(args.threadId ? { metadata: { threadId: args.threadId } } : {}),
     });
   },
 });
@@ -684,9 +680,7 @@ export const edit = action({
       payload: { namespace: args.namespace, oldEntryId: args.entryId },
       ...(args.actor ? { actor: args.actor } : {}),
       ...(args.session ? { session: args.session } : {}),
-      ...(args.threadId
-        ? { metadata: { threadId: args.threadId } }
-        : {}),
+      ...(args.threadId ? { metadata: { threadId: args.threadId } } : {}),
     });
 
     return { entryId: current.entryId };

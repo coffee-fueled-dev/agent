@@ -1,11 +1,11 @@
 "use client";
 
 import { api } from "@backend/api.js";
+import { useSessionPaginatedQuery } from "convex-helpers/react/sessions";
 import { FadeOverflow } from "@/components/layout/fade-overflow";
 import LoadMoreSentinel from "@/components/layout/load-more-sentinel";
 import { Empty } from "@/components/ui/empty";
 import { Spinner } from "@/components/ui/spinner";
-import { useSessionPaginatedQuery } from "convex-helpers/react/sessions";
 
 const PAGE_SIZE = 25;
 
@@ -60,7 +60,9 @@ export function ChatThreadEventsList({ threadId }: { threadId: string }) {
               {row.actor ? (
                 <div className="text-muted-foreground mt-0.5 text-[10px]">
                   {row.actor.byType} ·{" "}
-                  <span className="font-mono">{row.actor.byId.slice(0, 10)}…</span>
+                  <span className="font-mono">
+                    {row.actor.byId.slice(0, 10)}…
+                  </span>
                 </div>
               ) : null}
               {row.session ? (

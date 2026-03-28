@@ -5,11 +5,11 @@ import { z } from "zod/v4";
 import { api, components } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import {
+  type SessionActionCtx,
+  type SessionQueryCtx,
   sessionAction,
   sessionMutation,
   sessionPaginatedQuery,
-  type SessionActionCtx,
-  type SessionQueryCtx,
 } from "../customFunctions";
 import {
   ensureMachineAccount,
@@ -170,14 +170,17 @@ export const sendMessage = sessionAction({
       attachments,
     );
 
-    const searchResults = await ctx.runAction(api.context.search.searchContext, {
-      sessionId: args.sessionId,
-      namespace,
-      query: searchQuery || args.prompt || "files",
-      limit: 10,
-      retrievalMode: "hybrid",
-      threadId: args.threadId,
-    });
+    const searchResults = await ctx.runAction(
+      api.context.search.searchContext,
+      {
+        sessionId: args.sessionId,
+        namespace,
+        query: searchQuery || args.prompt || "files",
+        limit: 10,
+        retrievalMode: "hybrid",
+        threadId: args.threadId,
+      },
+    );
     const hits = searchResults as SearchHit[];
     const injected = buildInjectedContext(hits);
 

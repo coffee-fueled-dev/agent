@@ -39,9 +39,7 @@ export const addContextInternal = internalAction({
     title: v.optional(v.string()),
     text: v.string(),
     observationTime: v.optional(v.number()),
-    actor: v.optional(
-      v.object({ byType: v.string(), byId: v.string() }),
-    ),
+    actor: v.optional(v.object({ byType: v.string(), byId: v.string() })),
     session: v.optional(v.string()),
     threadId: v.optional(v.string()),
   },
@@ -78,9 +76,7 @@ export const deleteContextInternal = internalAction({
   args: {
     namespace: v.string(),
     entryId: v.string(),
-    actor: v.optional(
-      v.object({ byType: v.string(), byId: v.string() }),
-    ),
+    actor: v.optional(v.object({ byType: v.string(), byId: v.string() })),
     session: v.optional(v.string()),
     threadId: v.optional(v.string()),
   },
@@ -128,9 +124,7 @@ export const editContextInternal = internalAction({
     title: v.optional(v.string()),
     text: v.string(),
     observationTime: v.optional(v.number()),
-    actor: v.optional(
-      v.object({ byType: v.string(), byId: v.string() }),
-    ),
+    actor: v.optional(v.object({ byType: v.string(), byId: v.string() })),
     session: v.optional(v.string()),
     threadId: v.optional(v.string()),
   },

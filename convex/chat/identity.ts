@@ -7,8 +7,8 @@ import {
   internalMutation,
   type MutationCtx,
 } from "../_generated/server";
-import { events } from "../events";
 import { machineActor } from "../eventAttribution";
+import { events } from "../events";
 import { ensureMachineAccount, grantThreadAccessToAccount } from "../lib/auth";
 import { updateIdentityCounters } from "./identityCounters";
 
@@ -187,7 +187,11 @@ async function appendThreadIdentityEvents(
 
   const appendOne = async (params: {
     eventId: string;
-    eventType: "turn_bound" | "registration_seen" | "static_version_created" | "runtime_version_created";
+    eventType:
+      | "turn_bound"
+      | "registration_seen"
+      | "static_version_created"
+      | "runtime_version_created";
     payload: Record<string, unknown>;
     extraMetadata?: Record<string, string | number | boolean | null>;
   }) => {

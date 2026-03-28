@@ -21,13 +21,16 @@ export function listContextTool(namespace: string) {
     handler: async (ctx, args) => {
       return await withFormattedResults(
         (async () => {
-          return await ctx.runQuery(internal.context.list.listContextWithFiles, {
-            namespace,
-            paginationOpts: {
-              cursor: args.cursor ?? null,
-              numItems: PAGE_SIZE,
+          return await ctx.runQuery(
+            internal.context.list.listContextWithFiles,
+            {
+              namespace,
+              paginationOpts: {
+                cursor: args.cursor ?? null,
+                numItems: PAGE_SIZE,
+              },
             },
-          });
+          );
         })(),
       );
     },

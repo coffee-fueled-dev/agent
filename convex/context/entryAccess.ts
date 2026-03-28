@@ -1,8 +1,5 @@
 import { z } from "zod/v4";
-import {
-  sessionPaginatedQuery,
-  sessionQuery,
-} from "../customFunctions";
+import { sessionPaginatedQuery, sessionQuery } from "../customFunctions";
 import { createContextClient } from "./contextClient";
 
 export const listContextEntryAccessEvents = sessionPaginatedQuery({

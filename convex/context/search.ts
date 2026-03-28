@@ -106,10 +106,10 @@ export const embedForSearch = sessionAction({
     );
     if (cached) return;
 
-    const storageId = args.storageId as import("../_generated/dataModel").Id<"_storage">;
+    const storageId =
+      args.storageId as import("../_generated/dataModel").Id<"_storage">;
     const fileUrl = await ctx.storage.getUrl(storageId);
-    if (!fileUrl)
-      throw new Error(`Could not resolve URL for ${storageId}`);
+    if (!fileUrl) throw new Error(`Could not resolve URL for ${storageId}`);
 
     const baseUrl = getConvexSiteUrl();
     const response = await fetch(

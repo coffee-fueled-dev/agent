@@ -1,11 +1,11 @@
 import { api } from "@backend/api.js";
 import { contentHashFromArrayBuffer } from "@convex-dev/rag";
+import type { FunctionReturnType } from "convex/server";
 import {
   useSessionAction,
   useSessionMutation,
   useSessionQuery,
 } from "convex-helpers/react/sessions";
-import type { FunctionReturnType } from "convex/server";
 import { LoaderIcon, PaperclipIcon, SearchIcon, XIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDropzone } from "react-dropzone";

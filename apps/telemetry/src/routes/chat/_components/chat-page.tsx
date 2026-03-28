@@ -1,5 +1,6 @@
 import { FileDropzone, FileDropzoneProvider } from "@/components/files";
 import { PageSection } from "@/components/layout/page-section";
+import { SidebarInsetFill } from "@/components/layout/sidebar.js";
 import { Button } from "@/components/ui/button";
 import { Empty } from "@/components/ui/empty";
 import { Spinner } from "@/components/ui/spinner";
@@ -8,7 +9,6 @@ import { useChatThread } from "../_hooks/use-chat-thread.js";
 import { ChatComposer } from "./chat-composer.js";
 import { ChatMessageList } from "./chat-message-list.js";
 import { ChatThreadEventsList } from "./chat-thread-events-list.js";
-import { SidebarInsetFill } from "@/components/layout/sidebar.js";
 
 export function ChatBenchmarkPage() {
   const { threadId, token, hasToken, creating, initError, resetThread } =

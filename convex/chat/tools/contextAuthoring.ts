@@ -37,16 +37,19 @@ function addContextTool(namespace: string) {
             },
           );
           const key = `chat-${crypto.randomUUID()}`;
-          return await ctx.runAction(internal.context.mutations.addContextInternal, {
-            namespace,
-            key,
-            title: args.title,
-            text: args.text,
-            observationTime: args.observationTime,
-            actor: machineActor(accountId),
-            session: ctx.sessionId,
-            threadId: ctx.threadId,
-          });
+          return await ctx.runAction(
+            internal.context.mutations.addContextInternal,
+            {
+              namespace,
+              key,
+              title: args.title,
+              text: args.text,
+              observationTime: args.observationTime,
+              actor: machineActor(accountId),
+              session: ctx.sessionId,
+              threadId: ctx.threadId,
+            },
+          );
         })(),
       );
     },
@@ -73,16 +76,19 @@ function editContextTool(namespace: string) {
               name: chatAgentDefinition.name,
             },
           );
-          return await ctx.runAction(internal.context.mutations.editContextInternal, {
-            namespace,
-            entryId: args.entryId,
-            title: args.title,
-            text: args.text,
-            observationTime: args.observationTime,
-            actor: machineActor(accountId),
-            session: ctx.sessionId,
-            threadId: ctx.threadId,
-          });
+          return await ctx.runAction(
+            internal.context.mutations.editContextInternal,
+            {
+              namespace,
+              entryId: args.entryId,
+              title: args.title,
+              text: args.text,
+              observationTime: args.observationTime,
+              actor: machineActor(accountId),
+              session: ctx.sessionId,
+              threadId: ctx.threadId,
+            },
+          );
         })(),
       );
     },
@@ -106,13 +112,16 @@ function deleteContextTool(namespace: string) {
               name: chatAgentDefinition.name,
             },
           );
-          await ctx.runAction(internal.context.mutations.deleteContextInternal, {
-            namespace,
-            entryId: args.entryId,
-            actor: machineActor(accountId),
-            session: ctx.sessionId,
-            threadId: ctx.threadId,
-          });
+          await ctx.runAction(
+            internal.context.mutations.deleteContextInternal,
+            {
+              namespace,
+              entryId: args.entryId,
+              actor: machineActor(accountId),
+              session: ctx.sessionId,
+              threadId: ctx.threadId,
+            },
+          );
           return { deleted: true as const, entryId: args.entryId };
         })(),
       );

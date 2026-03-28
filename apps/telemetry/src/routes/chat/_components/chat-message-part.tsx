@@ -1,7 +1,7 @@
 import type { UIMessage } from "@backend/llms/uiMessage.js";
 import { useSmoothText } from "@convex-dev/agent/react";
 import { getToolName, isToolUIPart } from "ai";
-import { useMemo, type ComponentPropsWithoutRef } from "react";
+import { type ComponentPropsWithoutRef, useMemo } from "react";
 import { Fragment, jsx, jsxs } from "react/jsx-runtime";
 import rehypeReact from "rehype-react";
 import remarkParse from "remark-parse";

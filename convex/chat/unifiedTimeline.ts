@@ -1,11 +1,11 @@
 import type { PaginationOptions } from "convex/server";
 import { z } from "zod/v4";
 import { components } from "../_generated/api";
-import {
-  sessionPaginatedQuery,
-  type SessionQueryCtx,
-} from "../customFunctions";
 import { internalMutation, type MutationCtx } from "../_generated/server";
+import {
+  type SessionQueryCtx,
+  sessionPaginatedQuery,
+} from "../customFunctions";
 
 export const PROJECTOR_ID = "unifiedThreadTimeline@v1";
 const STREAM_TYPES = ["threadIdentity", "contextMemory"] as const;
@@ -127,11 +127,14 @@ export const runProjectorTick = internalMutation({
         await trimPartition(ctx, pk);
       }
 
-      await ctx.runMutation(components.events.public.projectors.advanceCheckpoint, {
-        projector: PROJECTOR_ID,
-        streamType,
-        lastSequence: maxSeq,
-      });
+      await ctx.runMutation(
+        components.events.public.projectors.advanceCheckpoint,
+        {
+          projector: PROJECTOR_ID,
+          streamType,
+          lastSequence: maxSeq,
+        },
+      );
     }
     return null;
   },
@@ -149,10 +152,7 @@ export const listUnifiedTimeline = sessionPaginatedQuery({
     const thread = await ctx.runQuery(components.agent.threads.getThread, {
       threadId: args.threadId,
     });
-    if (
-      !thread?.userId ||
-      String(thread.userId) !== String(ctx.account._id)
-    ) {
+    if (!thread?.userId || String(thread.userId) !== String(ctx.account._id)) {
       return { page: [], isDone: true, continueCursor: "" };
     }
 

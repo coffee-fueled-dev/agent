@@ -23,7 +23,10 @@ export const unifiedTimeline = defineTable({
   actor: actorOptional,
   session: v.optional(v.string()),
   metadata: v.optional(
-    v.record(v.string(), v.union(v.string(), v.number(), v.boolean(), v.null())),
+    v.record(
+      v.string(),
+      v.union(v.string(), v.number(), v.boolean(), v.null()),
+    ),
   ),
 })
   .index("by_partition_sequence", ["partitionKey", "sourceGlobalSequence"])
