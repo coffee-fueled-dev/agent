@@ -26,16 +26,22 @@ import { eventsDetail, Link } from "@/navigation/index.js";
 const PAGE_SIZE = 25;
 const ESTIMATE_EVENT_ROW = 72;
 
+/** Server hydrates labels from `unifiedTimelineDimensions`. */
+type UnifiedTimelineListRow = Doc<"unifiedTimeline"> & {
+  eventTypeLabel: string;
+  sourceStreamTypeLabel: string;
+};
+
 /** zCustomQuery widens args; assert session + pagination shape for useSessionPaginatedQuery. */
 const listUnifiedTimelineQuery = api.chat.unifiedTimeline
   .listUnifiedTimeline as FunctionReference<
   "query",
   "public",
   { sessionId: SessionId; threadId: string; paginationOpts: PaginationOptions },
-  PaginationResult<Doc<"unifiedTimeline">>
+  PaginationResult<UnifiedTimelineListRow>
 >;
 
-function ThreadEventRowLink({ row }: { row: Doc<"unifiedTimeline"> }) {
+function ThreadEventRowLink({ row }: { row: UnifiedTimelineListRow }) {
   const href = eventsDetail(row._id);
   return (
     <Item
@@ -48,10 +54,10 @@ function ThreadEventRowLink({ row }: { row: Doc<"unifiedTimeline"> }) {
         <ItemHeader className="min-w-0 gap-2">
           <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5">
             <ItemTitle className="w-full min-w-0 max-w-full truncate text-xs">
-              {row.eventType}
+              {row.eventTypeLabel}
             </ItemTitle>
             <span className="text-muted-foreground min-w-0 max-w-full truncate text-xs">
-              {row.sourceStreamType}
+              {row.sourceStreamTypeLabel}
             </span>
           </div>
         </ItemHeader>
@@ -130,7 +136,7 @@ function FadeOverflowWithVirtual({
   canLoadMore,
   isLoadingMore,
 }: {
-  results: Doc<"unifiedTimeline">[];
+  results: UnifiedTimelineListRow[];
   loadMore: (n: number) => void;
   canLoadMore: boolean;
   isLoadingMore: boolean;

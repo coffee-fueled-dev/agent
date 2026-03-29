@@ -4,7 +4,7 @@ import { FileDropzone, FileDropzoneProvider } from "@/components/files";
 import { PageSection } from "@/components/layout/page-section";
 import { SidebarInsetFill } from "@/components/layout/sidebar.js";
 import { Button } from "@/components/ui/button";
-import { Empty } from "@/components/ui/empty";
+import { Empty, EmptyContent, EmptyDescription } from "@/components/ui/empty";
 import {
   Tooltip,
   TooltipContent,
@@ -104,9 +104,13 @@ export function ChatBenchmarkPage() {
                         {threadId ? (
                           <ChatThreadEventsList threadId={threadId} />
                         ) : (
-                          <div className="text-muted-foreground flex min-h-[6rem] items-center justify-center text-center text-xs">
-                            Event stream appears after you start a thread.
-                          </div>
+                          <Empty>
+                            <EmptyContent className="text-muted-foreground text-xs">
+                              <EmptyDescription>
+                                Event stream appears after you start a thread.
+                              </EmptyDescription>
+                            </EmptyContent>
+                          </Empty>
                         )}
                       </aside>
                     ) : null}

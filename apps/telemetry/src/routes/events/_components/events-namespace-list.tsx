@@ -10,26 +10,43 @@ import type {
 } from "convex/server";
 import { useSessionIdArg } from "convex-helpers/react/sessions";
 import type { SessionId } from "convex-helpers/server/sessions";
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 import { FadeOverflow } from "@/components/layout/fade-overflow";
 import { ListSection } from "@/components/layout/list-section";
 import LoadMoreSentinel from "@/components/layout/load-more-sentinel";
 import { RequiredPaginatedResult } from "@/components/layout/required-result";
 import { Item, ItemHeader, ItemTitle } from "@/components/ui/item";
 import { eventsDetail, Link } from "@/navigation/index.js";
+import {
+  eventsFiltersToQueryArgs,
+  useEventsFiltersFromUrl,
+} from "../_hooks/use-events-filters-from-url.js";
 
 const PAGE_SIZE = 25;
 const ESTIMATE_ROW = 88;
+
+/** Server hydrates labels from `unifiedTimelineDimensions`. */
+type UnifiedTimelineListRow = Doc<"unifiedTimeline"> & {
+  eventTypeLabel: string;
+  sourceStreamTypeLabel: string;
+};
 
 const listUnifiedTimelineByNamespaceQuery = api.chat.unifiedTimeline
   .listUnifiedTimelineByNamespace as FunctionReference<
   "query",
   "public",
-  { sessionId: SessionId; paginationOpts: PaginationOptions },
-  PaginationResult<Doc<"unifiedTimeline">>
+  {
+    sessionId: SessionId;
+    paginationOpts: PaginationOptions;
+    eventTypeId?: string;
+    sourceStreamTypeId?: string;
+    eventTimeMin?: number;
+    eventTimeMax?: number;
+  },
+  PaginationResult<UnifiedTimelineListRow>
 >;
 
-function EventRowLink({ row }: { row: Doc<"unifiedTimeline"> }) {
+function EventRowLink({ row }: { row: UnifiedTimelineListRow }) {
   const href = eventsDetail(row._id);
   return (
     <Item size="sm" variant="outline" asChild>
@@ -37,10 +54,10 @@ function EventRowLink({ row }: { row: Doc<"unifiedTimeline"> }) {
         <ItemHeader className="min-w-0 gap-2">
           <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5">
             <ItemTitle className="w-full min-w-0 max-w-full truncate text-xs">
-              {row.eventType}
+              {row.eventTypeLabel}
             </ItemTitle>
             <span className="text-muted-foreground min-w-0 max-w-full truncate text-xs">
-              {row.sourceStreamType}
+              {row.sourceStreamTypeLabel}
             </span>
           </div>
           <span className="text-muted-foreground shrink-0 font-mono text-[10px] tabular-nums">
@@ -58,7 +75,7 @@ function EventsVirtualized({
   canLoadMore,
   isLoadingMore,
 }: {
-  results: Doc<"unifiedTimeline">[];
+  results: UnifiedTimelineListRow[];
   loadMore: (n: number) => void;
   canLoadMore: boolean;
   isLoadingMore: boolean;
@@ -104,7 +121,12 @@ function EventsVirtualized({
 }
 
 export function EventsNamespaceList() {
-  const sessionArgs = useSessionIdArg({});
+  const urlFilters = useEventsFiltersFromUrl();
+  const filterArgs = useMemo(
+    () => eventsFiltersToQueryArgs(urlFilters),
+    [urlFilters],
+  );
+  const sessionArgs = useSessionIdArg(filterArgs);
 
   return (
     <RequiredPaginatedResult

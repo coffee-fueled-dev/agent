@@ -79,6 +79,7 @@ import type * as models_context_embeddingCache from "../models/context/embedding
 import type * as models_context_index from "../models/context/index.js";
 import type * as models_events_index from "../models/events/index.js";
 import type * as models_events_unifiedTimeline from "../models/events/unifiedTimeline.js";
+import type * as models_events_unifiedTimelineDimensions from "../models/events/unifiedTimelineDimensions.js";
 import type * as models_geo_index from "../models/geo/index.js";
 import type * as models_geo_libs_upsert_index from "../models/geo/libs/upsert/index.js";
 import type * as models_geo_location from "../models/geo/location.js";
@@ -172,6 +173,7 @@ declare const fullApi: ApiFromModules<{
   "models/context/index": typeof models_context_index;
   "models/events/index": typeof models_events_index;
   "models/events/unifiedTimeline": typeof models_events_unifiedTimeline;
+  "models/events/unifiedTimelineDimensions": typeof models_events_unifiedTimelineDimensions;
   "models/geo/index": typeof models_geo_index;
   "models/geo/libs/upsert/index": typeof models_geo_libs_upsert_index;
   "models/geo/location": typeof models_geo_location;

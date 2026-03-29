@@ -1,8 +1,12 @@
-import type { PaginationOptions } from "convex/server";
+import type { PaginationOptions, PaginationResult } from "convex/server";
 import { z } from "zod/v4";
 import { components } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
-import { internalMutation, type MutationCtx } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
+import {
+  internalMutation,
+  type MutationCtx,
+  type QueryCtx,
+} from "../_generated/server";
 import {
   type SessionQueryCtx,
   sessionPaginatedQuery,
@@ -144,6 +148,63 @@ async function trimPartition(ctx: MutationCtx, partitionKey: string) {
   }
 }
 
+export type DimensionKind = "eventType" | "sourceStreamType";
+
+async function getOrCreateDimension(
+  ctx: MutationCtx,
+  args: { namespace: string; kind: DimensionKind; value: string },
+): Promise<Id<"unifiedTimelineDimensions">> {
+  const now = Date.now();
+  const existing = await ctx.db
+    .query("unifiedTimelineDimensions")
+    .withIndex("by_namespace_kind_value", (q) =>
+      q
+        .eq("namespace", args.namespace)
+        .eq("kind", args.kind)
+        .eq("value", args.value),
+    )
+    .first();
+  if (existing) {
+    await ctx.db.patch(existing._id, { lastSeenAt: now });
+    return existing._id;
+  }
+  return await ctx.db.insert("unifiedTimelineDimensions", {
+    namespace: args.namespace,
+    kind: args.kind,
+    value: args.value,
+    firstSeenAt: now,
+    lastSeenAt: now,
+  });
+}
+
+/** Public row shape: fact + labels from dimension rows (for UI without extra round trips). */
+export type UnifiedTimelineRowView = Doc<"unifiedTimeline"> & {
+  eventTypeLabel: string;
+  sourceStreamTypeLabel: string;
+};
+
+async function hydrateUnifiedTimelineRows(
+  ctx: QueryCtx,
+  rows: Doc<"unifiedTimeline">[],
+): Promise<UnifiedTimelineRowView[]> {
+  const idSet = new Set<Id<"unifiedTimelineDimensions">>();
+  for (const r of rows) {
+    idSet.add(r.eventTypeId);
+    idSet.add(r.sourceStreamTypeId);
+  }
+  const dims = await Promise.all([...idSet].map((id) => ctx.db.get(id)));
+  const byId = new Map(
+    dims
+      .filter((d): d is NonNullable<typeof d> => d != null)
+      .map((d) => [d._id, d] as const),
+  );
+  return rows.map((r) => ({
+    ...r,
+    eventTypeLabel: byId.get(r.eventTypeId)?.value ?? "?",
+    sourceStreamTypeLabel: byId.get(r.sourceStreamTypeId)?.value ?? "?",
+  }));
+}
+
 export const runProjectorTick = internalMutation({
   args: {},
   handler: async (ctx) => {
@@ -222,11 +283,22 @@ export const runProjectorTick = internalMutation({
         const pk = partitionKeyForEvent(src);
         if (!pk) continue;
 
+        const eventTypeId = await getOrCreateDimension(ctx, {
+          namespace: src.namespace,
+          kind: "eventType",
+          value: src.eventType,
+        });
+        const sourceStreamTypeId = await getOrCreateDimension(ctx, {
+          namespace: src.namespace,
+          kind: "sourceStreamType",
+          value: src.streamType,
+        });
+
         const existing = await ctx.db
           .query("unifiedTimeline")
           .withIndex("by_source_event", (q) =>
             q
-              .eq("sourceStreamType", src.streamType)
+              .eq("sourceStreamTypeId", sourceStreamTypeId)
               .eq("sourceNamespace", src.namespace)
               .eq("sourceStreamId", src.streamId)
               .eq("sourceEventId", src.eventId),
@@ -237,11 +309,11 @@ export const runProjectorTick = internalMutation({
         await ctx.db.insert("unifiedTimeline", {
           partitionKey: pk,
           sourceGlobalSequence: src.globalSequence,
-          sourceStreamType: src.streamType,
+          sourceStreamTypeId,
           sourceNamespace: src.namespace,
           sourceStreamId: src.streamId,
           sourceEventId: src.eventId,
-          eventType: src.eventType,
+          eventTypeId,
           eventTime: src.eventTime,
           correlationId: src.correlationId,
           causationId: src.causationId,
@@ -277,33 +349,123 @@ export const listUnifiedTimeline = sessionPaginatedQuery({
       return { page: [], isDone: true, continueCursor: "" };
     }
 
-    return await ctx.db
+    const page = await ctx.db
       .query("unifiedTimeline")
       .withIndex("by_partition_sequence", (q) =>
         q.eq("partitionKey", args.threadId),
       )
       .order("desc")
       .paginate(args.paginationOpts);
+    return {
+      ...page,
+      page: await hydrateUnifiedTimelineRows(ctx, page.page),
+    };
   },
 });
 
+const unifiedTimelineFilterArgs = z.object({
+  eventTypeId: z.string().optional(),
+  sourceStreamTypeId: z.string().optional(),
+  eventTimeMin: z.number().optional(),
+  eventTimeMax: z.number().optional(),
+});
+
+type UnifiedTimelineNamespaceFilters = z.infer<
+  typeof unifiedTimelineFilterArgs
+>;
+
+function parseDimensionId(
+  raw: string | undefined,
+): Id<"unifiedTimelineDimensions"> | undefined {
+  const t = raw?.trim();
+  return t ? (t as Id<"unifiedTimelineDimensions">) : undefined;
+}
+
 export const listUnifiedTimelineByNamespace = sessionPaginatedQuery({
-  args: {},
+  args: unifiedTimelineFilterArgs,
   handler: async (
     ctx: SessionQueryCtx,
-    args: { paginationOpts: PaginationOptions },
+    args: { paginationOpts: PaginationOptions } & UnifiedTimelineNamespaceFilters,
   ) => {
     if (!ctx.account) {
       return { page: [], isDone: true, continueCursor: "" };
     }
     const namespace = expectedAccountNamespace(ctx.account._id);
-    return await ctx.db
-      .query("unifiedTimeline")
-      .withIndex("by_namespace_eventTime", (q) =>
-        q.eq("sourceNamespace", namespace),
-      )
-      .order("desc")
-      .paginate(args.paginationOpts);
+    const eventTypeId = parseDimensionId(args.eventTypeId);
+    const sourceStreamTypeId = parseDimensionId(args.sourceStreamTypeId);
+    const minT = args.eventTimeMin;
+    const maxT = args.eventTimeMax;
+
+    let page: PaginationResult<Doc<"unifiedTimeline">>;
+
+    if (eventTypeId && sourceStreamTypeId) {
+      /** One index + filter on the other dimension (may scan more rows). */
+      page = await ctx.db
+        .query("unifiedTimeline")
+        .withIndex("by_namespace_eventType_time", (q) => {
+          const prefix = q
+            .eq("sourceNamespace", namespace)
+            .eq("eventTypeId", eventTypeId);
+          if (minT != null && maxT != null)
+            return prefix.gte("eventTime", minT).lte("eventTime", maxT);
+          if (minT != null) return prefix.gte("eventTime", minT);
+          if (maxT != null) return prefix.lte("eventTime", maxT);
+          return prefix;
+        })
+        .filter((q) =>
+          q.eq(q.field("sourceStreamTypeId"), sourceStreamTypeId),
+        )
+        .order("desc")
+        .paginate(args.paginationOpts);
+    } else if (eventTypeId) {
+      page = await ctx.db
+        .query("unifiedTimeline")
+        .withIndex("by_namespace_eventType_time", (q) => {
+          const prefix = q
+            .eq("sourceNamespace", namespace)
+            .eq("eventTypeId", eventTypeId);
+          if (minT != null && maxT != null)
+            return prefix.gte("eventTime", minT).lte("eventTime", maxT);
+          if (minT != null) return prefix.gte("eventTime", minT);
+          if (maxT != null) return prefix.lte("eventTime", maxT);
+          return prefix;
+        })
+        .order("desc")
+        .paginate(args.paginationOpts);
+    } else if (sourceStreamTypeId) {
+      page = await ctx.db
+        .query("unifiedTimeline")
+        .withIndex("by_namespace_streamType_time", (q) => {
+          const prefix = q
+            .eq("sourceNamespace", namespace)
+            .eq("sourceStreamTypeId", sourceStreamTypeId);
+          if (minT != null && maxT != null)
+            return prefix.gte("eventTime", minT).lte("eventTime", maxT);
+          if (minT != null) return prefix.gte("eventTime", minT);
+          if (maxT != null) return prefix.lte("eventTime", maxT);
+          return prefix;
+        })
+        .order("desc")
+        .paginate(args.paginationOpts);
+    } else {
+      page = await ctx.db
+        .query("unifiedTimeline")
+        .withIndex("by_namespace_eventTime", (q) => {
+          const prefix = q.eq("sourceNamespace", namespace);
+          if (minT != null && maxT != null)
+            return prefix.gte("eventTime", minT).lte("eventTime", maxT);
+          if (minT != null) return prefix.gte("eventTime", minT);
+          if (maxT != null) return prefix.lte("eventTime", maxT);
+          return prefix;
+        })
+        .order("desc")
+        .paginate(args.paginationOpts);
+    }
+
+    return {
+      ...page,
+      page: await hydrateUnifiedTimelineRows(ctx, page.page),
+    };
   },
 });
 
@@ -314,6 +476,23 @@ export const getUnifiedTimelineEvent = sessionQuery({
     const expected = expectedAccountNamespace(ctx.account._id);
     const doc = await ctx.db.get(args.id as Id<"unifiedTimeline">);
     if (!doc || doc.sourceNamespace !== expected) return null;
-    return doc;
+    const [row] = await hydrateUnifiedTimelineRows(ctx, [doc]);
+    return row;
+  },
+});
+
+export const listUnifiedTimelineDimensionValues = sessionQuery({
+  args: z.object({
+    kind: z.enum(["eventType", "sourceStreamType"]),
+  }),
+  handler: async (ctx: SessionQueryCtx, args: { kind: DimensionKind }) => {
+    if (!ctx.account) return [];
+    const namespace = expectedAccountNamespace(ctx.account._id);
+    return await ctx.db
+      .query("unifiedTimelineDimensions")
+      .withIndex("by_namespace_kind", (q) =>
+        q.eq("namespace", namespace).eq("kind", args.kind),
+      )
+      .collect();
   },
 });

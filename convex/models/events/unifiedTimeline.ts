@@ -12,11 +12,11 @@ const actorOptional = v.optional(
 export const unifiedTimeline = defineTable({
   partitionKey: v.string(),
   sourceGlobalSequence: v.number(),
-  sourceStreamType: v.string(),
+  sourceStreamTypeId: v.id("unifiedTimelineDimensions"),
   sourceNamespace: v.string(),
   sourceStreamId: v.string(),
   sourceEventId: v.string(),
-  eventType: v.string(),
+  eventTypeId: v.id("unifiedTimelineDimensions"),
   eventTime: v.number(),
   correlationId: v.optional(v.string()),
   causationId: v.optional(v.string()),
@@ -32,9 +32,19 @@ export const unifiedTimeline = defineTable({
   .index("by_partition_sequence", ["partitionKey", "sourceGlobalSequence"])
   .index("by_partition", ["partitionKey"])
   .index("by_source_event", [
-    "sourceStreamType",
+    "sourceStreamTypeId",
     "sourceNamespace",
     "sourceStreamId",
     "sourceEventId",
   ])
-  .index("by_namespace_eventTime", ["sourceNamespace", "eventTime"]);
+  .index("by_namespace_eventTime", ["sourceNamespace", "eventTime"])
+  .index("by_namespace_eventType_time", [
+    "sourceNamespace",
+    "eventTypeId",
+    "eventTime",
+  ])
+  .index("by_namespace_streamType_time", [
+    "sourceNamespace",
+    "sourceStreamTypeId",
+    "eventTime",
+  ]);

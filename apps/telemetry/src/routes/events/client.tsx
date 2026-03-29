@@ -3,6 +3,7 @@ import { SidebarInsetFill } from "@/components/layout/sidebar.js";
 import { renderApp } from "../../render-root";
 import { AppLayout } from "../_components/app-layout.js";
 import { NamespaceProvider } from "../context/_hooks/use-namespace.js";
+import { EventsFiltersTrigger } from "./_components/events-filters-dialog.js";
 import { EventsNamespaceList } from "./_components/events-namespace-list.js";
 
 function EventsRoute() {
@@ -15,6 +16,7 @@ function EventsRoute() {
             Events
           </span>
         }
+        segmentTrail={<EventsFiltersTrigger />}
       >
         <PageSection>
           <PageSection.Content>
