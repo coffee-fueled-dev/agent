@@ -43,6 +43,7 @@
     "@convex-dev/workpool": "^0.4.6",
     "@google/genai": "^1.46.0",
     "ai": "^5.0.82",
+    "bash-parser": "^0.5.0",
     "convex": "1.34.0",
     "convex-helpers": "^0.1.114",
     "pca-js": "^2.0.6",
