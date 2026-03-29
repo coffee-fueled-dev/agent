@@ -1,42 +1,31 @@
 import { Agent } from "@convex-dev/agent";
-import type { Tool } from "ai";
-import type { SessionId } from "convex-helpers/server/sessions";
 import { components } from "../../../_generated/api";
 import {
   defineRegisteredMachineAgent,
-  type RegisteredMachineAgent,
   recordRegisteredMachineAgentTurn,
 } from "../../../chat/identity";
-import type { SessionActionCtx } from "../../../customFunctions";
 import { languageModels } from "../../models";
 import { toolLibrary } from "../../tools";
-import { createToolkitContext } from "../../tools/_libs/customFunctions";
-import { type Composable, toolkit } from "../../tools/_libs/toolkit";
+import {
+  type AgentIdentityCtx,
+  createToolkitContext,
+} from "../../tools/_libs/customFunctions";
+import { toolkit } from "../../tools/_libs/toolkit";
 
-const assistantTools: Composable = toolkit(
+const assistantTools = toolkit(
   [toolLibrary.contextManagement, toolLibrary.filesystem],
   {
     name: "assistant-tools",
   },
 );
 
-const assistantDefinition: RegisteredMachineAgent =
-  defineRegisteredMachineAgent({
-    agentId: "assistant",
-    name: "Assistant",
-    staticProps: assistantTools.staticProps,
-  });
+const assistantDefinition = defineRegisteredMachineAgent({
+  agentId: "assistant",
+  name: "Assistant",
+  staticProps: assistantTools.staticProps,
+});
 
-export type ChatAgentIdentityCtx = SessionActionCtx & {
-  threadId: string;
-  messageId: string;
-  namespace: string;
-  sessionId: SessionId;
-};
-
-export async function createAgent(
-  identity: ChatAgentIdentityCtx,
-): Promise<Agent<Record<string, unknown>, Record<string, Tool>>> {
+export async function createAgent(identity: AgentIdentityCtx) {
   const toolkitCtx = createToolkitContext({
     ...identity,
     sessionId: identity.sessionId,

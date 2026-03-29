@@ -1,7 +1,7 @@
-import { createAgent } from "./assistant/agent";
-import { exampleAgent } from "./exampleAgent/agent";
+import { createAgent as assistant } from "./assistant/agent";
+import { createAgent as exampleAgent } from "./exampleAgent/agent";
 
 export const agentLibrary = {
-  assistant: createAgent,
+  assistant,
   exampleAgent,
 } as const;

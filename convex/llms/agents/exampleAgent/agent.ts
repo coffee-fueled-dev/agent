@@ -13,22 +13,18 @@ import { toolkit } from "../../tools/_libs/toolkit";
 import staticInstructions from "./_instructions";
 import { example } from "./_toolkits/example";
 
-export const exampleAgentToolkit = toolkit([example], {
-  name: "staticExampleAgent",
+const exampleAgentTools = toolkit([example], {
+  name: "example-agent-tools",
   instructions: [staticInstructions],
 });
 
-export const exampleAgentComposed = toolkit([exampleAgentToolkit], {
-  name: "exampleAgent",
-});
-
-export const exampleAgentDefinition = defineRegisteredMachineAgent({
+const exampleAgentDefinition = defineRegisteredMachineAgent({
   agentId: "example-agent",
   name: "Example Agent",
-  staticProps: exampleAgentComposed.staticProps,
+  staticProps: exampleAgentTools.staticProps,
 });
 
-export const exampleAgent = async (
+export const createAgent = async (
   ctx: Omit<ToolBuilderContext, "agentId" | "agentName">,
 ) => {
   const toolkitCtx = createToolkitContext({
@@ -37,7 +33,7 @@ export const exampleAgent = async (
     agentName: exampleAgentDefinition.name,
   });
   const { tools, instructions, effectiveStaticProps } =
-    await exampleAgentComposed.evaluate(toolkitCtx);
+    await exampleAgentTools.evaluate(toolkitCtx);
 
   await recordRegisteredMachineAgentTurn(ctx, {
     definition: exampleAgentDefinition,

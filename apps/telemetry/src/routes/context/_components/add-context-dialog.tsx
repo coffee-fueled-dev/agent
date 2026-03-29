@@ -1,9 +1,5 @@
 import { api } from "@backend/api.js";
-import { contentHashFromArrayBuffer } from "@convex-dev/rag";
-import {
-  useSessionAction,
-  useSessionMutation,
-} from "convex-helpers/react/sessions";
+import { useSessionAction } from "convex-helpers/react/sessions";
 import {
   type ComponentProps,
   type PropsWithChildren,
@@ -24,32 +20,9 @@ import {
 import { Field, FieldError, FieldLabel } from "@/components/ui/field.js";
 import { Input } from "@/components/ui/input.js";
 import { Textarea } from "@/components/ui/textarea.js";
+import { buildContextFileKey } from "../../_hooks/context-file.js";
+import { useContextFileUpload } from "../../_hooks/use-context-file-upload.js";
 import { useNamespace } from "../_hooks/use-namespace.js";
-
-function buildKey(title: string, file?: File | null) {
-  const base = (title.trim() || file?.name || "context")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-  return `${base || "context"}:${crypto.randomUUID()}`;
-}
-
-function isTextLikeFile(file: File) {
-  return (
-    file.type.startsWith("text/") ||
-    file.type === "application/json" ||
-    file.type === "application/xml"
-  );
-}
-
-function readFileText(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = () => reject(new Error("Failed to read file"));
-    reader.readAsText(file);
-  });
-}
 
 type AddContextDialogProps = PropsWithChildren<{
   open?: boolean;
@@ -64,10 +37,7 @@ export function AddContextDialog({
   const { namespace, sessionNamespaceResolved } = useNamespace();
   const { files, addFiles, clearFiles, removeFile } = useFiles();
   const addContext = useSessionAction(api.context.mutations.addContext);
-  const addFileContext = useSessionAction(api.context.files.addFileContext);
-  const generateUploadUrl = useSessionMutation(
-    api.context.files.generateContextUploadUrl,
-  );
+  const { prepareAttachment, indexFileInContext } = useContextFileUpload();
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
   const [saving, setSaving] = useState(false);
@@ -86,22 +56,6 @@ export function AddContextDialog({
     clearFiles();
   };
 
-  const uploadFile = async (currentFile: File) => {
-    const uploadUrl = await generateUploadUrl({});
-    const response = await fetch(uploadUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": currentFile.type || "application/octet-stream",
-      },
-      body: currentFile,
-    });
-    if (!response.ok) throw new Error("Failed to upload file.");
-    const payload = (await response.json()) as { storageId?: string };
-    if (!payload.storageId)
-      throw new Error("Upload did not return a storage id.");
-    return payload.storageId;
-  };
-
   const handleSubmit: ComponentProps<"form">["onSubmit"] = async (event) => {
     event.preventDefault();
     if (!sessionNamespaceResolved || !canSave || saving) return;
@@ -109,7 +63,10 @@ export function AddContextDialog({
     setSaving(true);
     setError(null);
     try {
-      const key = buildKey(title, file);
+      const key = buildContextFileKey({
+        title,
+        fileName: file?.name,
+      });
 
       if (!file) {
         await addContext({
@@ -119,23 +76,16 @@ export function AddContextDialog({
           text: text.trim(),
         });
       } else {
-        const [storageId, hash] = await Promise.all([
-          uploadFile(file),
-          contentHashFromArrayBuffer(await file.arrayBuffer()),
-        ]);
-        const fileText = isTextLikeFile(file)
-          ? await readFileText(file)
-          : undefined;
-
-        await addFileContext({
+        const prepared = await prepareAttachment(file);
+        await indexFileInContext({
           namespace,
           key,
           title: title.trim() || file.name,
-          storageId: storageId as never,
-          mimeType: file.type || "application/octet-stream",
-          fileName: file.name,
-          text: fileText ?? (text.trim() || undefined),
-          contentHash: hash,
+          storageId: prepared.storageId,
+          mimeType: prepared.mimeType,
+          fileName: prepared.fileName,
+          text: prepared.text ?? (text.trim() || undefined),
+          contentHash: prepared.contentHash,
         });
       }
 

@@ -11,6 +11,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { AppLayout } from "../../_components/app-layout.js";
+import { NamespaceProvider } from "../../context/_hooks/use-namespace.js";
 import { useChatThread } from "../_hooks/use-chat-thread.js";
 import { ChatComposer } from "./chat-composer.js";
 import { ChatMessageList } from "./chat-message-list.js";
@@ -69,57 +70,59 @@ export function ChatBenchmarkPage() {
           </p>
         </Empty>
       ) : (
-        <PageSection>
-          <PageSection.Content>
-            <FileDropzoneProvider limit={10}>
-              <FileDropzone className="flex flex-col gap-4 rounded-lg">
-                <SidebarInsetFill>
-                  <PageSection.Body
-                    className={
-                      eventsSidebarVisible
-                        ? "flex h-full min-h-0 flex-col gap-2 p-2 lg:flex-row"
-                        : "flex h-full min-h-0 flex-col gap-2 p-2"
-                    }
-                  >
-                    <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
-                      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                        {threadId ? (
-                          <ChatMessageList threadId={threadId} />
-                        ) : (
-                          <div className="text-muted-foreground flex min-h-[8rem] items-center justify-center text-sm">
-                            No messages yet. Send a message to start a thread.
-                          </div>
-                        )}
+        <NamespaceProvider>
+          <PageSection>
+            <PageSection.Content>
+              <FileDropzoneProvider limit={10}>
+                <FileDropzone className="flex flex-col gap-4 rounded-lg">
+                  <SidebarInsetFill>
+                    <PageSection.Body
+                      className={
+                        eventsSidebarVisible
+                          ? "flex h-full min-h-0 flex-col gap-2 p-2 lg:flex-row"
+                          : "flex h-full min-h-0 flex-col gap-2 p-2"
+                      }
+                    >
+                      <div className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-4">
+                        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                          {threadId ? (
+                            <ChatMessageList threadId={threadId} />
+                          ) : (
+                            <div className="text-muted-foreground flex min-h-[8rem] items-center justify-center text-sm">
+                              No messages yet. Send a message to start a thread.
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-shrink-0">
+                          <ChatComposer
+                            threadId={threadId}
+                            token={token}
+                            setThreadId={setThreadId}
+                          />
+                        </div>
                       </div>
-                      <div className="flex-shrink-0">
-                        <ChatComposer
-                          threadId={threadId}
-                          token={token}
-                          setThreadId={setThreadId}
-                        />
-                      </div>
-                    </div>
-                    {eventsSidebarVisible ? (
-                      <aside className="border-border flex min-h-[10rem] shrink-0 flex-col border-t pt-2 lg:min-h-0 lg:w-72 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-3">
-                        {threadId ? (
-                          <ChatThreadEventsList threadId={threadId} />
-                        ) : (
-                          <Empty>
-                            <EmptyContent className="text-muted-foreground text-xs">
-                              <EmptyDescription>
-                                Event stream appears after you start a thread.
-                              </EmptyDescription>
-                            </EmptyContent>
-                          </Empty>
-                        )}
-                      </aside>
-                    ) : null}
-                  </PageSection.Body>
-                </SidebarInsetFill>
-              </FileDropzone>
-            </FileDropzoneProvider>
-          </PageSection.Content>
-        </PageSection>
+                      {eventsSidebarVisible ? (
+                        <aside className="border-border flex min-h-[10rem] shrink-0 flex-col border-t pt-2 lg:min-h-0 lg:w-72 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-3">
+                          {threadId ? (
+                            <ChatThreadEventsList threadId={threadId} />
+                          ) : (
+                            <Empty>
+                              <EmptyContent className="text-muted-foreground text-xs">
+                                <EmptyDescription>
+                                  Event stream appears after you start a thread.
+                                </EmptyDescription>
+                              </EmptyContent>
+                            </Empty>
+                          )}
+                        </aside>
+                      ) : null}
+                    </PageSection.Body>
+                  </SidebarInsetFill>
+                </FileDropzone>
+              </FileDropzoneProvider>
+            </PageSection.Content>
+          </PageSection>
+        </NamespaceProvider>
       )}
     </AppLayout>
   );

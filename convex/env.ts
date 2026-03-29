@@ -11,12 +11,12 @@ const convexEnvSchema = z.object({
   OPENAI_API_KEY: z.string().optional(),
   EMBEDDING_SERVER_URL: z.string().optional(),
   BINARY_EMBEDDING_SECRET: z.string().optional(),
-  CONVEX_SITE_URL: z.string().optional(),
-  CONVEX_URL: z.string().optional(),
   LOCAL_SHELL_URL: z.string().optional(),
   LOCAL_SHELL_SECRET: z.string().optional(),
   LOCAL_AGENT_MODE: z.string().optional(),
   SHELL_COMMAND_WHITELIST: z.string().optional(),
+  /** Public base URL for storage (from ngrok in local dev); synced from `.env.local` via dev script. */
+  NGROK_URL: z.string().optional(),
 });
 
 const env = convexEnvSchema.parse(process.env);
@@ -54,9 +54,14 @@ export function getFileEmbeddingSecret(): string {
 }
 
 export function getConvexSiteUrl(): string {
-  const url = trim(env.CONVEX_SITE_URL) ?? trim(env.CONVEX_URL);
-  if (!url) throw new Error("CONVEX_SITE_URL or CONVEX_URL is required");
+  const url = trim(process.env.CONVEX_SITE_URL);
+  if (!url) throw new Error("CONVEX_SITE_URL is required");
   return url.replace(/\/+$/, "");
+}
+
+/** When set, localhost storage URLs are rewritten so LLM providers can fetch files (local dev). */
+export function getNgrokUrl(): string | undefined {
+  return trim(env.NGROK_URL);
 }
 
 export function getLocalShellUrl(): string {
