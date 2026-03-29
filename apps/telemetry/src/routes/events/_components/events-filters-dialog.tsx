@@ -5,6 +5,12 @@ import { useForm } from "@tanstack/react-form";
 import { useSessionQuery } from "convex-helpers/react/sessions";
 import { Filter } from "lucide-react";
 import { useEffect, useState } from "react";
+import { DatePickerField } from "@/components/blocks/date-picker-field.js";
+import {
+  datePartsToMs,
+  msToDateParts,
+} from "@/components/blocks/date-time-form.js";
+import { TimePickerField } from "@/components/blocks/time-picker-field.js";
 import { Button } from "@/components/ui/button.js";
 import {
   Dialog,
@@ -13,8 +19,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog.js";
-import { Field, FieldLabel } from "@/components/ui/field.js";
-import { Input } from "@/components/ui/input.js";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field.js";
 import {
   Select,
   SelectContent,
@@ -30,37 +35,32 @@ import {
 
 const ANY_DIM = "__any__";
 
-function msToDatetimeLocal(ms: number): string {
-  const d = new Date(ms);
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
-}
-
-function datetimeLocalToMs(s: string): number | undefined {
-  if (!s.trim()) return undefined;
-  const t = new Date(s).getTime();
-  return Number.isNaN(t) ? undefined : t;
-}
-
 function stateToFormDefaults(f: EventsFiltersState) {
+  const from =
+    f.eventTimeMin != null
+      ? msToDateParts(f.eventTimeMin)
+      : { date: "", time: "" };
+  const to =
+    f.eventTimeMax != null
+      ? msToDateParts(f.eventTimeMax)
+      : { date: "", time: "" };
   return {
     eventTypeId: f.eventTypeId ?? "",
     sourceStreamTypeId: f.sourceStreamTypeId ?? "",
-    eventTimeFrom:
-      f.eventTimeMin != null ? msToDatetimeLocal(f.eventTimeMin) : "",
-    eventTimeTo:
-      f.eventTimeMax != null ? msToDatetimeLocal(f.eventTimeMax) : "",
+    fromDate: from.date,
+    fromTime: from.time,
+    toDate: to.date,
+    toTime: to.time,
   };
 }
 
-function formToUrlState(values: {
-  eventTypeId: string;
-  sourceStreamTypeId: string;
-  eventTimeFrom: string;
-  eventTimeTo: string;
-}): EventsFiltersState {
-  const min = datetimeLocalToMs(values.eventTimeFrom);
-  const max = datetimeLocalToMs(values.eventTimeTo);
+function formToUrlState(values: FormShape): EventsFiltersState {
+  const min = values.fromDate.trim()
+    ? datePartsToMs(values.fromDate, values.fromTime.trim() || "00:00:00")
+    : undefined;
+  const max = values.toDate.trim()
+    ? datePartsToMs(values.toDate, values.toTime.trim() || "23:59:59")
+    : undefined;
   return {
     eventTypeId: values.eventTypeId || undefined,
     sourceStreamTypeId: values.sourceStreamTypeId || undefined,
@@ -81,8 +81,10 @@ function scheduleSyncUrlFromForm(form: {
         sourceStreamTypeId: String(
           form.getFieldValue("sourceStreamTypeId") ?? "",
         ),
-        eventTimeFrom: String(form.getFieldValue("eventTimeFrom") ?? ""),
-        eventTimeTo: String(form.getFieldValue("eventTimeTo") ?? ""),
+        fromDate: String(form.getFieldValue("fromDate") ?? ""),
+        fromTime: String(form.getFieldValue("fromTime") ?? ""),
+        toDate: String(form.getFieldValue("toDate") ?? ""),
+        toTime: String(form.getFieldValue("toTime") ?? ""),
       }),
     );
   });
@@ -90,6 +92,8 @@ function scheduleSyncUrlFromForm(form: {
 
 export function EventsFiltersTrigger() {
   const [open, setOpen] = useState(false);
+  const [fromCalOpen, setFromCalOpen] = useState(false);
+  const [toCalOpen, setToCalOpen] = useState(false);
   const eventTypeDims = useSessionQuery(
     api.chat.unifiedTimeline.listUnifiedTimelineDimensionValues,
     { kind: "eventType" },
@@ -119,8 +123,10 @@ export function EventsFiltersTrigger() {
     const empty: FormShape = {
       eventTypeId: "",
       sourceStreamTypeId: "",
-      eventTimeFrom: "",
-      eventTimeTo: "",
+      fromDate: "",
+      fromTime: "",
+      toDate: "",
+      toTime: "",
     };
     form.reset(empty);
     writeEventsFiltersToUrl({});
@@ -213,45 +219,75 @@ export function EventsFiltersTrigger() {
               )}
             </form.Field>
 
-            <form.Field name="eventTimeFrom">
-              {(field) => (
-                <Field>
-                  <FieldLabel htmlFor="events-filter-from">
-                    From (local time)
-                  </FieldLabel>
-                  <Input
-                    id="events-filter-from"
-                    type="datetime-local"
-                    value={field.state.value}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      field.handleChange(val);
-                      scheduleSyncUrlFromForm(form);
-                    }}
-                  />
-                </Field>
-              )}
-            </form.Field>
+            <FieldGroup className="gap-2">
+              <span className="text-sm font-medium">From (local)</span>
+              <FieldGroup className="w-full min-w-0 flex-row flex-nowrap items-end gap-3">
+                <form.Field name="fromDate">
+                  {(field) => (
+                    <DatePickerField
+                      id="events-filter-from-date"
+                      label="Date"
+                      fieldClassName="w-auto min-w-0 flex-1"
+                      value={field.state.value}
+                      open={fromCalOpen}
+                      onOpenChange={setFromCalOpen}
+                      onChange={(ymd) => {
+                        field.handleChange(ymd);
+                        scheduleSyncUrlFromForm(form);
+                      }}
+                    />
+                  )}
+                </form.Field>
+                <form.Field name="fromTime">
+                  {(field) => (
+                    <TimePickerField
+                      id="events-filter-from-time"
+                      label="Time"
+                      value={field.state.value}
+                      onChange={(v) => {
+                        field.handleChange(v);
+                        scheduleSyncUrlFromForm(form);
+                      }}
+                    />
+                  )}
+                </form.Field>
+              </FieldGroup>
+            </FieldGroup>
 
-            <form.Field name="eventTimeTo">
-              {(field) => (
-                <Field>
-                  <FieldLabel htmlFor="events-filter-to">
-                    To (local time)
-                  </FieldLabel>
-                  <Input
-                    id="events-filter-to"
-                    type="datetime-local"
-                    value={field.state.value}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      field.handleChange(val);
-                      scheduleSyncUrlFromForm(form);
-                    }}
-                  />
-                </Field>
-              )}
-            </form.Field>
+            <FieldGroup className="gap-2">
+              <span className="text-sm font-medium">To (local)</span>
+              <FieldGroup className="w-full min-w-0 flex-row flex-nowrap items-end gap-3">
+                <form.Field name="toDate">
+                  {(field) => (
+                    <DatePickerField
+                      id="events-filter-to-date"
+                      label="Date"
+                      fieldClassName="w-auto min-w-0 flex-1"
+                      value={field.state.value}
+                      open={toCalOpen}
+                      onOpenChange={setToCalOpen}
+                      onChange={(ymd) => {
+                        field.handleChange(ymd);
+                        scheduleSyncUrlFromForm(form);
+                      }}
+                    />
+                  )}
+                </form.Field>
+                <form.Field name="toTime">
+                  {(field) => (
+                    <TimePickerField
+                      id="events-filter-to-time"
+                      label="Time"
+                      value={field.state.value}
+                      onChange={(v) => {
+                        field.handleChange(v);
+                        scheduleSyncUrlFromForm(form);
+                      }}
+                    />
+                  )}
+                </form.Field>
+              </FieldGroup>
+            </FieldGroup>
 
             <div className="flex justify-end gap-2 pt-1">
               <Button type="button" variant="secondary" onClick={clearAll}>
