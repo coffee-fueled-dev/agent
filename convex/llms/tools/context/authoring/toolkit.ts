@@ -2,7 +2,6 @@ import type { InferUITool, Tool } from "ai";
 import { z } from "zod/v4";
 import { internal } from "../../../../_generated/api";
 import { machineActor } from "../../../../eventAttribution";
-import { chatAgentDefinition } from "../../../agents/assistant/agent";
 import {
   dynamicTool,
   toolkit,
@@ -42,8 +41,8 @@ function addContextTool() {
           const { accountId } = await ctx.runMutation(
             internal.sessionResolve.ensureMachineAccountInternal,
             {
-              codeId: chatAgentDefinition.agentId,
-              name: chatAgentDefinition.name,
+              codeId: ctx.agentId,
+              name: ctx.agentName,
             },
           );
           const key = `chat-${crypto.randomUUID()}`;
@@ -83,8 +82,8 @@ function editContextTool() {
           const { accountId } = await ctx.runMutation(
             internal.sessionResolve.ensureMachineAccountInternal,
             {
-              codeId: chatAgentDefinition.agentId,
-              name: chatAgentDefinition.name,
+              codeId: ctx.agentId,
+              name: ctx.agentName,
             },
           );
           return await ctx.runAction(
@@ -120,8 +119,8 @@ function deleteContextTool() {
           const { accountId } = await ctx.runMutation(
             internal.sessionResolve.ensureMachineAccountInternal,
             {
-              codeId: chatAgentDefinition.agentId,
-              name: chatAgentDefinition.name,
+              codeId: ctx.agentId,
+              name: ctx.agentName,
             },
           );
           await ctx.runAction(

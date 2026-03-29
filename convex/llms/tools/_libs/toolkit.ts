@@ -93,10 +93,11 @@ function wrapToolHandlerWithTelemetry<INPUT, OUTPUT>(
       streamId: ctx.threadId,
       eventId: `${base}:tool_start`,
       eventType: "tool_started",
-      payload: { toolName, messageId: ctx.messageId },
+      payload: { toolName, messageId: ctx.messageId, agentId: ctx.agentId },
       metadata: {
         messageId: ctx.messageId,
         sessionId: ctx.sessionId,
+        agentId: ctx.agentId,
       },
       session: ctx.sessionId,
     });
@@ -107,10 +108,11 @@ function wrapToolHandlerWithTelemetry<INPUT, OUTPUT>(
         streamId: ctx.threadId,
         eventId: `${base}:tool_ok`,
         eventType: "tool_succeeded",
-        payload: { toolName, messageId: ctx.messageId },
+        payload: { toolName, messageId: ctx.messageId, agentId: ctx.agentId },
         metadata: {
           messageId: ctx.messageId,
           sessionId: ctx.sessionId,
+          agentId: ctx.agentId,
         },
         session: ctx.sessionId,
       });
@@ -124,11 +126,13 @@ function wrapToolHandlerWithTelemetry<INPUT, OUTPUT>(
         payload: {
           toolName,
           messageId: ctx.messageId,
+          agentId: ctx.agentId,
           error: e instanceof Error ? e.message : String(e),
         },
         metadata: {
           messageId: ctx.messageId,
           sessionId: ctx.sessionId,
+          agentId: ctx.agentId,
         },
         session: ctx.sessionId,
       });
@@ -279,7 +283,16 @@ export function dynamicTool<NAME extends string, INPUT, OUTPUT, ARGS>({
       args: INPUT,
       options: ToolCallOptions,
     ) =>
-      innerHandler({ ...execCtx, namespace: resolvedNamespace }, args, options);
+      innerHandler(
+        {
+          ...execCtx,
+          namespace: resolvedNamespace,
+          agentId: ctx.agentId,
+          agentName: ctx.agentName,
+        },
+        args,
+        options,
+      );
 
     const handler = (
       useToolTelemetry

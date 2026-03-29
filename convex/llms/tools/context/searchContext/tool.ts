@@ -2,7 +2,6 @@ import type { InferUITool, Tool } from "ai";
 import { z } from "zod/v4";
 import { internal } from "../../../../_generated/api";
 import { machineActor } from "../../../../eventAttribution";
-import { chatAgentDefinition } from "../../../agents/assistant/agent";
 import { dynamicTool, withFormattedResults } from "../../_libs/toolkit";
 
 declare module "../../registeredToolMap" {
@@ -31,8 +30,8 @@ export function searchContextTool() {
           const { accountId } = await ctx.runMutation(
             internal.sessionResolve.ensureMachineAccountInternal,
             {
-              codeId: chatAgentDefinition.agentId,
-              name: chatAgentDefinition.name,
+              codeId: ctx.agentId,
+              name: ctx.agentName,
             },
           );
           const results = await ctx.runAction(

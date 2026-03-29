@@ -2,7 +2,6 @@ import {
   createThread as createAgentThread,
   listUIMessages,
   type SyncStreamsReturnValue,
-  saveMessage,
   saveMessages,
   syncStreams,
 } from "@convex-dev/agent";
@@ -22,7 +21,7 @@ import {
   sessionPaginatedQuery,
 } from "../customFunctions";
 import { ensureTokenAccount, resolveAccountByAlias } from "../lib/auth";
-import { createAgent } from "../llms/agents/assistant/agent";
+import { agentLibrary } from "../llms/agents";
 import type { UIMessage } from "../llms/uiMessage";
 import { resolveThreadContext } from "./resolveNamespace";
 
@@ -195,7 +194,7 @@ export const sendMessage = sessionAction({
 
     if (!promptMessageId) throw new Error("Failed to save prompt message");
 
-    const agent = await createAgent({
+    const agent = await agentLibrary.assistant({
       ...ctx,
       threadId: args.threadId,
       messageId: promptMessageId,

@@ -28,9 +28,16 @@ export const exampleAgentDefinition = defineRegisteredMachineAgent({
   staticProps: exampleAgentComposed.staticProps,
 });
 
-export const exampleAgent = async (ctx: ToolBuilderContext) => {
+export const exampleAgent = async (
+  ctx: Omit<ToolBuilderContext, "agentId" | "agentName">,
+) => {
+  const toolkitCtx = createToolkitContext({
+    ...ctx,
+    agentId: exampleAgentDefinition.agentId,
+    agentName: exampleAgentDefinition.name,
+  });
   const { tools, instructions, effectiveStaticProps } =
-    await exampleAgentComposed.evaluate(createToolkitContext(ctx));
+    await exampleAgentComposed.evaluate(toolkitCtx);
 
   await recordRegisteredMachineAgentTurn(ctx, {
     definition: exampleAgentDefinition,

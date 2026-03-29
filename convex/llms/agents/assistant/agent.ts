@@ -10,22 +10,8 @@ import {
 import type { SessionActionCtx } from "../../../customFunctions";
 import { languageModels } from "../../models";
 import { toolLibrary } from "../../tools";
-import {
-  createToolkitContext,
-  type ToolkitContext,
-} from "../../tools/_libs/customFunctions";
+import { createToolkitContext } from "../../tools/_libs/customFunctions";
 import { type Composable, toolkit } from "../../tools/_libs/toolkit";
-
-/** Namespace only affects tool closures; static identity shape matches any real namespace. */
-const STATIC_IDENTITY_NAMESPACE = "__definition__";
-
-const staticToolkitContext: ToolkitContext = {
-  runPolicyQuery: async () => false,
-  runDependencyQuery: async () => {
-    throw new Error("Assistant does not use dynamic toolkit dependencies");
-  },
-  namespace: STATIC_IDENTITY_NAMESPACE,
-};
 
 const assistantTools: Composable = toolkit(
   [toolLibrary.contextManagement, toolLibrary.filesystem],
@@ -34,7 +20,7 @@ const assistantTools: Composable = toolkit(
   },
 );
 
-export const assistantDefinition: RegisteredMachineAgent =
+const assistantDefinition: RegisteredMachineAgent =
   defineRegisteredMachineAgent({
     agentId: "assistant",
     name: "Assistant",
@@ -45,38 +31,30 @@ export type ChatAgentIdentityCtx = SessionActionCtx & {
   threadId: string;
   messageId: string;
   namespace: string;
-  /** Required for tool policy + telemetry; omit only when not using session-scoped tools. */
-  sessionId?: SessionId;
+  sessionId: SessionId;
 };
 
-/**
- * @param identity - When set (after saveMessage), records turn identity and uses the thread's namespace for tools.
- * When omitted (createThread bootstrap, or saveMessage-only agent), uses a placeholder namespace and skips identity recording.
- */
 export async function createAgent(
-  identity?: ChatAgentIdentityCtx,
+  identity: ChatAgentIdentityCtx,
 ): Promise<Agent<Record<string, unknown>, Record<string, Tool>>> {
-  const toolkitCtx: ToolkitContext =
-    identity != null && identity.sessionId != null
-      ? createToolkitContext({
-          ...identity,
-          sessionId: identity.sessionId,
-          namespace: identity.namespace,
-        })
-      : staticToolkitContext;
+  const toolkitCtx = createToolkitContext({
+    ...identity,
+    sessionId: identity.sessionId,
+    namespace: identity.namespace,
+    agentId: assistantDefinition.agentId,
+    agentName: assistantDefinition.name,
+  });
 
   const { tools, instructions, effectiveStaticProps } =
     await assistantTools.evaluate(toolkitCtx);
 
-  if (identity) {
-    await recordRegisteredMachineAgentTurn(identity, {
-      definition: assistantDefinition,
-      runtimeStaticProps: effectiveStaticProps,
-      threadId: identity.threadId,
-      messageId: identity.messageId,
-      sessionId: identity.sessionId,
-    });
-  }
+  await recordRegisteredMachineAgentTurn(identity, {
+    definition: assistantDefinition,
+    runtimeStaticProps: effectiveStaticProps,
+    threadId: identity.threadId,
+    messageId: identity.messageId,
+    sessionId: identity.sessionId,
+  });
 
   return new Agent(components.agent, {
     name: assistantDefinition.name,

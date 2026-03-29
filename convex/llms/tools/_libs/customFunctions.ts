@@ -20,6 +20,9 @@ export type ToolBuilderContext = Omit<SessionActionCtx, "sessionId"> & {
   sessionId: SessionId;
   /** Thread RAG / telemetry namespace; injected into toolkit + tool execution context. */
   namespace: string;
+  /** Machine agent identity; included in tool / policy telemetry. */
+  agentId: string;
+  agentName: string;
 };
 
 export type ToolExecutionContext = ToolCtx & {
@@ -28,6 +31,9 @@ export type ToolExecutionContext = ToolCtx & {
   sessionId: SessionId;
   /** Set by `dynamicTool.evaluate` from `ToolkitContext.namespace` (or override). */
   namespace: string;
+  /** Machine agent identity for session resolution / telemetry (from `ToolkitContext`). */
+  agentId: string;
+  agentName: string;
 };
 
 export type ToolPolicyArgs = {
@@ -88,6 +94,9 @@ export type ToolkitContext = {
   ) => Promise<T>;
   /** Thread RAG / tool telemetry namespace (from `ToolBuilderContext`). */
   namespace: string;
+  /** Machine agent identity; set via `createToolkitContext` / `ToolBuilderContext`. */
+  agentId: string;
+  agentName: string;
   /** Present when session-scoped toolkit evaluation schedules policy/tool lifecycle events. */
   scheduleTelemetry?: (event: ThreadToolTelemetryScheduleArgs) => void;
   /** Message/thread ids for stable telemetry event keys when `scheduleTelemetry` is set. */
@@ -114,12 +123,15 @@ export function createToolkitContext(ctx: ToolBuilderContext): ToolkitContext {
             eventType: event.eventType,
             payload: {
               messageId: ctx.messageId,
+              agentId: ctx.agentId,
+              agentName: ctx.agentName,
               ...event.payload,
             },
             metadata: {
               ...event.metadata,
               messageId: ctx.messageId,
               sessionId: ctx.sessionId,
+              agentId: ctx.agentId,
             },
             session: ctx.sessionId,
           });
@@ -130,6 +142,8 @@ export function createToolkitContext(ctx: ToolBuilderContext): ToolkitContext {
     runPolicyQuery: (query) => ctx.runSessionQuery(query, args),
     runDependencyQuery: (query) => ctx.runSessionQuery(query, args),
     namespace: ctx.namespace,
+    agentId: ctx.agentId,
+    agentName: ctx.agentName,
     scheduleTelemetry,
     toolContext:
       scheduleTelemetry != null
