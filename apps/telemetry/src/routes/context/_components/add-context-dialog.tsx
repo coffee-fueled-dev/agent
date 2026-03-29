@@ -61,7 +61,7 @@ export function AddContextDialog({
   open,
   onOpenChange,
 }: AddContextDialogProps) {
-  const { namespace } = useNamespace();
+  const { namespace, sessionNamespaceResolved } = useNamespace();
   const { files, addFiles, clearFiles, removeFile } = useFiles();
   const addContext = useSessionAction(api.context.mutations.addContext);
   const addFileContext = useSessionAction(api.context.files.addFileContext);
@@ -104,7 +104,7 @@ export function AddContextDialog({
 
   const handleSubmit: ComponentProps<"form">["onSubmit"] = async (event) => {
     event.preventDefault();
-    if (!canSave || saving) return;
+    if (!sessionNamespaceResolved || !canSave || saving) return;
 
     setSaving(true);
     setError(null);

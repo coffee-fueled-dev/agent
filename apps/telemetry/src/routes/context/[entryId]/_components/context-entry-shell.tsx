@@ -23,7 +23,7 @@ export function ContextEntryShellInner({
   segment: EntrySegment;
   children: ReactNode;
 }) {
-  const { namespace } = useNamespace();
+  const { namespace, sessionNamespaceResolved } = useNamespace();
   const backHref = contextList({ namespace });
 
   return (
@@ -49,7 +49,9 @@ export function ContextEntryShellInner({
         <NotFoundBoundary fallbackHref={backHref}>
           <RequiredResult
             query={api.context.entryQueries.getContextDetail}
-            args={{ namespace, entryId }}
+            args={
+              sessionNamespaceResolved ? { namespace, entryId } : "skip"
+            }
           >
             {(detail) => (
               <ContextEntryProvider

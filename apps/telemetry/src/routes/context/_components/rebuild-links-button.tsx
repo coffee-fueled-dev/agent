@@ -18,19 +18,21 @@ export function RebuildLinksButton({
   tooltip,
   ...buttonProps
 }: React.ComponentProps<typeof Button> & { tooltip?: string }) {
-  const { namespace } = useNamespace();
+  const { namespace, sessionNamespaceResolved } = useNamespace();
   const startCommunity = useSessionAction(
     api.context.communities.startContextCommunityWorkflow,
   );
-  const latest = useSessionQuery(api.context.communities.getLatestCommunities, {
-    namespace,
-  });
+  const latest = useSessionQuery(
+    api.context.communities.getLatestCommunities,
+    sessionNamespaceResolved ? { namespace } : "skip",
+  );
   const [starting, setStarting] = useState(false);
 
   const isActive =
     starting || latest?.status === "pending" || latest?.status === "running";
 
   async function handleClick() {
+    if (!sessionNamespaceResolved) return;
     setStarting(true);
     try {
       await startCommunity({ namespace });

@@ -45,7 +45,7 @@ export function ContextSearch() {
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
-  const { namespace } = useNamespace();
+  const { namespace, sessionNamespaceResolved } = useNamespace();
   const navigate = useNavigate();
 
   // File attachment state
@@ -145,6 +145,10 @@ export function ContextSearch() {
   // Run search when text changes or embedding becomes available
   const runSearch = useCallback(
     async (text: string, fileEmb: number[] | null) => {
+      if (!sessionNamespaceResolved) {
+        setResults([]);
+        return;
+      }
       if (!text.trim() && !fileEmb) {
         setResults([]);
         return;
@@ -164,7 +168,7 @@ export function ContextSearch() {
         setSearching(false);
       }
     },
-    [namespace, searchContext],
+    [namespace, searchContext, sessionNamespaceResolved],
   );
 
   const handleValueChange = useCallback(

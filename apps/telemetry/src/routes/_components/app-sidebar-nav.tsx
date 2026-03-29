@@ -8,7 +8,7 @@ import type {
 } from "convex/server";
 import { useSessionPaginatedQuery } from "convex-helpers/react/sessions";
 import type { SessionId } from "convex-helpers/server/sessions";
-import { ActivityIcon, BookOpenIcon, PlusIcon } from "lucide-react";
+import { PlusIcon } from "lucide-react";
 import { FadeOverflow } from "@/components/layout/fade-overflow";
 import LoadMoreSentinel from "@/components/layout/load-more-sentinel";
 import {
@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/tooltip";
 import { usePublicEnv } from "@/env/index.js";
 import { cn } from "@/lib/utils";
-import { chat, contextList, eventsList, Link } from "@/navigation/index.js";
+import { chat, Link } from "@/navigation/index.js";
 
 const PAGE_SIZE = 15;
 
@@ -143,42 +143,6 @@ export function AppSidebarNav({
           </TooltipTrigger>
           <TooltipContent side="right">New chat</TooltipContent>
         </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <SidebarGroupButton
-              collapsed
-              variant={current === "events" ? "secondary" : "ghost"}
-              asChild
-            >
-              <Link
-                href={eventsList()}
-                onBeforeNavigate={onNavigate}
-                aria-label="Events"
-              >
-                <ActivityIcon className="size-4" />
-              </Link>
-            </SidebarGroupButton>
-          </TooltipTrigger>
-          <TooltipContent side="right">Events</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <SidebarGroupButton
-              collapsed
-              variant={current === "context" ? "secondary" : "ghost"}
-              asChild
-            >
-              <Link
-                href={contextList()}
-                onBeforeNavigate={onNavigate}
-                aria-label="Memories"
-              >
-                <BookOpenIcon className="size-4" />
-              </Link>
-            </SidebarGroupButton>
-          </TooltipTrigger>
-          <TooltipContent side="right">Memories</TooltipContent>
-        </Tooltip>
       </div>
     );
   }
@@ -202,37 +166,6 @@ export function AppSidebarNav({
             </Link>
           </SidebarGroupButton>
           <ChatThreadHistoryList onNavigate={onNavigate} />
-        </SidebarGroupContent>
-      </SidebarGroup>
-
-      <SidebarGroup>
-        <SidebarGroupContent>
-          <SidebarGroupButton
-            variant={current === "events" ? "secondary" : "ghost"}
-            asChild
-          >
-            <Link
-              href={eventsList()}
-              onBeforeNavigate={onNavigate}
-              className="flex items-center gap-2"
-            >
-              <ActivityIcon className="size-4 shrink-0" />
-              Events
-            </Link>
-          </SidebarGroupButton>
-          <SidebarGroupButton
-            variant={current === "context" ? "secondary" : "ghost"}
-            asChild
-          >
-            <Link
-              href={contextList()}
-              onBeforeNavigate={onNavigate}
-              className="flex items-center gap-2"
-            >
-              <BookOpenIcon className="size-4 shrink-0" />
-              Memories
-            </Link>
-          </SidebarGroupButton>
         </SidebarGroupContent>
       </SidebarGroup>
     </div>

@@ -1412,6 +1412,37 @@ export declare const components: {
           }>
         >;
       };
+      unifiedTimelineProjectorBridge: {
+        advanceCheckpoint: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            lastSequence: number;
+            leaseOwner?: string;
+            projector: string;
+            releaseClaim?: boolean;
+            streamType: string;
+          },
+          any
+        >;
+        claimOrReadCheckpoint: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            leaseDurationMs?: number;
+            leaseOwner?: string;
+            projector: string;
+            streamType: string;
+          },
+          any
+        >;
+        listUnprocessedEvents: FunctionReference<
+          "query",
+          "internal",
+          { limit?: number; projector: string; streamType: string },
+          any
+        >;
+      };
     };
   };
   policy: {

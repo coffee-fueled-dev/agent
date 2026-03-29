@@ -15,7 +15,12 @@ import { FadeOverflow } from "@/components/layout/fade-overflow";
 import { ListSection } from "@/components/layout/list-section";
 import LoadMoreSentinel from "@/components/layout/load-more-sentinel";
 import { RequiredPaginatedResult } from "@/components/layout/required-result";
-import { Item, ItemHeader, ItemTitle } from "@/components/ui/item";
+import {
+  Item,
+  ItemDescription,
+  ItemHeader,
+  ItemTitle,
+} from "@/components/ui/item";
 import { eventsDetail, Link } from "@/navigation/index.js";
 
 const PAGE_SIZE = 25;
@@ -49,10 +54,10 @@ function ThreadEventRowLink({ row }: { row: Doc<"unifiedTimeline"> }) {
               {row.sourceStreamType}
             </span>
           </div>
-          <span className="text-muted-foreground shrink-0 font-mono text-[10px] tabular-nums">
-            {new Date(row.eventTime).toLocaleString()}
-          </span>
         </ItemHeader>
+        <ItemDescription className="font-mono text-xs tabular-nums">
+          {new Date(row.eventTime).toLocaleString()}
+        </ItemDescription>
       </Link>
     </Item>
   );
@@ -61,7 +66,7 @@ function ThreadEventRowLink({ row }: { row: Doc<"unifiedTimeline"> }) {
 export function ChatThreadEventsList({ threadId }: { threadId: string }) {
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">
-      <CollapsibleItemGroup defaultOpen={false} className="min-h-0 flex-1">
+      <CollapsibleItemGroup defaultOpen className="min-h-0 flex-1">
         <CollapsibleItemGroup.Title className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
           Event Stream
         </CollapsibleItemGroup.Title>

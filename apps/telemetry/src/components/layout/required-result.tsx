@@ -40,13 +40,17 @@ export function RequiredResult<Query extends FunctionReference<"query">>({
   onMissing = () => null,
 }: {
   query: Query;
-  args: SessionQueryArgs<Query>;
+  args: SessionQueryArgs<Query> | "skip";
   fallback?: React.ReactNode;
   children: (result: NonNullable<FunctionReturnType<Query>>) => React.ReactNode;
   onMissing?: () => null | undefined | React.ReactNode;
 }) {
-  const result = useSessionQuery(query, args as never);
+  const result = useSessionQuery(
+    query,
+    (args === "skip" ? "skip" : args) as never,
+  );
 
+  if (args === "skip") return fallback;
   if (result === null) onMissing();
   if (!result) return fallback;
 

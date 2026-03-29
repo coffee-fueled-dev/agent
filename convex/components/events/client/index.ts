@@ -185,3 +185,72 @@ export class EventsClient<
     },
   };
 }
+
+/**
+ * Batched indexed reads over the projector checkpoint + `listUnprocessedEvents`
+ * path (same semantics as manual claim → list → advance). Each `yield` is one
+ * batch; checkpoint advances after the consumer finishes processing that batch
+ * (when the generator resumes). Not a reactive subscription — each step is a
+ * bounded `runQuery` / `runMutation` round-trip.
+ */
+export async function* projectorUnprocessedBatchesFromDeps<
+  Streams extends readonly EventStreamTemplate[],
+>(
+  deps: {
+    claim: () => Promise<unknown>;
+    list: (limit: number) => Promise<EventEntry<Streams>[]>;
+    advance: (lastSequence: number) => Promise<unknown>;
+  },
+  options: { batchSize?: number; maxBatches?: number },
+): AsyncGenerator<EventEntry<Streams>[], void, undefined> {
+  const batchSize = Math.min(Math.max(1, options.batchSize ?? 100), 500);
+  await deps.claim();
+  let batches = 0;
+  while (options.maxBatches === undefined || batches < options.maxBatches) {
+    const batch = await deps.list(batchSize);
+    if (batch.length === 0) break;
+    yield batch;
+    let maxSeq = 0;
+    for (const ev of batch) {
+      maxSeq = Math.max(maxSeq, ev.globalSequence);
+    }
+    await deps.advance(maxSeq);
+    batches++;
+  }
+}
+
+export async function* projectorUnprocessedBatches<
+  const Streams extends readonly EventStreamTemplate[],
+>(
+  client: EventsClient<Streams>,
+  ctx: RunMutationCtx,
+  args: {
+    projector: string;
+    streamType: StreamTypeFor<Streams>;
+    batchSize?: number;
+    maxBatches?: number;
+  },
+): AsyncGenerator<EventEntry<Streams>[], void, undefined> {
+  yield* projectorUnprocessedBatchesFromDeps(
+    {
+      claim: () =>
+        client.projectors.claimOrReadCheckpoint(ctx, {
+          projector: args.projector,
+          streamType: args.streamType,
+        }),
+      list: (limit) =>
+        client.projectors.listUnprocessed(ctx, {
+          projector: args.projector,
+          streamType: args.streamType,
+          limit,
+        }),
+      advance: (lastSequence) =>
+        client.projectors.advanceCheckpoint(ctx, {
+          projector: args.projector,
+          streamType: args.streamType,
+          lastSequence,
+        }),
+    },
+    { batchSize: args.batchSize, maxBatches: args.maxBatches },
+  );
+}

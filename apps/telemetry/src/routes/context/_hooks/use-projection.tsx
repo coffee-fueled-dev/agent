@@ -53,12 +53,13 @@ type ProjectionValue = {
 const ProjectionContext = createContext<ProjectionValue | null>(null);
 
 export function ProjectionProvider({ children }: PropsWithChildren) {
-  const { namespace } = useNamespace();
+  const { namespace, sessionNamespaceResolved } = useNamespace();
   const [limit, setLimit] = useState(LIMIT_OPTIONS[1] || "96");
 
-  const cached = useSessionQuery(api.context.projections.getLatestProjection, {
-    namespace,
-  });
+  const cached = useSessionQuery(
+    api.context.projections.getLatestProjection,
+    sessionNamespaceResolved ? { namespace } : "skip",
+  );
 
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [startError, setStartError] = useState<string | null>(null);
@@ -76,6 +77,7 @@ export function ProjectionProvider({ children }: PropsWithChildren) {
   const requestRef = useRef(0);
 
   const launch = useCallback(() => {
+    if (!sessionNamespaceResolved) return;
     const requestId = ++requestRef.current;
     setIsStarting(true);
     setStartError(null);
@@ -99,7 +101,13 @@ export function ProjectionProvider({ children }: PropsWithChildren) {
       .finally(() => {
         if (requestRef.current === requestId) setIsStarting(false);
       });
-  }, [namespace, limit, startProjection, startCommunity]);
+  }, [
+    namespace,
+    limit,
+    sessionNamespaceResolved,
+    startProjection,
+    startCommunity,
+  ]);
 
   const isRefreshing =
     isStarting ||
@@ -151,7 +159,9 @@ export function ProjectionProvider({ children }: PropsWithChildren) {
 
   const hoverData = useSessionQuery(
     api.context.communities.getEntryGraphContext,
-    debouncedHoveredId ? { namespace, entryId: debouncedHoveredId } : "skip",
+    sessionNamespaceResolved && debouncedHoveredId
+      ? { namespace, entryId: debouncedHoveredId }
+      : "skip",
   );
 
   return (

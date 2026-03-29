@@ -27,6 +27,7 @@ import type * as public_entries from "../public/entries.js";
 import type * as public_list from "../public/list.js";
 import type * as public_projection from "../public/projection.js";
 import type * as public_retrieval from "../public/retrieval.js";
+import type * as public_unifiedTimelineProjectorBridge from "../public/unifiedTimelineProjectorBridge.js";
 import type * as search from "../search.js";
 
 import type {
@@ -56,6 +57,7 @@ const fullApi: ApiFromModules<{
   "public/list": typeof public_list;
   "public/projection": typeof public_projection;
   "public/retrieval": typeof public_retrieval;
+  "public/unifiedTimelineProjectorBridge": typeof public_unifiedTimelineProjectorBridge;
   search: typeof search;
 }> = anyApi as any;
 

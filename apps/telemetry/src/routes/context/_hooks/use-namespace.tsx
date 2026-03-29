@@ -37,6 +37,12 @@ function writeNamespace(namespace: string) {
 
 type NamespaceContextValue = {
   namespace: string;
+  /**
+   * False while `getSessionContextNamespace` is loading. Until true, the URL
+   * fallback (`default` / stale) must not be sent to session queries that call
+   * `assertAccountNamespace` (race after full-page navigation).
+   */
+  sessionNamespaceResolved: boolean;
   setNamespace: (ns: string) => void;
 };
 
@@ -72,9 +78,11 @@ export function NamespaceProvider({ children }: PropsWithChildren) {
 
   const setNamespace = useCallback((ns: string) => writeNamespace(ns), []);
 
+  const sessionNamespaceResolved = sessionNamespaceResult !== undefined;
+
   const value = useMemo(
-    () => ({ namespace, setNamespace }),
-    [namespace, setNamespace],
+    () => ({ namespace, sessionNamespaceResolved, setNamespace }),
+    [namespace, sessionNamespaceResolved, setNamespace],
   );
 
   return (

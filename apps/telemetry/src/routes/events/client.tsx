@@ -1,4 +1,5 @@
 import { PageSection } from "@/components/layout/page-section";
+import { SidebarInsetFill } from "@/components/layout/sidebar.js";
 import { renderApp } from "../../render-root";
 import { AppLayout } from "../_components/app-layout.js";
 import { NamespaceProvider } from "../context/_hooks/use-namespace.js";
@@ -17,17 +18,11 @@ function EventsRoute() {
       >
         <PageSection>
           <PageSection.Content>
-            <PageSection.Body className="gap-4">
-              <PageSection.Header>
-                <PageSection.Title size="lg">
-                  Telemetry events
-                </PageSection.Title>
-                <PageSection.Description>
-                  All unified timeline events for your account namespace.
-                </PageSection.Description>
-              </PageSection.Header>
-              <EventsNamespaceList />
-            </PageSection.Body>
+            <SidebarInsetFill>
+              <PageSection.Body className="h-full overflow-auto">
+                <EventsNamespaceList />
+              </PageSection.Body>
+            </SidebarInsetFill>
           </PageSection.Content>
         </PageSection>
       </AppLayout>

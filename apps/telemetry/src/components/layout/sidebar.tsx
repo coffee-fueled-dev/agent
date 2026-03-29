@@ -2,6 +2,7 @@ import { PanelLeftIcon } from "lucide-react";
 import {
   type ComponentProps,
   createContext,
+  type ReactNode,
   useCallback,
   useContext,
   useEffect,
@@ -112,8 +113,18 @@ export const SidebarMain = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-export const SidebarFooter = ({ children }: { children: React.ReactNode }) => {
-  return <div className="flex shrink-0 flex-col gap-2">{children}</div>;
+export const SidebarFooter = ({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) => {
+  return (
+    <div className={cn("flex shrink-0 flex-col gap-2", className)}>
+      {children}
+    </div>
+  );
 };
 
 export function SidebarInset({
@@ -229,8 +240,11 @@ export function SidebarPanelControl({
 
 export function MobileSidebarSheet({
   children,
+  footer,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
+  /** Pinned below scroll (e.g. account menu). */
+  footer?: ReactNode;
 }) {
   const { mobileOpen, setMobileOpen } = useSidebar();
   return (
@@ -246,6 +260,11 @@ export function MobileSidebarSheet({
               <div className="flex flex-col gap-4 pr-1">{children}</div>
             </FadeOverflow>
           </div>
+          {footer ? (
+            <div className="border-sidebar-border shrink-0 border-t px-4 py-3">
+              {footer}
+            </div>
+          ) : null}
         </div>
       </SheetContent>
     </Sheet>

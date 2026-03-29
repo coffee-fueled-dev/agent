@@ -2,12 +2,50 @@ import type { ReactNode } from "react";
 import {
   MobileSidebarSheet,
   Sidebar,
+  SidebarFooter,
   SidebarInset,
   SidebarMain,
   SidebarPanelControl,
   SidebarProvider,
+  useSidebar,
 } from "@/components/layout/sidebar";
-import { AppSidebarMobileNav, AppSidebarNav } from "./app-sidebar-nav";
+import { cn } from "@/lib/utils";
+import { AppSidebarAccountMenu } from "./app-sidebar-account-menu.js";
+import { AppSidebarMobileNav, AppSidebarNav } from "./app-sidebar-nav.js";
+
+function SidebarAccountFooter({
+  current,
+}: {
+  current: "context" | "chat" | "events";
+}) {
+  const { isExpanded } = useSidebar();
+  return (
+    <SidebarFooter
+      className={cn(
+        "border-sidebar-border border-t pt-2",
+        !isExpanded && "items-center",
+      )}
+    >
+      <AppSidebarAccountMenu current={current} className="w-full" />
+    </SidebarFooter>
+  );
+}
+
+function MobileSidebarAccountFooter({
+  current,
+}: {
+  current: "context" | "chat" | "events";
+}) {
+  const { closeMobile } = useSidebar();
+  return (
+    <AppSidebarAccountMenu
+      current={current}
+      onNavigate={closeMobile}
+      forceExpanded
+      className="w-full"
+    />
+  );
+}
 
 export function AppLayout({
   children,
@@ -30,6 +68,7 @@ export function AppLayout({
             <SidebarMain>
               <AppSidebarNav current={current} />
             </SidebarMain>
+            <SidebarAccountFooter current={current} />
           </Sidebar>
         </aside>
         <SidebarInset className="col-span-1 md:col-start-2">
@@ -54,7 +93,9 @@ export function AppLayout({
           </div>
         </SidebarInset>
       </div>
-      <MobileSidebarSheet>
+      <MobileSidebarSheet
+        footer={<MobileSidebarAccountFooter current={current} />}
+      >
         <AppSidebarMobileNav current={current} />
       </MobileSidebarSheet>
     </SidebarProvider>

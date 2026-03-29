@@ -128,7 +128,7 @@ export function EventsNamespaceList() {
         }
 
         return (
-          <FadeOverflow className="min-h-[12rem] flex-1">
+          <FadeOverflow className="h-full">
             <ListSection
               list={results}
               loading={isLoading}
