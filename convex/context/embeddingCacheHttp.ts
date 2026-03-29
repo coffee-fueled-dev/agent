@@ -1,14 +1,12 @@
 import { internal } from "../_generated/api";
 import { httpAction } from "../_generated/server";
+import { getFileEmbeddingSecret } from "../env";
 
 export const embeddingCacheCompletePath = "/embedding-cache/complete";
 export const embeddingCacheFailPath = "/embedding-cache/fail";
 
 function getSecret() {
-  return (
-    process.env.BINARY_EMBEDDING_SECRET?.trim() ||
-    "dev-only-binary-embedding-secret"
-  );
+  return getFileEmbeddingSecret();
 }
 
 function isAuthorized(request: Request) {

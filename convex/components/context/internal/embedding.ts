@@ -1,12 +1,8 @@
 import { createPartFromText, GoogleGenAI } from "@google/genai";
+import { getGoogleApiKey } from "../../../env";
 
 function resolveApiKey(apiKey?: string) {
-  return (
-    apiKey ??
-    process.env.GOOGLE_GENERATIVE_AI_API_KEY ??
-    process.env.GOOGLE_API_KEY ??
-    process.env.GEMINI_API_KEY
-  );
+  return apiKey ?? getGoogleApiKey();
 }
 
 export async function embedText(text: string, apiKey?: string) {

@@ -1,17 +1,25 @@
+import type { InferUITool, Tool } from "ai";
 import { z } from "zod/v4";
-import { internal } from "../../_generated/api";
-import { machineActor } from "../../eventAttribution";
+import { internal } from "../../../../_generated/api";
+import { machineActor } from "../../../../eventAttribution";
+import { chatAgentDefinition } from "../../../agents/assistant/agent";
 import {
   dynamicTool,
   toolkit,
   withFormattedResults,
-} from "../../llms/tools/_libs/toolkit";
-import { chatAgentDefinition } from "../agent";
+} from "../../_libs/toolkit";
 
-function addContextTool(namespace: string) {
+declare module "../../registeredToolMap" {
+  interface RegisteredToolMap {
+    addContext: InferUITool<Tool>;
+    editContext: InferUITool<Tool>;
+    deleteContext: InferUITool<Tool>;
+  }
+}
+
+function addContextTool() {
   return dynamicTool({
     telemetry: true,
-    telemetryNamespace: namespace,
     instructions: [
       `Use the addContextTool tool to store memories relevant to the user or to your own experiences. 
       These memories can be retrieved later to help you answer questions or reflect on past events.
@@ -42,7 +50,7 @@ function addContextTool(namespace: string) {
           return await ctx.runAction(
             internal.context.mutations.addContextInternal,
             {
-              namespace,
+              namespace: ctx.namespace,
               key,
               title: args.title,
               text: args.text,
@@ -58,10 +66,9 @@ function addContextTool(namespace: string) {
   });
 }
 
-function editContextTool(namespace: string) {
+function editContextTool() {
   return dynamicTool({
     telemetry: true,
-    telemetryNamespace: namespace,
     name: "editContext" as const,
     description: "Edit an existing context entry by entry id.",
     args: z.object({
@@ -83,7 +90,7 @@ function editContextTool(namespace: string) {
           return await ctx.runAction(
             internal.context.mutations.editContextInternal,
             {
-              namespace,
+              namespace: ctx.namespace,
               entryId: args.entryId,
               title: args.title,
               text: args.text,
@@ -99,10 +106,9 @@ function editContextTool(namespace: string) {
   });
 }
 
-function deleteContextTool(namespace: string) {
+function deleteContextTool() {
   return dynamicTool({
     telemetry: true,
-    telemetryNamespace: namespace,
     name: "deleteContext" as const,
     description: "Delete a context entry by entry id.",
     args: z.object({
@@ -121,7 +127,7 @@ function deleteContextTool(namespace: string) {
           await ctx.runAction(
             internal.context.mutations.deleteContextInternal,
             {
-              namespace,
+              namespace: ctx.namespace,
               entryId: args.entryId,
               actor: machineActor(accountId),
               session: ctx.sessionId,
@@ -135,18 +141,11 @@ function deleteContextTool(namespace: string) {
   });
 }
 
-export function authoringToolkit(namespace: string) {
-  return toolkit(
-    [
-      addContextTool(namespace),
-      editContextTool(namespace),
-      deleteContextTool(namespace),
+export function authoringToolkit() {
+  return toolkit([addContextTool(), editContextTool(), deleteContextTool()], {
+    name: "contextAuthoring",
+    instructions: [
+      "Authoring tools create, update, or delete context entries in the user's namespace only.",
     ],
-    {
-      name: "contextAuthoring",
-      instructions: [
-        "Authoring tools create, update, or delete context entries in the user's namespace only.",
-      ],
-    },
-  );
+  });
 }

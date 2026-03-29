@@ -7,22 +7,17 @@ import {
   GoogleGenAI,
 } from "@google/genai";
 import { $ } from "bun";
+import {
+  cacheDbPath,
+  getConvexBaseUrl,
+  getGoogleApiKey,
+  getTempDir,
+  port,
+  sharedSecret,
+} from "./env";
 
 const embeddingModel = "gemini-embedding-2-preview";
-const port = Number(process.env.EMBEDDING_SERVER_PORT ?? "3031");
-const convexBaseUrl =
-  process.env.CONVEX_SITE_URL?.trim() || process.env.CONVEX_URL?.trim();
-const sharedSecret =
-  process.env.BINARY_EMBEDDING_SECRET?.trim() ||
-  "dev-only-binary-embedding-secret";
-
-if (!convexBaseUrl) {
-  throw new Error("CONVEX_SITE_URL or CONVEX_URL is required");
-}
-const callbackBaseUrl = convexBaseUrl;
-
-const cacheDbPath =
-  process.env.EMBEDDING_CACHE_DB ?? ".sqlite/embedding-cache.sqlite";
+const callbackBaseUrl = getConvexBaseUrl();
 mkdirSync(dirname(cacheDbPath), { recursive: true });
 const cacheDb = new Database(cacheDbPath, { create: true });
 cacheDb.run("PRAGMA journal_mode = WAL;");
@@ -35,14 +30,6 @@ const cacheGet = cacheDb.query<{ embedding: string }, { $hash: string }>(
 const cacheSet = cacheDb.query(
   "INSERT OR REPLACE INTO cache (hash, embedding, created_at) VALUES ($hash, $embedding, $created_at)",
 );
-
-function resolveGoogleApiKey() {
-  return (
-    process.env.GOOGLE_GENERATIVE_AI_API_KEY ??
-    process.env.GOOGLE_API_KEY ??
-    process.env.GEMINI_API_KEY
-  );
-}
 
 function normalizeBaseUrl(value: string) {
   return value.replace(/\/+$/, "");
@@ -67,7 +54,7 @@ function buildRetrievalText(args: {
 }
 
 function createGenAIClient() {
-  const apiKey = resolveGoogleApiKey();
+  const apiKey = getGoogleApiKey();
   return new GoogleGenAI(apiKey ? { apiKey } : {});
 }
 
@@ -117,7 +104,7 @@ type EmbedJob = {
 };
 
 function tempDownloadPath(job: EmbedJob) {
-  const tempDir = process.env.TMPDIR?.replace(/\/+$/, "") || "/tmp";
+  const tempDir = getTempDir();
   return `${tempDir}/binary-embedding-${job.processId}-${Date.now()}`;
 }
 

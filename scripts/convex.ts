@@ -1,8 +1,9 @@
 #!/usr/bin/env bun
 
 import { exit } from "node:process";
-import { readRootEnv } from "./_lib/chatEnv";
+import { runConvexExit } from "./_lib/convexCli";
 import { withConvexNodeEnv } from "./_lib/convexNode";
+import { readRootEnv } from "./_lib/rootEnv";
 
 const { vars } = await readRootEnv();
 const env = withConvexNodeEnv({
@@ -18,18 +19,4 @@ if (args.length === 0) {
   );
 }
 
-const convex = Bun.spawn(["bunx", "convex", ...args], {
-  cwd,
-  env,
-  stdin: "inherit",
-  stdout: "inherit",
-  stderr: "inherit",
-});
-
-for (const signal of ["SIGINT", "SIGTERM"] as const) {
-  process.on(signal, () => {
-    convex.kill(signal);
-  });
-}
-
-exit(await convex.exited);
+exit(await runConvexExit(args, cwd, env));

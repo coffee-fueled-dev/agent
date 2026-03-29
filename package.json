@@ -3,6 +3,9 @@
   "module": "index.ts",
   "type": "module",
   "private": true,
+  "engines": {
+    "node": "22.x"
+  },
   "workspaces": [
     "apps/*"
   ],
@@ -13,13 +16,13 @@
     "@types/bun": "latest"
   },
   "scripts": {
-    "dev": "bun run dev:convex & bun run dev:embedding-server & bun run dev:telemetry",
+    "dev": "bun run dev:convex & bun run dev:embedding-server & bun run dev:telemetry & bun run dev:filesystem",
     "dev:convex": "bun run scripts/dev-convex.ts",
     "dev:convex:raw": "bun run scripts/convex.ts dev",
     "codegen:convex": "bun run scripts/convex.ts codegen",
-    "dev:chat": "bun --env-file=.env.local --filter @agent/chat dev",
-    "dev:embedding-server": "bun --env-file=.env.local --filter @agent/embedding-server dev",
-    "dev:telemetry": "bun --env-file=.env.local --filter @agent/telemetry dev",
+    "dev:embedding-server": "bun run scripts/dev-app.ts embedding-server @agent/embedding-server dev",
+    "dev:telemetry": "bun run scripts/dev-app.ts telemetry @agent/telemetry dev",
+    "dev:filesystem": "bun run scripts/dev-app.ts filesystem @agent/filesystem dev",
     "seed:chat-token": "bun run scripts/seed-chat-token.ts",
     "typecheck": "bun run typecheck:convex",
     "typecheck:convex": "bunx tsc --noEmit -p convex/tsconfig.json",

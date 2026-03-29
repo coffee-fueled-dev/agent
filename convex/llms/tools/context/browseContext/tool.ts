@@ -1,16 +1,19 @@
+import type { InferUITool, Tool } from "ai";
 import { z } from "zod/v4";
-import { internal } from "../../_generated/api";
-import {
-  dynamicTool,
-  withFormattedResults,
-} from "../../llms/tools/_libs/toolkit";
+import { internal } from "../../../../_generated/api";
+import { dynamicTool, withFormattedResults } from "../../_libs/toolkit";
+
+declare module "../../registeredToolMap" {
+  interface RegisteredToolMap {
+    listContext: InferUITool<Tool>;
+  }
+}
 
 const PAGE_SIZE = 20;
 
-export function listContextTool(namespace: string) {
+export function listContextTool() {
   return dynamicTool({
     telemetry: true,
-    telemetryNamespace: namespace,
     name: "listContext" as const,
     description:
       "List context entries in the user's namespace (paginated). Use cursor from a previous page for more.",
@@ -26,7 +29,7 @@ export function listContextTool(namespace: string) {
           return await ctx.runQuery(
             internal.context.list.listContextWithFiles,
             {
-              namespace,
+              namespace: ctx.namespace,
               paginationOpts: {
                 cursor: args.cursor ?? null,
                 numItems: PAGE_SIZE,

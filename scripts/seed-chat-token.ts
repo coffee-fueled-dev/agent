@@ -2,7 +2,7 @@
 
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../convex/_generated/api.js";
-import { readRootEnv, writeRootEnvVar } from "./_lib/chatEnv";
+import { readRootEnv, writeRootEnvVar } from "./_lib/rootEnv";
 
 async function seedChatToken() {
   const { vars } = await readRootEnv();
@@ -12,13 +12,7 @@ async function seedChatToken() {
   }
 
   const client = new ConvexHttpClient(convexUrl);
-  const seedMutation = (
-    api as unknown as {
-      seeds: {
-        seedRootAccountToken: Parameters<typeof client.mutation>[0];
-      };
-    }
-  ).seeds.seedRootAccountToken;
+  const seedMutation = api.seeds.seedRootAccountToken;
 
   for (let attempt = 0; attempt < 60; attempt += 1) {
     try {

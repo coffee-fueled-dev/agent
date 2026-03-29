@@ -1,8 +1,10 @@
 #!/usr/bin/env bun
 
 import { execPath, exit } from "node:process";
-import { readRootEnv } from "./_lib/chatEnv";
+import { forwardSignalsToChild, spawnConvex } from "./_lib/convexCli";
 import { withConvexNodeEnv } from "./_lib/convexNode";
+import { readRootEnv } from "./_lib/rootEnv";
+import { syncShellEnvFromLocal } from "./_lib/syncConvexShellEnv";
 
 const { vars } = await readRootEnv();
 const env = withConvexNodeEnv({
@@ -11,19 +13,10 @@ const env = withConvexNodeEnv({
 });
 const cwd = new URL("../", import.meta.url).pathname;
 
-const convexDev = Bun.spawn(["bunx", "convex", "dev"], {
-  cwd,
-  env,
-  stdin: "inherit",
-  stdout: "inherit",
-  stderr: "inherit",
-});
+await syncShellEnvFromLocal(cwd, env, vars);
 
-for (const signal of ["SIGINT", "SIGTERM"] as const) {
-  process.on(signal, () => {
-    convexDev.kill(signal);
-  });
-}
+const convexDev = spawnConvex(["dev"], cwd, env);
+forwardSignalsToChild(convexDev);
 
 const seedProcess = Bun.spawn([execPath, "run", "scripts/seed-chat-token.ts"], {
   cwd,

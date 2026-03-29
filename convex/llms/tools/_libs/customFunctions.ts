@@ -18,12 +18,16 @@ export type ToolBuilderContext = Omit<SessionActionCtx, "sessionId"> & {
   threadId: string;
   messageId: string;
   sessionId: SessionId;
+  /** Thread RAG / telemetry namespace; injected into toolkit + tool execution context. */
+  namespace: string;
 };
 
 export type ToolExecutionContext = ToolCtx & {
   threadId: string;
   messageId: string;
   sessionId: SessionId;
+  /** Set by `dynamicTool.evaluate` from `ToolkitContext.namespace` (or override). */
+  namespace: string;
 };
 
 export type ToolPolicyArgs = {
@@ -82,7 +86,9 @@ export type ToolkitContext = {
   runDependencyQuery: <T>(
     query: FunctionReference<"query", "internal", ToolPolicyArgs, T>,
   ) => Promise<T>;
-  /** Present when `createToolkitContext` is called with `telemetry: { namespace }`. */
+  /** Thread RAG / tool telemetry namespace (from `ToolBuilderContext`). */
+  namespace: string;
+  /** Present when session-scoped toolkit evaluation schedules policy/tool lifecycle events. */
   scheduleTelemetry?: (event: ThreadToolTelemetryScheduleArgs) => void;
   /** Message/thread ids for stable telemetry event keys when `scheduleTelemetry` is set. */
   toolContext?: { messageId: string; threadId: string };
@@ -96,17 +102,13 @@ function getToolContextArgs(ctx: ToolBuilderContext): ToolPolicyArgs {
   };
 }
 
-export function createToolkitContext(
-  ctx: ToolBuilderContext,
-  options?: { telemetry?: { namespace: string } },
-): ToolkitContext {
+export function createToolkitContext(ctx: ToolBuilderContext): ToolkitContext {
   const args = getToolContextArgs(ctx);
-  const telemetryNs = options?.telemetry;
   const scheduleTelemetry =
-    telemetryNs != null
+    ctx.sessionId != null
       ? (event: ThreadToolTelemetryScheduleArgs) => {
           scheduleThreadToolTelemetry(ctx, {
-            namespace: telemetryNs.namespace,
+            namespace: ctx.namespace,
             streamId: ctx.threadId,
             eventId: event.eventId,
             eventType: event.eventType,
@@ -127,6 +129,7 @@ export function createToolkitContext(
   return {
     runPolicyQuery: (query) => ctx.runSessionQuery(query, args),
     runDependencyQuery: (query) => ctx.runSessionQuery(query, args),
+    namespace: ctx.namespace,
     scheduleTelemetry,
     toolContext:
       scheduleTelemetry != null

@@ -1,14 +1,14 @@
-import type { InferUITools } from "ai";
-import { contextToolkitForRegistry } from "../../chat/tools";
-import type { ToolMapFromRegistry } from "./_libs/toolkit";
-import { exampleTool } from "./example/tool";
+import "./registeredToolAugments";
+import type { RegisteredToolMap, RegisteredUITools } from "./registeredToolMap";
+import {
+  contextComposable,
+  filesystemComposable,
+} from "./toolRegistryInstances";
 
-export { exampleTool } from "./example/tool";
+export type { RegisteredUITools };
+export type RegisteredToolSet = RegisteredToolMap;
 
 export const toolLibrary = {
-  exampleTool,
-  contextChat: contextToolkitForRegistry(),
+  contextManagement: contextComposable,
+  filesystem: filesystemComposable,
 } as const;
-
-export type RegisteredToolSet = ToolMapFromRegistry<typeof toolLibrary>;
-export type RegisteredUITools = InferUITools<RegisteredToolSet>;

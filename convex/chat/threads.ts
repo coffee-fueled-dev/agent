@@ -1,6 +1,9 @@
 import {
+  createThread as createAgentThread,
   listUIMessages,
   type SyncStreamsReturnValue,
+  saveMessage,
+  saveMessages,
   syncStreams,
 } from "@convex-dev/agent";
 import type { StreamArgs } from "@convex-dev/agent/validators";
@@ -18,14 +21,9 @@ import {
   sessionMutation,
   sessionPaginatedQuery,
 } from "../customFunctions";
-import {
-  ensureMachineAccount,
-  ensureTokenAccount,
-  grantThreadAccessToAccount,
-  resolveAccountByAlias,
-} from "../lib/auth";
+import { ensureTokenAccount, resolveAccountByAlias } from "../lib/auth";
+import { createAgent } from "../llms/agents/assistant/agent";
 import type { UIMessage } from "../llms/uiMessage";
-import { chatAgentDefinition, createChatAgent } from "./agent";
 import { resolveThreadContext } from "./resolveNamespace";
 
 /** Convex `Agent` expects `ActionCtx & Record<string, unknown>`; session actions add `runSession*` without an index signature. */
@@ -53,7 +51,7 @@ function isTextLikeMime(mime: string) {
   );
 }
 
-async function buildSearchQueryFromAttachments(
+async function buildSearchQuery(
   ctx: SessionActionCtx,
   prompt: string,
   attachments:
@@ -75,6 +73,31 @@ async function buildSearchQueryFromAttachments(
     }
   }
   return parts.join("\n\n");
+}
+
+async function buildUserMessage(
+  ctx: SessionActionCtx,
+  prompt: string,
+  attachments?: z.infer<typeof attachmentSchema>[],
+): Promise<UserModelMessage> {
+  const content: UserContent = [];
+  if (prompt.trim()) {
+    content.push({ type: "text", text: prompt.trim() });
+  }
+  for (const a of attachments ?? []) {
+    const blob = await ctx.storage.get(a.storageId);
+    if (!blob) {
+      throw new Error(`Missing file in storage: ${a.fileName}`);
+    }
+    const data = await blob.arrayBuffer();
+    content.push({
+      type: "file",
+      data,
+      mediaType: a.mimeType || "application/octet-stream",
+      filename: a.fileName,
+    });
+  }
+  return { role: "user", content };
 }
 
 const attachmentSchema = z.object({
@@ -105,27 +128,12 @@ export const createThread = sessionMutation({
     title: z.string().optional(),
   },
   handler: async (ctx, args) => {
-    const agent = await createChatAgent();
     const owner = await ensureTokenAccount(ctx, args.token);
-    const machine = await ensureMachineAccount(ctx, {
-      codeId: chatAgentDefinition.agentId,
-      name: chatAgentDefinition.name,
-    });
-    const thread = await agent.createThread(ctx, {
+
+    return await createAgentThread(ctx, components.agent, {
       title: args.title,
       userId: owner._id,
     });
-    await grantThreadAccessToAccount(ctx, {
-      account: owner._id,
-      threadId: thread.threadId,
-      actions: ["read", "write", "own"],
-    });
-    await grantThreadAccessToAccount(ctx, {
-      account: machine._id,
-      threadId: thread.threadId,
-      actions: ["read", "write"],
-    });
-    return thread;
   },
 });
 
@@ -138,7 +146,10 @@ export const sendMessage = sessionAction({
     attachments: z.array(attachmentSchema).optional(),
   },
   handler: async (ctx: SessionActionCtx, args) => {
-    const attachments = args.attachments;
+    const hasAttachments = Boolean(args.attachments?.length);
+    if (!args.prompt.trim() && !hasAttachments) {
+      throw new Error("Message must include text or at least one attachment.");
+    }
 
     const { namespace, userId } = await resolveThreadContext(
       ctx,
@@ -147,56 +158,13 @@ export const sendMessage = sessionAction({
       { token: args.token },
     );
 
-    const hasAttachments = Boolean(attachments?.length);
-    if (!args.prompt.trim() && !hasAttachments) {
-      throw new Error("Message must include text or at least one attachment.");
-    }
-
-    const baseAgent = await createChatAgent();
-
-    let promptMessageId: string;
-
-    if (!hasAttachments) {
-      const saved = await baseAgent.saveMessage(ctx, {
-        threadId: args.threadId,
-        userId,
-        prompt: args.prompt,
-      });
-      promptMessageId = saved.messageId;
-    } else {
-      const content: UserContent = [];
-      if (args.prompt.trim()) {
-        content.push({ type: "text", text: args.prompt.trim() });
-      }
-      for (const a of attachments ?? []) {
-        const blob = await ctx.storage.get(a.storageId);
-        if (!blob) {
-          throw new Error(`Missing file in storage: ${a.fileName}`);
-        }
-        const data = await blob.arrayBuffer();
-        content.push({
-          type: "file",
-          data,
-          mediaType: a.mimeType || "application/octet-stream",
-          filename: a.fileName,
-        });
-      }
-      const message: UserModelMessage = { role: "user", content };
-      const saved = await baseAgent.saveMessage(ctx, {
-        threadId: args.threadId,
-        userId,
-        message,
-      });
-      promptMessageId = saved.messageId;
-    }
-
-    const searchQuery = await buildSearchQueryFromAttachments(
+    const searchQuery = await buildSearchQuery(
       ctx,
       args.prompt,
-      attachments,
+      args.attachments,
     );
 
-    const searchResults: SearchContextHit[] = await ctx.runAction(
+    const searchResults = await ctx.runAction(
       api.context.search.searchContext,
       {
         sessionId: args.sessionId,
@@ -209,7 +177,25 @@ export const sendMessage = sessionAction({
     );
     const injected = buildInjectedContext(searchResults);
 
-    const agent = await createChatAgent({
+    const userMessage = await buildUserMessage(
+      ctx,
+      args.prompt,
+      args.attachments,
+    );
+    const messagesToSave = [userMessage];
+    if (injected) messagesToSave.unshift(userMessage);
+
+    const { messages } = await saveMessages(ctx, components.agent, {
+      threadId: args.threadId,
+      userId,
+      messages: messagesToSave,
+    });
+
+    const promptMessageId = messages.at(-1)?._id;
+
+    if (!promptMessageId) throw new Error("Failed to save prompt message");
+
+    const agent = await createAgent({
       ...ctx,
       threadId: args.threadId,
       messageId: promptMessageId,
@@ -301,6 +287,6 @@ export const listThreadMessages = sessionPaginatedQuery({
     return {
       ...paginated,
       streams,
-    };
+    } as ListThreadMessagesPage;
   },
 });

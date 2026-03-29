@@ -1,13 +1,7 @@
 import { v } from "convex/values";
-import { components, internal } from "../_generated/api";
+import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
-import { ContextClient } from "../components/context/client";
-
-function createContextClient() {
-  return new ContextClient(components.context, {
-    googleApiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
-  });
-}
+import { createContextClient } from "./contextClient";
 
 const chunkValidator = v.object({
   text: v.string(),

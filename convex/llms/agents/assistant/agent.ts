@@ -1,46 +1,44 @@
 import { Agent } from "@convex-dev/agent";
 import type { Tool } from "ai";
 import type { SessionId } from "convex-helpers/server/sessions";
-import { components } from "../_generated/api";
-import type { SessionActionCtx } from "../customFunctions";
-import { languageModels } from "../llms/models";
-import {
-  createToolkitContext,
-  type ToolBuilderContext,
-  type ToolkitContext,
-} from "../llms/tools/_libs/customFunctions";
-import { type Composable, toolkit } from "../llms/tools/_libs/toolkit";
-import baseInstructions from "./_instructions";
+import { components } from "../../../_generated/api";
 import {
   defineRegisteredMachineAgent,
   type RegisteredMachineAgent,
   recordRegisteredMachineAgentTurn,
-} from "./identity";
-import { contextToolkit } from "./tools";
+} from "../../../chat/identity";
+import type { SessionActionCtx } from "../../../customFunctions";
+import { languageModels } from "../../models";
+import { toolLibrary } from "../../tools";
+import {
+  createToolkitContext,
+  type ToolkitContext,
+} from "../../tools/_libs/customFunctions";
+import { type Composable, toolkit } from "../../tools/_libs/toolkit";
 
 /** Namespace only affects tool closures; static identity shape matches any real namespace. */
 const STATIC_IDENTITY_NAMESPACE = "__definition__";
 
 const staticToolkitContext: ToolkitContext = {
-  runPolicyQuery: async () => true,
+  runPolicyQuery: async () => false,
   runDependencyQuery: async () => {
-    throw new Error("Context chat does not use dynamic toolkit dependencies");
+    throw new Error("Assistant does not use dynamic toolkit dependencies");
   },
+  namespace: STATIC_IDENTITY_NAMESPACE,
 };
 
-const chatComposedForDefinition: Composable = toolkit(
-  [contextToolkit(STATIC_IDENTITY_NAMESPACE)],
+const assistantTools: Composable = toolkit(
+  [toolLibrary.contextManagement, toolLibrary.filesystem],
   {
-    name: "contextChat",
-    instructions: [baseInstructions],
+    name: "assistant-tools",
   },
 );
 
-export const chatAgentDefinition: RegisteredMachineAgent =
+export const assistantDefinition: RegisteredMachineAgent =
   defineRegisteredMachineAgent({
-    agentId: "context-chat",
-    name: "Context Chat",
-    staticProps: chatComposedForDefinition.staticProps,
+    agentId: "assistant",
+    name: "Assistant",
+    staticProps: assistantTools.staticProps,
   });
 
 export type ChatAgentIdentityCtx = SessionActionCtx & {
@@ -55,29 +53,24 @@ export type ChatAgentIdentityCtx = SessionActionCtx & {
  * @param identity - When set (after saveMessage), records turn identity and uses the thread's namespace for tools.
  * When omitted (createThread bootstrap, or saveMessage-only agent), uses a placeholder namespace and skips identity recording.
  */
-export async function createChatAgent(
+export async function createAgent(
   identity?: ChatAgentIdentityCtx,
 ): Promise<Agent<Record<string, unknown>, Record<string, Tool>>> {
-  const namespace = identity?.namespace ?? STATIC_IDENTITY_NAMESPACE;
-  const composed = toolkit([contextToolkit(namespace)], {
-    name: "contextChat",
-    instructions: [baseInstructions],
-  });
-
   const toolkitCtx: ToolkitContext =
     identity != null && identity.sessionId != null
-      ? createToolkitContext(
-          { ...identity, sessionId: identity.sessionId } as ToolBuilderContext,
-          { telemetry: { namespace: identity.namespace } },
-        )
+      ? createToolkitContext({
+          ...identity,
+          sessionId: identity.sessionId,
+          namespace: identity.namespace,
+        })
       : staticToolkitContext;
 
   const { tools, instructions, effectiveStaticProps } =
-    await composed.evaluate(toolkitCtx);
+    await assistantTools.evaluate(toolkitCtx);
 
   if (identity) {
     await recordRegisteredMachineAgentTurn(identity, {
-      definition: chatAgentDefinition,
+      definition: assistantDefinition,
       runtimeStaticProps: effectiveStaticProps,
       threadId: identity.threadId,
       messageId: identity.messageId,
@@ -86,7 +79,7 @@ export async function createChatAgent(
   }
 
   return new Agent(components.agent, {
-    name: chatAgentDefinition.name,
+    name: assistantDefinition.name,
     instructions,
     languageModel: languageModels.chat,
     textEmbeddingModel: languageModels.textEmbedding,

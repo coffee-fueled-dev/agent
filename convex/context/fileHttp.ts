@@ -1,15 +1,13 @@
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { httpAction } from "../_generated/server";
+import { getFileEmbeddingSecret } from "../env";
 
 export const contextFileCompletePath = "/context/file/complete";
 export const contextFileFailPath = "/context/file/fail";
 
 function getSecret() {
-  return (
-    process.env.BINARY_EMBEDDING_SECRET?.trim() ||
-    "dev-only-binary-embedding-secret"
-  );
+  return getFileEmbeddingSecret();
 }
 
 function isAuthorized(request: Request) {

@@ -231,22 +231,30 @@ export function dynamicTool<NAME extends string, INPUT, OUTPUT, ARGS>({
   args: ARGS;
   policies?: SharedPolicy[];
   instructions?: string[];
-  /** When true with `telemetryNamespace`, wrap handler with tool lifecycle events. */
+  /** When true, wraps handler with tool lifecycle telemetry using `ToolkitContext.namespace` (or `telemetryNamespace` override). */
   telemetry?: boolean;
-  /** Required when `telemetry` is true; must match chat namespace for unified timeline. */
+  /** Optional override; defaults to `ctx.namespace` from `createToolkitContext`. */
   telemetryNamespace?: string;
 }): DynamicToolDef<NAME, ARGS, Tool<INPUT, OUTPUT>> {
   const policies = policiesConfig ?? [];
   const rawHandler = toolArgs.handler;
-  const useToolTelemetry =
-    Boolean(telemetry) &&
-    telemetryNamespace != null &&
-    telemetryNamespace.length > 0;
 
   async function evaluate(
     ctx: ToolkitContext,
     resolvedPolicies?: PolicyResultMap,
   ): Promise<ToolkitResult<Record<NAME, Tool<INPUT, OUTPUT>>>> {
+    const resolvedNamespace = (
+      telemetryNamespace ??
+      ctx.namespace ??
+      ""
+    ).trim();
+    if (telemetry && !resolvedNamespace) {
+      throw new Error(
+        `dynamicTool "${name}": telemetry requires ToolkitContext.namespace (or telemetryNamespace override)`,
+      );
+    }
+    const useToolTelemetry = Boolean(telemetry) && resolvedNamespace.length > 0;
+
     for (const policy of policies) {
       emitPolicyLifecycle(ctx, policy, "start");
       const ok =
@@ -260,18 +268,27 @@ export function dynamicTool<NAME extends string, INPUT, OUTPUT, ARGS>({
         };
     }
 
+    const innerHandler = rawHandler as (
+      ctx: ToolExecutionContext,
+      args: INPUT,
+      options: ToolCallOptions,
+    ) => Promise<OUTPUT> | AsyncIterable<OUTPUT>;
+
+    const withNamespace = (
+      execCtx: ToolExecutionContext,
+      args: INPUT,
+      options: ToolCallOptions,
+    ) =>
+      innerHandler({ ...execCtx, namespace: resolvedNamespace }, args, options);
+
     const handler = (
       useToolTelemetry
         ? wrapToolHandlerWithTelemetry<INPUT, OUTPUT>(
             name,
-            telemetryNamespace,
-            rawHandler as (
-              ctx: ToolExecutionContext,
-              args: INPUT,
-              options: ToolCallOptions,
-            ) => Promise<OUTPUT> | AsyncIterable<OUTPUT>,
+            resolvedNamespace,
+            withNamespace,
           )
-        : rawHandler
+        : withNamespace
     ) as typeof rawHandler;
 
     const tool = createTool<INPUT, OUTPUT, ToolExecutionContext>({

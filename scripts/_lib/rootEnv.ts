@@ -21,6 +21,7 @@ function parseEnvText(text: string) {
   return vars;
 }
 
+/** Load package root `.env.local` (required for local dev scaffolding). */
 export async function readRootEnv() {
   const file = Bun.file(rootEnvPath);
   if (!(await file.exists())) {

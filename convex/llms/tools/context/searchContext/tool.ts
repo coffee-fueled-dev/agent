@@ -1,16 +1,19 @@
+import type { InferUITool, Tool } from "ai";
 import { z } from "zod/v4";
-import { internal } from "../../_generated/api";
-import { machineActor } from "../../eventAttribution";
-import {
-  dynamicTool,
-  withFormattedResults,
-} from "../../llms/tools/_libs/toolkit";
-import { chatAgentDefinition } from "../agent";
+import { internal } from "../../../../_generated/api";
+import { machineActor } from "../../../../eventAttribution";
+import { chatAgentDefinition } from "../../../agents/assistant/agent";
+import { dynamicTool, withFormattedResults } from "../../_libs/toolkit";
 
-export function searchContextTool(namespace: string) {
+declare module "../../registeredToolMap" {
+  interface RegisteredToolMap {
+    searchContext: InferUITool<Tool>;
+  }
+}
+
+export function searchContextTool() {
   return dynamicTool({
     telemetry: true,
-    telemetryNamespace: namespace,
     name: "searchContext" as const,
     description:
       "Search the user's context entries using hybrid semantic and lexical retrieval.",
@@ -35,7 +38,7 @@ export function searchContextTool(namespace: string) {
           const results = await ctx.runAction(
             internal.context.search.searchContextInternal,
             {
-              namespace,
+              namespace: ctx.namespace,
               query: args.query,
               limit: args.limit,
               retrievalMode: args.retrievalMode,

@@ -1,33 +1,14 @@
 import { z } from "zod/v4";
-import { components, internal } from "../_generated/api";
+import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
-import { ContextClient } from "../components/context/client";
 import { sessionAction, sessionMutation } from "../customFunctions";
 import { assertAccountNamespace } from "../models/auth/contextNamespace";
-
-function createContextClient() {
-  return new ContextClient(components.context, {
-    googleApiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
-  });
-}
-
-function getEmbeddingServerUrl() {
-  return process.env.EMBEDDING_SERVER_URL?.trim() || "http://127.0.0.1:3031";
-}
-
-function getFileEmbeddingSecret() {
-  return (
-    process.env.BINARY_EMBEDDING_SECRET?.trim() ||
-    "dev-only-binary-embedding-secret"
-  );
-}
-
-function getConvexSiteUrl() {
-  const url =
-    process.env.CONVEX_SITE_URL?.trim() || process.env.CONVEX_URL?.trim();
-  if (!url) throw new Error("CONVEX_SITE_URL or CONVEX_URL is required");
-  return url.replace(/\/+$/, "");
-}
+import {
+  createContextClient,
+  getConvexSiteUrl,
+  getEmbeddingServerUrl,
+  getFileEmbeddingSecret,
+} from "./contextClient";
 
 export const generateContextUploadUrl = sessionMutation({
   args: z.object({}),
