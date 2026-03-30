@@ -8,12 +8,21 @@ import { readRootEnv } from "./_lib/rootEnv";
 import { syncShellEnvFromLocal } from "./_lib/syncConvexShellEnv";
 
 const { vars } = await readRootEnv();
-const varsRecord = vars as Record<string, string>;
 
-if (process.env.NGROK_AUTHTOKEN?.trim() || varsRecord.NGROK_AUTHTOKEN?.trim()) {
-  const site =
-    vars.CONVEX_SITE_URL ?? vars.CONVEX_URL ?? "http://127.0.0.1:3211";
-  const u = new URL(site);
+/** `.env.local` is parsed into `vars` only — not `process.env`. `authtoken_from_env` reads the latter, so pass the token explicitly. */
+const ngrokAuthtoken =
+  process.env.NGROK_AUTHTOKEN?.trim() || vars.NGROK_AUTHTOKEN?.trim();
+
+/** Reserved domain hostname (e.g. `myapp.ngrok-free.app`), not the dashboard `rd_...` id. */
+const ngrokDomain =
+  process.env.NGROK_DOMAIN?.trim() ||
+  process.env.NGROK_HOSTNAME?.trim() ||
+  vars.NGROK_DOMAIN?.trim() ||
+  vars.NGROK_HOSTNAME?.trim();
+
+if (ngrokAuthtoken) {
+  const convexAPI = vars.CONVEX_URL ?? "http://127.0.0.1:3210";
+  const u = new URL(convexAPI);
   const port = u.port
     ? Number.parseInt(u.port, 10)
     : u.protocol === "https:"
@@ -21,12 +30,15 @@ if (process.env.NGROK_AUTHTOKEN?.trim() || varsRecord.NGROK_AUTHTOKEN?.trim()) {
       : 80;
   const listener = await forward({
     addr: port,
-    authtoken_from_env: true,
+    authtoken: ngrokAuthtoken,
+    ...(ngrokDomain ? { domain: ngrokDomain } : {}),
   });
   const url = listener.url();
   if (url) {
-    varsRecord.NGROK_URL = url;
-    console.log(`[dev:convex] ngrok tunnel: ${url}`);
+    vars.NGROK_URL = url;
+    console.log(
+      `[dev:convex] ngrok tunnel: ${url}${ngrokDomain ? ` (domain: ${ngrokDomain})` : ""}`,
+    );
   }
 }
 

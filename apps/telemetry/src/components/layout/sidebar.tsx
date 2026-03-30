@@ -76,7 +76,13 @@ export const SidebarProvider = ({
   );
 };
 
-export const Sidebar = ({ children }: { children: React.ReactNode }) => {
+export const Sidebar = ({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) => {
   const { isExpanded } = useSidebar();
   return (
     <div
@@ -84,6 +90,7 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
         "bg-sidebar text-sidebar-foreground flex h-full min-h-0 flex-col p-4",
         isExpanded ? "w-64" : "w-16",
         "transition-[width] duration-200 ease-in-out",
+        className,
       )}
     >
       {children}

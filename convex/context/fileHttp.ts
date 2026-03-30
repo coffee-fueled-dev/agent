@@ -102,16 +102,20 @@ export const failFileProcessHttp = httpAction(async (ctx, request) => {
     return new Response("Unauthorized", { status: 401 });
   }
   try {
-    const payload = (await request.json()) as Record<string, unknown>;
+    const payload = await request.json();
     if (typeof payload?.processId !== "string") {
       throw new Error("Missing processId");
     }
     const errorMsg =
       typeof payload.error === "string" ? payload.error : "Embedding failed";
-    await ctx.runMutation(internal.context.fileStore.markFailed, {
-      processId: payload.processId as Id<"contextFileProcesses">,
-      error: errorMsg,
-    });
+    const processId = payload.processId as string;
+    // embed-for-search uses synthetic ids (`search-${contentHash}`); no file process row.
+    if (!processId.startsWith("search-")) {
+      await ctx.runMutation(internal.context.fileStore.markFailed, {
+        processId: processId as Id<"contextFileProcesses">,
+        error: errorMsg,
+      });
+    }
     return new Response(null, { status: 204 });
   } catch (error) {
     return Response.json(

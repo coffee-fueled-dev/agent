@@ -44,13 +44,8 @@ const listUnifiedTimelineQuery = api.chat.unifiedTimeline
 function ThreadEventRowLink({ row }: { row: UnifiedTimelineListRow }) {
   const href = eventsDetail(row._id);
   return (
-    <Item
-      size="sm"
-      variant="outline"
-      asChild
-      className="flex-col items-stretch"
-    >
-      <Link href={href} className="no-underline">
+    <Item size="sm" asChild className="flex-col items-stretch">
+      <Link href={href}>
         <ItemHeader className="min-w-0 gap-2">
           <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5">
             <ItemTitle className="w-full min-w-0 max-w-full truncate text-xs">

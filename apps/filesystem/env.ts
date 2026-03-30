@@ -18,7 +18,9 @@ const filesystemEnvSchema = z.object({
 
 const env = filesystemEnvSchema.parse(process.env);
 
-export const port = Number(env.FILESYSTEM_PORT ?? env.LOCAL_SHELL_PORT ?? "3941");
+export const port = Number(
+  env.FILESYSTEM_PORT ?? env.LOCAL_SHELL_PORT ?? "3941",
+);
 
 export const hostname = env.FILESYSTEM_HOST ?? "127.0.0.1";
 

@@ -57,7 +57,7 @@ function DetailView() {
             </div>
           )}
 
-          <div className="rounded-lg bg-muted p-4 text-sm whitespace-pre-wrap">
+          <div className="text-sm whitespace-pre-wrap">
             {detail.fullText || detail.textPreview}
           </div>
 
@@ -71,13 +71,13 @@ function DetailView() {
           <LinkedNodes namespace={namespace} entryId={entryId} />
         </div>
 
-        <div className="col-span-3 lg:col-span-2 border rounded-lg border-border p-4 min-h-0">
+        <aside className="col-span-3 lg:col-span-2 min-h-0 bg-muted/50 p-8 fade-mask">
           <VersionChain
             namespace={namespace}
             chain={detail.versionChain}
             currentEntryId={entryId}
           />
-        </div>
+        </aside>
       </div>
     </PageSection.Body>
   );

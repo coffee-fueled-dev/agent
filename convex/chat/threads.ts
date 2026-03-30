@@ -6,7 +6,13 @@ import {
   syncStreams,
 } from "@convex-dev/agent";
 import type { StreamArgs } from "@convex-dev/agent/validators";
-import type { FilePart, ImagePart, UserContent, UserModelMessage } from "ai";
+import type {
+  FilePart,
+  ImagePart,
+  ModelMessage,
+  UserContent,
+  UserModelMessage,
+} from "ai";
 import type { PaginationOptions, PaginationResult } from "convex/server";
 import { zid } from "convex-helpers/server/zod4";
 import { z } from "zod/v4";
@@ -20,7 +26,7 @@ import {
   sessionMutation,
   sessionPaginatedQuery,
 } from "../customFunctions";
-import { getNgrokUrl } from "../env";
+import { getNgrokUrl, isLocalAgentMode } from "../env";
 import { ensureTokenAccount, resolveAccountByAlias } from "../lib/auth";
 import { agentLibrary } from "../llms/agents";
 import type { UIMessage } from "../llms/uiMessage";
@@ -51,20 +57,24 @@ const attachmentSchema = z.object({
   text: z.string().optional(),
 });
 
-/** Rewrite localhost storage URLs so providers can fetch via ngrok (no inlining). */
+/** Rewrite localhost storage URLs so providers can fetch via ngrok (local agent dev only). */
 function publicStorageUrl(localUrl: string): string {
+  if (!isLocalAgentMode()) return localUrl;
   const ngrok = getNgrokUrl();
   if (!ngrok) return localUrl;
-  const parsed = new URL(localUrl);
-  if (
-    parsed.hostname === "localhost" ||
-    parsed.hostname === "127.0.0.1" ||
-    parsed.hostname === "::1"
-  ) {
-    const target = new URL(ngrok);
-    parsed.protocol = target.protocol;
-    parsed.host = target.host;
-    return parsed.toString();
+  try {
+    const parsed = new URL(localUrl);
+    if (
+      parsed.hostname === "localhost" ||
+      parsed.hostname === "127.0.0.1" ||
+      parsed.hostname === "::1"
+    ) {
+      const target = new URL(ngrok);
+      // V8 actions: mutating URL (e.g. .host =) throws "Not implemented: set host for URL".
+      return `${target.protocol}//${target.host}${parsed.pathname}${parsed.search}${parsed.hash}`;
+    }
+  } catch {
+    return localUrl;
   }
   return localUrl;
 }
@@ -84,23 +94,6 @@ function getFileParts(
     ? { type: "image", image: new URL(url), mediaType }
     : undefined;
   return { filePart, imagePart };
-}
-
-function buildSearchQuery(
-  prompt: string,
-  attachments: z.infer<typeof attachmentSchema>[] | undefined,
-): string {
-  const parts: string[] = [];
-  if (prompt.trim()) parts.push(prompt.trim());
-  if (!attachments?.length) return parts.join(" ");
-
-  for (const a of attachments) {
-    parts.push(a.fileName);
-    if (a.text?.trim()) {
-      parts.push(a.text.slice(0, 2000));
-    }
-  }
-  return parts.join("\n\n");
 }
 
 async function buildUserMessageWithFiles(
@@ -174,6 +167,10 @@ export const sendMessage = sessionAction({
     /** Same value as `createThread` — required for actions because `sessions.account` may be unset until this runs. */
     token: z.string().min(1),
     attachments: z.array(attachmentSchema).optional(),
+    /** Hybrid lexical query; built on the client with `buildLexicalContextQuery`. */
+    searchQuery: z.string(),
+    /** One vector per attachment, same order as `attachments`. */
+    fileEmbeddings: z.array(z.array(z.number())).optional(),
   },
   handler: async (ctx: SessionActionCtx, args) => {
     const hasAttachments = Boolean(args.attachments?.length);
@@ -188,16 +185,15 @@ export const sendMessage = sessionAction({
       { token: args.token },
     );
 
-    const searchQuery = buildSearchQuery(args.prompt, args.attachments);
-
     const searchResults = await ctx.runAction(
       api.context.search.searchContext,
       {
         sessionId: args.sessionId,
         namespace,
-        query: searchQuery || args.prompt || "files",
+        query: args.searchQuery.trim() || args.prompt.trim() || "context",
         limit: 10,
         retrievalMode: "hybrid",
+        fileEmbeddings: args.fileEmbeddings,
         threadId: args.threadId,
       },
     );
@@ -209,10 +205,15 @@ export const sendMessage = sessionAction({
       args.attachments,
     );
 
+    const messagesToSave: ModelMessage[] = [userMessage];
+    if (injected) {
+      messagesToSave.unshift({ role: "system", content: injected });
+    }
+
     const { messages } = await saveMessages(ctx, components.agent, {
       threadId: args.threadId,
       userId,
-      messages: [userMessage],
+      messages: messagesToSave,
       metadata: fileIds.length > 0 ? [{ fileIds }] : undefined,
     });
 
@@ -235,7 +236,6 @@ export const sendMessage = sessionAction({
     const result = await thread.streamText(
       {
         promptMessageId,
-        system: injected ?? undefined,
       },
       {
         saveStreamDeltas: { throttleMs: 50 },
@@ -311,6 +311,6 @@ export const listThreadMessages = sessionPaginatedQuery({
     return {
       ...paginated,
       streams,
-    } as ListThreadMessagesPage;
+    };
   },
 });

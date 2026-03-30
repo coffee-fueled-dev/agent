@@ -7,6 +7,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import type { FunctionReference } from "convex/server";
 import { useSessionIdArg } from "convex-helpers/react/sessions";
 import type { SessionId } from "convex-helpers/server/sessions";
+import { ArrowDownIcon } from "lucide-react";
 import { useRef } from "react";
 import { FadeOverflow } from "@/components/layout/fade-overflow";
 import { ListSection } from "@/components/layout/list-section";
@@ -107,7 +108,7 @@ export function ChatMessageList({ threadId }: { threadId: string }) {
                     key={row.id}
                     data-index={vi.index}
                     ref={virtualizer.measureElement}
-                    className="absolute top-0 left-0 w-full pb-3"
+                    className="absolute top-0 left-0 flex w-full flex-col pb-3"
                     style={{
                       transform: `translateY(${vi.start}px)`,
                     }}
@@ -147,15 +148,16 @@ export function ChatMessageList({ threadId }: { threadId: string }) {
         </div>
       </FadeOverflow>
       {showJumpToLatest ? (
-        <Button
-          type="button"
-          size="sm"
-          variant="secondary"
-          className="absolute right-3 bottom-3 z-10 shadow-md"
-          onClick={() => scrollToTail()}
-        >
-          Jump to latest
-        </Button>
+        <div className="absolute w-full z-10 bottom-3 flex justify-center">
+          <Button
+            type="button"
+            size="icon"
+            onClick={() => scrollToTail()}
+            className="rounded-full"
+          >
+            <ArrowDownIcon />
+          </Button>
+        </div>
       ) : null}
     </div>
   );
@@ -166,7 +168,7 @@ function ChatMessageBubble({ message }: { message: UIMessage }) {
   return (
     <div
       className={`flex flex-col gap-2 rounded-lg text-sm ${
-        isUser ? "max-w-lg self-end bg-primary/5 px-3 py-2" : "bg-card"
+        isUser && "max-w-lg self-end bg-muted/50 text-muted-foreground p-4"
       }`}
     >
       <div className="flex flex-col gap-2">

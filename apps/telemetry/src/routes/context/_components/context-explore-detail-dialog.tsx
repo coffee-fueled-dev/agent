@@ -35,12 +35,12 @@ export function ContextExploreDetailDialog({
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent>
         <DialogHeader className="flex flex-row items-center gap-2">
-          <div className="flex items-center justify-center gap-2 rounded-md bg-muted p-2 border border-border">
+          <div className="flex items-center justify-center gap-2 rounded-md bg-muted/50 p-2 border border-border">
             <MimeTypeIcon mimeType={point.mimeType} className="size-4" />
           </div>
           <DialogTitle>{point.title || point.key}</DialogTitle>
         </DialogHeader>
-        <div className="text-sm bg-muted p-4 rounded-lg">
+        <div className="text-sm bg-muted/50 p-4 rounded-lg">
           <DialogDescription>{point.textPreview}</DialogDescription>
         </div>
         {isImage && file?.url && (

@@ -48,6 +48,7 @@ import type * as events from "../events.js";
 import type * as history from "../history.js";
 import type * as http from "../http.js";
 import type * as lib_auth from "../lib/auth.js";
+import type * as lib_googleEmbedText from "../lib/googleEmbedText.js";
 import type * as lib_resolvers_index from "../lib/resolvers/index.js";
 import type * as lib_status_index from "../lib/status/index.js";
 import type * as llms_agents__instructions_goal from "../llms/agents/_instructions/goal.js";
@@ -154,6 +155,7 @@ declare const fullApi: ApiFromModules<{
   history: typeof history;
   http: typeof http;
   "lib/auth": typeof lib_auth;
+  "lib/googleEmbedText": typeof lib_googleEmbedText;
   "lib/resolvers/index": typeof lib_resolvers_index;
   "lib/status/index": typeof lib_status_index;
   "llms/agents/_instructions/goal": typeof llms_agents__instructions_goal;
@@ -1413,7 +1415,7 @@ export declare const components: {
             actor?: { byId: string; byType: string };
             apiKey?: string;
             clientSessionId?: string;
-            fileEmbedding?: Array<number>;
+            fileEmbeddings?: Array<Array<number>>;
             graphWeight?: number;
             includeHistorical?: boolean;
             lexicalWeight?: number;

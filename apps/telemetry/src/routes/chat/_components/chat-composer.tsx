@@ -1,6 +1,8 @@
 import { api } from "@backend/api.js";
+import { useConvex } from "convex/react";
 import {
   useSessionAction,
+  useSessionId,
   useSessionMutation,
 } from "convex-helpers/react/sessions";
 import { PaperclipIcon } from "lucide-react";
@@ -13,6 +15,11 @@ import {
   InputGroupTextarea,
 } from "@/components/ui/input-group";
 import { buildContextFileKey } from "../../_hooks/context-file.js";
+import { buildLexicalContextQueryMulti } from "../../_hooks/context-search-query.js";
+import {
+  collectEmbeddingsFromCache,
+  ensureEmbeddingsReady,
+} from "../../_hooks/embed-for-search.js";
 import { useContextFileUpload } from "../../_hooks/use-context-file-upload.js";
 import { useNamespace } from "../../context/_hooks/use-namespace.js";
 
@@ -27,6 +34,9 @@ export function ChatComposer({
 }) {
   const createThread = useSessionMutation(api.chat.threads.createThread);
   const sendMessage = useSessionAction(api.chat.threads.sendMessage);
+  const embedForSearch = useSessionAction(api.context.search.embedForSearch);
+  const convex = useConvex();
+  const [, , sessionIdPromise] = useSessionId();
   const { namespace, sessionNamespaceResolved } = useNamespace();
   const { prepareAttachment, indexFileInContext } = useContextFileUpload();
   const { files, addFiles, clearFiles, removeFile } = useFiles();
@@ -77,11 +87,38 @@ export function ChatComposer({
             )
           : undefined;
 
+      const searchQuery = buildLexicalContextQueryMulti({
+        userQuery: trimmed,
+        files:
+          attachments?.map((a) => ({
+            fileName: a.fileName,
+            fileText: a.text,
+          })) ?? [],
+      });
+
+      let fileEmbeddings: number[][] | undefined;
+      if (attachments?.length) {
+        const sessionId = await sessionIdPromise;
+        await ensureEmbeddingsReady(
+          convex,
+          sessionId,
+          embedForSearch,
+          attachments,
+        );
+        fileEmbeddings = await collectEmbeddingsFromCache(
+          convex,
+          sessionId,
+          attachments,
+        );
+      }
+
       await sendMessage({
         threadId: activeThreadId,
         prompt: trimmed,
         token,
         attachments,
+        searchQuery,
+        fileEmbeddings,
       });
       setText("");
       clearFiles();

@@ -58,8 +58,9 @@ function createGenAIClient() {
   return new GoogleGenAI(apiKey ? { apiKey } : {});
 }
 
+/** Must match [`contextFileFailPath`](../../convex/context/fileHttp.ts) in Convex HTTP routes. */
 function failUrl() {
-  return `${normalizeBaseUrl(callbackBaseUrl)}/context/binary-embedding/fail`;
+  return `${normalizeBaseUrl(callbackBaseUrl)}/context/file/fail`;
 }
 
 async function postJson(url: string, body: unknown) {

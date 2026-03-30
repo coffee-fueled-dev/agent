@@ -1,9 +1,11 @@
 import type { ReactNode } from "react";
+import { FadeOverflow } from "@/components/layout/fade-overflow.js";
 import {
   MobileSidebarSheet,
   Sidebar,
   SidebarFooter,
   SidebarInset,
+  SidebarInsetFill,
   SidebarMain,
   SidebarPanelControl,
   SidebarProvider,
@@ -62,9 +64,9 @@ export function AppLayout({
 }) {
   return (
     <SidebarProvider>
-      <div className="grid min-h-dvh w-full grid-cols-1 md:grid-cols-[auto_minmax(0,1fr)]">
-        <aside className="hidden min-h-0 self-stretch border-sidebar-border md:flex md:min-h-dvh md:border-r">
-          <Sidebar>
+      <div className="grid h-dvh w-full grid-cols-1 md:grid-cols-[auto_minmax(0,1fr)]">
+        <aside className="hidden min-h-0 self-stretch md:flex md:min-h-dvh">
+          <Sidebar className="fade-mask p-8">
             <SidebarMain>
               <AppSidebarNav current={current} />
             </SidebarMain>
@@ -72,7 +74,7 @@ export function AppLayout({
           </Sidebar>
         </aside>
         <SidebarInset className="col-span-1 md:col-start-2">
-          <header className="flex shrink-0 flex-wrap items-center gap-2 border-b px-3 py-2 md:px-4">
+          <header className="flex shrink-0 flex-wrap items-center gap-2 px-3 py-2 md:px-4">
             <SidebarPanelControl />
             {segmentLead ? (
               <span className="flex shrink-0 items-center gap-2">
@@ -88,9 +90,7 @@ export function AppLayout({
               </>
             ) : null}
           </header>
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-auto p-8">
-            {children}
-          </div>
+          <main>{children}</main>
         </SidebarInset>
       </div>
       <MobileSidebarSheet

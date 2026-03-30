@@ -2,6 +2,7 @@ import { z } from "zod/v4";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { sessionAction, sessionMutation } from "../customFunctions";
+import { accountActor } from "../eventAttribution";
 import { assertAccountNamespace } from "../models/auth/contextNamespace";
 import {
   createContextClient,
@@ -46,13 +47,19 @@ export const addFileContext = sessionAction({
       mimeType,
       fileName,
       contentHash: _,
+      sessionId,
       ...entry
     } = args;
     const storageId = storageIdArg as Id<"_storage">;
 
     if (text) {
       const client = createContextClient();
-      const result = await client.addContext(ctx, { ...entry, text });
+      const result = await client.addContext(ctx, {
+        ...entry,
+        text,
+        session: sessionId,
+        actor: accountId ? accountActor(accountId) : undefined,
+      });
       await ctx.runMutation(internal.context.fileStore.insertContextFile, {
         entryId: result.entryId,
         namespace: args.namespace,

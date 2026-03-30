@@ -15,7 +15,10 @@ import { scheduleThreadToolTelemetry } from "../../../chat/toolTelemetry";
 import type { SessionActionCtx } from "../../../customFunctions";
 
 /** Session + thread context every agent receives before agent-specific identity is layered on. */
-export type AgentIdentityCtx = Omit<ToolBuilderContext, "agentId" | "agentName">;
+export type AgentIdentityCtx = Omit<
+  ToolBuilderContext,
+  "agentId" | "agentName"
+>;
 
 export type ToolBuilderContext = Omit<SessionActionCtx, "sessionId"> & {
   threadId: string;

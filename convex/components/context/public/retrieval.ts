@@ -36,7 +36,8 @@ export const search = action({
     lexicalWeight: v.optional(v.number()),
     graphWeight: v.optional(v.number()),
     accessWeight: v.optional(v.number()),
-    fileEmbedding: v.optional(v.array(v.number())),
+    /** One or more query vectors from attached files (e.g. embed-for-search cache). */
+    fileEmbeddings: v.optional(v.array(v.array(v.number()))),
     apiKey: v.optional(v.string()),
     actor: v.optional(
       v.object({
@@ -71,7 +72,7 @@ export const search = action({
       lexicalWeight,
       graphWeight,
       accessWeight: accessWeightArg,
-      fileEmbedding,
+      fileEmbeddings,
       apiKey,
       actor,
       session,
@@ -81,6 +82,8 @@ export const search = action({
     },
   ) => {
     const accessWeight = accessWeightArg ?? 0.15;
+    const fileEmbeddingsList: number[][] | undefined =
+      fileEmbeddings && fileEmbeddings.length > 0 ? fileEmbeddings : undefined;
     const rag = createContextRag(apiKey);
     const mode = retrievalMode ?? "hybrid";
     const limit = args.limit ?? 10;
@@ -99,10 +102,10 @@ export const search = action({
 
     const finalizeResults = async (hits: SearchHit[]): Promise<SearchHit[]> => {
       if (!hits.length) return hits;
-      const times = (await ctx.runQuery(
+      const times = await ctx.runQuery(
         internal.internal.accessStats.getObservationTimes,
         { entryIds: hits.map((h) => h.entryId) },
-      )) as Record<string, number>;
+      );
       const enriched = hits.map((h) => ({
         ...h,
         observationTime: times[h.entryId],
@@ -164,44 +167,61 @@ export const search = action({
       }));
     };
 
-    const hasTextQuery = typeof args.query === "string";
+    const isStringQuery = typeof args.query === "string";
+    const hasNonEmptyTextQuery =
+      isStringQuery && (args.query as string).trim().length > 0;
 
-    // Vector-only mode: run text vector + optional file vector, no lexical
+    // Vector-only mode: text vector + optional N file vectors, no lexical
     if (mode === "vector") {
-      if (!fileEmbedding)
+      if (!fileEmbeddingsList?.length) {
+        if (isStringQuery && !hasNonEmptyTextQuery) {
+          return finalizeResults([]);
+        }
         return finalizeResults(await runVectorSearch(args.query));
-      const [textVector, fileVector] = await Promise.all([
-        hasTextQuery
-          ? runVectorSearch(args.query, candidateLimit)
-          : Promise.resolve([]),
-        runVectorSearch(fileEmbedding, candidateLimit),
-      ]);
-      if (!textVector.length)
-        return finalizeResults(fileVector.slice(0, limit));
-      if (!fileVector.length)
+      }
+
+      const textVector = hasNonEmptyTextQuery
+        ? await runVectorSearch(args.query, candidateLimit)
+        : [];
+      const fileVectorsResults = await Promise.all(
+        fileEmbeddingsList.map((emb) => runVectorSearch(emb, candidateLimit)),
+      );
+
+      const nonemptyFileVectors = fileVectorsResults.filter((fv) => fv.length);
+      if (!textVector.length && !nonemptyFileVectors.length) {
+        return finalizeResults([]);
+      }
+      if (!textVector.length && nonemptyFileVectors.length === 1) {
+        return finalizeResults(nonemptyFileVectors[0].slice(0, limit));
+      }
+      if (textVector.length && !nonemptyFileVectors.length) {
         return finalizeResults(textVector.slice(0, limit));
+      }
+
       const byId = new Map<string, SearchHit>();
-      for (const r of fileVector) byId.set(r.entryId, r);
       for (const r of textVector) byId.set(r.entryId, r);
+      for (const fv of fileVectorsResults) {
+        for (const r of fv) byId.set(r.entryId, r);
+      }
+
       const effectiveK = rrfK ?? Math.max(candidateLimit, 60);
-      const vecLists = [
-        textVector.map((r) => r.entryId),
-        fileVector.map((r) => r.entryId),
-      ];
-      const vecWeights = [vectorWeight ?? 1, vectorWeight ?? 1];
+      const vecLists: string[][] = [];
+      const vecWeights: number[] = [];
+      const w = vectorWeight ?? 1;
+      if (textVector.length) {
+        vecLists.push(textVector.map((r) => r.entryId));
+        vecWeights.push(w);
+      }
+      for (const fv of nonemptyFileVectors) {
+        vecLists.push(fv.map((r) => r.entryId));
+        vecWeights.push(w);
+      }
       if (accessWeight > 0) {
         const candidateIds = [...byId.keys()];
-        const accessStats = (await ctx.runQuery(
+        const accessStats = await ctx.runQuery(
           internal.internal.accessStats.getAccessStatsBatch,
           { entryIds: candidateIds },
-        )) as Record<
-          string,
-          {
-            decayedScore: number;
-            totalAccesses: number;
-            lastAccessTime: number;
-          }
-        >;
+        );
         const now = Date.now();
         const accessRanked = candidateIds
           .map((id) => {
@@ -239,7 +259,7 @@ export const search = action({
       );
     }
 
-    const lexicalQuery = hasTextQuery ? (args.query as string) : null;
+    const lexicalQuery = hasNonEmptyTextQuery ? (args.query as string) : null;
     const lexical = lexicalQuery
       ? await searchClient.search(ctx, {
           namespace: args.namespace,
@@ -271,35 +291,47 @@ export const search = action({
       return finalizeResults(lexicalMapped.slice(0, limit));
     }
 
-    // Hybrid: run all available arms in parallel
-    const [textVector, fileVector] = await Promise.all([
-      hasTextQuery || !fileEmbedding
-        ? runVectorSearch(args.query, candidateLimit)
-        : Promise.resolve([]),
-      fileEmbedding
-        ? runVectorSearch(fileEmbedding, candidateLimit)
-        : Promise.resolve([]),
-    ]);
+    // Hybrid: text vector + lexical + N file vectors in parallel
+    const textVector = await (async (): Promise<SearchHit[]> => {
+      if (!fileEmbeddingsList?.length) {
+        if (isStringQuery && !hasNonEmptyTextQuery) return [];
+        return runVectorSearch(args.query, candidateLimit);
+      }
+      if (hasNonEmptyTextQuery) {
+        return runVectorSearch(args.query, candidateLimit);
+      }
+      return [];
+    })();
+    const fileVectorsResults = fileEmbeddingsList?.length
+      ? await Promise.all(
+          fileEmbeddingsList.map((emb) => runVectorSearch(emb, candidateLimit)),
+        )
+      : [];
 
     const rankedLists: string[][] = [];
     const weights: number[] = [];
+    const vw = vectorWeight ?? 1;
     if (textVector.length) {
       rankedLists.push(textVector.map((r) => r.entryId));
-      weights.push(vectorWeight ?? 1);
+      weights.push(vw);
     }
     if (lexicalMapped.length) {
       rankedLists.push(lexicalMapped.map((r) => r.entryId));
       weights.push(lexicalWeight ?? 1);
     }
-    if (fileVector.length) {
-      rankedLists.push(fileVector.map((r) => r.entryId));
-      weights.push(vectorWeight ?? 1);
+    for (const fv of fileVectorsResults) {
+      if (fv.length) {
+        rankedLists.push(fv.map((r) => r.entryId));
+        weights.push(vw);
+      }
     }
 
     const byId = new Map<string, SearchHit>();
     for (const r of lexicalMapped) byId.set(r.entryId, r);
-    for (const r of fileVector) byId.set(r.entryId, r);
     for (const r of textVector) byId.set(r.entryId, r);
+    for (const fv of fileVectorsResults) {
+      for (const r of fv) byId.set(r.entryId, r);
+    }
 
     // Adaptive graph weight based on graph density
     const [nodeCount, edgeCount] = await Promise.all([
@@ -331,8 +363,7 @@ export const search = action({
           const nId = edge.from === seed.entryId ? edge.to : edge.from;
           if (!allIds.has(nId) || seen.has(nId)) continue;
           seen.add(nId);
-          const edgeScore =
-            (edge.properties as { score?: number } | undefined)?.score ?? 0;
+          const edgeScore = edge.properties?.score ?? 0;
           graphScored.push({ id: nId, weight: edgeScore });
         }
       }
@@ -346,13 +377,10 @@ export const search = action({
     // Access frequency arm: rank candidates by decayed access score
     if (accessWeight > 0) {
       const candidateIds = [...byId.keys()];
-      const accessStats = (await ctx.runQuery(
+      const accessStats = await ctx.runQuery(
         internal.internal.accessStats.getAccessStatsBatch,
         { entryIds: candidateIds },
-      )) as Record<
-        string,
-        { decayedScore: number; totalAccesses: number; lastAccessTime: number }
-      >;
+      );
       const now = Date.now();
       const accessRanked = candidateIds
         .map((id) => {
@@ -376,10 +404,11 @@ export const search = action({
 
     if (rankedLists.length === 0) return [];
     if (rankedLists.length === 1) {
+      const firstFileHits = fileVectorsResults.find((fv) => fv.length);
       const single = textVector.length
         ? textVector
-        : fileVector.length
-          ? fileVector
+        : firstFileHits?.length
+          ? firstFileHits
           : lexicalMapped;
       return finalizeResults(single.slice(0, limit));
     }

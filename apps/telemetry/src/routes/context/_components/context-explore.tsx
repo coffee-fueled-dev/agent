@@ -57,7 +57,7 @@ function ContextExploreInner({
         )}
 
         <div
-          className="h-full overflow-hidden fade-mask-x fade-mask-y bg-muted/20"
+          className="h-full overflow-hidden fade-mask-x fade-mask-y bg-muted/50"
           style={
             selected || pushSceneBehind
               ? { zIndex: 0, isolation: "isolate" }

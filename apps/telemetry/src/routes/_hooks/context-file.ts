@@ -1,8 +1,13 @@
 export function isTextLikeFile(file: File) {
+  return isTextLikeMimeType(file.type);
+}
+
+/** Matches server `isTextLikeMime` / embed-for-search text branch. */
+export function isTextLikeMimeType(mimeType: string): boolean {
   return (
-    file.type.startsWith("text/") ||
-    file.type === "application/json" ||
-    file.type === "application/xml"
+    mimeType.startsWith("text/") ||
+    mimeType === "application/json" ||
+    mimeType === "application/xml"
   );
 }
 

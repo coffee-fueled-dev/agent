@@ -72,7 +72,7 @@ function ActivityEventDetail({ eventId }: { eventId: string }) {
           Back to activity
         </Link>
       </p>
-      <pre className="overflow-auto rounded-lg border border-border bg-muted p-4 text-xs leading-relaxed whitespace-pre-wrap break-words font-mono">
+      <pre className="overflow-auto rounded-lg border border-border bg-muted/50 p-4 text-xs leading-relaxed whitespace-pre-wrap break-words font-mono">
         {JSON.stringify(data, null, 2)}
       </pre>
     </PageSection.Body>

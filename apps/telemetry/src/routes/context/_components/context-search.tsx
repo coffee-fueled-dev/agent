@@ -3,11 +3,7 @@
 import { api } from "@backend/api.js";
 import { contentHashFromArrayBuffer } from "@convex-dev/rag";
 import type { FunctionReturnType } from "convex/server";
-import {
-  useSessionAction,
-  useSessionMutation,
-  useSessionQuery,
-} from "convex-helpers/react/sessions";
+import { useSessionAction } from "convex-helpers/react/sessions";
 import { LoaderIcon, PaperclipIcon, SearchIcon, XIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDropzone } from "react-dropzone";
@@ -28,6 +24,9 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group.js";
 import { contextEntry, useNavigate } from "@/navigation/index.js";
+import { isTextLikeFile, readFileText } from "../../_hooks/context-file.js";
+import { buildLexicalContextQuery } from "../../_hooks/context-search-query.js";
+import { useEmbedForSearchAttachedFile } from "../../_hooks/embed-for-search.js";
 import { useNamespace } from "../_hooks/use-namespace.js";
 import { MimeTypeIcon } from "./mime-type-icon.js";
 
@@ -37,10 +36,6 @@ type SearchResults = FunctionReturnType<
 
 export function ContextSearch() {
   const searchContext = useSessionAction(api.context.search.searchContext);
-  const embedForSearch = useSessionAction(api.context.search.embedForSearch);
-  const generateUploadUrl = useSessionMutation(
-    api.context.files.generateContextUploadUrl,
-  );
   const [results, setResults] = useState<SearchResults>([]);
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
@@ -48,35 +43,42 @@ export function ContextSearch() {
   const { namespace, sessionNamespaceResolved } = useNamespace();
   const navigate = useNavigate();
 
-  // File attachment state
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [contentHash, setContentHash] = useState<string | null>(null);
-  const [embedding, setEmbedding] = useState<number[] | null>(null);
-  const [embeddingPending, setEmbeddingPending] = useState(false);
-
-  // Reactive query for the embedding cache
-  const cachedEntry = useSessionQuery(
-    api.context.embeddingCacheStore.getByHash,
-    contentHash ? { contentHash } : "skip",
+  const [fileTextForLexical, setFileTextForLexical] = useState<string | null>(
+    null,
   );
 
-  // When the cache entry appears, capture the embedding
-  useEffect(() => {
-    if (cachedEntry?.embedding) {
-      setEmbedding(cachedEntry.embedding);
-      setEmbeddingPending(false);
-    }
-  }, [cachedEntry]);
+  const { embedding, embeddingPending, resetEmbeddingState } =
+    useEmbedForSearchAttachedFile({
+      file: attachedFile,
+      contentHash,
+      fileTextForLexical,
+    });
 
-  const handleFileAttach = useCallback(async (file: File) => {
-    setAttachedFile(file);
-    setEmbedding(null);
-    setEmbeddingPending(true);
+  const handleFileAttach = useCallback(
+    async (file: File) => {
+      resetEmbeddingState();
+      setAttachedFile(file);
+      setFileTextForLexical(null);
+      setContentHash(null);
 
-    const buffer = await file.arrayBuffer();
-    const hash = await contentHashFromArrayBuffer(buffer);
-    setContentHash(hash);
-  }, []);
+      const buffer = await file.arrayBuffer();
+      const hash = await contentHashFromArrayBuffer(buffer);
+
+      let lexicalText: string | null = null;
+      if (isTextLikeFile(file)) {
+        try {
+          lexicalText = await readFileText(file);
+        } catch {
+          lexicalText = null;
+        }
+      }
+      setFileTextForLexical(lexicalText);
+      setContentHash(hash);
+    },
+    [resetEmbeddingState],
+  );
 
   const {
     getRootProps,
@@ -91,65 +93,29 @@ export function ContextSearch() {
     },
   });
 
-  // Dispatch embed job once we confirm cache is empty
-  const dispatchedRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (
-      contentHash &&
-      attachedFile &&
-      cachedEntry === null &&
-      dispatchedRef.current !== contentHash
-    ) {
-      dispatchedRef.current = contentHash;
-      (async () => {
-        try {
-          const uploadUrl = await generateUploadUrl({});
-          const res = await fetch(uploadUrl, {
-            method: "POST",
-            headers: {
-              "Content-Type": attachedFile.type || "application/octet-stream",
-            },
-            body: attachedFile,
-          });
-          if (!res.ok) throw new Error("Upload failed");
-          const { storageId } = (await res.json()) as {
-            storageId: string;
-          };
-          await embedForSearch({
-            storageId: storageId as never,
-            mimeType: attachedFile.type || "application/octet-stream",
-            contentHash,
-          });
-        } catch (err) {
-          console.error("Failed to dispatch embed job", err);
-          setEmbeddingPending(false);
-        }
-      })();
-    }
-  }, [
-    contentHash,
-    attachedFile,
-    cachedEntry,
-    generateUploadUrl,
-    embedForSearch,
-  ]);
-
   const removeFile = useCallback(() => {
     setAttachedFile(null);
     setContentHash(null);
-    setEmbedding(null);
-    setEmbeddingPending(false);
-    dispatchedRef.current = null;
-  }, []);
+    setFileTextForLexical(null);
+    resetEmbeddingState();
+  }, [resetEmbeddingState]);
 
-  // Run search when text changes or embedding becomes available
   const runSearch = useCallback(
-    async (text: string, fileEmb: number[] | null) => {
+    async (
+      userQuery: string,
+      fileEmb: number[] | null,
+      opts: { fileName: string | null; fileText: string | null },
+    ) => {
       if (!sessionNamespaceResolved) {
         setResults([]);
         return;
       }
-      if (!text.trim() && !fileEmb) {
+      const lexicalQuery = buildLexicalContextQuery({
+        userQuery,
+        fileName: opts.fileName,
+        fileText: opts.fileText,
+      });
+      if (!lexicalQuery.trim() && !fileEmb?.length) {
         setResults([]);
         return;
       }
@@ -157,9 +123,10 @@ export function ContextSearch() {
       try {
         const res = await searchContext({
           namespace,
-          query: text.trim() || (fileEmb as number[]),
+          query: lexicalQuery,
           limit: 10,
-          fileEmbedding: fileEmb ?? undefined,
+          retrievalMode: "hybrid",
+          fileEmbeddings: fileEmb?.length ? [fileEmb] : undefined,
         });
         setResults(res);
       } catch {
@@ -171,31 +138,48 @@ export function ContextSearch() {
     [namespace, searchContext, sessionNamespaceResolved],
   );
 
-  const handleValueChange = useCallback(
-    (value: string) => {
-      setQuery(value);
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-      if (!value.trim() && !embedding) {
-        setResults([]);
-        return;
-      }
-      debounceRef.current = setTimeout(() => {
-        void runSearch(value, embedding);
-      }, 300);
-    },
-    [embedding, runSearch],
-  );
+  const handleValueChange = useCallback((value: string) => {
+    setQuery(value);
+  }, []);
 
-  // Re-search when embedding arrives
-  const queryRef = useRef(query);
-  queryRef.current = query;
   useEffect(() => {
-    if (embedding) {
-      void runSearch(queryRef.current, embedding);
+    if (!sessionNamespaceResolved) {
+      setResults([]);
+      return;
     }
-  }, [embedding, runSearch]);
+    if (!query.trim() && !embedding && !attachedFile) {
+      setResults([]);
+      return;
+    }
+    const lexicalQuery = buildLexicalContextQuery({
+      userQuery: query,
+      fileName: attachedFile?.name ?? null,
+      fileText: fileTextForLexical,
+    });
+    if (!lexicalQuery.trim() && !embedding?.length) {
+      setResults([]);
+      return;
+    }
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      void runSearch(query, embedding, {
+        fileName: attachedFile?.name ?? null,
+        fileText: fileTextForLexical,
+      });
+    }, 300);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [
+    attachedFile,
+    embedding,
+    fileTextForLexical,
+    query,
+    runSearch,
+    sessionNamespaceResolved,
+  ]);
 
-  const hasInput = query.trim() || embedding;
+  const hasInput = query.trim() || embedding || attachedFile;
 
   return (
     <Command shouldFilter={false} className="p-1" {...getRootProps()}>
@@ -256,7 +240,7 @@ export function ContextSearch() {
           ) : (
             <>
               <CommandEmpty>No results</CommandEmpty>
-              <CommandGroup className="p-0 px-0">
+              <CommandGroup>
                 {results.map((r) => (
                   <CommandItem
                     key={r.entryId}

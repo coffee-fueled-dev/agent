@@ -37,7 +37,7 @@ export const chatMessageMarkdown = unified()
             className={
               block
                 ? `block font-mono text-xs ${className ?? ""}`
-                : "rounded bg-muted px-1 py-0.5 font-mono text-[0.9em]"
+                : "rounded bg-muted/50 px-1 py-0.5 font-mono text-[0.9em]"
             }
             {...props}
           />

@@ -21,8 +21,7 @@ const env = embeddingServerEnvSchema.parse(process.env);
 export const port = Number(env.EMBEDDING_SERVER_PORT ?? "3031");
 
 export function getConvexBaseUrl(): string {
-  const url =
-    env.CONVEX_SITE_URL?.trim() || env.CONVEX_URL?.trim();
+  const url = env.CONVEX_SITE_URL?.trim() || env.CONVEX_URL?.trim();
   if (!url) throw new Error("CONVEX_SITE_URL or CONVEX_URL is required");
   return url;
 }
@@ -35,9 +34,7 @@ export const cacheDbPath =
 
 export function getGoogleApiKey(): string | undefined {
   return (
-    env.GOOGLE_GENERATIVE_AI_API_KEY ??
-    env.GOOGLE_API_KEY ??
-    env.GEMINI_API_KEY
+    env.GOOGLE_GENERATIVE_AI_API_KEY ?? env.GOOGLE_API_KEY ?? env.GEMINI_API_KEY
   );
 }
 

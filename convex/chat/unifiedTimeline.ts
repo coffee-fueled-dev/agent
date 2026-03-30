@@ -385,7 +385,9 @@ export const listUnifiedTimelineByNamespace = sessionPaginatedQuery({
   args: unifiedTimelineFilterArgs,
   handler: async (
     ctx: SessionQueryCtx,
-    args: { paginationOpts: PaginationOptions } & UnifiedTimelineNamespaceFilters,
+    args: {
+      paginationOpts: PaginationOptions;
+    } & UnifiedTimelineNamespaceFilters,
   ) => {
     if (!ctx.account) {
       return { page: [], isDone: true, continueCursor: "" };
@@ -412,9 +414,7 @@ export const listUnifiedTimelineByNamespace = sessionPaginatedQuery({
           if (maxT != null) return prefix.lte("eventTime", maxT);
           return prefix;
         })
-        .filter((q) =>
-          q.eq(q.field("sourceStreamTypeId"), sourceStreamTypeId),
-        )
+        .filter((q) => q.eq(q.field("sourceStreamTypeId"), sourceStreamTypeId))
         .order("desc")
         .paginate(args.paginationOpts);
     } else if (eventTypeId) {

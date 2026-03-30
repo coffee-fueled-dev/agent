@@ -26,7 +26,7 @@ export function ContextEntryHeader() {
           <PageSection.HeaderMedia>
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="flex items-center justify-center rounded-md border border-border bg-muted p-2">
+                <div className="flex items-center justify-center rounded-md border border-border bg-muted/50 p-2">
                   <MimeTypeIcon
                     mimeType={detail.file?.mimeType}
                     className="size-4"

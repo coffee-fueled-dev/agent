@@ -1,14 +1,9 @@
+import { Database } from "bun:sqlite";
 import { mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { Database } from "bun:sqlite";
 import { $ } from "bun";
-import {
-  dbPath,
-  homeRoot,
-  hostname,
-  port,
-  secret,
-} from "./env";
+import { dbPath, homeRoot, hostname, port, secret } from "./env";
+
 mkdirSync(dirname(dbPath), { recursive: true });
 const db = new Database(dbPath, { create: true });
 db.run("PRAGMA journal_mode = WAL;");
@@ -62,8 +57,7 @@ const server = Bun.serve({
     }
 
     const command = typeof body.command === "string" ? body.command.trim() : "";
-    const agentId =
-      typeof body.agentId === "string" ? body.agentId.trim() : "";
+    const agentId = typeof body.agentId === "string" ? body.agentId.trim() : "";
     if (!command || !agentId) {
       return Response.json(
         { error: "command and agentId are required" },

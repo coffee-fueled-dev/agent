@@ -5,6 +5,11 @@ import type { Id } from "../_generated/dataModel";
 import { internalAction } from "../_generated/server";
 import { sessionAction } from "../customFunctions";
 import { accountActor } from "../eventAttribution";
+import {
+  EMBED_FOR_SEARCH_TEXT_MAX,
+  embedText,
+  isTextLikeMime,
+} from "../lib/googleEmbedText";
 import { assertAccountNamespace } from "../models/auth/contextNamespace";
 import {
   createContextClient,
@@ -36,7 +41,7 @@ export const searchContext = sessionAction({
     lexicalWeight: z.number().optional(),
     graphWeight: z.number().optional(),
     accessWeight: z.number().optional(),
-    fileEmbedding: z.array(z.number()).optional(),
+    fileEmbeddings: z.array(z.array(z.number())).optional(),
     actor: z
       .object({
         byType: z.string(),
@@ -78,7 +83,7 @@ export const searchContextInternal = internalAction({
     lexicalWeight: v.optional(v.number()),
     graphWeight: v.optional(v.number()),
     accessWeight: v.optional(v.number()),
-    fileEmbedding: v.optional(v.array(v.number())),
+    fileEmbeddings: v.optional(v.array(v.array(v.number()))),
     actor: v.optional(
       v.object({
         byType: v.string(),
@@ -108,8 +113,30 @@ export const embedForSearch = sessionAction({
     );
     if (cached) return;
 
-    const storageId =
-      args.storageId as import("../_generated/dataModel").Id<"_storage">;
+    if (isTextLikeMime(args.mimeType)) {
+      const trimmed = args.text?.trim();
+      if (!trimmed) {
+        throw new Error(
+          "text is required for text/* embed-for-search (read the file in the client and pass `text`)",
+        );
+      }
+      const snippet =
+        trimmed.length > EMBED_FOR_SEARCH_TEXT_MAX
+          ? trimmed.slice(0, EMBED_FOR_SEARCH_TEXT_MAX)
+          : trimmed;
+      const embedding = await embedText(snippet);
+      await ctx.runMutation(
+        internal.context.embeddingCacheStore.cacheEmbedding,
+        {
+          contentHash: args.contentHash,
+          embedding,
+          mimeType: args.mimeType,
+        },
+      );
+      return;
+    }
+
+    const storageId = args.storageId as Id<"_storage">;
     const fileUrl = await ctx.storage.getUrl(storageId);
     if (!fileUrl) throw new Error(`Could not resolve URL for ${storageId}`);
 

@@ -749,7 +749,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             actor?: { byId: string; byType: string };
             apiKey?: string;
             clientSessionId?: string;
-            fileEmbedding?: Array<number>;
+            fileEmbeddings?: Array<Array<number>>;
             graphWeight?: number;
             includeHistorical?: boolean;
             lexicalWeight?: number;
