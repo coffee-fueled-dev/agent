@@ -1,11 +1,9 @@
 import type { ReactNode } from "react";
-import { FadeOverflow } from "@/components/layout/fade-overflow.js";
 import {
   MobileSidebarSheet,
   Sidebar,
   SidebarFooter,
   SidebarInset,
-  SidebarInsetFill,
   SidebarMain,
   SidebarPanelControl,
   SidebarProvider,
