@@ -7,6 +7,7 @@ import {
   type MutationCtx,
   type QueryCtx,
 } from "../_generated/server";
+import { createContextClient } from "../context/contextClient";
 import {
   type SessionQueryCtx,
   sessionPaginatedQuery,
@@ -93,7 +94,9 @@ async function* mergeRoundRobinProjectorBatches(
     for (let i = 0; i < sources.length; i++) {
       const idx = (round + i) % sources.length;
       if (exhausted.has(idx)) continue;
-      const raw = await sources[idx].list(PROJECTOR_BATCH_SIZE);
+      const source = sources[idx];
+      if (!source) continue;
+      const raw = await source.list(PROJECTOR_BATCH_SIZE);
       if (raw.length === 0) {
         exhausted.add(idx);
         continue;
@@ -111,7 +114,7 @@ async function* mergeRoundRobinProjectorBatches(
 
 /**
  * Stable key for per-partition trim (`MAX_UNIFIED_TIMELINE_PER_PARTITION`) and
- * `listUnifiedTimeline({ threadId })` (thread-attributed context events use
+ * `listUnifiedTimelineEvents({ threadId })` (thread-attributed context events use
  * `metadata.threadId` as the partition). The global `/events` stream uses
  * `sourceNamespace` on each row (`by_namespace_eventTime`), not this key.
  *
@@ -123,9 +126,12 @@ function partitionKeyForEvent(ev: SourceEvent): string | null {
     return ev.streamId;
   }
   if (ev.streamType === "contextMemory") {
-    const tid = ev.metadata?.threadId;
-    if (typeof tid === "string" && tid.length > 0) {
-      return tid;
+    const raw = ev.metadata?.threadId;
+    if (raw != null) {
+      const tid = String(raw).trim();
+      if (tid.length > 0) {
+        return tid;
+      }
     }
     return `${ev.namespace}::${ev.streamId}`;
   }
@@ -333,46 +339,20 @@ export const runProjectorTick = internalMutation({
   },
 });
 
-export const listUnifiedTimeline = sessionPaginatedQuery({
-  args: { threadId: z.string() },
-  handler: async (
-    ctx: SessionQueryCtx,
-    args: { threadId: string; paginationOpts: PaginationOptions },
-  ) => {
-    if (!ctx.account) {
-      return { page: [], isDone: true, continueCursor: "" };
-    }
-    const thread = await ctx.runQuery(components.agent.threads.getThread, {
-      threadId: args.threadId,
-    });
-    if (!thread?.userId || String(thread.userId) !== String(ctx.account._id)) {
-      return { page: [], isDone: true, continueCursor: "" };
-    }
-
-    const page = await ctx.db
-      .query("unifiedTimeline")
-      .withIndex("by_partition_sequence", (q) =>
-        q.eq("partitionKey", args.threadId),
-      )
-      .order("desc")
-      .paginate(args.paginationOpts);
-    return {
-      ...page,
-      page: await hydrateUnifiedTimelineRows(ctx, page.page),
-    };
-  },
-});
-
-const unifiedTimelineFilterArgs = z.object({
-  eventTypeId: z.string().optional(),
-  sourceStreamTypeId: z.string().optional(),
-  eventTimeMin: z.number().optional(),
-  eventTimeMax: z.number().optional(),
-});
-
-type UnifiedTimelineNamespaceFilters = z.infer<
-  typeof unifiedTimelineFilterArgs
->;
+const unifiedTimelineListArgs = z
+  .object({
+    /** Thread scope: partition key = thread id (tool + thread-attributed context rows). */
+    threadId: z.string().optional(),
+    /** Entry scope: `unifiedTimeline.sourceStreamId` (e.g. context entry id). Mutually exclusive with `threadId`. */
+    sourceStreamId: z.string().optional(),
+    eventTypeId: z.string().optional(),
+    sourceStreamTypeId: z.string().optional(),
+    eventTimeMin: z.number().optional(),
+    eventTimeMax: z.number().optional(),
+  })
+  .refine((a) => !(a.threadId?.trim() && a.sourceStreamId?.trim()), {
+    message: "threadId and sourceStreamId are mutually exclusive",
+  });
 
 function parseDimensionId(
   raw: string | undefined,
@@ -381,27 +361,157 @@ function parseDimensionId(
   return t ? (t as Id<"unifiedTimelineDimensions">) : undefined;
 }
 
-export const listUnifiedTimelineByNamespace = sessionPaginatedQuery({
-  args: unifiedTimelineFilterArgs,
+/**
+ * Single paginated read model for all event UIs: thread (chat), account namespace
+ * (`/events`), or one context entry stream (`sourceStreamId` = entry id).
+ */
+export const listUnifiedTimelineEvents = sessionPaginatedQuery({
+  args: unifiedTimelineListArgs,
   handler: async (
     ctx: SessionQueryCtx,
     args: {
       paginationOpts: PaginationOptions;
-    } & UnifiedTimelineNamespaceFilters,
+    } & z.infer<typeof unifiedTimelineListArgs>,
   ) => {
+    const empty = {
+      page: [] as Doc<"unifiedTimeline">[],
+      isDone: true,
+      continueCursor: "",
+    };
+
     if (!ctx.account) {
-      return { page: [], isDone: true, continueCursor: "" };
+      return { ...empty, page: await hydrateUnifiedTimelineRows(ctx, []) };
     }
-    const namespace = expectedAccountNamespace(ctx.account._id);
+
+    const threadId = args.threadId?.trim();
+    const entryStreamId = args.sourceStreamId?.trim();
     const eventTypeId = parseDimensionId(args.eventTypeId);
     const sourceStreamTypeId = parseDimensionId(args.sourceStreamTypeId);
     const minT = args.eventTimeMin;
     const maxT = args.eventTimeMax;
 
+    if (threadId) {
+      const thread = await ctx.runQuery(components.agent.threads.getThread, {
+        threadId,
+      });
+      if (!thread) {
+        return { ...empty, page: await hydrateUnifiedTimelineRows(ctx, []) };
+      }
+      if (
+        thread.userId != null &&
+        String(thread.userId) !== String(ctx.account._id)
+      ) {
+        return { ...empty, page: await hydrateUnifiedTimelineRows(ctx, []) };
+      }
+
+      const page = await ctx.db
+        .query("unifiedTimeline")
+        .withIndex("by_partition_sequence", (q) =>
+          q.eq("partitionKey", threadId),
+        )
+        .order("desc")
+        .paginate(args.paginationOpts);
+      return {
+        ...page,
+        page: await hydrateUnifiedTimelineRows(ctx, page.page),
+      };
+    }
+
+    const namespace = expectedAccountNamespace(ctx.account._id);
+
+    if (entryStreamId) {
+      const entry = await createContextClient().getContextDetail(ctx, {
+        namespace,
+        entryId: entryStreamId,
+      });
+      if (!entry) {
+        return { ...empty, page: await hydrateUnifiedTimelineRows(ctx, []) };
+      }
+
+      /** Projected rows use canonical `entryId` as `sourceStreamId`, not legacy URL ids. */
+      const canonicalEntryId = entry.entryId;
+
+      let page: PaginationResult<Doc<"unifiedTimeline">>;
+
+      if (eventTypeId && sourceStreamTypeId) {
+        page = await ctx.db
+          .query("unifiedTimeline")
+          .withIndex("by_namespace_sourceStream_time", (q) => {
+            const prefix = q
+              .eq("sourceNamespace", namespace)
+              .eq("sourceStreamId", canonicalEntryId);
+            if (minT != null && maxT != null)
+              return prefix.gte("eventTime", minT).lte("eventTime", maxT);
+            if (minT != null) return prefix.gte("eventTime", minT);
+            if (maxT != null) return prefix.lte("eventTime", maxT);
+            return prefix;
+          })
+          .filter((q) => q.eq(q.field("eventTypeId"), eventTypeId))
+          .filter((q) =>
+            q.eq(q.field("sourceStreamTypeId"), sourceStreamTypeId),
+          )
+          .order("desc")
+          .paginate(args.paginationOpts);
+      } else if (eventTypeId) {
+        page = await ctx.db
+          .query("unifiedTimeline")
+          .withIndex("by_namespace_sourceStream_time", (q) => {
+            const prefix = q
+              .eq("sourceNamespace", namespace)
+              .eq("sourceStreamId", canonicalEntryId);
+            if (minT != null && maxT != null)
+              return prefix.gte("eventTime", minT).lte("eventTime", maxT);
+            if (minT != null) return prefix.gte("eventTime", minT);
+            if (maxT != null) return prefix.lte("eventTime", maxT);
+            return prefix;
+          })
+          .filter((q) => q.eq(q.field("eventTypeId"), eventTypeId))
+          .order("desc")
+          .paginate(args.paginationOpts);
+      } else if (sourceStreamTypeId) {
+        page = await ctx.db
+          .query("unifiedTimeline")
+          .withIndex("by_namespace_sourceStream_time", (q) => {
+            const prefix = q
+              .eq("sourceNamespace", namespace)
+              .eq("sourceStreamId", canonicalEntryId);
+            if (minT != null && maxT != null)
+              return prefix.gte("eventTime", minT).lte("eventTime", maxT);
+            if (minT != null) return prefix.gte("eventTime", minT);
+            if (maxT != null) return prefix.lte("eventTime", maxT);
+            return prefix;
+          })
+          .filter((q) =>
+            q.eq(q.field("sourceStreamTypeId"), sourceStreamTypeId),
+          )
+          .order("desc")
+          .paginate(args.paginationOpts);
+      } else {
+        page = await ctx.db
+          .query("unifiedTimeline")
+          .withIndex("by_namespace_sourceStream_time", (q) => {
+            const prefix = q
+              .eq("sourceNamespace", namespace)
+              .eq("sourceStreamId", canonicalEntryId);
+            if (minT != null && maxT != null)
+              return prefix.gte("eventTime", minT).lte("eventTime", maxT);
+            if (minT != null) return prefix.gte("eventTime", minT);
+            if (maxT != null) return prefix.lte("eventTime", maxT);
+            return prefix;
+          })
+          .order("desc")
+          .paginate(args.paginationOpts);
+      }
+
+      return {
+        ...page,
+        page: await hydrateUnifiedTimelineRows(ctx, page.page),
+      };
+    }
+
     let page: PaginationResult<Doc<"unifiedTimeline">>;
 
     if (eventTypeId && sourceStreamTypeId) {
-      /** One index + filter on the other dimension (may scan more rows). */
       page = await ctx.db
         .query("unifiedTimeline")
         .withIndex("by_namespace_eventType_time", (q) => {

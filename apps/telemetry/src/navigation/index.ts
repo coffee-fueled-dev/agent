@@ -3,7 +3,6 @@ export { Link, type LinkProps } from "./link.js";
 export {
   chat,
   contextActivity,
-  contextActivityEvent,
   contextEntry,
   contextList,
   eventsDetail,

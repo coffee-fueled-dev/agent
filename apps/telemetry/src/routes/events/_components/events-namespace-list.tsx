@@ -3,13 +3,7 @@
 import { api } from "@backend/api.js";
 import type { Doc } from "@backend/dataModel.js";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import type {
-  FunctionReference,
-  PaginationOptions,
-  PaginationResult,
-} from "convex/server";
 import { useSessionIdArg } from "convex-helpers/react/sessions";
-import type { SessionId } from "convex-helpers/server/sessions";
 import { useMemo, useRef } from "react";
 import { FadeOverflow } from "@/components/layout/fade-overflow";
 import LoadMoreSentinel from "@/components/layout/load-more-sentinel";
@@ -31,20 +25,8 @@ type UnifiedTimelineListRow = Doc<"unifiedTimeline"> & {
   sourceStreamTypeLabel: string;
 };
 
-const listUnifiedTimelineByNamespaceQuery = api.chat.unifiedTimeline
-  .listUnifiedTimelineByNamespace as FunctionReference<
-  "query",
-  "public",
-  {
-    sessionId: SessionId;
-    paginationOpts: PaginationOptions;
-    eventTypeId?: string;
-    sourceStreamTypeId?: string;
-    eventTimeMin?: number;
-    eventTimeMax?: number;
-  },
-  PaginationResult<UnifiedTimelineListRow>
->;
+const listUnifiedTimelineEventsQuery =
+  api.chat.unifiedTimeline.listUnifiedTimelineEvents;
 
 function EventRowLink({ row }: { row: UnifiedTimelineListRow }) {
   const href = eventsDetail(row._id);
@@ -133,7 +115,7 @@ export function EventsNamespaceList() {
 
   return (
     <RequiredPaginatedResult
-      query={listUnifiedTimelineByNamespaceQuery}
+      query={listUnifiedTimelineEventsQuery}
       args={sessionArgs}
       initialNumItems={PAGE_SIZE}
     >

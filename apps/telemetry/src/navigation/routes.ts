@@ -37,16 +37,6 @@ export function contextActivity(
   return `${base}?namespace=${encodeURIComponent(opts.namespace)}`;
 }
 
-export function contextActivityEvent(
-  entryId: string,
-  eventId: string,
-  opts?: { namespace?: string },
-): string {
-  const base = `/context/${encodeURIComponent(entryId)}/activity/${encodeURIComponent(eventId)}`;
-  if (!opts?.namespace) return base;
-  return `${base}?namespace=${encodeURIComponent(opts.namespace)}`;
-}
-
 export function eventsList(): string {
   return "/events";
 }

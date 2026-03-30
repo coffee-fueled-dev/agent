@@ -1,6 +1,9 @@
 *.plan.md
 .notes
 
+# local SQLite cache (embedding-cache.sqlite + WAL/SHM)
+# .sqlite/
+
 # dependencies (bun install)
 node_modules
 

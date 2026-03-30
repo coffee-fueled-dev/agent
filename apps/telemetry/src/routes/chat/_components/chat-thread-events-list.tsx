@@ -34,13 +34,8 @@ type UnifiedTimelineListRow = Doc<"unifiedTimeline"> & {
 };
 
 /** zCustomQuery widens args; assert session + pagination shape for useSessionPaginatedQuery. */
-const listUnifiedTimelineQuery = api.chat.unifiedTimeline
-  .listUnifiedTimeline as FunctionReference<
-  "query",
-  "public",
-  { sessionId: SessionId; threadId: string; paginationOpts: PaginationOptions },
-  PaginationResult<UnifiedTimelineListRow>
->;
+const listUnifiedTimelineEventsQuery =
+  api.chat.unifiedTimeline.listUnifiedTimelineEvents;
 
 function ThreadEventRowLink({ row }: { row: UnifiedTimelineListRow }) {
   const href = eventsDetail(row._id);
@@ -79,7 +74,7 @@ export function ChatThreadEventsList({ threadId }: { threadId: string }) {
         <CollapsibleItemGroup.Content>
           <TooltipProvider>
             <RequiredPaginatedResult
-              query={listUnifiedTimelineQuery}
+              query={listUnifiedTimelineEventsQuery}
               args={{ threadId }}
               initialNumItems={PAGE_SIZE}
             >

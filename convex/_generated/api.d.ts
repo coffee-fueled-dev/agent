@@ -29,7 +29,6 @@ import type * as context_communitiesLib_types from "../context/communitiesLib/ty
 import type * as context_contextClient from "../context/contextClient.js";
 import type * as context_embeddingCacheHttp from "../context/embeddingCacheHttp.js";
 import type * as context_embeddingCacheStore from "../context/embeddingCacheStore.js";
-import type * as context_entryAccess from "../context/entryAccess.js";
 import type * as context_entryQueries from "../context/entryQueries.js";
 import type * as context_fileHttp from "../context/fileHttp.js";
 import type * as context_fileHttpActions from "../context/fileHttpActions.js";
@@ -139,7 +138,6 @@ declare const fullApi: ApiFromModules<{
   "context/contextClient": typeof context_contextClient;
   "context/embeddingCacheHttp": typeof context_embeddingCacheHttp;
   "context/embeddingCacheStore": typeof context_embeddingCacheStore;
-  "context/entryAccess": typeof context_entryAccess;
   "context/entryQueries": typeof context_entryQueries;
   "context/fileHttp": typeof context_fileHttp;
   "context/fileHttpActions": typeof context_fileHttpActions;
@@ -1068,41 +1066,6 @@ export declare const components: {
           "internal",
           { entryIds: Array<string> },
           any
-        >;
-        getEntryAccessEvent: FunctionReference<
-          "query",
-          "internal",
-          { entryId: string; eventId: string; namespace: string },
-          any | null
-        >;
-        getEntryAccessWeekByDay: FunctionReference<
-          "query",
-          "internal",
-          { entryId: string; namespace: string },
-          Array<{ day: string; searches: number; views: number }>
-        >;
-        listEntryAccessEvents: FunctionReference<
-          "query",
-          "internal",
-          {
-            entryId: string;
-            namespace: string;
-            paginationOpts: {
-              cursor: string | null;
-              endCursor?: string | null;
-              id?: number;
-              maximumBytesRead?: number;
-              maximumRowsRead?: number;
-              numItems: number;
-            };
-          },
-          {
-            continueCursor: string;
-            isDone: boolean;
-            page: Array<any>;
-            pageStatus?: "SplitRecommended" | "SplitRequired" | null;
-            splitCursor?: string | null;
-          }
         >;
         recordView: FunctionReference<
           "mutation",

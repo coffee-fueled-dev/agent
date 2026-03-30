@@ -372,44 +372,6 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           any,
           Name
         >;
-        getEntryAccessEvent: FunctionReference<
-          "query",
-          "internal",
-          { entryId: string; eventId: string; namespace: string },
-          any | null,
-          Name
-        >;
-        getEntryAccessWeekByDay: FunctionReference<
-          "query",
-          "internal",
-          { entryId: string; namespace: string },
-          Array<{ day: string; searches: number; views: number }>,
-          Name
-        >;
-        listEntryAccessEvents: FunctionReference<
-          "query",
-          "internal",
-          {
-            entryId: string;
-            namespace: string;
-            paginationOpts: {
-              cursor: string | null;
-              endCursor?: string | null;
-              id?: number;
-              maximumBytesRead?: number;
-              maximumRowsRead?: number;
-              numItems: number;
-            };
-          },
-          {
-            continueCursor: string;
-            isDone: boolean;
-            page: Array<any>;
-            pageStatus?: "SplitRecommended" | "SplitRequired" | null;
-            splitCursor?: string | null;
-          },
-          Name
-        >;
         recordView: FunctionReference<
           "mutation",
           "internal",
