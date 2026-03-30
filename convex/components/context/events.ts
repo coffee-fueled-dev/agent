@@ -1,8 +1,12 @@
 import { v } from "convex/values";
-import { EventsClient } from "../../events/client";
-import { components } from "../_generated/api";
+import {
+  logContextMemoryCheckpoint,
+  onContextMemoryAppend,
+} from "../../context/contextMemoryEventHooks";
+import { EventsClient } from "../events/client";
+import { components } from "./_generated/api";
 
-const eventsConfig = {
+export const memoryEvents = new EventsClient(components.events, {
   streams: [
     {
       streamType: "contextMemory",
@@ -20,7 +24,13 @@ const eventsConfig = {
         deleted: { namespace: v.string() },
       },
     },
-  ],
-} as const;
+  ] as const,
 
-export const memoryEvents = new EventsClient(components.events, eventsConfig);
+  onAppend: (ctx, entry) => {
+    void onContextMemoryAppend(ctx, entry);
+  },
+
+  onAdvanceCheckpoint: (ctx, checkpoint) => {
+    logContextMemoryCheckpoint(ctx, checkpoint);
+  },
+});

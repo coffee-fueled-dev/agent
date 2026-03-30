@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "../_generated/server";
-import { memoryEvents } from "../internal/events";
+import { memoryEvents } from "../events";
 
 /** Must match `PROJECTOR_ID` in app `unifiedTimeline`. */
 const UNIFIED_PROJECTOR_ID = "unifiedThreadTimeline@v1";

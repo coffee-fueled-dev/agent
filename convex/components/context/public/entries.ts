@@ -2,12 +2,12 @@ import type { EntryId } from "@convex-dev/rag";
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { action, mutation, query } from "../_generated/server";
+import { memoryEvents } from "../events";
 import { graph } from "../graph";
 import { history } from "../history";
 import { readTimeDecay } from "../internal/accessStats";
 import { embedText } from "../internal/embedding";
-import { memoryEvents } from "../internal/events";
-import { createContextRag } from "../internal/rag";
+import { createContextRag } from "../rag";
 import { sourceValidator, versionDataValidator } from "../schema";
 import { search as searchClient } from "../search";
 

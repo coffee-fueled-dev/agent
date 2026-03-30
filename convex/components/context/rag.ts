@@ -1,10 +1,9 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { RAG } from "@convex-dev/rag";
-import type { ComponentApi as RagComponentApi } from "@convex-dev/rag/_generated/component.js";
-import { getGoogleApiKey } from "../../../env";
-import { components } from "../_generated/api";
+import { getGoogleApiKey } from "../../env";
+import { components } from "./_generated/api";
 
-const ragComponent = (components as { rag: RagComponentApi<"rag"> }).rag;
+const ragComponent = components.rag;
 
 function resolveGoogleApiKey(googleApiKey?: string) {
   return googleApiKey ?? getGoogleApiKey();

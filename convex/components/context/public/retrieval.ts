@@ -1,10 +1,10 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { action } from "../_generated/server";
+import { memoryEvents } from "../events";
 import { graph } from "../graph";
 import { readTimeDecay } from "../internal/accessStats";
-import { memoryEvents } from "../internal/events";
-import { createContextRag } from "../internal/rag";
+import { createContextRag } from "../rag";
 import { sourceValidator } from "../schema";
 import { search as searchClient } from "../search";
 

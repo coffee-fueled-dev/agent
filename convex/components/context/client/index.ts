@@ -6,6 +6,9 @@ import type {
   GenericQueryCtx,
 } from "convex/server";
 import type { ComponentApi } from "../_generated/component";
+import { memoryEvents } from "../events";
+import { graph } from "../graph";
+import { history } from "../history";
 
 type RunMutationCtx = Pick<
   GenericMutationCtx<GenericDataModel>,
@@ -29,6 +32,18 @@ export class ContextClient {
 
   private get apiKey() {
     return this.config.googleApiKey;
+  }
+
+  get events() {
+    return memoryEvents;
+  }
+
+  get history() {
+    return history;
+  }
+
+  get graph() {
+    return graph;
   }
 
   addContext = async (
@@ -158,5 +173,4 @@ export class ContextClient {
       args,
     );
   };
-
 }

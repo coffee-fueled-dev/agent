@@ -9,15 +9,14 @@
  */
 
 import type * as client_index from "../client/index.js";
+import type * as events from "../events.js";
 import type * as graph from "../graph.js";
 import type * as history from "../history.js";
 import type * as internal_accessStats from "../internal/accessStats.js";
 import type * as internal_embedding from "../internal/embedding.js";
 import type * as internal_embeddingStore from "../internal/embeddingStore.js";
 import type * as internal_entryStore from "../internal/entryStore.js";
-import type * as internal_events from "../internal/events.js";
 import type * as internal_historyOps from "../internal/historyOps.js";
-import type * as internal_rag from "../internal/rag.js";
 import type * as internal_searchFeatures from "../internal/searchFeatures.js";
 import type * as internal_similarity from "../internal/similarity.js";
 import type * as internal_status from "../internal/status.js";
@@ -28,6 +27,7 @@ import type * as public_list from "../public/list.js";
 import type * as public_projection from "../public/projection.js";
 import type * as public_retrieval from "../public/retrieval.js";
 import type * as public_unifiedTimelineProjectorBridge from "../public/unifiedTimelineProjectorBridge.js";
+import type * as rag from "../rag.js";
 import type * as search from "../search.js";
 
 import type {
@@ -39,15 +39,14 @@ import { anyApi, componentsGeneric } from "convex/server";
 
 const fullApi: ApiFromModules<{
   "client/index": typeof client_index;
+  events: typeof events;
   graph: typeof graph;
   history: typeof history;
   "internal/accessStats": typeof internal_accessStats;
   "internal/embedding": typeof internal_embedding;
   "internal/embeddingStore": typeof internal_embeddingStore;
   "internal/entryStore": typeof internal_entryStore;
-  "internal/events": typeof internal_events;
   "internal/historyOps": typeof internal_historyOps;
-  "internal/rag": typeof internal_rag;
   "internal/searchFeatures": typeof internal_searchFeatures;
   "internal/similarity": typeof internal_similarity;
   "internal/status": typeof internal_status;
@@ -58,6 +57,7 @@ const fullApi: ApiFromModules<{
   "public/projection": typeof public_projection;
   "public/retrieval": typeof public_retrieval;
   "public/unifiedTimelineProjectorBridge": typeof public_unifiedTimelineProjectorBridge;
+  rag: typeof rag;
   search: typeof search;
 }> = anyApi as any;
 

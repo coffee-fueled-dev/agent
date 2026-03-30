@@ -1,6 +1,5 @@
 import type {
   GenericDataModel,
-  GenericMutationCtx,
   GenericQueryCtx,
   PaginationOptions,
   PaginationResult,
@@ -10,6 +9,7 @@ import type {
   AppendArgs,
   EventEntry,
   EventStreamState,
+  EventsAppendHookCtx,
   EventStreamTemplate,
   EventsConfig,
   ProjectorCheckpoint,
@@ -17,10 +17,6 @@ import type {
 } from "../types";
 
 type RunQueryCtx = Pick<GenericQueryCtx<GenericDataModel>, "runQuery">;
-type RunMutationCtx = Pick<
-  GenericMutationCtx<GenericDataModel>,
-  "runMutation" | "runQuery"
->;
 
 type StreamArgs<Streams extends readonly EventStreamTemplate[]> = {
   streamType: StreamTypeFor<Streams>;
@@ -44,13 +40,15 @@ export class EventsClient<
 
   append = {
     appendToStream: async (
-      ctx: RunMutationCtx,
+      ctx: EventsAppendHookCtx,
       args: AppendArgs<Streams>,
     ): Promise<EventEntry<Streams>> => {
-      return await ctx.runMutation(
+      const entry = await ctx.runMutation(
         this.component.public.append.appendToStream,
         args,
       );
+      await this.config.onAppend?.(ctx, entry);
+      return entry;
     },
   };
 
@@ -124,7 +122,7 @@ export class EventsClient<
 
   projectors = {
     claimOrReadCheckpoint: async (
-      ctx: RunMutationCtx,
+      ctx: EventsAppendHookCtx,
       args: {
         projector: string;
         streamType: StreamTypeFor<Streams>;
@@ -142,7 +140,7 @@ export class EventsClient<
     },
 
     advanceCheckpoint: async (
-      ctx: RunMutationCtx,
+      ctx: EventsAppendHookCtx,
       args: {
         projector: string;
         streamType: StreamTypeFor<Streams>;
@@ -151,10 +149,12 @@ export class EventsClient<
         releaseClaim?: boolean;
       },
     ): Promise<ProjectorCheckpoint<StreamTypeFor<Streams>>> => {
-      return await ctx.runMutation(
+      const checkpoint = await ctx.runMutation(
         this.component.public.projectors.advanceCheckpoint,
         args,
       );
+      await this.config.onAdvanceCheckpoint?.(ctx, checkpoint);
+      return checkpoint;
     },
 
     readCheckpoint: async (
@@ -223,7 +223,7 @@ export async function* projectorUnprocessedBatches<
   const Streams extends readonly EventStreamTemplate[],
 >(
   client: EventsClient<Streams>,
-  ctx: RunMutationCtx,
+  ctx: EventsAppendHookCtx,
   args: {
     projector: string;
     streamType: StreamTypeFor<Streams>;

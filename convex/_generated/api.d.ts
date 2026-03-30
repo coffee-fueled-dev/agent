@@ -27,6 +27,7 @@ import type * as context_communitiesLib_onCompleteHandlers from "../context/comm
 import type * as context_communitiesLib_startWorkflow from "../context/communitiesLib/startWorkflow.js";
 import type * as context_communitiesLib_types from "../context/communitiesLib/types.js";
 import type * as context_contextClient from "../context/contextClient.js";
+import type * as context_contextMemoryEventHooks from "../context/contextMemoryEventHooks.js";
 import type * as context_embeddingCacheHttp from "../context/embeddingCacheHttp.js";
 import type * as context_embeddingCacheStore from "../context/embeddingCacheStore.js";
 import type * as context_entryQueries from "../context/entryQueries.js";
@@ -35,6 +36,7 @@ import type * as context_fileHttpActions from "../context/fileHttpActions.js";
 import type * as context_fileStore from "../context/fileStore.js";
 import type * as context_files from "../context/files.js";
 import type * as context_list from "../context/list.js";
+import type * as context_memoryEventBridge from "../context/memoryEventBridge.js";
 import type * as context_mutations from "../context/mutations.js";
 import type * as context_projections from "../context/projections.js";
 import type * as context_search from "../context/search.js";
@@ -136,6 +138,7 @@ declare const fullApi: ApiFromModules<{
   "context/communitiesLib/startWorkflow": typeof context_communitiesLib_startWorkflow;
   "context/communitiesLib/types": typeof context_communitiesLib_types;
   "context/contextClient": typeof context_contextClient;
+  "context/contextMemoryEventHooks": typeof context_contextMemoryEventHooks;
   "context/embeddingCacheHttp": typeof context_embeddingCacheHttp;
   "context/embeddingCacheStore": typeof context_embeddingCacheStore;
   "context/entryQueries": typeof context_entryQueries;
@@ -144,6 +147,7 @@ declare const fullApi: ApiFromModules<{
   "context/fileStore": typeof context_fileStore;
   "context/files": typeof context_files;
   "context/list": typeof context_list;
+  "context/memoryEventBridge": typeof context_memoryEventBridge;
   "context/mutations": typeof context_mutations;
   "context/projections": typeof context_projections;
   "context/search": typeof context_search;

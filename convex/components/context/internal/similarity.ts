@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalAction, internalMutation } from "../_generated/server";
 import { graph } from "../graph";
-import { createContextRag } from "../internal/rag";
+import { createContextRag } from "../rag";
 
 const DEFAULT_SIMILARITY_K = 6;
 const DEFAULT_SIMILARITY_THRESHOLD = 0.7;

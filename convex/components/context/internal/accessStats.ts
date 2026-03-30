@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, internalQuery } from "../_generated/server";
-import { memoryEvents } from "./events";
+import { memoryEvents } from "../events";
 
 export const scheduleAccessStatsFlush = internalMutation({
   args: {},

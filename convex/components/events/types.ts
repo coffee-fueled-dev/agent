@@ -1,4 +1,18 @@
+import type {
+  GenericActionCtx,
+  GenericDataModel,
+  GenericMutationCtx,
+} from "convex/server";
 import type { ObjectType, PropertyValidators } from "convex/values";
+
+/**
+ * Minimal ctx passed to append/checkpoint hooks: whatever called `EventsClient` must
+ * supply `runMutation` (and usually `runQuery`) so hooks can `runMutation` into the
+ * **app** (e.g. `internal.*`) from component code paths (mutations or actions).
+ */
+export type EventsAppendHookCtx =
+  | Pick<GenericMutationCtx<GenericDataModel>, "runMutation" | "runQuery">
+  | Pick<GenericActionCtx<GenericDataModel>, "runMutation" | "runQuery">;
 
 export type EventMetadataValue = string | number | boolean | null;
 
@@ -22,6 +36,14 @@ export type EventsConfig<
     readonly EventStreamTemplate[] = readonly EventStreamTemplate[],
 > = {
   streams: Streams;
+  onAppend?: (
+    ctx: EventsAppendHookCtx,
+    entry: EventEntry<Streams>,
+  ) => void | Promise<void>;
+  onAdvanceCheckpoint?: (
+    ctx: EventsAppendHookCtx,
+    checkpoint: ProjectorCheckpoint<StreamTypeFor<Streams>>,
+  ) => void | Promise<void>;
 };
 
 type RegisteredStream<Streams extends readonly EventStreamTemplate[]> =

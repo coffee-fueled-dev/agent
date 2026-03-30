@@ -9,8 +9,8 @@ import {
   query,
 } from "../_generated/server";
 import { graph } from "../graph";
-import { createContextRag } from "../internal/rag";
 import { hasStatus } from "../internal/status";
+import { createContextRag } from "../rag";
 import schema from "../schema";
 
 export const createJob = mutation({
