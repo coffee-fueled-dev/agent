@@ -20,12 +20,7 @@ function SidebarAccountFooter({
 }) {
   const { isExpanded } = useSidebar();
   return (
-    <SidebarFooter
-      className={cn(
-        "border-sidebar-border border-t pt-2",
-        !isExpanded && "items-center",
-      )}
-    >
+    <SidebarFooter className={cn(!isExpanded && "items-center")}>
       <AppSidebarAccountMenu current={current} className="w-full" />
     </SidebarFooter>
   );
@@ -64,7 +59,7 @@ export function AppLayout({
     <SidebarProvider>
       <div className="grid h-dvh w-full grid-cols-1 md:grid-cols-[auto_minmax(0,1fr)]">
         <aside className="hidden min-h-0 self-stretch md:flex md:min-h-dvh">
-          <Sidebar className="fade-mask p-8">
+          <Sidebar>
             <SidebarMain>
               <AppSidebarNav current={current} />
             </SidebarMain>

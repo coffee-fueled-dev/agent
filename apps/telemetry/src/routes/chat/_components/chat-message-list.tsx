@@ -15,6 +15,12 @@ import LoadMoreSentinel from "@/components/layout/load-more-sentinel";
 import { Button } from "@/components/ui/button";
 import { Empty } from "@/components/ui/empty";
 import { Spinner } from "@/components/ui/spinner";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip.js";
 import { useChatScrollAnchor } from "../_hooks/use-chat-scroll-anchor.js";
 import { ChatMessagePart } from "./chat-message-part.js";
 
@@ -47,7 +53,8 @@ export function ChatMessageList({ threadId }: { threadId: string }) {
     },
   );
 
-  const results = paginated?.results ?? [];
+  const results =
+    paginated?.results.filter((message) => message.role !== "system") ?? [];
   const isLoading = paginated?.isLoading ?? false;
 
   const messagesBefore =
@@ -121,7 +128,7 @@ export function ChatMessageList({ threadId }: { threadId: string }) {
           ) : null}
 
           {lastPair.length > 0 ? (
-            <div ref={lastPairRef} className="flex w-full flex-col gap-3">
+            <div ref={lastPairRef} className="flex w-full flex-col gap-5">
               {lastPair.map((row) => (
                 <ChatMessageBubble key={row.id} message={row} />
               ))}
@@ -130,7 +137,7 @@ export function ChatMessageList({ threadId }: { threadId: string }) {
             <ListSection
               list={results}
               loading={isLoading}
-              className="mx-auto w-full max-w-240 gap-3"
+              className="mx-auto w-full max-w-240 gap-5"
             >
               <ListSection.Loading />
               <ListSection.Empty>

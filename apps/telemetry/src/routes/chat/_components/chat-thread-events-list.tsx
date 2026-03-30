@@ -21,6 +21,12 @@ import {
   ItemHeader,
   ItemTitle,
 } from "@/components/ui/item";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { eventsDetail, Link } from "@/navigation/index.js";
 
 const PAGE_SIZE = 25;
@@ -44,23 +50,27 @@ const listUnifiedTimelineQuery = api.chat.unifiedTimeline
 function ThreadEventRowLink({ row }: { row: UnifiedTimelineListRow }) {
   const href = eventsDetail(row._id);
   return (
-    <Item size="sm" asChild className="flex-col items-stretch">
-      <Link href={href}>
-        <ItemHeader className="min-w-0 gap-2">
-          <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <ItemTitle className="w-full min-w-0 max-w-full truncate text-xs">
-              {row.eventTypeLabel}
-            </ItemTitle>
-            <span className="text-muted-foreground min-w-0 max-w-full truncate text-xs">
-              {row.sourceStreamTypeLabel}
-            </span>
-          </div>
-        </ItemHeader>
-        <ItemDescription className="font-mono text-xs tabular-nums">
-          {new Date(row.eventTime).toLocaleString()}
-        </ItemDescription>
-      </Link>
-    </Item>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Item size="sm" asChild className="flex-col items-stretch">
+          <Link href={href}>
+            <ItemHeader className="min-w-0 gap-2">
+              <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                <ItemTitle className="w-full min-w-0 max-w-full truncate text-xs">
+                  {row.eventTypeLabel}
+                </ItemTitle>
+                <span className="text-muted-foreground min-w-0 max-w-full truncate text-xs">
+                  {row.sourceStreamTypeLabel}
+                </span>
+              </div>
+            </ItemHeader>
+          </Link>
+        </Item>
+      </TooltipTrigger>
+      <TooltipContent side="left">
+        {new Date(row.eventTime).toLocaleString()}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -72,53 +82,57 @@ export function ChatThreadEventsList({ threadId }: { threadId: string }) {
           Event Stream
         </CollapsibleItemGroup.Title>
         <CollapsibleItemGroup.Content>
-          <RequiredPaginatedResult
-            query={listUnifiedTimelineQuery}
-            args={{ threadId }}
-            initialNumItems={PAGE_SIZE}
-          >
-            {({ results, status, loadMore, isLoading }) => {
-              const canLoadMore = status === "CanLoadMore";
-              const isLoadingMore = status === "LoadingMore";
+          <TooltipProvider>
+            <RequiredPaginatedResult
+              query={listUnifiedTimelineQuery}
+              args={{ threadId }}
+              initialNumItems={PAGE_SIZE}
+            >
+              {({ results, status, loadMore, isLoading }) => {
+                const canLoadMore = status === "CanLoadMore";
+                const isLoadingMore = status === "LoadingMore";
 
-              if (results.length > 0) {
+                if (results.length > 0) {
+                  return (
+                    <FadeOverflowWithVirtual
+                      results={results}
+                      loadMore={loadMore}
+                      canLoadMore={canLoadMore}
+                      isLoadingMore={isLoadingMore}
+                    />
+                  );
+                }
+
                 return (
-                  <FadeOverflowWithVirtual
-                    results={results}
-                    loadMore={loadMore}
-                    canLoadMore={canLoadMore}
-                    isLoadingMore={isLoadingMore}
-                  />
+                  <FadeOverflow className="min-h-0 flex-1">
+                    <CollapsibleItemGroup.ItemGroup className="pr-1">
+                      <ListSection
+                        list={results}
+                        loading={isLoading}
+                        className="gap-1.5"
+                      >
+                        <ListSection.Loading />
+                        <ListSection.Empty>
+                          <span className="text-muted-foreground text-xs">
+                            Nothing yet.
+                          </span>
+                        </ListSection.Empty>
+                        {(row) => (
+                          <ThreadEventRowLink key={row._id} row={row} />
+                        )}
+                      </ListSection>
+                    </CollapsibleItemGroup.ItemGroup>
+                    <LoadMoreSentinel
+                      onLoadMore={() => loadMore(PAGE_SIZE)}
+                      canLoadMore={canLoadMore}
+                      isLoadingMore={isLoadingMore}
+                      scrollContainerSelector='[data-slot="scroll-area-viewport"]'
+                    />
+                  </FadeOverflow>
                 );
-              }
-
-              return (
-                <FadeOverflow className="min-h-0 flex-1">
-                  <CollapsibleItemGroup.ItemGroup className="pr-1">
-                    <ListSection
-                      list={results}
-                      loading={isLoading}
-                      className="gap-1.5"
-                    >
-                      <ListSection.Loading />
-                      <ListSection.Empty>
-                        <span className="text-muted-foreground text-xs">
-                          Nothing yet.
-                        </span>
-                      </ListSection.Empty>
-                      {(row) => <ThreadEventRowLink key={row._id} row={row} />}
-                    </ListSection>
-                  </CollapsibleItemGroup.ItemGroup>
-                  <LoadMoreSentinel
-                    onLoadMore={() => loadMore(PAGE_SIZE)}
-                    canLoadMore={canLoadMore}
-                    isLoadingMore={isLoadingMore}
-                    scrollContainerSelector='[data-slot="scroll-area-viewport"]'
-                  />
-                </FadeOverflow>
-              );
-            }}
-          </RequiredPaginatedResult>
+              }}
+            </RequiredPaginatedResult>
+          </TooltipProvider>
         </CollapsibleItemGroup.Content>
       </CollapsibleItemGroup>
     </div>

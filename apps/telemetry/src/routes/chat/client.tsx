@@ -73,15 +73,15 @@ export function ChatRoute() {
       ) : (
         <NamespaceProvider>
           <PageSection>
-            <PageSection.Content>
+            <PageSection.Content className="px-8">
               <FileDropzoneProvider limit={10}>
                 <FileDropzone className="flex flex-col gap-4 rounded-lg">
                   <SidebarInsetFill>
                     <PageSection.Body
                       className={
                         eventsSidebarVisible
-                          ? "flex h-full min-h-0 flex-col gap-2 p-2 lg:flex-row"
-                          : "flex h-full min-h-0 flex-col gap-2 p-2"
+                          ? "flex h-full min-h-0 flex-col gap-2 lg:flex-row"
+                          : "flex h-full min-h-0 flex-col gap-2"
                       }
                     >
                       <div className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-4">
@@ -94,7 +94,7 @@ export function ChatRoute() {
                             </div>
                           )}
                         </div>
-                        <div className="flex-shrink-0">
+                        <div className="flex-shrink-0 pb-8">
                           <ChatComposer
                             threadId={threadId}
                             token={token}

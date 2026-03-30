@@ -12,9 +12,9 @@ import { useSessionIdArg } from "convex-helpers/react/sessions";
 import type { SessionId } from "convex-helpers/server/sessions";
 import { useMemo, useRef } from "react";
 import { FadeOverflow } from "@/components/layout/fade-overflow";
-import { ListSection } from "@/components/layout/list-section";
 import LoadMoreSentinel from "@/components/layout/load-more-sentinel";
 import { RequiredPaginatedResult } from "@/components/layout/required-result";
+import { Empty, EmptyContent, EmptyTitle } from "@/components/ui/empty.js";
 import { Item, ItemHeader, ItemTitle } from "@/components/ui/item";
 import { eventsDetail, Link } from "@/navigation/index.js";
 import {
@@ -89,7 +89,10 @@ function EventsVirtualized({
   });
 
   return (
-    <FadeOverflow viewportRef={viewportRef} className="min-h-[24rem] flex-1">
+    <FadeOverflow
+      viewportRef={viewportRef}
+      className="h-full min-h-0 flex-1 px-8"
+    >
       <div
         className="relative pr-2"
         style={{ height: virtualizer.getTotalSize() }}
@@ -134,7 +137,7 @@ export function EventsNamespaceList() {
       args={sessionArgs}
       initialNumItems={PAGE_SIZE}
     >
-      {({ results, status, loadMore, isLoading }) => {
+      {({ results, status, loadMore }) => {
         const canLoadMore = status === "CanLoadMore";
         const isLoadingMore = status === "LoadingMore";
 
@@ -150,27 +153,11 @@ export function EventsNamespaceList() {
         }
 
         return (
-          <FadeOverflow className="h-full">
-            <ListSection
-              list={results}
-              loading={isLoading}
-              className="gap-2 pr-2"
-            >
-              <ListSection.Loading />
-              <ListSection.Empty>
-                <span className="text-muted-foreground text-sm">
-                  No telemetry events yet.
-                </span>
-              </ListSection.Empty>
-              {(row) => <EventRowLink key={row._id} row={row} />}
-            </ListSection>
-            <LoadMoreSentinel
-              onLoadMore={() => loadMore(PAGE_SIZE)}
-              canLoadMore={canLoadMore}
-              isLoadingMore={isLoadingMore}
-              scrollContainerSelector='[data-slot="scroll-area-viewport"]'
-            />
-          </FadeOverflow>
+          <Empty>
+            <EmptyContent>
+              <EmptyTitle>No telemetry events yet.</EmptyTitle>
+            </EmptyContent>
+          </Empty>
         );
       }}
     </RequiredPaginatedResult>

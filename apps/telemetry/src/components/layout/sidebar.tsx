@@ -87,8 +87,8 @@ export const Sidebar = ({
   return (
     <div
       className={cn(
-        "bg-sidebar text-sidebar-foreground flex h-full min-h-0 flex-col p-4",
-        isExpanded ? "w-64" : "w-16",
+        "text-sidebar-foreground flex h-full min-h-0 flex-col p-4",
+        isExpanded && "w-64",
         "transition-[width] duration-200 ease-in-out",
         className,
       )}
@@ -103,7 +103,8 @@ export const SidebarHeader = ({ children }: { children: React.ReactNode }) => {
   return (
     <div
       className={cn(
-        "flex shrink-0 flex-col gap-2",
+        "bg-sidebar fade-mask flex shrink-0 flex-col gap-2",
+        isExpanded && "p-4",
         !isExpanded && "items-center",
       )}
     >
@@ -113,9 +114,17 @@ export const SidebarHeader = ({ children }: { children: React.ReactNode }) => {
 };
 
 export const SidebarMain = ({ children }: { children: React.ReactNode }) => {
+  const { isExpanded } = useSidebar();
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex flex-col gap-4 justify-start">{children}</div>
+      <div
+        className={cn(
+          "bg-sidebar fade-mask flex flex-col gap-4 justify-start",
+          isExpanded && "p-4",
+        )}
+      >
+        {children}
+      </div>
     </div>
   );
 };
@@ -127,8 +136,15 @@ export const SidebarFooter = ({
   children: React.ReactNode;
   className?: string;
 }) => {
+  const { isExpanded } = useSidebar();
   return (
-    <div className={cn("flex shrink-0 flex-col gap-2", className)}>
+    <div
+      className={cn(
+        "bg-sidebar fade-mask flex shrink-0 flex-col gap-2",
+        isExpanded && "p-4",
+        className,
+      )}
+    >
       {children}
     </div>
   );

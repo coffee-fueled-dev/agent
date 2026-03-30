@@ -19,7 +19,7 @@ function EventsRoute() {
         segmentTrail={<EventsFiltersTrigger />}
       >
         <PageSection>
-          <PageSection.Content>
+          <PageSection.Content className="py-8">
             <SidebarInsetFill>
               <PageSection.Body className="h-full overflow-auto">
                 <EventsNamespaceList />
