@@ -1,11 +1,11 @@
-import { defineTable } from "convex/server";
 import type { FunctionReference } from "convex/server";
+import { defineTable } from "convex/server";
 import { v } from "convex/values";
 import type {
   EventEntry,
-  EventsAppendHookCtx,
   EventSubscribable,
   EventSubscriber,
+  EventsAppendHookCtx,
 } from "./types";
 
 // ---------------------------------------------------------------------------
@@ -82,7 +82,9 @@ export function createEventBus(config: { eviction: EvictionPolicy }) {
       evictionConfig: config.eviction,
     } satisfies EventBusDefinition<typeof fifoTables>;
   }
-  throw new Error(`Unknown eviction policy: ${(config.eviction as EvictionPolicy).type}`);
+  throw new Error(
+    `Unknown eviction policy: ${(config.eviction as EvictionPolicy).type}`,
+  );
 }
 
 // ---------------------------------------------------------------------------

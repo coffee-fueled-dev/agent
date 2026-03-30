@@ -22,15 +22,18 @@ export async function onContextMemoryAppend(
     eventTime: number;
   },
 ): Promise<void> {
-  await ctx.runMutation(internal.context.memoryEventBridge.recordContextMemoryAppend, {
-    eventType: entry.eventType,
-    streamType: entry.streamType,
-    namespace: entry.namespace,
-    streamId: entry.streamId,
-    eventId: entry.eventId,
-    globalSequence: entry.globalSequence,
-    eventTime: entry.eventTime,
-  });
+  await ctx.runMutation(
+    internal.context.memoryEventBridge.recordContextMemoryAppend,
+    {
+      eventType: entry.eventType,
+      streamType: entry.streamType,
+      namespace: entry.namespace,
+      streamId: entry.streamId,
+      eventId: entry.eventId,
+      globalSequence: entry.globalSequence,
+      eventTime: entry.eventTime,
+    },
+  );
 }
 
 export function logContextMemoryCheckpoint(

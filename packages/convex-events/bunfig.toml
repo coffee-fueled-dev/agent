@@ -1,0 +1,3 @@
+# Inlines BUN_PUBLIC_* into HTML-import client bundles (see Bun serve.static docs).
+[serve.static]
+env = "BUN_PUBLIC_*"
