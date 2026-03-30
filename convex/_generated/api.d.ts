@@ -45,6 +45,7 @@ import type * as crons from "../crons.js";
 import type * as customFunctions from "../customFunctions.js";
 import type * as env from "../env.js";
 import type * as eventAttribution from "../eventAttribution.js";
+import type * as eventBus from "../eventBus.js";
 import type * as events from "../events.js";
 import type * as history from "../history.js";
 import type * as http from "../http.js";
@@ -156,6 +157,7 @@ declare const fullApi: ApiFromModules<{
   customFunctions: typeof customFunctions;
   env: typeof env;
   eventAttribution: typeof eventAttribution;
+  eventBus: typeof eventBus;
   events: typeof events;
   history: typeof history;
   http: typeof http;
@@ -386,6 +388,26 @@ export declare const components: {
             streamType: string;
             streamVersion: number;
           }
+        >;
+      };
+      metrics: {
+        getMetricsBatch: FunctionReference<
+          "query",
+          "internal",
+          { groupKeys: Array<string>; name: string },
+          Record<string, { count: number; lastEventTime: number }>
+        >;
+        incrementBatch: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            increments: Array<{
+              eventTime: number;
+              groupKey: string;
+              name: string;
+            }>;
+          },
+          null
         >;
       };
       projectors: {

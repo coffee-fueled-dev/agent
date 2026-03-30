@@ -21,27 +21,39 @@ export const getAccessStatsBatch = query({
   args: { entryIds: v.array(v.string()) },
   returns: v.any(),
   handler: async (ctx, args) => {
+    const [searchMetrics, viewMetrics] = await Promise.all([
+      memoryEvents.metrics.getBatch(ctx, {
+        name: "searchCount",
+        groupKeys: args.entryIds,
+      }),
+      memoryEvents.metrics.getBatch(ctx, {
+        name: "viewCount",
+        groupKeys: args.entryIds,
+      }),
+    ]);
+
     const now = Date.now();
     const result: Record<
       string,
       { decayedScore: number; totalAccesses: number; lastAccessTime: number }
     > = {};
     for (const entryId of args.entryIds) {
-      const stats = await ctx.db
-        .query("contextAccessStats")
-        .withIndex("by_entryId", (q) => q.eq("entryId", entryId))
-        .first();
-      if (stats) {
-        result[entryId] = {
-          decayedScore: readTimeDecay(
-            stats.decayedScore,
-            stats.lastAccessTime,
-            now,
-          ),
-          totalAccesses: stats.totalAccesses,
-          lastAccessTime: stats.lastAccessTime,
-        };
-      }
+      const search = searchMetrics[entryId];
+      const view = viewMetrics[entryId];
+      const searchCount = search?.count ?? 0;
+      const viewCount = view?.count ?? 0;
+      const totalAccesses = searchCount + viewCount;
+      if (totalAccesses === 0) continue;
+
+      const lastAccessTime = Math.max(
+        search?.lastEventTime ?? 0,
+        view?.lastEventTime ?? 0,
+      );
+      result[entryId] = {
+        decayedScore: readTimeDecay(totalAccesses, lastAccessTime, now),
+        totalAccesses,
+        lastAccessTime,
+      };
     }
     return result;
   },
@@ -301,11 +313,6 @@ export const recordView = mutation({
       actor: args.actor,
       session: args.session,
     });
-    await ctx.scheduler.runAfter(
-      0,
-      internal.internal.accessStats.flushAccessStats,
-      {},
-    );
   },
 });
 

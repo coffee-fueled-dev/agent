@@ -60,6 +60,13 @@ export default defineSchema({
     ])
     .index("by_type_sequence", ["streamType", "globalSequence"]),
 
+  event_stream_metrics: defineTable({
+    name: v.string(),
+    groupKey: v.string(),
+    count: v.number(),
+    lastEventTime: v.number(),
+  }).index("by_name_key", ["name", "groupKey"]),
+
   event_projector_checkpoints: defineTable({
     projector: v.string(),
     streamType: v.string(),

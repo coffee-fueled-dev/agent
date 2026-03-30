@@ -983,6 +983,26 @@ export const components = componentsGeneric() as unknown as {
           }
         >;
       };
+      metrics: {
+        getMetricsBatch: FunctionReference<
+          "query",
+          "internal",
+          { groupKeys: Array<string>; name: string },
+          Record<string, { count: number; lastEventTime: number }>
+        >;
+        incrementBatch: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            increments: Array<{
+              eventTime: number;
+              groupKey: string;
+              name: string;
+            }>;
+          },
+          null
+        >;
+      };
       projectors: {
         advanceCheckpoint: FunctionReference<
           "mutation",

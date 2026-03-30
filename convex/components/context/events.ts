@@ -26,11 +26,24 @@ export const memoryEvents = new EventsClient(components.events, {
     },
   ] as const,
 
-  onAppend: (ctx, entry) => {
-    void onContextMemoryAppend(ctx, entry);
-  },
+  metrics: [
+    {
+      name: "searchCount",
+      match: { streamType: "contextMemory", eventType: "searched" },
+      groupBy: ["streamId"],
+    },
+    {
+      name: "viewCount",
+      match: { streamType: "contextMemory", eventType: "viewed" },
+      groupBy: ["streamId"],
+    },
+  ],
 
   onAdvanceCheckpoint: (ctx, checkpoint) => {
     logContextMemoryCheckpoint(ctx, checkpoint);
   },
+});
+
+memoryEvents.subscribe("contextMemoryBridge", (ctx, entry) => {
+  void onContextMemoryAppend(ctx, entry);
 });

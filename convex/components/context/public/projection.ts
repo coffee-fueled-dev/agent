@@ -6,6 +6,7 @@ import { v } from "convex/values";
 import { paginator } from "convex-helpers/server/pagination";
 import { doc } from "convex-helpers/validators";
 import { internalMutation, mutation, query } from "../_generated/server";
+import { memoryEvents } from "../events";
 import { readTimeDecay } from "../internal/accessStats";
 import { hasStatus } from "../internal/status";
 import schema, { pointValidator } from "../schema";
@@ -243,27 +244,35 @@ export const getLatestProjection = query({
         .withIndex("by_jobId", (q) => q.eq("jobId", job._id))
         .collect();
       const now = Date.now();
+      const entryIds = [...new Set(points.map((p) => p.entryId))];
+      const [searchM, viewM] = await Promise.all([
+        memoryEvents.metrics.getBatch(ctx, {
+          name: "searchCount",
+          groupKeys: entryIds,
+        }),
+        memoryEvents.metrics.getBatch(ctx, {
+          name: "viewCount",
+          groupKeys: entryIds,
+        }),
+      ]);
       const statsMap = new Map<
         string,
         { decayedScore: number; totalAccesses: number; lastAccessTime: number }
       >();
-      for (const p of points) {
-        if (statsMap.has(p.entryId)) continue;
-        const stats = await ctx.db
-          .query("contextAccessStats")
-          .withIndex("by_entryId", (q) => q.eq("entryId", p.entryId))
-          .first();
-        if (stats) {
-          statsMap.set(p.entryId, {
-            decayedScore: readTimeDecay(
-              stats.decayedScore,
-              stats.lastAccessTime,
-              now,
-            ),
-            totalAccesses: stats.totalAccesses,
-            lastAccessTime: stats.lastAccessTime,
-          });
-        }
+      for (const id of entryIds) {
+        const sc = searchM[id]?.count ?? 0;
+        const vc = viewM[id]?.count ?? 0;
+        const total = sc + vc;
+        if (total === 0) continue;
+        const last = Math.max(
+          searchM[id]?.lastEventTime ?? 0,
+          viewM[id]?.lastEventTime ?? 0,
+        );
+        statsMap.set(id, {
+          decayedScore: readTimeDecay(total, last, now),
+          totalAccesses: total,
+          lastAccessTime: last,
+        });
       }
       return {
         jobId: job._id,
@@ -367,27 +376,35 @@ export const getProjectionStatus = query({
         .withIndex("by_jobId", (q) => q.eq("jobId", job._id))
         .collect();
       const now = Date.now();
+      const entryIds2 = [...new Set(points.map((p) => p.entryId))];
+      const [searchM2, viewM2] = await Promise.all([
+        memoryEvents.metrics.getBatch(ctx, {
+          name: "searchCount",
+          groupKeys: entryIds2,
+        }),
+        memoryEvents.metrics.getBatch(ctx, {
+          name: "viewCount",
+          groupKeys: entryIds2,
+        }),
+      ]);
       const statsMap2 = new Map<
         string,
         { decayedScore: number; totalAccesses: number; lastAccessTime: number }
       >();
-      for (const p of points) {
-        if (statsMap2.has(p.entryId)) continue;
-        const stats = await ctx.db
-          .query("contextAccessStats")
-          .withIndex("by_entryId", (q) => q.eq("entryId", p.entryId))
-          .first();
-        if (stats) {
-          statsMap2.set(p.entryId, {
-            decayedScore: readTimeDecay(
-              stats.decayedScore,
-              stats.lastAccessTime,
-              now,
-            ),
-            totalAccesses: stats.totalAccesses,
-            lastAccessTime: stats.lastAccessTime,
-          });
-        }
+      for (const id of entryIds2) {
+        const sc = searchM2[id]?.count ?? 0;
+        const vc = viewM2[id]?.count ?? 0;
+        const total = sc + vc;
+        if (total === 0) continue;
+        const last = Math.max(
+          searchM2[id]?.lastEventTime ?? 0,
+          viewM2[id]?.lastEventTime ?? 0,
+        );
+        statsMap2.set(id, {
+          decayedScore: readTimeDecay(total, last, now),
+          totalAccesses: total,
+          lastAccessTime: last,
+        });
       }
       return {
         status: "completed" as const,

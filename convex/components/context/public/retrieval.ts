@@ -177,10 +177,6 @@ export const search = action({
             : {}),
         });
       }
-      await ctx.runMutation(
-        internal.internal.accessStats.scheduleAccessStatsFlush,
-        {},
-      );
       return enriched;
     };
 

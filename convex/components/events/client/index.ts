@@ -9,9 +9,13 @@ import type {
   AppendArgs,
   EventEntry,
   EventStreamState,
-  EventsAppendHookCtx,
   EventStreamTemplate,
+  EventSubscribable,
+  EventSubscriber,
+  EventsAppendHookCtx,
   EventsConfig,
+  MetricGroupByField,
+  MetricMatchFields,
   ProjectorCheckpoint,
   StreamTypeFor,
 } from "../types";
@@ -30,13 +34,45 @@ type EventArgs<Streams extends readonly EventStreamTemplate[]> =
     eventId: string;
   };
 
-export class EventsClient<
-  const Streams extends readonly EventStreamTemplate[],
-> {
+function matchesRule(
+  match: MetricMatchFields,
+  entry: { namespace: string; streamType: string; eventType: string },
+): boolean {
+  if (match.namespace !== undefined && match.namespace !== entry.namespace)
+    return false;
+  if (match.streamType !== undefined && match.streamType !== entry.streamType)
+    return false;
+  if (match.eventType !== undefined && match.eventType !== entry.eventType)
+    return false;
+  return true;
+}
+
+function buildGroupKey(
+  groupBy: MetricGroupByField[],
+  entry: {
+    namespace: string;
+    streamType: string;
+    streamId: string;
+    eventType: string;
+  },
+): string {
+  if (groupBy.length === 1) return entry[groupBy[0]];
+  return groupBy.map((f) => entry[f]).join("\0");
+}
+
+export class EventsClient<const Streams extends readonly EventStreamTemplate[]>
+  implements EventSubscribable
+{
+  private _subscribers = new Map<string, EventSubscriber>();
+
   constructor(
     public component: ComponentApi,
     public config: EventsConfig<Streams>,
   ) {}
+
+  subscribe(id: string, callback: EventSubscriber): void {
+    this._subscribers.set(id, callback);
+  }
 
   append = {
     appendToStream: async (
@@ -47,7 +83,31 @@ export class EventsClient<
         this.component.public.append.appendToStream,
         args,
       );
-      await this.config.onAppend?.(ctx, entry);
+      const rules = this.config.metrics;
+      if (rules && rules.length > 0) {
+        const increments: {
+          name: string;
+          groupKey: string;
+          eventTime: number;
+        }[] = [];
+        for (const rule of rules) {
+          if (matchesRule(rule.match, entry)) {
+            increments.push({
+              name: rule.name,
+              groupKey: buildGroupKey(rule.groupBy, entry),
+              eventTime: entry.eventTime,
+            });
+          }
+        }
+        if (increments.length > 0) {
+          await ctx.runMutation(this.component.public.metrics.incrementBatch, {
+            increments,
+          });
+        }
+      }
+      for (const cb of this._subscribers.values()) {
+        await cb(ctx, entry);
+      }
       return entry;
     },
   };
@@ -115,6 +175,18 @@ export class EventsClient<
     ): Promise<number> => {
       return await ctx.runQuery(
         this.component.public.streams.getStreamVersion,
+        args,
+      );
+    },
+  };
+
+  metrics = {
+    getBatch: async (
+      ctx: RunQueryCtx,
+      args: { name: string; groupKeys: string[] },
+    ): Promise<Record<string, { count: number; lastEventTime: number }>> => {
+      return await ctx.runQuery(
+        this.component.public.metrics.getMetricsBatch,
         args,
       );
     },

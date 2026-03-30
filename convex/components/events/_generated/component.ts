@@ -64,6 +64,28 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           Name
         >;
       };
+      metrics: {
+        getMetricsBatch: FunctionReference<
+          "query",
+          "internal",
+          { groupKeys: Array<string>; name: string },
+          Record<string, { count: number; lastEventTime: number }>,
+          Name
+        >;
+        incrementBatch: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            increments: Array<{
+              eventTime: number;
+              groupKey: string;
+              name: string;
+            }>;
+          },
+          null,
+          Name
+        >;
+      };
       projectors: {
         advanceCheckpoint: FunctionReference<
           "mutation",

@@ -9,9 +9,11 @@
  */
 
 import type * as client_index from "../client/index.js";
+import type * as eventBus from "../eventBus.js";
 import type * as internal_shared from "../internal/shared.js";
 import type * as internal_store from "../internal/store.js";
 import type * as public_append from "../public/append.js";
+import type * as public_metrics from "../public/metrics.js";
 import type * as public_projectors from "../public/projectors.js";
 import type * as public_read from "../public/read.js";
 import type * as public_streams from "../public/streams.js";
@@ -26,9 +28,11 @@ import { anyApi, componentsGeneric } from "convex/server";
 
 const fullApi: ApiFromModules<{
   "client/index": typeof client_index;
+  eventBus: typeof eventBus;
   "internal/shared": typeof internal_shared;
   "internal/store": typeof internal_store;
   "public/append": typeof public_append;
+  "public/metrics": typeof public_metrics;
   "public/projectors": typeof public_projectors;
   "public/read": typeof public_read;
   "public/streams": typeof public_streams;

@@ -31,15 +31,45 @@ export type EventStreamTemplate = {
   namespaceScoped?: boolean;
 };
 
+export type MetricMatchFields<
+  Streams extends
+    readonly EventStreamTemplate[] = readonly EventStreamTemplate[],
+> = {
+  namespace?: string;
+  streamType?: StreamTypeFor<Streams>;
+  eventType?: EventTypeFor<Streams, StreamTypeFor<Streams>>;
+};
+
+export type MetricGroupByField =
+  | "namespace"
+  | "streamType"
+  | "streamId"
+  | "eventType";
+
+export type MetricRule<
+  Streams extends
+    readonly EventStreamTemplate[] = readonly EventStreamTemplate[],
+> = {
+  name: string;
+  match: MetricMatchFields<Streams>;
+  groupBy: MetricGroupByField[];
+};
+
+export type EventSubscriber = (
+  ctx: EventsAppendHookCtx,
+  entry: EventEntry,
+) => void | Promise<void>;
+
+export interface EventSubscribable {
+  subscribe(id: string, callback: EventSubscriber): void;
+}
+
 export type EventsConfig<
   Streams extends
     readonly EventStreamTemplate[] = readonly EventStreamTemplate[],
 > = {
   streams: Streams;
-  onAppend?: (
-    ctx: EventsAppendHookCtx,
-    entry: EventEntry<Streams>,
-  ) => void | Promise<void>;
+  metrics?: MetricRule<Streams>[];
   onAdvanceCheckpoint?: (
     ctx: EventsAppendHookCtx,
     checkpoint: ProjectorCheckpoint<StreamTypeFor<Streams>>,
