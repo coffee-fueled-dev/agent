@@ -3,10 +3,11 @@ import { useSessionAction } from "convex-helpers/react/sessions";
 import {
   type ComponentProps,
   type PropsWithChildren,
+  useCallback,
   useMemo,
   useState,
 } from "react";
-import { FileDropzone, FilePreviewRow, useFiles } from "@/components/files";
+import { FileDropzone, useFiles } from "@/components/files";
 import { Button } from "@/components/ui/button.js";
 import {
   Dialog,
@@ -20,9 +21,15 @@ import {
 import { Field, FieldError, FieldLabel } from "@/components/ui/field.js";
 import { Input } from "@/components/ui/input.js";
 import { Textarea } from "@/components/ui/textarea.js";
+import type { AttachedFileEmbeddingState } from "@/routes/_hooks/use-attached-file-embed-for-search";
 import { buildContextFileKey } from "../../_hooks/context-file.js";
 import { useContextFileUpload } from "../../_hooks/use-context-file-upload.js";
 import { useNamespace } from "../_hooks/use-namespace.js";
+import { AddContextFileField } from "./add-context-file-field.js";
+
+function fileKeyForContext(f: File) {
+  return `${f.name}-${f.size}-${f.lastModified}`;
+}
 
 type AddContextDialogProps = PropsWithChildren<{
   open?: boolean;
@@ -43,16 +50,35 @@ export function AddContextDialog({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [localOpen, setLocalOpen] = useState(false);
+  const [fileEmbedState, setFileEmbedState] =
+    useState<AttachedFileEmbeddingState | null>(null);
   const file = files[0] ?? null;
   const dialogOpen = open ?? localOpen;
   const setDialogOpen = onOpenChange ?? setLocalOpen;
 
-  const canSave = useMemo(() => Boolean(file || text.trim()), [file, text]);
+  const handleFileEmbedState = useCallback(
+    (state: AttachedFileEmbeddingState) => {
+      setFileEmbedState(state);
+    },
+    [],
+  );
+
+  const fileEmbeddingReady =
+    fileEmbedState?.fileContentResolved &&
+    !fileEmbedState.embeddingPending &&
+    fileEmbedState.embedding !== null &&
+    fileEmbedState.embedding.length > 0;
+
+  const canSave = useMemo(() => {
+    if (!file) return Boolean(text.trim());
+    return fileEmbeddingReady;
+  }, [file, text, fileEmbeddingReady]);
 
   const reset = () => {
     setTitle("");
     setText("");
     setError(null);
+    setFileEmbedState(null);
     clearFiles();
   };
 
@@ -117,9 +143,11 @@ export function AddContextDialog({
             <Field>
               <FieldLabel htmlFor="ctx-file">File</FieldLabel>
               {file ? (
-                <FilePreviewRow
+                <AddContextFileField
+                  key={fileKeyForContext(file)}
                   file={file}
-                  onRemove={() => removeFile(file?.name ?? "")}
+                  onRemove={() => removeFile(file.name)}
+                  onEmbeddingStateChange={handleFileEmbedState}
                 />
               ) : (
                 <Input

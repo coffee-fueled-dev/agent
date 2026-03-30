@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { withoutSystemFields } from "convex-helpers";
 import { doc } from "convex-helpers/validators";
+import type { Id } from "../_generated/dataModel";
 import { internalMutation, internalQuery } from "../_generated/server";
 import schema from "../schema";
 
@@ -69,6 +70,50 @@ export const insertContextFile = internalMutation({
   args: withoutSystemFields(doc(schema, "contextFiles").fields),
   handler: async (ctx, args) => {
     return await ctx.db.insert("contextFiles", args);
+  },
+});
+
+/** Same order as `entryIds`; null when no row for that entry in the namespace. */
+export const getContextFilesForEntryIdsBatch = internalQuery({
+  args: {
+    namespace: v.string(),
+    entryIds: v.array(v.string()),
+  },
+  returns: v.array(
+    v.union(
+      v.null(),
+      v.object({
+        entryId: v.string(),
+        storageId: v.id("_storage"),
+        mimeType: v.string(),
+        fileName: v.optional(v.string()),
+      }),
+    ),
+  ),
+  handler: async (ctx, args) => {
+    const out: Array<{
+      entryId: string;
+      storageId: Id<"_storage">;
+      mimeType: string;
+      fileName?: string;
+    } | null> = [];
+    for (const entryId of args.entryIds) {
+      const row = await ctx.db
+        .query("contextFiles")
+        .withIndex("by_entryId", (q) => q.eq("entryId", entryId))
+        .first();
+      if (row && row.namespace === args.namespace) {
+        out.push({
+          entryId,
+          storageId: row.storageId,
+          mimeType: row.mimeType,
+          fileName: row.fileName,
+        });
+      } else {
+        out.push(null);
+      }
+    }
+    return out;
   },
 });
 

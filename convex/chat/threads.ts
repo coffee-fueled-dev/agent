@@ -6,19 +6,12 @@ import {
   syncStreams,
 } from "@convex-dev/agent";
 import type { StreamArgs } from "@convex-dev/agent/validators";
-import type {
-  FilePart,
-  ImagePart,
-  ModelMessage,
-  UserContent,
-  UserModelMessage,
-} from "ai";
+import type { ModelMessage, UserContent, UserModelMessage } from "ai";
 import type { PaginationOptions, PaginationResult } from "convex/server";
 import { zid } from "convex-helpers/server/zod4";
 import { z } from "zod/v4";
 import { api, components } from "../_generated/api";
 import type { ActionCtx } from "../_generated/server";
-import type { SearchContextHit } from "../context/search";
 import {
   type SessionActionCtx,
   type SessionQueryCtx,
@@ -26,8 +19,10 @@ import {
   sessionMutation,
   sessionPaginatedQuery,
 } from "../customFunctions";
-import { getNgrokUrl, isLocalAgentMode } from "../env";
 import { ensureTokenAccount, resolveAccountByAlias } from "../lib/auth";
+import { buildInjectedSystemMessage } from "../lib/injectedContextFromSearch";
+import { getFileParts } from "../lib/llmFileParts";
+import { publicStorageUrl } from "../lib/publicStorageUrl";
 import { agentLibrary } from "../llms/agents";
 import type { UIMessage } from "../llms/uiMessage";
 import { resolveThreadContext } from "./resolveNamespace";
@@ -39,16 +34,6 @@ function agentActionCtx(
   return ctx as unknown as ActionCtx & Record<string, unknown>;
 }
 
-function buildInjectedContext(hits: SearchContextHit[]): string | undefined {
-  if (!hits.length) return undefined;
-  const lines = hits.slice(0, 3).map((r, i) => {
-    const title = r.title ? `${r.title}\n` : "";
-    const body = r.text.length > 2000 ? `${r.text.slice(0, 2000)}…` : r.text;
-    return `[${i + 1}] ${title}${body}`;
-  });
-  return `Retrieved context (may be incomplete):\n${lines.join("\n\n---\n\n")}`;
-}
-
 const attachmentSchema = z.object({
   storageId: zid("_storage"),
   fileName: z.string(),
@@ -56,45 +41,6 @@ const attachmentSchema = z.object({
   contentHash: z.string(),
   text: z.string().optional(),
 });
-
-/** Rewrite localhost storage URLs so providers can fetch via ngrok (local agent dev only). */
-function publicStorageUrl(localUrl: string): string {
-  if (!isLocalAgentMode()) return localUrl;
-  const ngrok = getNgrokUrl();
-  if (!ngrok) return localUrl;
-  try {
-    const parsed = new URL(localUrl);
-    if (
-      parsed.hostname === "localhost" ||
-      parsed.hostname === "127.0.0.1" ||
-      parsed.hostname === "::1"
-    ) {
-      const target = new URL(ngrok);
-      // V8 actions: mutating URL (e.g. .host =) throws "Not implemented: set host for URL".
-      return `${target.protocol}//${target.host}${parsed.pathname}${parsed.search}${parsed.hash}`;
-    }
-  } catch {
-    return localUrl;
-  }
-  return localUrl;
-}
-
-function getFileParts(
-  url: string,
-  mediaType: string,
-  filename?: string,
-): { filePart: FilePart; imagePart: ImagePart | undefined } {
-  const filePart: FilePart = {
-    type: "file",
-    data: new URL(url),
-    mediaType,
-    filename,
-  };
-  const imagePart: ImagePart | undefined = mediaType.startsWith("image/")
-    ? { type: "image", image: new URL(url), mediaType }
-    : undefined;
-  return { filePart, imagePart };
-}
 
 async function buildUserMessageWithFiles(
   ctx: SessionActionCtx,
@@ -160,6 +106,16 @@ export const createThread = sessionMutation({
   },
 });
 
+const contextEnrichmentSchema = z
+  .object({
+    /** Hybrid lexical query; built on the client with `buildLexicalContextQuery`. */
+    searchQuery: z.string().optional(),
+    /** One vector per attachment, same order as `attachments`. */
+    fileEmbeddings: z.array(z.array(z.number())).optional(),
+    minScore: z.number().optional(),
+  })
+  .optional();
+
 export const sendMessage = sessionAction({
   args: {
     threadId: z.string(),
@@ -167,10 +123,7 @@ export const sendMessage = sessionAction({
     /** Same value as `createThread` — required for actions because `sessions.account` may be unset until this runs. */
     token: z.string().min(1),
     attachments: z.array(attachmentSchema).optional(),
-    /** Hybrid lexical query; built on the client with `buildLexicalContextQuery`. */
-    searchQuery: z.string(),
-    /** One vector per attachment, same order as `attachments`. */
-    fileEmbeddings: z.array(z.array(z.number())).optional(),
+    contextEnrichment: contextEnrichmentSchema,
   },
   handler: async (ctx: SessionActionCtx, args) => {
     const hasAttachments = Boolean(args.attachments?.length);
@@ -185,19 +138,22 @@ export const sendMessage = sessionAction({
       { token: args.token },
     );
 
-    const searchResults = await ctx.runAction(
-      api.context.search.searchContext,
-      {
-        sessionId: args.sessionId,
-        namespace,
-        query: args.searchQuery.trim() || args.prompt.trim() || "context",
-        limit: 10,
-        retrievalMode: "hybrid",
-        fileEmbeddings: args.fileEmbeddings,
-        threadId: args.threadId,
-      },
-    );
-    const injected = buildInjectedContext(searchResults);
+    const ce = args.contextEnrichment;
+    const injected =
+      ce !== undefined
+        ? buildInjectedSystemMessage(
+            await ctx.runAction(api.context.search.searchContext, {
+              sessionId: args.sessionId,
+              namespace,
+              query: ce.searchQuery?.trim() || args.prompt.trim() || "context",
+              limit: 10,
+              retrievalMode: "hybrid",
+              fileEmbeddings: ce.fileEmbeddings,
+              threadId: args.threadId,
+              minScore: ce.minScore,
+            }),
+          )
+        : undefined;
 
     const { message: userMessage, fileIds } = await buildUserMessageWithFiles(
       ctx,
@@ -206,9 +162,8 @@ export const sendMessage = sessionAction({
     );
 
     const messagesToSave: ModelMessage[] = [userMessage];
-    if (injected) {
-      messagesToSave.unshift({ role: "system", content: injected });
-    }
+
+    if (injected) messagesToSave.unshift(injected);
 
     const { messages } = await saveMessages(ctx, components.agent, {
       threadId: args.threadId,

@@ -1,14 +1,16 @@
 "use client";
 
 import { api } from "@backend/api.js";
-import { contentHashFromArrayBuffer } from "@convex-dev/rag";
 import type { FunctionReturnType } from "convex/server";
 import { useSessionAction } from "convex-helpers/react/sessions";
-import { LoaderIcon, PaperclipIcon, SearchIcon, XIcon } from "lucide-react";
+import { ExternalLinkIcon, PaperclipIcon, SearchIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { LoaderWithMessage } from "@/components/blocks/loader-with-message.js";
-import { Button } from "@/components/ui/button.js";
+import {
+  type AttachedFileEmbeddingState,
+  AttachedFileEmbedRow,
+} from "@/components/files";
 import {
   Command,
   CommandEmpty,
@@ -24,15 +26,22 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group.js";
 import { contextEntry, useNavigate } from "@/navigation/index.js";
-import { isTextLikeFile, readFileText } from "../../_hooks/context-file.js";
 import { buildLexicalContextQuery } from "../../_hooks/context-search-query.js";
-import { useEmbedForSearchAttachedFile } from "../../_hooks/embed-for-search.js";
 import { useNamespace } from "../_hooks/use-namespace.js";
 import { MimeTypeIcon } from "./mime-type-icon.js";
 
 type SearchResults = FunctionReturnType<
   typeof api.context.search.searchContext
 >;
+
+function hitSourceLabel(r: SearchResults[number]): string {
+  const s = r.source;
+  if (!s) return "Entry";
+  if (s.kind === "document") {
+    return s.sourceType === "binary" ? "Document · file" : "Document · text";
+  }
+  return s.sourceType === "binary" ? "Content · binary" : "Content · text";
+}
 
 export function ContextSearch() {
   const searchContext = useSessionAction(api.context.search.searchContext);
@@ -44,40 +53,19 @@ export function ContextSearch() {
   const navigate = useNavigate();
 
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
-  const [contentHash, setContentHash] = useState<string | null>(null);
-  const [fileTextForLexical, setFileTextForLexical] = useState<string | null>(
-    null,
-  );
+  const [embedState, setEmbedState] =
+    useState<AttachedFileEmbeddingState | null>(null);
 
-  const { embedding, embeddingPending, resetEmbeddingState } =
-    useEmbedForSearchAttachedFile({
-      file: attachedFile,
-      contentHash,
-      fileTextForLexical,
-    });
+  const handleFileAttach = useCallback((file: File) => {
+    setAttachedFile(file);
+    setEmbedState(null);
+  }, []);
 
-  const handleFileAttach = useCallback(
-    async (file: File) => {
-      resetEmbeddingState();
-      setAttachedFile(file);
-      setFileTextForLexical(null);
-      setContentHash(null);
-
-      const buffer = await file.arrayBuffer();
-      const hash = await contentHashFromArrayBuffer(buffer);
-
-      let lexicalText: string | null = null;
-      if (isTextLikeFile(file)) {
-        try {
-          lexicalText = await readFileText(file);
-        } catch {
-          lexicalText = null;
-        }
-      }
-      setFileTextForLexical(lexicalText);
-      setContentHash(hash);
+  const handleEmbeddingStateChange = useCallback(
+    (state: AttachedFileEmbeddingState) => {
+      setEmbedState(state);
     },
-    [resetEmbeddingState],
+    [],
   );
 
   const {
@@ -89,16 +77,14 @@ export function ContextSearch() {
     noClick: true,
     onDrop: (files) => {
       const f = files[0];
-      if (f) void handleFileAttach(f);
+      if (f) handleFileAttach(f);
     },
   });
 
   const removeFile = useCallback(() => {
     setAttachedFile(null);
-    setContentHash(null);
-    setFileTextForLexical(null);
-    resetEmbeddingState();
-  }, [resetEmbeddingState]);
+    setEmbedState(null);
+  }, []);
 
   const runSearch = useCallback(
     async (
@@ -138,15 +124,14 @@ export function ContextSearch() {
     [namespace, searchContext, sessionNamespaceResolved],
   );
 
-  const handleValueChange = useCallback((value: string) => {
-    setQuery(value);
-  }, []);
+  const handleValueChange = (value: string) => setQuery(value);
 
   useEffect(() => {
     if (!sessionNamespaceResolved) {
       setResults([]);
       return;
     }
+    const embedding = embedState?.embedding ?? null;
     if (!query.trim() && !embedding && !attachedFile) {
       setResults([]);
       return;
@@ -154,7 +139,7 @@ export function ContextSearch() {
     const lexicalQuery = buildLexicalContextQuery({
       userQuery: query,
       fileName: attachedFile?.name ?? null,
-      fileText: fileTextForLexical,
+      fileText: embedState?.fileTextForLexical ?? null,
     });
     if (!lexicalQuery.trim() && !embedding?.length) {
       setResults([]);
@@ -164,22 +149,15 @@ export function ContextSearch() {
     debounceRef.current = setTimeout(() => {
       void runSearch(query, embedding, {
         fileName: attachedFile?.name ?? null,
-        fileText: fileTextForLexical,
+        fileText: embedState?.fileTextForLexical ?? null,
       });
     }, 300);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [
-    attachedFile,
-    embedding,
-    fileTextForLexical,
-    query,
-    runSearch,
-    sessionNamespaceResolved,
-  ]);
+  }, [attachedFile, embedState, query, runSearch, sessionNamespaceResolved]);
 
-  const hasInput = query.trim() || embedding || attachedFile;
+  const hasInput = query.trim() || embedState?.embedding || attachedFile;
 
   return (
     <Command shouldFilter={false} className="p-1" {...getRootProps()}>
@@ -207,35 +185,18 @@ export function ContextSearch() {
       </InputGroup>
 
       {attachedFile && (
-        <div className="flex items-center gap-2 border-t px-3 py-1.5 text-xs">
-          <MimeTypeIcon
-            mimeType={attachedFile.type}
-            className="size-3.5 shrink-0 text-muted-foreground"
-          />
-          <span className="min-w-0 truncate text-muted-foreground">
-            {attachedFile.name}
-          </span>
-          {embeddingPending && (
-            <LoaderIcon className="size-3 shrink-0 animate-spin text-muted-foreground" />
-          )}
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            onClick={removeFile}
-          >
-            <XIcon className="size-3" />
-          </Button>
-        </div>
+        <AttachedFileEmbedRow
+          file={attachedFile}
+          onRemove={removeFile}
+          onEmbeddingStateChange={handleEmbeddingStateChange}
+        />
       )}
 
       {hasInput && (
         <CommandList className="mt-2">
-          {searching || embeddingPending ? (
+          {searching || embedState?.embeddingPending ? (
             <Empty>
-              <LoaderWithMessage>
-                {embeddingPending ? "Embedding file..." : "Searching..."}
-              </LoaderWithMessage>
+              <LoaderWithMessage>Searching...</LoaderWithMessage>
             </Empty>
           ) : (
             <>
@@ -250,12 +211,42 @@ export function ContextSearch() {
                     }}
                     className="cursor-pointer"
                   >
-                    <div className="flex flex-col gap-0.5">
-                      {r.title && (
-                        <span className="text-sm font-medium">{r.title}</span>
+                    <div className="flex w-full flex-col gap-0.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          {r.title && (
+                            <span className="text-sm font-medium">
+                              {r.title}
+                            </span>
+                          )}
+                        </div>
+                        <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+                          {hitSourceLabel(r)}
+                        </span>
+                      </div>
+                      {r.filePublicUrl && r.mimeType && (
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <MimeTypeIcon
+                            mimeType={r.mimeType}
+                            className="size-3.5 shrink-0"
+                          />
+                          <a
+                            href={r.filePublicUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex min-w-0 items-center gap-1 truncate text-primary hover:underline"
+                            onClick={(e) => e.stopPropagation()}
+                            onPointerDown={(e) => e.stopPropagation()}
+                          >
+                            <span className="truncate">
+                              {r.fileName ?? "File"}
+                            </span>
+                            <ExternalLinkIcon className="size-3 shrink-0 opacity-70" />
+                          </a>
+                        </div>
                       )}
                       <span className="line-clamp-2 text-xs text-muted-foreground">
-                        {r.text.slice(0, 200)}
+                        {(r.textPreview ?? r.text).slice(0, 200)}
                       </span>
                       <span className="text-xs text-muted-foreground/60">
                         Score: {r.score.toFixed(3)}

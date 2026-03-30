@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { z } from "zod/v4";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
+import type { ActionCtx } from "../_generated/server";
 import { internalAction } from "../_generated/server";
 import { sessionAction } from "../customFunctions";
 import { accountActor } from "../eventAttribution";
@@ -10,6 +11,7 @@ import {
   embedText,
   isTextLikeMime,
 } from "../lib/googleEmbedText";
+import { publicStorageUrl } from "../lib/publicStorageUrl";
 import { assertAccountNamespace } from "../models/auth/contextNamespace";
 import {
   createContextClient,
@@ -17,6 +19,21 @@ import {
   getEmbeddingServerUrl,
   getFileEmbeddingSecret,
 } from "./contextClient";
+
+export type SearchContextSource =
+  | {
+      kind: "document";
+      sourceType: "text" | "binary";
+      document: string;
+      documentId: string;
+      entryId: string;
+      key: string;
+    }
+  | {
+      kind: "content";
+      sourceType: "text" | "binary";
+      contentId: string;
+    };
 
 export type SearchContextHit = {
   entryId: string;
@@ -26,8 +43,53 @@ export type SearchContextHit = {
   importance: number;
   score: number;
   observationTime?: number;
-  metadata?: unknown;
+  source?: SearchContextSource;
+  textPreview?: string;
+  /** Public HTTPS URL for file-backed binary entries (local dev may rewrite via ngrok). */
+  filePublicUrl?: string;
+  fileName?: string;
+  mimeType?: string;
 };
+
+async function enrichSearchHitsWithPublicFiles(
+  ctx: ActionCtx,
+  namespace: string,
+  hits: SearchContextHit[],
+): Promise<SearchContextHit[]> {
+  if (!hits.length) return hits;
+  const files = await ctx.runQuery(
+    internal.context.fileStore.getContextFilesForEntryIdsBatch,
+    {
+      namespace,
+      entryIds: hits.map((h) => h.entryId),
+    },
+  );
+
+  const out: SearchContextHit[] = [];
+  for (let i = 0; i < hits.length; i++) {
+    const hit = hits[i];
+    if (!hit) continue;
+    const fr = files[i];
+    if (
+      fr &&
+      hit.source?.kind === "document" &&
+      hit.source.sourceType === "binary"
+    ) {
+      const rawUrl = await ctx.storage.getUrl(fr.storageId);
+      if (rawUrl) {
+        out.push({
+          ...hit,
+          filePublicUrl: publicStorageUrl(rawUrl),
+          fileName: fr.fileName,
+          mimeType: fr.mimeType,
+        });
+        continue;
+      }
+    }
+    out.push(hit);
+  }
+  return out;
+}
 
 export const searchContext = sessionAction({
   args: {
@@ -42,6 +104,7 @@ export const searchContext = sessionAction({
     graphWeight: z.number().optional(),
     accessWeight: z.number().optional(),
     fileEmbeddings: z.array(z.array(z.number())).optional(),
+    minScore: z.number().optional(),
     actor: z
       .object({
         byType: z.string(),
@@ -59,12 +122,13 @@ export const searchContext = sessionAction({
       { convexSessionId: sessionId },
     );
     assertAccountNamespace(accountId, args.namespace);
-    return await createContextClient().searchContext(ctx, {
+    const hits = await createContextClient().searchContext(ctx, {
       ...rest,
       actor: args.actor ?? (accountId ? accountActor(accountId) : undefined),
       session: args.session ?? sessionId,
       clientSessionId: args.clientSessionId ?? sessionId,
     });
+    return await enrichSearchHitsWithPublicFiles(ctx, args.namespace, hits);
   },
 });
 
@@ -84,6 +148,7 @@ export const searchContextInternal = internalAction({
     graphWeight: v.optional(v.number()),
     accessWeight: v.optional(v.number()),
     fileEmbeddings: v.optional(v.array(v.array(v.number()))),
+    minScore: v.optional(v.number()),
     actor: v.optional(
       v.object({
         byType: v.string(),
@@ -94,8 +159,12 @@ export const searchContextInternal = internalAction({
     threadId: v.optional(v.string()),
     clientSessionId: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    return await createContextClient().searchContext(ctx, args);
+  handler: async (ctx, args): Promise<SearchContextHit[]> => {
+    const hits = (await createContextClient().searchContext(
+      ctx,
+      args,
+    )) as SearchContextHit[];
+    return await enrichSearchHitsWithPublicFiles(ctx, args.namespace, hits);
   },
 });
 

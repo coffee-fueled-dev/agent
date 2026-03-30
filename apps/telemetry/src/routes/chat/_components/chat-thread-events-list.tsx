@@ -149,7 +149,9 @@ function FadeOverflowWithVirtual({
   const virtualizer = useVirtualizer({
     count: results.length,
     getScrollElement: () => viewportRef.current,
+    getItemKey: (index) => results[index]?._id ?? index,
     estimateSize: () => ESTIMATE_EVENT_ROW,
+    gap: 6,
     overscan: 8,
   });
 
@@ -168,7 +170,7 @@ function FadeOverflowWithVirtual({
                 key={row._id}
                 data-index={vi.index}
                 ref={virtualizer.measureElement}
-                className="absolute top-0 left-0 w-full pb-1.5"
+                className="absolute top-0 left-0 w-full"
                 style={{ transform: `translateY(${vi.start}px)` }}
               >
                 <ThreadEventRowLink row={row} />

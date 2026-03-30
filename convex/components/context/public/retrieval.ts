@@ -5,6 +5,7 @@ import { graph } from "../graph";
 import { readTimeDecay } from "../internal/accessStats";
 import { memoryEvents } from "../internal/events";
 import { createContextRag } from "../internal/rag";
+import { sourceValidator } from "../schema";
 import { search as searchClient } from "../search";
 
 function fusedRank(
@@ -49,6 +50,8 @@ export const search = action({
     /** When set (e.g. chat search), stored on contextMemory events for unified timeline projection. */
     threadId: v.optional(v.string()),
     clientSessionId: v.optional(v.string()),
+    /** When set, drop hits with `score` strictly below this (RRF / vector scale). */
+    minScore: v.optional(v.number()),
   },
   returns: v.array(
     v.object({
@@ -59,7 +62,8 @@ export const search = action({
       importance: v.number(),
       score: v.number(),
       observationTime: v.optional(v.number()),
-      metadata: v.optional(v.any()),
+      source: v.optional(sourceValidator),
+      textPreview: v.optional(v.string()),
     }),
   ),
   handler: async (
@@ -78,6 +82,7 @@ export const search = action({
       session,
       threadId: threadIdArg,
       clientSessionId: clientSessionIdArg,
+      minScore: minScoreArg,
       ...args
     },
   ) => {
@@ -97,16 +102,55 @@ export const search = action({
       importance: number;
       score: number;
       observationTime?: number;
-      metadata?: unknown;
+      source?:
+        | {
+            kind: "document";
+            sourceType: "text" | "binary";
+            document: string;
+            documentId: string;
+            entryId: string;
+            key: string;
+          }
+        | {
+            kind: "content";
+            sourceType: "text" | "binary";
+            contentId: string;
+          };
+      textPreview?: string;
+    };
+
+    const mergeSourcesAndFilter = async (
+      hits: SearchHit[],
+    ): Promise<SearchHit[]> => {
+      if (!hits.length) return hits;
+      const rows = await ctx.runQuery(
+        internal.internal.entryStore.getEntriesSourceBatch,
+        {
+          namespace: args.namespace,
+          entryIds: hits.map((h) => h.entryId),
+        },
+      );
+      const merged = hits.map((h, i) => {
+        const row = rows[i];
+        if (!row) return h;
+        return {
+          ...h,
+          source: row.source,
+          textPreview: row.textPreview,
+        };
+      });
+      if (minScoreArg === undefined) return merged;
+      return merged.filter((h) => h.score >= minScoreArg);
     };
 
     const finalizeResults = async (hits: SearchHit[]): Promise<SearchHit[]> => {
-      if (!hits.length) return hits;
+      const ready = await mergeSourcesAndFilter(hits);
+      if (!ready.length) return [];
       const times = await ctx.runQuery(
         internal.internal.accessStats.getObservationTimes,
-        { entryIds: hits.map((h) => h.entryId) },
+        { entryIds: ready.map((h) => h.entryId) },
       );
-      const enriched = hits.map((h) => ({
+      const enriched = ready.map((h) => ({
         ...h,
         observationTime: times[h.entryId],
       }));
@@ -163,7 +207,6 @@ export const search = action({
         score: results
           .filter((r) => r.entryId === entry.entryId)
           .reduce((max, r) => Math.max(max, r.score), 0),
-        metadata: entry.metadata,
       }));
     };
 

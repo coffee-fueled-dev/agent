@@ -754,6 +754,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             includeHistorical?: boolean;
             lexicalWeight?: number;
             limit?: number;
+            minScore?: number;
             namespace: string;
             query: string | Array<number>;
             retrievalMode?: "vector" | "lexical" | "hybrid";
@@ -766,10 +767,24 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             entryId: string;
             importance: number;
             key: string;
-            metadata?: any;
             observationTime?: number;
             score: number;
+            source?:
+              | {
+                  document: string;
+                  documentId: string;
+                  entryId: string;
+                  key: string;
+                  kind: "document";
+                  sourceType: "text" | "binary";
+                }
+              | {
+                  contentId: string;
+                  kind: "content";
+                  sourceType: "text" | "binary";
+                };
             text: string;
+            textPreview?: string;
             title?: string;
           }>,
           Name

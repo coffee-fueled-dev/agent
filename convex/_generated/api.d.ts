@@ -49,6 +49,9 @@ import type * as history from "../history.js";
 import type * as http from "../http.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_googleEmbedText from "../lib/googleEmbedText.js";
+import type * as lib_injectedContextFromSearch from "../lib/injectedContextFromSearch.js";
+import type * as lib_llmFileParts from "../lib/llmFileParts.js";
+import type * as lib_publicStorageUrl from "../lib/publicStorageUrl.js";
 import type * as lib_resolvers_index from "../lib/resolvers/index.js";
 import type * as lib_status_index from "../lib/status/index.js";
 import type * as llms_agents__instructions_goal from "../llms/agents/_instructions/goal.js";
@@ -156,6 +159,9 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "lib/auth": typeof lib_auth;
   "lib/googleEmbedText": typeof lib_googleEmbedText;
+  "lib/injectedContextFromSearch": typeof lib_injectedContextFromSearch;
+  "lib/llmFileParts": typeof lib_llmFileParts;
+  "lib/publicStorageUrl": typeof lib_publicStorageUrl;
   "lib/resolvers/index": typeof lib_resolvers_index;
   "lib/status/index": typeof lib_status_index;
   "llms/agents/_instructions/goal": typeof llms_agents__instructions_goal;
@@ -1420,6 +1426,7 @@ export declare const components: {
             includeHistorical?: boolean;
             lexicalWeight?: number;
             limit?: number;
+            minScore?: number;
             namespace: string;
             query: string | Array<number>;
             retrievalMode?: "vector" | "lexical" | "hybrid";
@@ -1432,10 +1439,24 @@ export declare const components: {
             entryId: string;
             importance: number;
             key: string;
-            metadata?: any;
             observationTime?: number;
             score: number;
+            source?:
+              | {
+                  document: string;
+                  documentId: string;
+                  entryId: string;
+                  key: string;
+                  kind: "document";
+                  sourceType: "text" | "binary";
+                }
+              | {
+                  contentId: string;
+                  kind: "content";
+                  sourceType: "text" | "binary";
+                };
             text: string;
+            textPreview?: string;
             title?: string;
           }>
         >;

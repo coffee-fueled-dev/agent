@@ -1,4 +1,8 @@
 export {
+  type AttachedFileEmbeddingState,
+  AttachedFileEmbedRow,
+} from "./attached-file-embed-row.js";
+export {
   FileDropzone,
   FileDropzoneProvider,
   useFiles,

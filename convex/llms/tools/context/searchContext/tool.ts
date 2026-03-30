@@ -22,7 +22,11 @@ export function searchContextTool() {
       retrievalMode: z
         .enum(["vector", "lexical", "hybrid"])
         .optional()
-        .describe("Retrieval strategy"),
+        .describe("Retrieval strategy; default is hybrid"),
+      minScore: z
+        .number()
+        .optional()
+        .describe("Minimum fused RRF score (0-1 scale); omit for no floor"),
     }),
     handler: async (ctx, args) => {
       return await withFormattedResults(
@@ -41,6 +45,7 @@ export function searchContextTool() {
               query: args.query,
               limit: args.limit,
               retrievalMode: args.retrievalMode,
+              minScore: args.minScore,
               threadId: ctx.threadId,
               session: ctx.sessionId,
               clientSessionId: ctx.sessionId,
