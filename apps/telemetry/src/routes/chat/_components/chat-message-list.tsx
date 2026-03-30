@@ -15,12 +15,6 @@ import LoadMoreSentinel from "@/components/layout/load-more-sentinel";
 import { Button } from "@/components/ui/button";
 import { Empty } from "@/components/ui/empty";
 import { Spinner } from "@/components/ui/spinner";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip.js";
 import { useChatScrollAnchor } from "../_hooks/use-chat-scroll-anchor.js";
 import { ChatMessagePart } from "./chat-message-part.js";
 

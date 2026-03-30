@@ -1,5 +1,4 @@
 import { api } from "@backend/api.js";
-import { useSessionIdArg } from "convex-helpers/react/sessions";
 import { ArrowLeftIcon } from "lucide-react";
 import { PageSection } from "@/components/layout/page-section";
 import { RequiredResult } from "@/components/layout/required-result.js";

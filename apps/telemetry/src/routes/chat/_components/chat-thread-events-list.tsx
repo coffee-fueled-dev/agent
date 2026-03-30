@@ -15,12 +15,7 @@ import { FadeOverflow } from "@/components/layout/fade-overflow";
 import { ListSection } from "@/components/layout/list-section";
 import LoadMoreSentinel from "@/components/layout/load-more-sentinel";
 import { RequiredPaginatedResult } from "@/components/layout/required-result";
-import {
-  Item,
-  ItemDescription,
-  ItemHeader,
-  ItemTitle,
-} from "@/components/ui/item";
+import { Item, ItemHeader, ItemTitle } from "@/components/ui/item";
 import {
   Tooltip,
   TooltipContent,
