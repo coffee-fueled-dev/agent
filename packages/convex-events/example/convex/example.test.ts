@@ -6,7 +6,7 @@ describe("example", () => {
   test("append event", async () => {
     const t = initConvexTest();
     const result = await t.mutation(api.functions.appendEvent, {
-      streamType: "todo",
+      name: "todo",
       streamId: "test-stream",
       eventId: "evt-1",
       eventType: "created",

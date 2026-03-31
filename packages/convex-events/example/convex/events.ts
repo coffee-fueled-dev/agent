@@ -1,34 +1,36 @@
 import { EventsClient } from "@very-coffee/convex-events";
 import { createEventBus } from "@very-coffee/convex-events/eventBus";
 import type { EventsConfig } from "@very-coffee/convex-events/types";
-import { v } from "convex/values";
+import { v, type PropertyValidators } from "convex/values";
 import { components } from "./_generated/api";
 
 export const eventsConfig = {
   streams: [
     {
-      streamType: "todo",
-      eventTypes: ["created", "completed", "deleted"],
-      payloads: {
+      name: "todo",
+      events: {
         created: { title: v.string() },
         completed: { title: v.string() },
         deleted: { title: v.string() },
       },
     },
     {
-      streamType: "counter",
-      eventTypes: ["incremented", "decremented"],
+      name: "counter",
+      events: {
+        incremented: v.object({}) as unknown as PropertyValidators,
+        decremented: v.object({}) as unknown as PropertyValidators,
+      },
     },
   ],
-  metrics: [
+  counters: [
     {
       name: "todo_by_type",
-      match: { streamType: "todo" },
+      match: { name: "todo" },
       groupBy: ["eventType"],
     },
     {
       name: "counter_total",
-      match: { streamType: "counter" },
+      match: { name: "counter" },
       groupBy: ["streamId"],
     },
   ],

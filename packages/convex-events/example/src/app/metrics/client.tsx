@@ -20,7 +20,7 @@ function Metrics() {
 
   const appendTodo = (eventType: "created" | "completed" | "deleted") =>
     append({
-      streamType: "todo",
+      name: "todo",
       streamId: TODO_STREAM,
       eventId: crypto.randomUUID(),
       eventType,
@@ -29,7 +29,7 @@ function Metrics() {
 
   const appendCounter = (eventType: "incremented" | "decremented") =>
     append({
-      streamType: "counter",
+      name: "counter",
       streamId: COUNTER_STREAM,
       eventId: crypto.randomUUID(),
       eventType,

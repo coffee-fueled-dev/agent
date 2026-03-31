@@ -8,7 +8,7 @@ function Bus() {
 
   const appendTodo = () =>
     append({
-      streamType: "todo",
+      name: "todo",
       streamId: "demo-bus",
       eventId: crypto.randomUUID(),
       eventType: "created",
@@ -17,7 +17,7 @@ function Bus() {
 
   const appendCounter = () =>
     append({
-      streamType: "counter",
+      name: "counter",
       streamId: "demo-bus",
       eventId: crypto.randomUUID(),
       eventType: "incremented",

@@ -48,9 +48,9 @@ export type EventActor = {
 };
 
 export type EventStreamTemplate = {
-  streamType: string;
-  eventTypes: readonly string[];
-  payloads?: Record<string, PropertyValidators>;
+  name: string;
+  /** Event type names are the keys; values are per-field payload validators (same shape as `v.object({ ... })`). */
+  events: Record<string, PropertyValidators>;
   /** When true, callers should pass a non-empty stream `namespace` for isolation. */
   namespaceScoped?: boolean;
 };
@@ -60,13 +60,13 @@ export type MetricMatchFields<
     readonly EventStreamTemplate[] = readonly EventStreamTemplate[],
 > = {
   namespace?: string;
-  streamType?: StreamTypeFor<Streams>;
-  eventType?: EventTypeFor<Streams, StreamTypeFor<Streams>>;
+  name?: StreamNameFor<Streams>;
+  eventType?: EventTypeFor<Streams, StreamNameFor<Streams>>;
 };
 
 export type MetricGroupByField =
   | "namespace"
-  | "streamType"
+  | "name"
   | "streamId"
   | "eventType";
 
@@ -81,7 +81,7 @@ export type MetricRule<
 
 export type EventSubscriber = (
   ctx: EventsMutationCtx,
-  entry: EventEntry,
+  entry: EventEntry<readonly EventStreamTemplate[]>,
 ) => void | Promise<void>;
 
 export interface EventSubscribable {
@@ -93,53 +93,63 @@ export type EventsConfig<
     readonly EventStreamTemplate[] = readonly EventStreamTemplate[],
 > = {
   streams: Streams;
-  metrics?: MetricRule<Streams>[];
+  counters?: MetricRule<Streams>[];
 };
 
 type RegisteredStream<Streams extends readonly EventStreamTemplate[]> =
   Streams[number];
 
-export type StreamTypeFor<Streams extends readonly EventStreamTemplate[]> = [
+export type StreamNameFor<Streams extends readonly EventStreamTemplate[]> = [
   RegisteredStream<Streams>,
 ] extends [never]
   ? string
-  : RegisteredStream<Streams>["streamType"];
+  : RegisteredStream<Streams>["name"];
+
+export type StreamTypeFor<Streams extends readonly EventStreamTemplate[]> =
+  StreamNameFor<Streams>;
 
 export type EventTypeFor<
   Streams extends readonly EventStreamTemplate[],
-  StreamType extends StreamTypeFor<Streams>,
-> = [Extract<RegisteredStream<Streams>, { streamType: StreamType }>] extends [
+  StreamName extends StreamNameFor<Streams>,
+> = [Extract<RegisteredStream<Streams>, { name: StreamName }>] extends [
   never,
 ]
   ? string
-  : Extract<
-      RegisteredStream<Streams>,
-      { streamType: StreamType }
-    >["eventTypes"][number];
+  : Extract<RegisteredStream<Streams>, { name: StreamName }> extends {
+        events: infer E;
+      }
+    ? E extends Record<string, PropertyValidators>
+      ? [keyof E] extends [never]
+        ? string
+        : keyof E & string
+      : string
+    : string;
 
 export type PayloadFor<
   Streams extends readonly EventStreamTemplate[],
-  StreamType extends StreamTypeFor<Streams>,
+  StreamName extends StreamNameFor<Streams>,
   EvType extends string,
 > =
-  Extract<Streams[number], { streamType: StreamType }> extends infer S
-    ? S extends { payloads: Record<string, PropertyValidators> }
-      ? EvType extends keyof S["payloads"]
-        ? ObjectType<S["payloads"][EvType]>
+  Extract<Streams[number], { name: StreamName }> extends infer S
+    ? S extends { events: infer E }
+      ? E extends Record<string, PropertyValidators>
+        ? EvType extends keyof E
+          ? ObjectType<E[EvType & keyof E]>
+          : unknown
         : unknown
       : unknown
     : unknown;
 
-export type EventRef<StreamType extends string = string> = {
-  streamType: StreamType;
+export type EventRef<StreamName extends string = string> = {
+  name: StreamName;
   /** Omitted or empty string = default / unscoped stream. */
   namespace?: string;
   streamId: string;
   eventId: string;
 };
 
-export type EventStreamRef<StreamType extends string = string> = {
-  streamType: StreamType;
+export type EventStreamRef<StreamName extends string = string> = {
+  name: StreamName;
   namespace?: string;
   streamId: string;
 };
@@ -147,17 +157,17 @@ export type EventStreamRef<StreamType extends string = string> = {
 export type EventStreamState<
   Streams extends
     readonly EventStreamTemplate[] = readonly EventStreamTemplate[],
-  StreamType extends StreamTypeFor<Streams> = StreamTypeFor<Streams>,
+  StreamName extends StreamNameFor<Streams> = StreamNameFor<Streams>,
 > = Omit<EventStreamDoc, "_id" | "_creationTime" | "streamType"> & {
-  streamType: StreamType;
+  name: StreamName;
 };
 
 export type EventEntry<
   Streams extends
     readonly EventStreamTemplate[] = readonly EventStreamTemplate[],
-  StreamType extends StreamTypeFor<Streams> = StreamTypeFor<Streams>,
+  StreamName extends StreamNameFor<Streams> = StreamNameFor<Streams>,
 > = {
-  [EvType in EventTypeFor<Streams, StreamType>]: Omit<
+  [EvType in EventTypeFor<Streams, StreamName>]: Omit<
     EventEntryDoc,
     | "_id"
     | "_creationTime"
@@ -167,24 +177,24 @@ export type EventEntry<
     | "eventTypeId"
     | "streamTypeId"
   > & {
-    streamType: StreamType;
+    name: StreamName;
     eventType: EvType;
-    payload?: PayloadFor<Streams, StreamType, EvType & string>;
+    payload?: PayloadFor<Streams, StreamName, EvType & string>;
   };
-}[EventTypeFor<Streams, StreamType>];
+}[EventTypeFor<Streams, StreamName>];
 
-export type ProjectorCheckpoint<StreamType extends string = string> = Omit<
+export type ProjectorCheckpoint<StreamName extends string = string> = Omit<
   EventProjectorCheckpointDoc,
   "_id" | "_creationTime" | "streamType"
 > & {
-  streamType: StreamType;
+  name: StreamName;
 };
 
-/** Discriminated union correlating streamType ↔ eventType ↔ payload. */
+/** Discriminated union correlating stream name ↔ eventType ↔ payload. */
 export type AppendArgs<Streams extends readonly EventStreamTemplate[]> = {
-  [Stream in StreamTypeFor<Streams>]: {
+  [Stream in StreamNameFor<Streams>]: {
     [EvType in EventTypeFor<Streams, Stream>]: {
-      streamType: Stream;
+      name: Stream;
       streamId: string;
       namespace?: string;
       eventId: string;
@@ -199,4 +209,4 @@ export type AppendArgs<Streams extends readonly EventStreamTemplate[]> = {
       eventTime?: number;
     };
   }[EventTypeFor<Streams, Stream>];
-}[StreamTypeFor<Streams>];
+}[StreamNameFor<Streams>];

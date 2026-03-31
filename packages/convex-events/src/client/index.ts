@@ -14,11 +14,11 @@ import type {
   MetricGroupByField,
   MetricMatchFields,
   ProjectorCheckpoint,
-  StreamTypeFor,
+  StreamNameFor,
 } from "../component/types.js";
 
 type StreamArgs<Streams extends readonly EventStreamTemplate[]> = {
-  streamType: StreamTypeFor<Streams>;
+  name: StreamNameFor<Streams>;
   /** Omitted or empty = unscoped stream identity. */
   namespace?: string;
   streamId: string;
@@ -29,13 +29,46 @@ type EventArgs<Streams extends readonly EventStreamTemplate[]> =
     eventId: string;
   };
 
-function matchesRule(
-  match: MetricMatchFields,
+function toPublicEntry<Streams extends readonly EventStreamTemplate[]>(
+  doc: { streamType: string } & Record<string, unknown>,
+): EventEntry<Streams> {
+  const { streamType, ...rest } = doc;
+  return { ...rest, name: streamType } as unknown as EventEntry<Streams>;
+}
+
+function toPublicStreamState<Streams extends readonly EventStreamTemplate[]>(
+  doc: ({ streamType: string } & Record<string, unknown>) | null,
+): EventStreamState<Streams> | null {
+  if (!doc) return null;
+  const { streamType, ...rest } = doc;
+  return { ...rest, name: streamType } as unknown as EventStreamState<Streams>;
+}
+
+function toPublicCheckpoint<Streams extends readonly EventStreamTemplate[]>(
+  doc: { streamType: string } & Record<string, unknown>,
+): ProjectorCheckpoint<StreamNameFor<Streams>> {
+  const { streamType, ...rest } = doc;
+  return { ...rest, name: streamType } as unknown as ProjectorCheckpoint<
+    StreamNameFor<Streams>
+  >;
+}
+
+function mapPage<Streams extends readonly EventStreamTemplate[]>(
+  page: PaginationResult<{ streamType: string } & Record<string, unknown>>,
+): PaginationResult<EventEntry<Streams>> {
+  return {
+    ...page,
+    page: page.page.map((d) => toPublicEntry<Streams>(d)),
+  };
+}
+
+function matchesRule<Streams extends readonly EventStreamTemplate[]>(
+  match: MetricMatchFields<Streams>,
   entry: { namespace: string; streamType: string; eventType: string },
 ): boolean {
   if (match.namespace !== undefined && match.namespace !== entry.namespace)
     return false;
-  if (match.streamType !== undefined && match.streamType !== entry.streamType)
+  if (match.name !== undefined && match.name !== entry.streamType)
     return false;
   if (match.eventType !== undefined && match.eventType !== entry.eventType)
     return false;
@@ -51,8 +84,14 @@ function buildGroupKey(
     eventType: string;
   },
 ): string {
-  if (groupBy.length === 1) return entry[groupBy[0] as MetricGroupByField];
-  return groupBy.map((f) => entry[f]).join("\0");
+  const map: Record<MetricGroupByField, string> = {
+    namespace: entry.namespace,
+    name: entry.streamType,
+    streamId: entry.streamId,
+    eventType: entry.eventType,
+  };
+  if (groupBy.length === 1) return map[groupBy[0] as MetricGroupByField];
+  return groupBy.map((f) => map[f as MetricGroupByField]).join("\0");
 }
 
 export class EventsClient<const Streams extends readonly EventStreamTemplate[]>
@@ -69,19 +108,17 @@ export class EventsClient<const Streams extends readonly EventStreamTemplate[]>
     this._subscribers.set(id, callback);
   }
 
-  private _assertRegisteredStream(streamType: string, eventType: string) {
+  private _assertRegisteredStream(streamName: string, eventType: string) {
     const streams = this.config.streams;
     if (streams.length === 0) return;
-    const stream = streams.find((s) => s.streamType === streamType);
+    const stream = streams.find((s) => s.name === streamName);
     if (!stream) {
-      throw new Error(`Unknown event streamType "${streamType}".`);
+      throw new Error(`Unknown event stream name "${streamName}".`);
     }
-    if (
-      stream.eventTypes.length > 0 &&
-      !stream.eventTypes.includes(eventType)
-    ) {
+    const keys = Object.keys(stream.events);
+    if (keys.length > 0 && !keys.includes(eventType)) {
       throw new Error(
-        `Unknown eventType "${eventType}" for streamType "${streamType}".`,
+        `Unknown eventType "${eventType}" for stream "${streamName}".`,
       );
     }
   }
@@ -91,14 +128,16 @@ export class EventsClient<const Streams extends readonly EventStreamTemplate[]>
     args: AppendArgs<Streams>,
   ): Promise<EventEntry<Streams>> => {
     this._assertRegisteredStream(
-      args.streamType as string,
+      args.name as string,
       args.eventType as string,
     );
-    const entry = await ctx.runMutation(
+    const { name, ...rest } = args as AppendArgs<Streams> & { name: string };
+    const entryRaw = await ctx.runMutation(
       this.component.public.append.appendToStream,
-      args,
+      { ...rest, streamType: name },
     );
-    const rules = this.config.metrics;
+    const entry = toPublicEntry<Streams>(entryRaw);
+    const rules = this.config.counters;
     if (rules && rules.length > 0) {
       const increments: {
         name: string;
@@ -106,11 +145,11 @@ export class EventsClient<const Streams extends readonly EventStreamTemplate[]>
         eventTime: number;
       }[] = [];
       for (const rule of rules) {
-        if (matchesRule(rule.match, entry)) {
+        if (matchesRule<Streams>(rule.match, entryRaw)) {
           increments.push({
             name: rule.name,
-            groupKey: buildGroupKey(rule.groupBy, entry),
-            eventTime: entry.eventTime,
+            groupKey: buildGroupKey(rule.groupBy, entryRaw),
+            eventTime: entryRaw.eventTime,
           });
         }
       }
@@ -121,7 +160,10 @@ export class EventsClient<const Streams extends readonly EventStreamTemplate[]>
       }
     }
     for (const cb of this._subscribers.values()) {
-      await cb(ctx, entry);
+      await cb(
+        ctx,
+        entry as EventEntry<readonly EventStreamTemplate[]>,
+      );
     }
     return entry;
   };
@@ -130,7 +172,12 @@ export class EventsClient<const Streams extends readonly EventStreamTemplate[]>
     ctx: EventsRunQueryCtx,
     args: EventArgs<Streams>,
   ): Promise<EventEntry<Streams> | null> => {
-    return await ctx.runQuery(this.component.public.read.getEvent, args);
+    const { name, ...rest } = args;
+    const raw = await ctx.runQuery(this.component.public.read.getEvent, {
+      ...rest,
+      streamType: name,
+    });
+    return raw ? toPublicEntry<Streams>(raw) : null;
   };
 
   listStreamEvents = async (
@@ -141,10 +188,12 @@ export class EventsClient<const Streams extends readonly EventStreamTemplate[]>
       eventTypes?: string[];
     },
   ): Promise<PaginationResult<EventEntry<Streams>>> => {
-    return await ctx.runQuery(
+    const { name, ...rest } = args;
+    const result = await ctx.runQuery(
       this.component.public.read.listStreamEvents,
-      args,
+      { ...rest, streamType: name },
     );
+    return mapPage<Streams>(result);
   };
 
   listStreamEventsSince = async (
@@ -157,23 +206,29 @@ export class EventsClient<const Streams extends readonly EventStreamTemplate[]>
       streamTypeId?: string;
     },
   ): Promise<PaginationResult<EventEntry<Streams>>> => {
-    return await ctx.runQuery(
+    const { name, ...rest } = args;
+    const result = await ctx.runQuery(
       this.component.public.read.listStreamEventsSince,
-      args,
+      { ...rest, streamType: name },
     );
+    return mapPage<Streams>(result);
   };
 
   listCategoryEvents = async (
     ctx: EventsRunQueryCtx,
     args: {
-      streamType: StreamTypeFor<Streams>;
+      name: StreamNameFor<Streams>;
       paginationOpts: PaginationOptions;
     },
   ): Promise<PaginationResult<EventEntry<Streams>>> => {
-    return await ctx.runQuery(
+    const result = await ctx.runQuery(
       this.component.public.read.listCategoryEvents,
-      args,
+      {
+        streamType: args.name,
+        paginationOpts: args.paginationOpts,
+      },
     );
+    return mapPage<Streams>(result);
   };
 
   listDimensions = async (
@@ -190,7 +245,12 @@ export class EventsClient<const Streams extends readonly EventStreamTemplate[]>
     ctx: EventsRunQueryCtx,
     args: StreamArgs<Streams>,
   ): Promise<EventStreamState<Streams> | null> => {
-    return await ctx.runQuery(this.component.public.streams.getStream, args);
+    const raw = await ctx.runQuery(this.component.public.streams.getStream, {
+      streamType: args.name,
+      namespace: args.namespace,
+      streamId: args.streamId,
+    });
+    return toPublicStreamState<Streams>(raw);
   };
 
   getVersion = async (
@@ -199,7 +259,11 @@ export class EventsClient<const Streams extends readonly EventStreamTemplate[]>
   ): Promise<number> => {
     return await ctx.runQuery(
       this.component.public.streams.getStreamVersion,
-      args,
+      {
+        streamType: args.name,
+        namespace: args.namespace,
+        streamId: args.streamId,
+      },
     );
   };
 
@@ -217,62 +281,86 @@ export class EventsClient<const Streams extends readonly EventStreamTemplate[]>
     ctx: EventsRunMutationCtx,
     args: {
       projector: string;
-      streamType: StreamTypeFor<Streams>;
+      name: StreamNameFor<Streams>;
       leaseOwner?: string;
       leaseDurationMs?: number;
     },
   ): Promise<{
-    checkpoint: ProjectorCheckpoint<StreamTypeFor<Streams>>;
+    checkpoint: ProjectorCheckpoint<StreamNameFor<Streams>>;
     claimed: boolean;
   }> => {
-    return await ctx.runMutation(
+    const raw = await ctx.runMutation(
       this.component.public.projectors.claimOrReadCheckpoint,
-      args,
+      {
+        projector: args.projector,
+        streamType: args.name,
+        leaseOwner: args.leaseOwner,
+        leaseDurationMs: args.leaseDurationMs,
+      },
     );
+    return {
+      checkpoint: toPublicCheckpoint<Streams>(raw.checkpoint),
+      claimed: raw.claimed,
+    };
   };
 
   advanceCheckpoint = async (
     ctx: EventsRunMutationCtx,
     args: {
       projector: string;
-      streamType: StreamTypeFor<Streams>;
+      name: StreamNameFor<Streams>;
       lastSequence: number;
       leaseOwner?: string;
       releaseClaim?: boolean;
     },
-  ): Promise<ProjectorCheckpoint<StreamTypeFor<Streams>>> => {
+  ): Promise<ProjectorCheckpoint<StreamNameFor<Streams>>> => {
     const checkpoint = await ctx.runMutation(
       this.component.public.projectors.advanceCheckpoint,
-      args,
+      {
+        projector: args.projector,
+        streamType: args.name,
+        lastSequence: args.lastSequence,
+        leaseOwner: args.leaseOwner,
+        releaseClaim: args.releaseClaim,
+      },
     );
-    return checkpoint;
+    return toPublicCheckpoint<Streams>(checkpoint);
   };
 
   readCheckpoint = async (
     ctx: EventsRunQueryCtx,
     args: {
       projector: string;
-      streamType: StreamTypeFor<Streams>;
+      name: StreamNameFor<Streams>;
     },
-  ): Promise<ProjectorCheckpoint<StreamTypeFor<Streams>> | null> => {
-    return await ctx.runQuery(
+  ): Promise<ProjectorCheckpoint<StreamNameFor<Streams>> | null> => {
+    const raw = await ctx.runQuery(
       this.component.public.projectors.readCheckpoint,
-      args,
+      {
+        projector: args.projector,
+        streamType: args.name,
+      },
     );
+    return raw ? toPublicCheckpoint<Streams>(raw) : null;
   };
 
   listUnprocessed = async (
     ctx: EventsRunQueryCtx,
     args: {
       projector: string;
-      streamType: StreamTypeFor<Streams>;
+      name: StreamNameFor<Streams>;
       limit?: number;
     },
   ): Promise<EventEntry<Streams>[]> => {
-    return await ctx.runQuery(
+    const raw = await ctx.runQuery(
       this.component.public.projectors.listUnprocessedEvents,
-      args,
+      {
+        projector: args.projector,
+        streamType: args.name,
+        limit: args.limit,
+      },
     );
+    return raw.map((d) => toPublicEntry<Streams>(d));
   };
 }
 
@@ -316,7 +404,7 @@ export async function* projectorUnprocessedBatches<
   ctx: EventsRunMutationCtx,
   args: {
     projector: string;
-    streamType: StreamTypeFor<Streams>;
+    name: StreamNameFor<Streams>;
     batchSize?: number;
     maxBatches?: number;
   },
@@ -326,18 +414,18 @@ export async function* projectorUnprocessedBatches<
       claim: () =>
         client.claimOrReadCheckpoint(ctx, {
           projector: args.projector,
-          streamType: args.streamType,
+          name: args.name,
         }),
       list: (limit) =>
         client.listUnprocessed(ctx, {
           projector: args.projector,
-          streamType: args.streamType,
+          name: args.name,
           limit,
         }),
       advance: (lastSequence) =>
         client.advanceCheckpoint(ctx, {
           projector: args.projector,
-          streamType: args.streamType,
+          name: args.name,
           lastSequence,
         }),
     },

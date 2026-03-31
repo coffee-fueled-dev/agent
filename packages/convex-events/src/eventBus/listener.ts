@@ -6,7 +6,7 @@ import type {
   EventSubscriber,
   EventsMutationCtx,
   EventsRunQueryCtx,
-  StreamTypeFor,
+  StreamNameFor,
 } from "../component/types.js";
 import type { DimensionKind } from "../domain/dimensions/fields.js";
 import { getOrCreateDimensionId } from "../domain/dimensions/helpers.js";
@@ -128,12 +128,12 @@ export class EventBusListener<const Sources extends readonly AnySource[]>
     const streamTypeId = await this._getOrCreateDimension(ctx, {
       namespace,
       kind: "streamType",
-      value: entry.streamType,
+      value: entry.name,
     });
 
     await ctx.db.insert("eventBusEntries", {
       sourceKey,
-      streamType: entry.streamType,
+      streamType: entry.name,
       namespace,
       streamId: entry.streamId,
       eventId: entry.eventId,
@@ -256,7 +256,7 @@ export class EventBusListener<const Sources extends readonly AnySource[]>
     ctx: EventsRunQueryCtx,
     busEntry: {
       sourceKey: SourceKey<Sources>;
-      streamType: StreamTypeFor<AllStreams<Sources>>;
+      name: StreamNameFor<AllStreams<Sources>>;
       namespace: string;
       streamId: string;
       eventId: string;
@@ -265,7 +265,7 @@ export class EventBusListener<const Sources extends readonly AnySource[]>
     const client = this._sourceMap.get(busEntry.sourceKey);
     if (!client) return null;
     return client.getEvent(ctx, {
-      streamType: busEntry.streamType,
+      name: busEntry.name,
       namespace: busEntry.namespace,
       streamId: busEntry.streamId,
       eventId: busEntry.eventId,

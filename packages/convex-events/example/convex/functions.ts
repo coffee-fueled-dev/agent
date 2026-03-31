@@ -3,7 +3,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { bus, events } from "./events";
 
-const vStreamType = v.union(v.literal("todo"), v.literal("counter"));
+const vStreamName = v.union(v.literal("todo"), v.literal("counter"));
 const vTodoEventType = v.union(
   v.literal("created"),
   v.literal("completed"),
@@ -20,7 +20,7 @@ const vCounterEventType = v.union(
 
 export const appendEvent = mutation({
   args: {
-    streamType: vStreamType,
+    name: vStreamName,
     streamId: v.string(),
     eventId: v.string(),
     eventType: v.union(vTodoEventType, vCounterEventType),
@@ -39,7 +39,7 @@ export const appendEvent = mutation({
 
 export const listStreamEvents = query({
   args: {
-    streamType: vStreamType,
+    name: vStreamName,
     streamId: v.string(),
     namespace: v.optional(v.string()),
     paginationOpts: paginationOptsValidator,
@@ -52,7 +52,7 @@ export const listStreamEvents = query({
 
 export const listStreamEventsSince = query({
   args: {
-    streamType: vStreamType,
+    name: vStreamName,
     streamId: v.string(),
     namespace: v.optional(v.string()),
     minEventTime: v.number(),
@@ -86,7 +86,7 @@ export const listDimensions = query({
 
 export const getStream = query({
   args: {
-    streamType: vStreamType,
+    name: vStreamName,
     streamId: v.string(),
     namespace: v.optional(v.string()),
   },
@@ -116,7 +116,7 @@ export const getMetrics = query({
 export const readCheckpoint = query({
   args: {
     projector: v.string(),
-    streamType: vStreamType,
+    name: vStreamName,
   },
   handler: async (ctx, args) => {
     return events.readCheckpoint(ctx, args);
@@ -126,7 +126,7 @@ export const readCheckpoint = query({
 export const listUnprocessed = query({
   args: {
     projector: v.string(),
-    streamType: vStreamType,
+    name: vStreamName,
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
@@ -137,7 +137,7 @@ export const listUnprocessed = query({
 export const claimCheckpoint = mutation({
   args: {
     projector: v.string(),
-    streamType: vStreamType,
+    name: vStreamName,
   },
   handler: async (ctx, args) => {
     return events.claimOrReadCheckpoint(ctx, args);
@@ -147,7 +147,7 @@ export const claimCheckpoint = mutation({
 export const advanceCheckpoint = mutation({
   args: {
     projector: v.string(),
-    streamType: vStreamType,
+    name: vStreamName,
     lastSequence: v.number(),
   },
   handler: async (ctx, args) => {

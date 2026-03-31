@@ -7,7 +7,7 @@ const STREAM_ID = "demo-version";
 
 function Version() {
   const stream = useQuery(api.functions.getStream, {
-    streamType: "todo",
+    name: "todo",
     streamId: STREAM_ID,
   });
   const append = useMutation(api.functions.appendEvent);
@@ -17,7 +17,7 @@ function Version() {
     setError(null);
     try {
       await append({
-        streamType: "todo",
+        name: "todo",
         streamId: STREAM_ID,
         eventId: crypto.randomUUID(),
         eventType: "created",
@@ -32,7 +32,7 @@ function Version() {
   const appendWithoutVersion = async () => {
     setError(null);
     await append({
-      streamType: "todo",
+      name: "todo",
       streamId: STREAM_ID,
       eventId: crypto.randomUUID(),
       eventType: "completed",

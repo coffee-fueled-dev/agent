@@ -10,14 +10,14 @@ function Streams() {
   const append = useMutation(api.functions.appendEvent);
   const { results, status, loadMore } = usePaginatedQuery(
     api.functions.listStreamEvents,
-    { streamType: "todo", streamId: STREAM_ID, order: "desc" },
+    { name: "todo", streamId: STREAM_ID, order: "desc" },
     { initialNumItems: 20 },
   );
 
   const submit = async () => {
     if (!title.trim()) return;
     await append({
-      streamType: "todo",
+      name: "todo",
       streamId: STREAM_ID,
       eventId: crypto.randomUUID(),
       eventType: "created",

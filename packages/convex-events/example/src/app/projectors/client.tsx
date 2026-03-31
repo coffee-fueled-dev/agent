@@ -4,17 +4,17 @@ import { api } from "../../../convex/_generated/api";
 import { renderApp } from "../../render-root";
 
 const PROJECTOR = "demo-projector";
-const STREAM_TYPE = "todo";
+const STREAM_NAME = "todo";
 const STREAM_ID = "demo-projector-stream";
 
 function Projectors() {
   const checkpoint = useQuery(api.functions.readCheckpoint, {
     projector: PROJECTOR,
-    streamType: STREAM_TYPE,
+    name: STREAM_NAME,
   });
   const unprocessed = useQuery(api.functions.listUnprocessed, {
     projector: PROJECTOR,
-    streamType: STREAM_TYPE,
+    name: STREAM_NAME,
     limit: 10,
   });
 
@@ -25,7 +25,7 @@ function Projectors() {
 
   const addEvent = async () => {
     await append({
-      streamType: STREAM_TYPE,
+      name: STREAM_NAME,
       streamId: STREAM_ID,
       eventId: crypto.randomUUID(),
       eventType: "created",
@@ -35,7 +35,7 @@ function Projectors() {
 
   const processBatch = async () => {
     setStatus("Claiming…");
-    await claim({ projector: PROJECTOR, streamType: STREAM_TYPE });
+    await claim({ projector: PROJECTOR, name: STREAM_NAME });
 
     const batch = unprocessed ?? [];
     if (batch.length === 0) {
@@ -51,7 +51,7 @@ function Projectors() {
     setStatus(`Advancing to sequence ${maxSeq}…`);
     await advance({
       projector: PROJECTOR,
-      streamType: STREAM_TYPE,
+      name: STREAM_NAME,
       lastSequence: maxSeq,
     });
     setStatus(`Processed ${batch.length} events (up to seq ${maxSeq}).`);
@@ -91,8 +91,8 @@ function Projectors() {
         <dl>
           <dt>projector</dt>
           <dd>{checkpoint.projector}</dd>
-          <dt>streamType</dt>
-          <dd>{checkpoint.streamType}</dd>
+          <dt>name</dt>
+          <dd>{checkpoint.name}</dd>
           <dt>lastSequence</dt>
           <dd>{checkpoint.lastSequence}</dd>
           <dt>updatedTime</dt>
