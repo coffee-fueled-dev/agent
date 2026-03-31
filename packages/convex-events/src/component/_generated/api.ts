@@ -17,7 +17,6 @@ import { anyApi, componentsGeneric } from "convex/server";
 import type * as internal_shared from "../internal/shared.js";
 import type * as internal_store from "../internal/store.js";
 import type * as public_append from "../public/append.js";
-import type * as public_eventBus from "../public/eventBus.js";
 import type * as public_metrics from "../public/metrics.js";
 import type * as public_projectors from "../public/projectors.js";
 import type * as public_read from "../public/read.js";
@@ -27,7 +26,6 @@ const fullApi: ApiFromModules<{
   "internal/shared": typeof internal_shared;
   "internal/store": typeof internal_store;
   "public/append": typeof public_append;
-  "public/eventBus": typeof public_eventBus;
   "public/metrics": typeof public_metrics;
   "public/projectors": typeof public_projectors;
   "public/read": typeof public_read;

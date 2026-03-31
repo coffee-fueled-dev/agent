@@ -1,5 +1,6 @@
 import type {
   GenericDataModel,
+  GenericMutationCtx,
   GenericQueryCtx,
   PaginationOptions,
   PaginationResult,
@@ -12,7 +13,6 @@ import type {
   EventStreamTemplate,
   EventSubscribable,
   EventSubscriber,
-  EventsAppendHookCtx,
   EventsConfig,
   MetricGroupByField,
   MetricMatchFields,
@@ -21,6 +21,10 @@ import type {
 } from "../types.js";
 
 type RunQueryCtx = Pick<GenericQueryCtx<GenericDataModel>, "runQuery">;
+type RunMutationCtx = Pick<
+  GenericMutationCtx<GenericDataModel>,
+  "runQuery" | "runMutation"
+>;
 
 type StreamArgs<Streams extends readonly EventStreamTemplate[]> = {
   streamType: StreamTypeFor<Streams>;
@@ -93,7 +97,7 @@ export class EventsClient<const Streams extends readonly EventStreamTemplate[]>
 
   append = {
     appendToStream: async (
-      ctx: EventsAppendHookCtx,
+      ctx: RunMutationCtx,
       args: AppendArgs<Streams>,
     ): Promise<EventEntry<Streams>> => {
       this._assertRegisteredStream(
@@ -215,7 +219,7 @@ export class EventsClient<const Streams extends readonly EventStreamTemplate[]>
 
   projectors = {
     claimOrReadCheckpoint: async (
-      ctx: EventsAppendHookCtx,
+      ctx: RunMutationCtx,
       args: {
         projector: string;
         streamType: StreamTypeFor<Streams>;
@@ -233,7 +237,7 @@ export class EventsClient<const Streams extends readonly EventStreamTemplate[]>
     },
 
     advanceCheckpoint: async (
-      ctx: EventsAppendHookCtx,
+      ctx: RunMutationCtx,
       args: {
         projector: string;
         streamType: StreamTypeFor<Streams>;
@@ -246,7 +250,6 @@ export class EventsClient<const Streams extends readonly EventStreamTemplate[]>
         this.component.public.projectors.advanceCheckpoint,
         args,
       );
-      await this.config.onAdvanceCheckpoint?.(ctx, checkpoint);
       return checkpoint;
     },
 
@@ -316,7 +319,7 @@ export async function* projectorUnprocessedBatches<
   const Streams extends readonly EventStreamTemplate[],
 >(
   client: EventsClient<Streams>,
-  ctx: EventsAppendHookCtx,
+  ctx: RunMutationCtx,
   args: {
     projector: string;
     streamType: StreamTypeFor<Streams>;

@@ -1,18 +1,15 @@
-import type {
-  GenericActionCtx,
-  GenericDataModel,
-  GenericMutationCtx,
-} from "convex/server";
+import type { GenericDataModel, GenericMutationCtx } from "convex/server";
 import type { ObjectType, PropertyValidators } from "convex/values";
+import type {
+  EventEntryDoc,
+  EventProjectorCheckpointDoc,
+  EventStreamDoc,
+} from "./component/models/types";
 
-/**
- * Minimal ctx passed to append/checkpoint hooks: whatever called `EventsClient` must
- * supply `runMutation` (and usually `runQuery`) so hooks can `runMutation` into the
- * **app** (e.g. `internal.*`) from component code paths (mutations or actions).
- */
-export type EventsAppendHookCtx =
-  | Pick<GenericMutationCtx<GenericDataModel>, "runMutation" | "runQuery">
-  | Pick<GenericActionCtx<GenericDataModel>, "runMutation" | "runQuery">;
+export type RunMutationCtx = Pick<
+  GenericMutationCtx<GenericDataModel>,
+  "runQuery" | "runMutation"
+>;
 
 export type EventMetadataValue = string | number | boolean | null;
 
@@ -56,7 +53,7 @@ export type MetricRule<
 };
 
 export type EventSubscriber = (
-  ctx: EventsAppendHookCtx,
+  ctx: RunMutationCtx,
   entry: EventEntry,
 ) => void | Promise<void>;
 
@@ -70,10 +67,6 @@ export type EventsConfig<
 > = {
   streams: Streams;
   metrics?: MetricRule<Streams>[];
-  onAdvanceCheckpoint?: (
-    ctx: EventsAppendHookCtx,
-    checkpoint: ProjectorCheckpoint<StreamTypeFor<Streams>>,
-  ) => void | Promise<void>;
 };
 
 type RegisteredStream<Streams extends readonly EventStreamTemplate[]> =
@@ -128,14 +121,8 @@ export type EventStreamState<
   Streams extends
     readonly EventStreamTemplate[] = readonly EventStreamTemplate[],
   StreamType extends StreamTypeFor<Streams> = StreamTypeFor<Streams>,
-> = {
+> = Omit<EventStreamDoc, "_id" | "_creationTime" | "streamType"> & {
   streamType: StreamType;
-  namespace: string;
-  streamId: string;
-  version: number;
-  lastEventSequence: number | null;
-  createdTime: number;
-  updatedTime: number;
 };
 
 export type EventEntry<
@@ -143,31 +130,50 @@ export type EventEntry<
     readonly EventStreamTemplate[] = readonly EventStreamTemplate[],
   StreamType extends StreamTypeFor<Streams> = StreamTypeFor<Streams>,
 > = {
-  [EvType in EventTypeFor<Streams, StreamType>]: {
-    globalSequence: number;
+  [EvType in EventTypeFor<Streams, StreamType>]: Omit<
+    EventEntryDoc,
+    "_id" | "_creationTime" | "streamType" | "eventType" | "payload"
+  > & {
     streamType: StreamType;
-    namespace: string;
-    streamId: string;
-    streamVersion: number;
-    eventId: string;
     eventType: EvType;
     payload?: PayloadFor<Streams, StreamType, EvType & string>;
-    metadata?: EventMetadata;
-    causationId?: string;
-    correlationId?: string;
-    actor?: EventActor;
-    session?: string;
-    eventTime: number;
   };
 }[EventTypeFor<Streams, StreamType>];
 
-export type ProjectorCheckpoint<StreamType extends string = string> = {
-  projector: string;
+export type BusDimensionKind = "eventType" | "streamType";
+
+/** Row in `eventBusDimensions` (app schema). */
+export type BusDimension = {
+  _id: string;
+  _creationTime: number;
+  namespace: string;
+  kind: BusDimensionKind;
+  value: string;
+  firstSeenAt: number;
+  lastSeenAt: number;
+};
+
+/** Row in `eventBusEntries` (app schema). */
+export type BusEntry = {
+  _id: string;
+  _creationTime: number;
+  sourceKey: string;
+  streamType: string;
+  namespace: string;
+  streamId: string;
+  eventId: string;
+  eventType: string;
+  eventTime: number;
+  payload?: unknown;
+  eventTypeId: string;
+  streamTypeId: string;
+};
+
+export type ProjectorCheckpoint<StreamType extends string = string> = Omit<
+  EventProjectorCheckpointDoc,
+  "_id" | "_creationTime" | "streamType"
+> & {
   streamType: StreamType;
-  lastSequence: number;
-  updatedTime: number;
-  leaseOwner?: string;
-  leaseExpiresAt?: number;
 };
 
 export type AppendArgs<Streams extends readonly EventStreamTemplate[]> = {

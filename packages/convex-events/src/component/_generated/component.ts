@@ -64,25 +64,6 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           Name
         >;
       };
-      eventBus: {
-        writeBusEntry: FunctionReference<
-          "mutation",
-          "internal",
-          {
-            eventId: string;
-            eventTime: number;
-            eventType: string;
-            maxSize: number;
-            namespace: string;
-            payload?: any;
-            sourceKey: string;
-            streamId: string;
-            streamType: string;
-          },
-          null,
-          Name
-        >;
-      };
       metrics: {
         getMetricsBatch: FunctionReference<
           "query",

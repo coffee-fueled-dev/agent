@@ -63,8 +63,8 @@
       "default": "./dist/component/convex.config.js"
     },
     "./eventBus": {
-      "types": "./dist/eventBus.d.ts",
-      "default": "./dist/eventBus.js"
+      "types": "./dist/eventBus/index.d.ts",
+      "default": "./dist/eventBus/index.js"
     },
     "./types": {
       "types": "./dist/types.d.ts",
