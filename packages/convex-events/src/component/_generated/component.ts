@@ -52,6 +52,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             eventId: string;
             eventTime: number;
             eventType: string;
+            eventTypeId: string;
             globalSequence: number;
             metadata?: Record<string, string | number | boolean | null>;
             namespace: string;
@@ -59,8 +60,18 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             session?: string;
             streamId: string;
             streamType: string;
+            streamTypeId: string;
             streamVersion: number;
           },
+          Name
+        >;
+      };
+      dimensions: {
+        listDimensions: FunctionReference<
+          "query",
+          "internal",
+          { kind: "eventType" | "streamType"; namespace?: string },
+          any,
           Name
         >;
       };
@@ -146,6 +157,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             eventId: string;
             eventTime: number;
             eventType: string;
+            eventTypeId: string;
             globalSequence: number;
             metadata?: Record<string, string | number | boolean | null>;
             namespace: string;
@@ -153,6 +165,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             session?: string;
             streamId: string;
             streamType: string;
+            streamTypeId: string;
             streamVersion: number;
           }>,
           Name
@@ -193,6 +206,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             eventId: string;
             eventTime: number;
             eventType: string;
+            eventTypeId: string;
             globalSequence: number;
             metadata?: Record<string, string | number | boolean | null>;
             namespace: string;
@@ -200,6 +214,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             session?: string;
             streamId: string;
             streamType: string;
+            streamTypeId: string;
             streamVersion: number;
           } | null,
           Name
@@ -225,6 +240,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           "query",
           "internal",
           {
+            eventTypeId?: string;
             eventTypes?: Array<string>;
             namespace?: string;
             order?: "asc" | "desc";
@@ -238,6 +254,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             };
             streamId: string;
             streamType: string;
+            streamTypeId?: string;
           },
           any,
           Name
@@ -246,30 +263,23 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           "query",
           "internal",
           {
+            eventTypeId?: string;
             eventTypes?: Array<string>;
             minEventTime: number;
             namespace?: string;
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
             streamId: string;
             streamType: string;
+            streamTypeId?: string;
           },
-          Array<{
-            _creationTime: number;
-            _id: string;
-            actor?: { byId: string; byType: string };
-            causationId?: string;
-            correlationId?: string;
-            eventId: string;
-            eventTime: number;
-            eventType: string;
-            globalSequence: number;
-            metadata?: Record<string, string | number | boolean | null>;
-            namespace: string;
-            payload?: any;
-            session?: string;
-            streamId: string;
-            streamType: string;
-            streamVersion: number;
-          }>,
+          any,
           Name
         >;
       };

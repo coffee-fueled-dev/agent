@@ -135,9 +135,12 @@ export class EventsClient<const Streams extends readonly EventStreamTemplate[]>
     ctx: RunQueryCtx,
     args: StreamArgs<Streams> & {
       minEventTime: number;
+      paginationOpts: PaginationOptions;
       eventTypes?: string[];
+      eventTypeId?: string;
+      streamTypeId?: string;
     },
-  ): Promise<EventEntry<Streams>[]> => {
+  ): Promise<PaginationResult<EventEntry<Streams>>> => {
     return await ctx.runQuery(
       this.component.public.read.listStreamEventsSince,
       args,
@@ -153,6 +156,16 @@ export class EventsClient<const Streams extends readonly EventStreamTemplate[]>
   ): Promise<PaginationResult<EventEntry<Streams>>> => {
     return await ctx.runQuery(
       this.component.public.read.listCategoryEvents,
+      args,
+    );
+  };
+
+  listDimensions = async (
+    ctx: RunQueryCtx,
+    args: { namespace?: string; kind: "eventType" | "streamType" },
+  ): Promise<unknown[]> => {
+    return await ctx.runQuery(
+      this.component.public.dimensions.listDimensions,
       args,
     );
   };

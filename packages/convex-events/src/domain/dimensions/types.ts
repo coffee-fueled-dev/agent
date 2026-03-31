@@ -4,21 +4,12 @@ import type {
   TableNamesInDataModel,
 } from "convex/server";
 import type { GenericId, Infer } from "convex/values";
-import type { dimensions } from "../../domain/dimensions/tables";
-import type {
-  eventBusCount,
-  eventBusEntries,
-  eventBusEvictionBuffer,
-} from "./tables";
-import type { vEventBusEntry } from "./validators";
+import type { dimensions } from "./tables";
+import type { vDimension } from "./validators";
 
-export type EventBusEntryDoc = Infer<typeof vEventBusEntry>;
-
+export type DimensionDoc = Infer<typeof vDimension>;
 type ExpectedSchema = {
   dimensions: typeof dimensions;
-  eventBusEntries: typeof eventBusEntries;
-  eventBusEvictionBuffer: typeof eventBusEvictionBuffer;
-  eventBusCount: typeof eventBusCount;
 };
 export type ExpectedDataModel = DataModelFromSchemaDefinition<
   SchemaDefinition<ExpectedSchema, true>

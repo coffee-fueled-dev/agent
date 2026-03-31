@@ -36,6 +36,8 @@ export const eventEntryFields = {
   actor: actorValidator,
   session: v.optional(v.string()),
   eventTime: v.number(),
+  eventTypeId: v.id("dimensions"),
+  streamTypeId: v.id("dimensions"),
 };
 
 export const eventStreamMetricFields = {

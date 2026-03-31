@@ -26,43 +26,50 @@ export const listStreamEvents = query({
     paginationOpts: paginationOptsValidator,
     order: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
     eventTypes: v.optional(v.array(v.string())),
+    eventTypeId: v.optional(v.id("dimensions")),
+    streamTypeId: v.optional(v.id("dimensions")),
   },
   handler: async (ctx, args) => {
     const namespace = normalizeStreamNamespace(args.namespace);
     const types = args.eventTypes;
-    const hasTypes = types && types.length > 0;
+    const hasTypes = Boolean(types?.length);
+    const etId = args.eventTypeId;
+    const stId = args.streamTypeId;
+    const hasDimensionFilter = Boolean(etId || stId);
 
-    const indexChain = () =>
-      paginator(ctx.db, schema)
-        .query("event_entries")
-        .withIndex("by_stream_version", (q) =>
-          q
-            .eq("streamType", args.streamType)
-            .eq("namespace", namespace)
-            .eq("streamId", args.streamId),
-        );
-
-    /** convex-helpers paginator streams do not support `.filter()`; use `.filterWith()` (see stream.js). */
-    const filterByEventTypes =
-      (t: string[]) => async (doc: { eventType: string }) =>
-        t.length === 1 ? doc.eventType === t[0] : t.includes(doc.eventType);
+    // `filterWith` narrows the stream type in a way that breaks reassignment; use a loose chain like listCategoryEvents.
+    let chain: any = paginator(ctx.db, schema)
+      .query("event_entries")
+      .withIndex("by_stream_version", (q) =>
+        q
+          .eq("streamType", args.streamType)
+          .eq("namespace", namespace)
+          .eq("streamId", args.streamId),
+      );
 
     if (args.order === "desc") {
-      const chain = hasTypes
-        ? indexChain()
-            .order("desc")
-            .filterWith(async (doc) => filterByEventTypes(types)(doc))
-        : indexChain().order("desc");
-      return await chain.paginate(args.paginationOpts);
+      chain = chain.order("desc");
     }
 
-    if (hasTypes) {
-      return await indexChain()
-        .filterWith(async (doc) => filterByEventTypes(types)(doc))
-        .paginate(args.paginationOpts);
+    if (hasTypes && types) {
+      chain = chain.filterWith(async (doc: { eventType: string }) =>
+        types.length === 1
+          ? doc.eventType === types[0]
+          : types.includes(doc.eventType),
+      );
     }
 
-    return await indexChain().paginate(args.paginationOpts);
+    if (hasDimensionFilter) {
+      chain = chain.filterWith(
+        async (doc: { eventTypeId: string; streamTypeId: string }) => {
+          if (etId && doc.eventTypeId !== etId) return false;
+          if (stId && doc.streamTypeId !== stId) return false;
+          return true;
+        },
+      );
+    }
+
+    return await chain.paginate(args.paginationOpts);
   },
 });
 
@@ -70,14 +77,20 @@ export const listStreamEventsSince = query({
   args: {
     ...streamRefFields,
     minEventTime: v.number(),
+    paginationOpts: paginationOptsValidator,
     eventTypes: v.optional(v.array(v.string())),
+    eventTypeId: v.optional(v.id("dimensions")),
+    streamTypeId: v.optional(v.id("dimensions")),
   },
-  returns: v.array(eventEntryValidator),
   handler: async (ctx, args) => {
     const namespace = normalizeStreamNamespace(args.namespace);
-    // Use by_stream_event_time so we range-scan from minEventTime instead of
-    // scanning the entire stream (by_stream_version + filter timed out on large streams).
-    const base = ctx.db
+    const types = args.eventTypes;
+    const hasTypes = Boolean(types?.length);
+    const etId = args.eventTypeId;
+    const stId = args.streamTypeId;
+    const hasDimensionFilter = Boolean(etId || stId);
+
+    let chain: any = paginator(ctx.db, schema)
       .query("event_entries")
       .withIndex("by_stream_event_time", (q) =>
         q
@@ -86,17 +99,26 @@ export const listStreamEventsSince = query({
           .eq("streamId", args.streamId)
           .gte("eventTime", args.minEventTime),
       );
-    const types = args.eventTypes;
-    if (!types?.length) {
-      return await base.collect();
-    }
-    return await base
-      .filter((q) =>
+
+    if (hasTypes && types) {
+      chain = chain.filterWith(async (doc: { eventType: string }) =>
         types.length === 1
-          ? q.eq(q.field("eventType"), types[0] as string)
-          : q.or(...types.map((t) => q.eq(q.field("eventType"), t))),
-      )
-      .collect();
+          ? doc.eventType === types[0]
+          : types.includes(doc.eventType),
+      );
+    }
+
+    if (hasDimensionFilter) {
+      chain = chain.filterWith(
+        async (doc: { eventTypeId: string; streamTypeId: string }) => {
+          if (etId && doc.eventTypeId !== etId) return false;
+          if (stId && doc.streamTypeId !== stId) return false;
+          return true;
+        },
+      );
+    }
+
+    return await chain.paginate(args.paginationOpts);
   },
 });
 

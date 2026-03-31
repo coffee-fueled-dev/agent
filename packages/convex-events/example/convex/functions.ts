@@ -56,9 +56,27 @@ export const listStreamEventsSince = query({
     streamId: v.string(),
     namespace: v.optional(v.string()),
     minEventTime: v.number(),
+    paginationOpts: paginationOptsValidator,
+    eventTypes: v.optional(v.array(v.string())),
+    eventTypeId: v.optional(v.id("dimensions")),
+    streamTypeId: v.optional(v.id("dimensions")),
   },
   handler: async (ctx, args) => {
     return events.listStreamEventsSince(ctx, args);
+  },
+});
+
+// ---------------------------------------------------------------------------
+// Dimensions (component-level)
+// ---------------------------------------------------------------------------
+
+export const listDimensions = query({
+  args: {
+    namespace: v.optional(v.string()),
+    kind: v.union(v.literal("eventType"), v.literal("streamType")),
+  },
+  handler: async (ctx, args) => {
+    return events.listDimensions(ctx, args);
   },
 });
 
@@ -144,8 +162,8 @@ export const advanceCheckpoint = mutation({
 export const listBusEntries = query({
   args: {
     namespace: v.optional(v.string()),
-    eventTypeId: v.optional(v.id("eventBusDimensions")),
-    streamTypeId: v.optional(v.id("eventBusDimensions")),
+    eventTypeId: v.optional(v.id("dimensions")),
+    streamTypeId: v.optional(v.id("dimensions")),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {

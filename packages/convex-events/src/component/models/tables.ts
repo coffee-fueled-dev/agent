@@ -1,4 +1,5 @@
 import { defineTable } from "convex/server";
+import { dimensions } from "../../domain/dimensions/tables";
 import {
   eventEntryFields,
   eventProjectorCheckpointFields,
@@ -27,7 +28,17 @@ const eventEntries = defineTable(eventEntryFields)
     "eventTime",
   ])
   .index("by_stream_event", ["streamType", "namespace", "streamId", "eventId"])
-  .index("by_type_sequence", ["streamType", "globalSequence"]);
+  .index("by_type_sequence", ["streamType", "globalSequence"])
+  .index("by_namespace_eventType_time", [
+    "namespace",
+    "eventTypeId",
+    "eventTime",
+  ])
+  .index("by_namespace_streamType_time", [
+    "namespace",
+    "streamTypeId",
+    "eventTime",
+  ]);
 
 const eventStreamMetrics = defineTable(eventStreamMetricFields).index(
   "by_name_key",
@@ -39,6 +50,7 @@ const eventProjectorCheckpoints = defineTable(
 ).index("by_projector_stream", ["projector", "streamType"]);
 
 export const componentTables = {
+  dimensions: dimensions,
   event_streams: eventStreams,
   event_entries: eventEntries,
   event_stream_metrics: eventStreamMetrics,

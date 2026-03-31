@@ -7,6 +7,7 @@ import type {
 } from "./models/types";
 
 export type {
+  EventDimensionDoc,
   EventStreamDoc,
   EventEntryDoc,
   EventStreamMetricDoc,
@@ -139,7 +140,13 @@ export type EventEntry<
 > = {
   [EvType in EventTypeFor<Streams, StreamType>]: Omit<
     EventEntryDoc,
-    "_id" | "_creationTime" | "streamType" | "eventType" | "payload"
+    | "_id"
+    | "_creationTime"
+    | "streamType"
+    | "eventType"
+    | "payload"
+    | "eventTypeId"
+    | "streamTypeId"
   > & {
     streamType: StreamType;
     eventType: EvType;

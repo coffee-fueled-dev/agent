@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { getOrCreateDimensionId } from "../../domain/dimensions/helpers.js";
 import { mutation } from "../_generated/server.js";
 import {
   actorValidator,
@@ -54,6 +55,17 @@ export const appendToStream = mutation({
     const globalSequence = (await readLatestGlobalSequence(ctx)) + 1;
     const streamVersion = currentVersion + 1;
 
+    const eventTypeId = await getOrCreateDimensionId(ctx, {
+      namespace,
+      kind: "eventType",
+      value: args.eventType,
+    });
+    const streamTypeId = await getOrCreateDimensionId(ctx, {
+      namespace,
+      kind: "streamType",
+      value: args.streamType,
+    });
+
     const entry = {
       globalSequence,
       streamType: args.streamType,
@@ -69,6 +81,8 @@ export const appendToStream = mutation({
       actor: args.actor,
       session: args.session,
       eventTime: args.eventTime ?? now,
+      eventTypeId,
+      streamTypeId,
     };
 
     const insertedId = await ctx.db.insert("event_entries", entry);

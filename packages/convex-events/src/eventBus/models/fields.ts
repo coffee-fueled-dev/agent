@@ -1,13 +1,5 @@
 import { v } from "convex/values";
 
-export const eventBusDimensionFields = {
-  namespace: v.string(),
-  kind: v.union(v.literal("eventType"), v.literal("streamType")),
-  value: v.string(),
-  firstSeenAt: v.number(),
-  lastSeenAt: v.number(),
-};
-
 export const eventBusEntryFields = {
   sourceKey: v.string(),
   streamType: v.string(),
@@ -17,8 +9,8 @@ export const eventBusEntryFields = {
   eventType: v.string(),
   eventTime: v.number(),
   payload: v.optional(v.any()),
-  eventTypeId: v.id("eventBusDimensions"),
-  streamTypeId: v.id("eventBusDimensions"),
+  eventTypeId: v.id("dimensions"),
+  streamTypeId: v.id("dimensions"),
 };
 
 export const eventBusEvictionBufferFields = {

@@ -1,15 +1,10 @@
 import { defineTable } from "convex/server";
+import { dimensionsTables } from "../../domain/dimensions/tables";
 import {
   eventBusCountFields,
-  eventBusDimensionFields,
   eventBusEntryFields,
   eventBusEvictionBufferFields,
 } from "./fields";
-
-export const eventBusDimensions = defineTable(eventBusDimensionFields).index(
-  "by_namespace_kind_value",
-  ["namespace", "kind", "value"],
-);
 
 export const eventBusEntries = defineTable(eventBusEntryFields)
   .index("by_source_event", ["sourceKey", "eventId"])
@@ -31,7 +26,7 @@ export const eventBusEvictionBuffer = defineTable(eventBusEvictionBufferFields);
 export const eventBusCount = defineTable(eventBusCountFields);
 
 export const fifoTables = {
-  eventBusDimensions,
+  ...dimensionsTables,
   eventBusEntries,
   eventBusEvictionBuffer,
   eventBusCount,

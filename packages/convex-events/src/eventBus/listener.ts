@@ -8,13 +8,12 @@ import type {
   RunMutationCtx,
   StreamTypeFor,
 } from "../component/types.js";
-import type {
-  BusDimension,
-  BusDimensionKind,
-  BusEntry,
-} from "./types.js";
+import type { DimensionKind } from "../domain/dimensions/fields.js";
+import { getOrCreateDimensionId } from "../domain/dimensions/helpers.js";
+import type { DimensionDoc } from "../domain/dimensions/types.js";
 import type { EvictionPolicy } from "./index.js";
 import type { ExpectedDataModel, ExpectedId } from "./models/types.js";
+import type { BusEntry } from "./types.js";
 
 type MutationCtx = GenericMutationCtx<ExpectedDataModel>;
 type QueryCtx = GenericQueryCtx<ExpectedDataModel>;
@@ -74,29 +73,9 @@ export class EventBusListener<const Sources extends readonly AnySource[]>
 
   private async _getOrCreateDimension(
     ctx: MutationCtx,
-    args: { namespace: string; kind: BusDimensionKind; value: string },
+    args: { namespace: string; kind: DimensionKind; value: string },
   ) {
-    const now = Date.now();
-    const existing = await ctx.db
-      .query("eventBusDimensions")
-      .withIndex("by_namespace_kind_value", (q) =>
-        q
-          .eq("namespace", args.namespace)
-          .eq("kind", args.kind)
-          .eq("value", args.value),
-      )
-      .first();
-    if (existing) {
-      await ctx.db.patch(existing._id, { lastSeenAt: now });
-      return existing._id;
-    }
-    return await ctx.db.insert("eventBusDimensions", {
-      namespace: args.namespace,
-      kind: args.kind,
-      value: args.value,
-      firstSeenAt: now,
-      lastSeenAt: now,
-    });
+    return getOrCreateDimensionId(ctx, args);
   }
 
   private async _getOrCreateCount(ctx: MutationCtx) {
@@ -195,8 +174,8 @@ export class EventBusListener<const Sources extends readonly AnySource[]>
     ctx: QueryCtx,
     args: {
       namespace?: string;
-      eventTypeId?: ExpectedId<"eventBusDimensions">;
-      streamTypeId?: ExpectedId<"eventBusDimensions">;
+      eventTypeId?: ExpectedId<"dimensions">;
+      streamTypeId?: ExpectedId<"dimensions">;
       eventTimeMin?: number;
       eventTimeMax?: number;
       limit?: number;
@@ -263,11 +242,11 @@ export class EventBusListener<const Sources extends readonly AnySource[]>
 
   async listDimensions(
     ctx: QueryCtx,
-    args: { namespace?: string; kind: BusDimensionKind },
-  ): Promise<BusDimension[]> {
+    args: { namespace?: string; kind: DimensionKind },
+  ): Promise<DimensionDoc[]> {
     const namespace = normalizeNamespace(args.namespace);
     return await ctx.db
-      .query("eventBusDimensions")
+      .query("dimensions")
       .withIndex("by_namespace_kind_value", (q) =>
         q.eq("namespace", namespace).eq("kind", args.kind),
       )

@@ -15,6 +15,7 @@ import type * as models_tables from "../models/tables.js";
 import type * as models_types from "../models/types.js";
 import type * as models_validators from "../models/validators.js";
 import type * as public_append from "../public/append.js";
+import type * as public_dimensions from "../public/dimensions.js";
 import type * as public_metrics from "../public/metrics.js";
 import type * as public_projectors from "../public/projectors.js";
 import type * as public_read from "../public/read.js";
@@ -36,6 +37,7 @@ const fullApi: ApiFromModules<{
   "models/types": typeof models_types;
   "models/validators": typeof models_validators;
   "public/append": typeof public_append;
+  "public/dimensions": typeof public_dimensions;
   "public/metrics": typeof public_metrics;
   "public/projectors": typeof public_projectors;
   "public/read": typeof public_read;
