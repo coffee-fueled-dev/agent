@@ -21,7 +21,7 @@ export function initConvexTest<
   return t;
 }
 export const components = componentsGeneric() as unknown as {
-  events: ComponentApi;
+  facts: ComponentApi;
 };
 
 test("setup", () => {});

@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { type MutationCtx, mutation } from "../_generated/server";
+import { type MutationCtx, mutation } from "../_generated/server.js";
 
 const factItemValidator = v.object({
   entity: v.string(),

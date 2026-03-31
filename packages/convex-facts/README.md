@@ -145,7 +145,7 @@ When adding a new use of facts:
 1. Write down the exact question you want to answer.
 2. Decide whether the answer is about order, partition boundaries, reachability, or item metadata.
 3. Define the smallest set of items, edges, attrs, and partitions needed.
-4. Add those shapes to the typed config in `convex/clients/facts.ts`.
+4. Add those shapes to the typed config in `convex/clients/facts.ts` (or your app’s client module).
 5. Sync them from the mutation or projector that already owns the source-of-truth update.
 6. Read them through the typed client from app code.
 
@@ -163,11 +163,11 @@ The client gives you:
 - typed attrs per entity type
 - query vs mutation context separation
 
-Create a domain-specific singleton in `convex/clients/facts.ts`:
+Create a domain-specific singleton (example):
 
 ```typescript
-import { components } from "../_generated/api";
-import { FactsClient } from "../components/facts/client";
+import { components } from "./_generated/api";
+import { FactsClient } from "@very-coffee/convex-facts";
 
 const factsConfig = {
   entities: [

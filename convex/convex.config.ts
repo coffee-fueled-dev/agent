@@ -4,7 +4,7 @@ import workpool from "@convex-dev/workpool/convex.config.js";
 import events from "@very-coffee/convex-events/convex.config.js";
 import { defineApp } from "convex/server";
 import context from "./components/context/convex.config.js";
-import facts from "./components/facts/convex.config.js";
+import facts from "@very-coffee/convex-facts/convex.config.js";
 import history from "./components/history/convex.config.js";
 import policy from "./components/policy/convex.config.js";
 

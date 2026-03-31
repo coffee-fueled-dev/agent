@@ -1,8 +1,11 @@
-/// <reference types="vite/client" />
-import type { TestConvex } from "convex-test";
 import type { GenericSchema, SchemaDefinition } from "convex/server";
+import type { TestConvex } from "convex-test";
 import schema from "./component/schema.js";
-const modules = import.meta.glob("./component/**/*.ts");
+import { importMetaGlob } from "./importMetaGlob.js";
+
+export { importMetaGlob };
+
+const modules = importMetaGlob("component/**/*.ts", import.meta.dir);
 
 /**
  * Register the component with the test convex instance.
@@ -11,7 +14,7 @@ const modules = import.meta.glob("./component/**/*.ts");
  */
 export function register(
   t: TestConvex<SchemaDefinition<GenericSchema, boolean>>,
-  name: string = "convexFacts",
+  name: string = "facts",
 ) {
   t.registerComponent(name, schema, modules);
 }

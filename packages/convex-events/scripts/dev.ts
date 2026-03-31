@@ -9,16 +9,8 @@ const convex = Bun.spawn({
   stderr: "inherit",
 });
 
-const web = Bun.spawn({
-  cmd: ["bun", "--hot", path.join(root, "example/src/index.ts")],
-  cwd: root,
-  stdout: "inherit",
-  stderr: "inherit",
-});
-
 function shutdown() {
   convex.kill();
-  web.kill();
 }
 
 process.on("SIGINT", () => {
@@ -30,6 +22,6 @@ process.on("SIGTERM", () => {
   process.exit(0);
 });
 
-const code = await Promise.race([convex.exited, web.exited]);
+const code = await convex.exited;
 shutdown();
 process.exit(code);

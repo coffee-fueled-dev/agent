@@ -1,6 +1,6 @@
 import { v } from "convex/values";
-import { query } from "../_generated/server";
-import { deriveOrderedSelection } from "../internal/derive";
+import { query } from "../_generated/server.js";
+import { deriveOrderedSelection } from "../internal/derive.js";
 
 const orderedFactValidator = v.object({
   entity: v.string(),

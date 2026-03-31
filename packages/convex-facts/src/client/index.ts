@@ -1,155 +1,311 @@
 import type {
-  Auth,
-  GenericActionCtx,
   GenericDataModel,
-  HttpRouter,
+  GenericMutationCtx,
+  GenericQueryCtx,
 } from "convex/server";
-import {
-  actionGeneric,
-  httpActionGeneric,
-  mutationGeneric,
-  queryGeneric,
-} from "convex/server";
-import { v } from "convex/values";
 import type { ComponentApi } from "../component/_generated/component.js";
+import type { OrderedSelectionDerived } from "../component/internal/derive.js";
 
-// See the example/convex/example.ts file for how to use this component.
+export type { OrderedSelectionDerived };
 
-/**
- *
- * @param ctx
- * @param targetId
- */
-export function translate(
-  ctx: ActionCtx,
-  component: ComponentApi,
-  commentId: string,
-) {
-  // By wrapping the function call, we can read from environment variables.
-  const baseUrl = getDefaultBaseUrlUsingEnv();
-  return ctx.runAction(component.lib.translate, { commentId, baseUrl });
-}
+// ---------------------------------------------------------------------------
+// Context types (split read / write)
+// ---------------------------------------------------------------------------
 
-/**
- * For re-exporting of an API accessible from React clients.
- * e.g. `export const { list, add, translate } =
- * exposeApi(components.convexFacts, {
- *   auth: async (ctx, operation) => { ... },
- * });`
- * See example/convex/example.ts.
- */
-export function exposeApi(
-  component: ComponentApi,
-  options: {
-    /**
-     * It's very important to authenticate any functions that users will export.
-     * This function should return the authorized user's ID.
-     */
-    auth: (
-      ctx: { auth: Auth },
-      operation:
-        | { type: "read"; targetId: string }
-        | { type: "create"; targetId: string }
-        | { type: "update"; commentId: string },
-    ) => Promise<string>;
-    baseUrl?: string;
-  },
-) {
-  const baseUrl = options.baseUrl ?? getDefaultBaseUrlUsingEnv();
-  return {
-    list: queryGeneric({
-      args: { targetId: v.string() },
-      handler: async (ctx, args) => {
-        await options.auth(ctx, { type: "read", targetId: args.targetId });
-        return await ctx.runQuery(component.lib.list, {
-          targetId: args.targetId,
-        });
-      },
-    }),
-    add: mutationGeneric({
-      args: { text: v.string(), targetId: v.string() },
-      handler: async (ctx, args) => {
-        const userId = await options.auth(ctx, {
-          type: "create",
-          targetId: args.targetId,
-        });
-        return await ctx.runMutation(component.lib.add, {
-          text: args.text,
-          userId: userId,
-          targetId: args.targetId,
-        });
-      },
-    }),
-    translate: actionGeneric({
-      args: { commentId: v.string() },
-      handler: async (ctx, args) => {
-        await options.auth(ctx, {
-          type: "update",
-          commentId: args.commentId,
-        });
-        return await ctx.runAction(component.lib.translate, {
-          commentId: args.commentId,
-          baseUrl,
-        });
-      },
-    }),
-  };
-}
-
-/**
- * Register HTTP routes for the component.
- * This allows you to expose HTTP endpoints for the component.
- * See example/convex/http.ts for an example.
- */
-export function registerRoutes(
-  http: HttpRouter,
-  component: ComponentApi,
-  { pathPrefix = "/comments" }: { pathPrefix?: string } = {},
-) {
-  http.route({
-    path: `${pathPrefix}/last`,
-    method: "GET",
-    // Note we use httpActionGeneric here because it will be registered in
-    // the app's http.ts file, which has a different type than our `httpAction`.
-    handler: httpActionGeneric(async (ctx, request) => {
-      const targetId = new URL(request.url).searchParams.get("targetId");
-      if (!targetId) {
-        return new Response(
-          JSON.stringify({ error: "targetId parameter required" }),
-          {
-            status: 400,
-            headers: {
-              "Content-Type": "application/json",
-            },
-          },
-        );
-      }
-      const comments = await ctx.runQuery(component.lib.list, {
-        targetId,
-      });
-      const lastComment = comments[0] ?? null;
-      return new Response(JSON.stringify(lastComment), {
-        status: 200,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-    }),
-  });
-}
-
-function getDefaultBaseUrlUsingEnv() {
-  return process.env.BASE_URL ?? "https://pirate.monkeyness.com";
-}
-
-// Convenient types for `ctx` args, that only include the bare minimum.
-
-// type QueryCtx = Pick<GenericQueryCtx<GenericDataModel>, "runQuery">;
-// type MutationCtx = Pick<
-//   GenericMutationCtx<GenericDataModel>,
-//   "runQuery" | "runMutation"
-// >;
-type ActionCtx = Pick<
-  GenericActionCtx<GenericDataModel>,
-  "runQuery" | "runMutation" | "runAction"
+type FactsQueryCtx = Pick<GenericQueryCtx<GenericDataModel>, "runQuery">;
+type FactsMutationCtx = Pick<
+  GenericMutationCtx<GenericDataModel>,
+  "runMutation" | "runQuery"
 >;
+
+// ---------------------------------------------------------------------------
+// Config types
+// ---------------------------------------------------------------------------
+
+export type EntityTemplate = {
+  entityType: string;
+  states: readonly string[];
+  attrs: Record<string, "string" | "number" | "boolean">;
+};
+
+export type FactsConfig<
+  Entities extends readonly EntityTemplate[],
+  EdgeKinds extends readonly string[],
+  Partitions extends readonly string[],
+> = {
+  entities: Entities;
+  edgeKinds: EdgeKinds;
+  partitions: Partitions;
+};
+
+// ---------------------------------------------------------------------------
+// Derived utility types
+// ---------------------------------------------------------------------------
+
+type EntityType<E extends readonly EntityTemplate[]> = E[number]["entityType"];
+
+type StatesFor<
+  E extends readonly EntityTemplate[],
+  T extends EntityType<E>,
+> = Extract<E[number], { entityType: T }>["states"][number];
+
+type AttrValueMap = { string: string; number: number; boolean: boolean };
+
+type AttrsFor<E extends readonly EntityTemplate[], T extends EntityType<E>> = {
+  [K in keyof Extract<
+    E[number],
+    { entityType: T }
+  >["attrs"]]: AttrValueMap[Extract<E[number], { entityType: T }>["attrs"][K]];
+};
+
+type EdgeKind<K extends readonly string[]> = K[number];
+
+type PartitionName<P extends readonly string[]> = P[number];
+
+// ---------------------------------------------------------------------------
+// Typed fact item (return type from eval queries)
+// ---------------------------------------------------------------------------
+
+export type TypedFactItem<
+  E extends readonly EntityTemplate[],
+  T extends EntityType<E> = EntityType<E>,
+> = {
+  entity: string;
+  entityType: T;
+  scope?: string;
+  state?: StatesFor<E, T>;
+  order: number[];
+  labels: string[];
+  attrs?: AttrsFor<E, T>;
+};
+
+// ---------------------------------------------------------------------------
+// Batch builder
+// ---------------------------------------------------------------------------
+
+export class FactsBatch<
+  const E extends readonly EntityTemplate[],
+  const K extends readonly string[],
+  const P extends readonly string[],
+> {
+  private _items: {
+    entity: string;
+    entityType: string;
+    scope?: string;
+    state?: string;
+    order: number[];
+    labels: string[];
+    attrs?: unknown;
+  }[] = [];
+  private _edges: {
+    kind: string;
+    from: string;
+    to: string;
+    scope?: string;
+  }[] = [];
+  private _partitions: {
+    partition: string;
+    scope?: string;
+    head?: string;
+    tail?: string;
+    count: number;
+    membersVersion?: number;
+  }[] = [];
+
+  constructor(
+    private client: FactsClient<E, K, P>,
+    private namespace: string,
+  ) {}
+
+  item<T extends EntityType<E>>(
+    entityType: T,
+    entity: string,
+    opts: {
+      scope?: string;
+      state?: StatesFor<E, T>;
+      order: number[];
+      labels?: string[];
+      attrs?: AttrsFor<E, T>;
+    },
+  ): this {
+    this._items.push({
+      entity,
+      entityType,
+      scope: opts.scope,
+      state: opts.state,
+      order: opts.order,
+      labels: opts.labels ?? [],
+      attrs: opts.attrs,
+    });
+    return this;
+  }
+
+  edge(
+    kind: EdgeKind<K>,
+    from: string,
+    to: string,
+    opts?: { scope?: string },
+  ): this {
+    this._edges.push({ kind, from, to, scope: opts?.scope });
+    return this;
+  }
+
+  partition(
+    partition: PartitionName<P>,
+    opts: {
+      scope?: string;
+      head?: string;
+      tail?: string;
+      count: number;
+      membersVersion?: number;
+    },
+  ): this {
+    this._partitions.push({ partition, ...opts });
+    return this;
+  }
+
+  async commit(
+    ctx: FactsMutationCtx,
+    opts?: {
+      version?: number;
+      projector?: string;
+      mode?: "direct" | "event";
+    },
+  ): Promise<void> {
+    await ctx.runMutation(this.client.component.public.sync.upsertFacts, {
+      namespace: this.namespace,
+      items: this._items,
+      edges: this._edges,
+      partitions: this._partitions.length > 0 ? this._partitions : undefined,
+      ...opts,
+    });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// FactsClient
+// ---------------------------------------------------------------------------
+
+export class FactsClient<
+  const E extends readonly EntityTemplate[],
+  const K extends readonly string[],
+  const P extends readonly string[],
+> {
+  constructor(
+    public component: ComponentApi,
+    public config: FactsConfig<E, K, P>,
+  ) {}
+
+  sync = {
+    upsert: async (
+      ctx: FactsMutationCtx,
+      args: {
+        namespace: string;
+        items: {
+          entity: string;
+          entityType: EntityType<E>;
+          scope?: string;
+          state?: string;
+          order: number[];
+          labels: string[];
+          attrs?: unknown;
+        }[];
+        edges: {
+          kind: EdgeKind<K>;
+          from: string;
+          to: string;
+          scope?: string;
+          attrs?: unknown;
+        }[];
+        partitions?: {
+          partition: PartitionName<P>;
+          scope?: string;
+          head?: string;
+          tail?: string;
+          count: number;
+          membersVersion?: number;
+          attrs?: unknown;
+        }[];
+        version?: number;
+        projector?: string;
+        mode?: "direct" | "event";
+      },
+    ) => {
+      return await ctx.runMutation(
+        this.component.public.sync.upsertFacts,
+        args,
+      );
+    },
+
+    remove: async (
+      ctx: FactsMutationCtx,
+      args: { namespace: string; entities: string[] },
+    ) => {
+      return await ctx.runMutation(
+        this.component.public.sync.removeFacts,
+        args,
+      );
+    },
+  };
+
+  eval = {
+    orderedFacts: async <T extends EntityType<E>>(
+      ctx: FactsQueryCtx,
+      args: { namespace: string; scope?: string; entityType?: T },
+    ): Promise<TypedFactItem<E, T>[]> => {
+      const raw = await ctx.runQuery(
+        this.component.public.evaluate.getOrderedFacts,
+        args,
+      );
+      return raw as TypedFactItem<E, T>[];
+    },
+
+    deriveSelection: async (
+      ctx: FactsQueryCtx,
+      args: {
+        namespace: string;
+        scope?: string;
+        entityType: EntityType<E>;
+        selected: string;
+        partitions: PartitionName<P>[];
+      },
+    ): Promise<OrderedSelectionDerived> => {
+      return await ctx.runQuery(
+        this.component.public.evaluate.deriveSelection,
+        args,
+      );
+    },
+
+    partitionTail: async (
+      ctx: FactsQueryCtx,
+      args: {
+        namespace: string;
+        scope?: string;
+        partition: PartitionName<P>;
+      },
+    ) => {
+      return await ctx.runQuery(
+        this.component.public.evaluate.getPartitionTail,
+        args,
+      );
+    },
+
+    reachable: async (
+      ctx: FactsQueryCtx,
+      args: {
+        namespace: string;
+        from: string;
+        edgeKinds: EdgeKind<K>[];
+      },
+    ): Promise<string[]> => {
+      return await ctx.runQuery(
+        this.component.public.evaluate.getReachableFacts,
+        args,
+      );
+    },
+  };
+
+  batch(namespace: string): FactsBatch<E, K, P> {
+    return new FactsBatch(this, namespace);
+  }
+}

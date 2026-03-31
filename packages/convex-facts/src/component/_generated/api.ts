@@ -8,7 +8,9 @@
  * @module
  */
 
-import type * as lib from "../lib.js";
+import type * as internal_derive from "../internal/derive.js";
+import type * as public_evaluate from "../public/evaluate.js";
+import type * as public_sync from "../public/sync.js";
 
 import type {
   ApiFromModules,
@@ -18,7 +20,9 @@ import type {
 import { anyApi, componentsGeneric } from "convex/server";
 
 const fullApi: ApiFromModules<{
-  lib: typeof lib;
+  "internal/derive": typeof internal_derive;
+  "public/evaluate": typeof public_evaluate;
+  "public/sync": typeof public_sync;
 }> = anyApi as any;
 
 /**

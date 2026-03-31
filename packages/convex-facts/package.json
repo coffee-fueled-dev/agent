@@ -1,6 +1,6 @@
 {
-  "name": "@very-coffee/convex-events",
-  "description": "A convex events component for Convex.",
+  "name": "@very-coffee/convex-facts",
+  "description": "A facts projection component for Convex.",
   "repository": "github:coffee-fueled-dev/agent",
   "homepage": "https://github.com/coffee-fueled-dev/agent#readme",
   "bugs": {
@@ -16,13 +16,11 @@
   "scripts": {
     "dev": "bun ./scripts/dev.ts",
     "dev:convex": "bunx convex dev --typecheck-components",
-    "dev:example": "bun --env-file .env.local --hot example/src/index.ts",
-    "predev": "test -f .env.local && test -d dist || (bun run build && bunx convex dev --once)",
     "build": "tsc --project ./tsconfig.build.json",
     "clean": "rm -rf dist *.tsbuildinfo",
     "build:codegen": "bunx convex codegen --component-dir ./src/component && bun run build",
     "build:clean": "bun run clean && bun run build:codegen",
-    "typecheck": "tsc --noEmit && tsc -p example && tsc -p example/convex",
+    "typecheck": "tsc --noEmit",
     "test": "bun test",
     "test:watch": "bun test --watch",
     "test:debug": "bun test --inspect-brk",
@@ -61,10 +59,6 @@
     "./convex.config": {
       "types": "./dist/component/convex.config.d.ts",
       "default": "./dist/component/convex.config.js"
-    },
-    "./eventBus": {
-      "types": "./dist/eventBus/index.d.ts",
-      "default": "./dist/eventBus/index.js"
     },
     "./types": {
       "types": "./dist/types.d.ts",
