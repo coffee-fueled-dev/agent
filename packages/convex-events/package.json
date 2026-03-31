@@ -16,7 +16,7 @@
   "scripts": {
     "dev": "bun ./scripts/dev.ts",
     "dev:convex": "bunx convex dev --typecheck-components",
-    "dev:example": "bun --hot example/src/index.ts",
+    "dev:example": "bun --env-file .env.local --hot example/src/index.ts",
     "predev": "test -f .env.local && test -d dist || (bun run build && bunx convex dev --once)",
     "build": "tsc --project ./tsconfig.build.json",
     "clean": "rm -rf dist *.tsbuildinfo",

@@ -3,9 +3,16 @@ import { api } from "./_generated/api.js";
 import { initConvexTest } from "./setup.test.js";
 
 describe("example", () => {
-  test("ping", async () => {
+  test("append event", async () => {
     const t = initConvexTest();
-    const r = await t.query(api.example.ping, {});
-    expect(r).toBe("ok");
+    const result = await t.mutation(api.functions.appendEvent, {
+      streamType: "todo",
+      streamId: "test-stream",
+      eventId: "evt-1",
+      eventType: "created",
+      payload: { title: "hello" },
+    });
+    expect(result.eventType).toBe("created");
+    expect(result.streamId).toBe("test-stream");
   });
 });

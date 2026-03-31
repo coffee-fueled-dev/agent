@@ -5,8 +5,7 @@ import { type ReactNode, StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 function bunPublicConvexUrl(): string {
-  // HMR rewrites `import.meta.env` → `hmr.importMeta.env`; use `?.` so missing `importMeta` does not throw.
-  return String(import.meta.env?.BUN_PUBLIC_CONVEX_URL ?? "");
+  return String(process.env.BUN_PUBLIC_CONVEX_URL ?? "");
 }
 
 function Root({ children }: { children: ReactNode }) {

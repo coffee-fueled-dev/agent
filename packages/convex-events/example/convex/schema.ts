@@ -1,5 +1,4 @@
 import { defineSchema } from "convex/server";
+import { busTables } from "./events";
 
-export default defineSchema({
-  // Any tables used by the example app go here.
-});
+export default defineSchema({ ...busTables });
