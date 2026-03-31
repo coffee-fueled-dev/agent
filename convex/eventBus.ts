@@ -1,75 +1,39 @@
-import { internal } from "./_generated/api";
-import { internalMutation, type MutationCtx } from "./_generated/server";
-import { memoryEvents } from "./components/context/events";
-import { createEventBus, EventBusListener } from "./components/events/eventBus";
+import { createEventBus } from "@very-coffee/convex-events/eventBus";
+import { v } from "convex/values";
+import { query } from "./_generated/server";
+import { context } from "./context";
 import { events } from "./events";
 
-export const bus = createEventBus({
+export const { listener: busListener, tables: busTables } = createEventBus({
   eviction: { type: "fifo", options: { size: 1000 } },
-});
-
-export const busListener: EventBusListener = new EventBusListener({
   sources: [
-    { client: memoryEvents, key: "contextMemory" },
-    { client: events, key: "appEvents" },
+    { client: events, key: "app" },
+    { client: context.events, key: "context" },
   ],
-  writer: internal.eventBus.writeBusEntry,
-  eviction: bus.evictionConfig,
 });
 
-async function getOrCreateCount(ctx: MutationCtx) {
-  const row = await ctx.db.query("eventBusCount").first();
-  if (row) return row;
-  const id = await ctx.db.insert("eventBusCount", { currentSize: 0 });
-  const count = await ctx.db.get(id);
-  if (!count) throw new Error("Failed to create event bus count");
-  return count;
-}
+export const bus = { tables: busTables };
 
-export const writeBusEntry = internalMutation({
-  args: bus.entryValidator.fields,
-  handler: async (ctx, args): Promise<void> => {
-    const counter = await getOrCreateCount(ctx);
+export const listEventBusEntries = query({
+  args: {
+    namespace: v.optional(v.string()),
+    eventTypeId: v.optional(v.id("dimensions")),
+    streamTypeId: v.optional(v.id("dimensions")),
+    eventTimeMin: v.optional(v.number()),
+    eventTimeMax: v.optional(v.number()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    return await busListener.listEntries(ctx, args);
+  },
+});
 
-    const staged = await ctx.db.query("eventBusEvictionBuffer").collect();
-    for (const buf of staged) {
-      const entry = await ctx.db.get(buf.entryId);
-      if (entry) {
-        await ctx.db.delete(entry._id);
-        counter.currentSize--;
-      }
-      await ctx.db.delete(buf._id);
-    }
-
-    const existing = await ctx.db
-      .query("eventBusEntries")
-      .withIndex("by_source_event", (q) =>
-        q.eq("sourceKey", args.sourceKey).eq("eventId", args.eventId),
-      )
-      .first();
-    if (existing) {
-      if (staged.length > 0) {
-        await ctx.db.patch(counter._id, { currentSize: counter.currentSize });
-      }
-      return;
-    }
-
-    await ctx.db.insert("eventBusEntries", args);
-    counter.currentSize++;
-
-    if (counter.currentSize >= bus.evictionConfig.options.size) {
-      const oldest = await ctx.db
-        .query("eventBusEntries")
-        .withIndex("by_time")
-        .order("asc")
-        .first();
-      if (oldest) {
-        await ctx.db.insert("eventBusEvictionBuffer", {
-          entryId: oldest._id,
-        });
-      }
-    }
-
-    await ctx.db.patch(counter._id, { currentSize: counter.currentSize });
+export const listEventBusDimensions = query({
+  args: {
+    namespace: v.optional(v.string()),
+    kind: v.union(v.literal("eventType"), v.literal("streamType")),
+  },
+  handler: async (ctx, args) => {
+    return await busListener.listDimensions(ctx, args);
   },
 });

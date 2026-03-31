@@ -8,12 +8,13 @@
  * @module
  */
 
+import type * as chat_eventBus from "../chat/eventBus.js";
 import type * as chat_identity from "../chat/identity.js";
 import type * as chat_identityCounters from "../chat/identityCounters.js";
 import type * as chat_resolveNamespace from "../chat/resolveNamespace.js";
 import type * as chat_threads from "../chat/threads.js";
 import type * as chat_toolTelemetry from "../chat/toolTelemetry.js";
-import type * as chat_unifiedTimeline from "../chat/unifiedTimeline.js";
+import type * as context from "../context.js";
 import type * as context_communities from "../context/communities.js";
 import type * as context_communitiesLib_applyPipeline from "../context/communitiesLib/applyPipeline.js";
 import type * as context_communitiesLib_constants from "../context/communitiesLib/constants.js";
@@ -27,7 +28,6 @@ import type * as context_communitiesLib_onCompleteHandlers from "../context/comm
 import type * as context_communitiesLib_startWorkflow from "../context/communitiesLib/startWorkflow.js";
 import type * as context_communitiesLib_types from "../context/communitiesLib/types.js";
 import type * as context_contextClient from "../context/contextClient.js";
-import type * as context_contextMemoryEventHooks from "../context/contextMemoryEventHooks.js";
 import type * as context_embeddingCacheHttp from "../context/embeddingCacheHttp.js";
 import type * as context_embeddingCacheStore from "../context/embeddingCacheStore.js";
 import type * as context_entryQueries from "../context/entryQueries.js";
@@ -36,7 +36,6 @@ import type * as context_fileHttpActions from "../context/fileHttpActions.js";
 import type * as context_fileStore from "../context/fileStore.js";
 import type * as context_files from "../context/files.js";
 import type * as context_list from "../context/list.js";
-import type * as context_memoryEventBridge from "../context/memoryEventBridge.js";
 import type * as context_mutations from "../context/mutations.js";
 import type * as context_projections from "../context/projections.js";
 import type * as context_search from "../context/search.js";
@@ -46,6 +45,7 @@ import type * as customFunctions from "../customFunctions.js";
 import type * as env from "../env.js";
 import type * as eventAttribution from "../eventAttribution.js";
 import type * as eventBus from "../eventBus.js";
+import type * as eventBusReads from "../eventBusReads.js";
 import type * as events from "../events.js";
 import type * as history from "../history.js";
 import type * as http from "../http.js";
@@ -96,8 +96,6 @@ import type * as models_context_contextFileProcess from "../models/context/conte
 import type * as models_context_embeddingCache from "../models/context/embeddingCache.js";
 import type * as models_context_index from "../models/context/index.js";
 import type * as models_events_index from "../models/events/index.js";
-import type * as models_events_unifiedTimeline from "../models/events/unifiedTimeline.js";
-import type * as models_events_unifiedTimelineDimensions from "../models/events/unifiedTimelineDimensions.js";
 import type * as models_geo_index from "../models/geo/index.js";
 import type * as models_geo_libs_upsert_index from "../models/geo/libs/upsert/index.js";
 import type * as models_geo_location from "../models/geo/location.js";
@@ -120,12 +118,13 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "chat/eventBus": typeof chat_eventBus;
   "chat/identity": typeof chat_identity;
   "chat/identityCounters": typeof chat_identityCounters;
   "chat/resolveNamespace": typeof chat_resolveNamespace;
   "chat/threads": typeof chat_threads;
   "chat/toolTelemetry": typeof chat_toolTelemetry;
-  "chat/unifiedTimeline": typeof chat_unifiedTimeline;
+  context: typeof context;
   "context/communities": typeof context_communities;
   "context/communitiesLib/applyPipeline": typeof context_communitiesLib_applyPipeline;
   "context/communitiesLib/constants": typeof context_communitiesLib_constants;
@@ -139,7 +138,6 @@ declare const fullApi: ApiFromModules<{
   "context/communitiesLib/startWorkflow": typeof context_communitiesLib_startWorkflow;
   "context/communitiesLib/types": typeof context_communitiesLib_types;
   "context/contextClient": typeof context_contextClient;
-  "context/contextMemoryEventHooks": typeof context_contextMemoryEventHooks;
   "context/embeddingCacheHttp": typeof context_embeddingCacheHttp;
   "context/embeddingCacheStore": typeof context_embeddingCacheStore;
   "context/entryQueries": typeof context_entryQueries;
@@ -148,7 +146,6 @@ declare const fullApi: ApiFromModules<{
   "context/fileStore": typeof context_fileStore;
   "context/files": typeof context_files;
   "context/list": typeof context_list;
-  "context/memoryEventBridge": typeof context_memoryEventBridge;
   "context/mutations": typeof context_mutations;
   "context/projections": typeof context_projections;
   "context/search": typeof context_search;
@@ -158,6 +155,7 @@ declare const fullApi: ApiFromModules<{
   env: typeof env;
   eventAttribution: typeof eventAttribution;
   eventBus: typeof eventBus;
+  eventBusReads: typeof eventBusReads;
   events: typeof events;
   history: typeof history;
   http: typeof http;
@@ -208,8 +206,6 @@ declare const fullApi: ApiFromModules<{
   "models/context/embeddingCache": typeof models_context_embeddingCache;
   "models/context/index": typeof models_context_index;
   "models/events/index": typeof models_events_index;
-  "models/events/unifiedTimeline": typeof models_events_unifiedTimeline;
-  "models/events/unifiedTimelineDimensions": typeof models_events_unifiedTimelineDimensions;
   "models/geo/index": typeof models_geo_index;
   "models/geo/libs/upsert/index": typeof models_geo_libs_upsert_index;
   "models/geo/location": typeof models_geo_location;
@@ -563,30 +559,23 @@ export declare const components: {
           "query",
           "internal",
           {
+            eventTypeId?: string;
             eventTypes?: Array<string>;
             minEventTime: number;
             namespace?: string;
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
             streamId: string;
             streamType: string;
+            streamTypeId?: string;
           },
-          Array<{
-            _creationTime: number;
-            _id: string;
-            actor?: { byId: string; byType: string };
-            causationId?: string;
-            correlationId?: string;
-            eventId: string;
-            eventTime: number;
-            eventType: string;
-            globalSequence: number;
-            metadata?: Record<string, string | number | boolean | null>;
-            namespace: string;
-            payload?: any;
-            session?: string;
-            streamId: string;
-            streamType: string;
-            streamVersion: number;
-          }>
+          any
         >;
       };
       streams: {
@@ -1448,37 +1437,6 @@ export declare const components: {
             textPreview?: string;
             title?: string;
           }>
-        >;
-      };
-      unifiedTimelineProjectorBridge: {
-        advanceCheckpoint: FunctionReference<
-          "mutation",
-          "internal",
-          {
-            lastSequence: number;
-            leaseOwner?: string;
-            projector: string;
-            releaseClaim?: boolean;
-            streamType: string;
-          },
-          any
-        >;
-        claimOrReadCheckpoint: FunctionReference<
-          "mutation",
-          "internal",
-          {
-            leaseDurationMs?: number;
-            leaseOwner?: string;
-            projector: string;
-            streamType: string;
-          },
-          any
-        >;
-        listUnprocessedEvents: FunctionReference<
-          "query",
-          "internal",
-          { limit?: number; projector: string; streamType: string },
-          any
         >;
       };
     };

@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
-import { createContextClient } from "./contextClient";
+import { context } from "../context";
 
 const chunkValidator = v.object({
   text: v.string(),
@@ -22,8 +22,7 @@ export const completeFileProcess = internalAction({
     chunks: v.array(chunkValidator),
   },
   handler: async (ctx, args) => {
-    const client = createContextClient();
-    const result = await client.addContext(ctx, {
+    const result = await context.addContext(ctx, {
       namespace: args.namespace,
       key: args.key,
       title: args.title,

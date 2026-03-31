@@ -3,10 +3,10 @@ import { z } from "zod/v4";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { internalAction } from "../_generated/server";
+import { context } from "../context";
 import { sessionAction, sessionMutation } from "../customFunctions";
 import { accountActor } from "../eventAttribution";
 import { assertAccountNamespace } from "../models/auth/contextNamespace";
-import { createContextClient } from "./contextClient";
 
 export const addContext = sessionAction({
   args: {
@@ -24,7 +24,7 @@ export const addContext = sessionAction({
       { convexSessionId: sessionId },
     );
     assertAccountNamespace(accountId, args.namespace);
-    return await createContextClient().addContext(ctx, {
+    return await context.addContext(ctx, {
       ...rest,
       actor: accountId ? accountActor(accountId) : undefined,
       session: sessionId,
@@ -46,7 +46,7 @@ export const addContextInternal = internalAction({
     threadId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    return await createContextClient().addContext(ctx, args);
+    return await context.addContext(ctx, args);
   },
 });
 
@@ -63,7 +63,7 @@ export const deleteContext = sessionAction({
       { convexSessionId: sessionId },
     );
     assertAccountNamespace(accountId, args.namespace);
-    await createContextClient().deleteContext(ctx, {
+    await context.deleteContext(ctx, {
       ...rest,
       actor: accountId ? accountActor(accountId) : undefined,
       session: sessionId,
@@ -84,7 +84,7 @@ export const deleteContextInternal = internalAction({
     threadId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await createContextClient().deleteContext(ctx, args);
+    await context.deleteContext(ctx, args);
     await ctx.runMutation(internal.context.fileStore.deleteContextFile, {
       entryId: args.entryId,
     });
@@ -107,7 +107,7 @@ export const editContext = sessionAction({
       { convexSessionId: sessionId },
     );
     assertAccountNamespace(accountId, args.namespace);
-    const result = await createContextClient().editContext(ctx, {
+    const result = await context.editContext(ctx, {
       ...rest,
       actor: accountId ? accountActor(accountId) : undefined,
       session: sessionId,
@@ -133,7 +133,7 @@ export const editContextInternal = internalAction({
     threadId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const result = await createContextClient().editContext(ctx, args);
+    const result = await context.editContext(ctx, args);
     await ctx.runMutation(internal.context.fileStore.updateContextFileEntryId, {
       oldEntryId: args.entryId,
       newEntryId: result.entryId,
@@ -157,7 +157,7 @@ export const recordContextView = sessionMutation({
   },
   handler: async (ctx, args) => {
     assertAccountNamespace(ctx.account._id, args.namespace);
-    await createContextClient().recordView(ctx, {
+    await context.recordView(ctx, {
       ...args,
       session: args.session ?? ctx.convexSessionId,
       actor: args.actor ?? accountActor(ctx.account._id),

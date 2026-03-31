@@ -1,4 +1,5 @@
 import type { EntryId } from "@convex-dev/rag";
+import type { EventsMutationCtx } from "@very-coffee/convex-events/types";
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { action, mutation, query } from "../_generated/server";
@@ -203,7 +204,8 @@ export const add = action({
       },
     );
 
-    await memoryEvents.appendToStream(ctx, {
+    // TODO: route through host mutation — action ctx is not `EventsMutationCtx` (no `db`).
+    await memoryEvents.appendToStream(ctx as unknown as EventsMutationCtx, {
       streamType: "contextMemory",
       namespace: args.namespace,
       streamId: result.entryId,
@@ -348,7 +350,7 @@ export const remove = action({
       key: args.entryId,
     });
 
-    await memoryEvents.appendToStream(ctx, {
+    await memoryEvents.appendToStream(ctx as unknown as EventsMutationCtx, {
       streamType: "contextMemory",
       namespace: args.namespace,
       streamId: args.entryId,
@@ -546,7 +548,7 @@ export const edit = action({
       },
     );
 
-    await memoryEvents.appendToStream(ctx, {
+    await memoryEvents.appendToStream(ctx as unknown as EventsMutationCtx, {
       streamType: "contextMemory",
       namespace: args.namespace,
       streamId: current.entryId,

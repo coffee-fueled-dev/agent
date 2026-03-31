@@ -5,8 +5,8 @@ export const EVENTS_FILTERS_CHANGE = "events-filters-change";
 
 /**
  * Events list filter query params (short keys):
- * - `et` — event type dimension id (`unifiedTimelineDimensions`)
- * - `st` — source stream type dimension id
+ * - `et` — event type dimension id (`dimensions` table)
+ * - `st` — stream type dimension id (`dimensions` table)
  * - `from` / `to` — `eventTime` bounds as ISO 8601 strings (UTC from `Date.toISOString()`)
  */
 export type EventsFiltersState = {
@@ -59,20 +59,21 @@ export function writeEventsFiltersToUrl(next: EventsFiltersState) {
   window.dispatchEvent(new Event(EVENTS_FILTERS_CHANGE));
 }
 
+/** Args for `api.chat.eventBus.listEventBusEntriesForSession` (minus `scope` / `sessionId`). */
 export function eventsFiltersToQueryArgs(f: EventsFiltersState): {
   eventTypeId?: string;
-  sourceStreamTypeId?: string;
+  streamTypeId?: string;
   eventTimeMin?: number;
   eventTimeMax?: number;
 } {
   const o: {
     eventTypeId?: string;
-    sourceStreamTypeId?: string;
+    streamTypeId?: string;
     eventTimeMin?: number;
     eventTimeMax?: number;
   } = {};
   if (f.eventTypeId) o.eventTypeId = f.eventTypeId;
-  if (f.sourceStreamTypeId) o.sourceStreamTypeId = f.sourceStreamTypeId;
+  if (f.sourceStreamTypeId) o.streamTypeId = f.sourceStreamTypeId;
   if (f.eventTimeMin != null) o.eventTimeMin = f.eventTimeMin;
   if (f.eventTimeMax != null) o.eventTimeMax = f.eventTimeMax;
   return o;

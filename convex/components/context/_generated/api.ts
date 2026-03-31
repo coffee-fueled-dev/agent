@@ -26,7 +26,6 @@ import type * as public_entries from "../public/entries.js";
 import type * as public_list from "../public/list.js";
 import type * as public_projection from "../public/projection.js";
 import type * as public_retrieval from "../public/retrieval.js";
-import type * as public_unifiedTimelineProjectorBridge from "../public/unifiedTimelineProjectorBridge.js";
 import type * as rag from "../rag.js";
 import type * as search from "../search.js";
 
@@ -56,7 +55,6 @@ const fullApi: ApiFromModules<{
   "public/list": typeof public_list;
   "public/projection": typeof public_projection;
   "public/retrieval": typeof public_retrieval;
-  "public/unifiedTimelineProjectorBridge": typeof public_unifiedTimelineProjectorBridge;
   rag: typeof rag;
   search: typeof search;
 }> = anyApi as any;
@@ -1156,30 +1154,23 @@ export const components = componentsGeneric() as unknown as {
           "query",
           "internal",
           {
+            eventTypeId?: string;
             eventTypes?: Array<string>;
             minEventTime: number;
             namespace?: string;
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
             streamId: string;
             streamType: string;
+            streamTypeId?: string;
           },
-          Array<{
-            _creationTime: number;
-            _id: string;
-            actor?: { byId: string; byType: string };
-            causationId?: string;
-            correlationId?: string;
-            eventId: string;
-            eventTime: number;
-            eventType: string;
-            globalSequence: number;
-            metadata?: Record<string, string | number | boolean | null>;
-            namespace: string;
-            payload?: any;
-            session?: string;
-            streamId: string;
-            streamType: string;
-            streamVersion: number;
-          }>
+          any
         >;
       };
       streams: {

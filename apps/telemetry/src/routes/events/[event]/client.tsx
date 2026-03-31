@@ -47,8 +47,8 @@ function EventDetailRoute() {
           <PageSection.Content className="p-8">
             <PageSection.Body className="h-full overflow-auto">
               <RequiredResult
-                query={api.chat.unifiedTimeline.getUnifiedTimelineEvent}
-                args={parsed?.eventId ? { id: parsed.eventId } : "skip"}
+                query={api.chat.eventBus.getEventBusEntryForSession}
+                args={{ busEntryId: parsed.eventId }}
               >
                 {(data) => (
                   <PageSection.Body className="gap-4">

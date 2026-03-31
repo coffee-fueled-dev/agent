@@ -41,6 +41,7 @@ export function eventsList(): string {
   return "/events";
 }
 
-export function eventsDetail(eventId: string): string {
-  return `/events/${encodeURIComponent(eventId)}`;
+/** `id` is `Id<"eventBusEntries">`. */
+export function eventsDetail(id: string): string {
+  return `/events/${encodeURIComponent(id)}`;
 }

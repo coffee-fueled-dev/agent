@@ -1,7 +1,7 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { internalQuery } from "../_generated/server";
-import { createContextClient } from "./contextClient";
+import { context } from "../context";
 
 export const listContext = internalQuery({
   args: {
@@ -9,7 +9,7 @@ export const listContext = internalQuery({
     paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, args) => {
-    return await createContextClient().list(ctx, args);
+    return await context.list(ctx, args);
   },
 });
 
@@ -19,7 +19,7 @@ export const listContextWithFiles = internalQuery({
     paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, args) => {
-    const result = await createContextClient().list(ctx, args);
+    const result = await context.list(ctx, args);
     const enriched = await Promise.all(
       result.page.map(async (entry) => {
         const file = await ctx.db

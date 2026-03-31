@@ -1,4 +1,8 @@
-import type { GenericDataModel, GenericMutationCtx } from "convex/server";
+import type {
+  GenericDataModel,
+  GenericMutationCtx,
+  GenericQueryCtx,
+} from "convex/server";
 import type { ObjectType, PropertyValidators } from "convex/values";
 import type {
   EventEntryDoc,
@@ -8,16 +12,31 @@ import type {
 
 export type {
   EventDimensionDoc,
-  EventStreamDoc,
   EventEntryDoc,
-  EventStreamMetricDoc,
   EventProjectorCheckpointDoc,
+  EventStreamDoc,
+  EventStreamMetricDoc,
 } from "./models/types";
 
-export type RunMutationCtx = Pick<
+/** Read-only Convex ctx: `runQuery` into component (or other) functions. */
+export type EventsRunQueryCtx = Pick<
+  GenericQueryCtx<GenericDataModel>,
+  "runQuery"
+>;
+
+/** Cross-component calls without direct `db` (e.g. `runMutation` into the events component). */
+export type EventsRunMutationCtx = Pick<
   GenericMutationCtx<GenericDataModel>,
   "runQuery" | "runMutation"
 >;
+
+/**
+ * Any Convex **mutation** context (has `db`). Use for `appendToStream` and
+ * `EventSubscriber` — excludes actions (no `db`) while allowing host **or**
+ * component callers. Bus mirroring still requires a host mutation at runtime
+ * when the FIFO tables live on the app schema.
+ */
+export type EventsMutationCtx = GenericMutationCtx<GenericDataModel>;
 
 export type EventMetadataValue = string | number | boolean | null;
 
@@ -61,7 +80,7 @@ export type MetricRule<
 };
 
 export type EventSubscriber = (
-  ctx: RunMutationCtx,
+  ctx: EventsMutationCtx,
   entry: EventEntry,
 ) => void | Promise<void>;
 
@@ -181,4 +200,3 @@ export type AppendArgs<Streams extends readonly EventStreamTemplate[]> = {
     };
   }[EventTypeFor<Streams, Stream>];
 }[StreamTypeFor<Streams>];
-

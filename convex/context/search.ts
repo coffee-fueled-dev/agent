@@ -4,6 +4,7 @@ import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { internalAction } from "../_generated/server";
+import { context } from "../context";
 import { sessionAction } from "../customFunctions";
 import { accountActor } from "../eventAttribution";
 import {
@@ -14,7 +15,6 @@ import {
 import { publicStorageUrl } from "../lib/publicStorageUrl";
 import { assertAccountNamespace } from "../models/auth/contextNamespace";
 import {
-  createContextClient,
   getConvexSiteUrl,
   getEmbeddingServerUrl,
   getFileEmbeddingSecret,
@@ -122,7 +122,7 @@ export const searchContext = sessionAction({
       { convexSessionId: sessionId },
     );
     assertAccountNamespace(accountId, args.namespace);
-    const hits = await createContextClient().searchContext(ctx, {
+    const hits = await context.searchContext(ctx, {
       ...rest,
       actor: args.actor ?? (accountId ? accountActor(accountId) : undefined),
       session: args.session ?? sessionId,
@@ -160,10 +160,7 @@ export const searchContextInternal = internalAction({
     clientSessionId: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<SearchContextHit[]> => {
-    const hits = (await createContextClient().searchContext(
-      ctx,
-      args,
-    )) as SearchContextHit[];
+    const hits = await context.searchContext(ctx, args);
     return await enrichSearchHitsWithPublicFiles(ctx, args.namespace, hits);
   },
 });

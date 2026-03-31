@@ -1,3 +1,4 @@
+import type { EventsMutationCtx } from "@very-coffee/convex-events/types";
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { action } from "../_generated/server";
@@ -159,7 +160,7 @@ export const search = action({
       if (clientSessionIdArg) timelineMeta.sessionId = clientSessionIdArg;
 
       for (let i = 0; i < enriched.length; i++) {
-        await memoryEvents.appendToStream(ctx, {
+        await memoryEvents.appendToStream(ctx as unknown as EventsMutationCtx, {
           streamType: "contextMemory",
           namespace: args.namespace,
           streamId: enriched[i].entryId,

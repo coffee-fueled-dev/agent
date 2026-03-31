@@ -2,7 +2,7 @@
 
 import { api } from "@backend/api.js";
 import { useForm } from "@tanstack/react-form";
-import { useSessionQuery } from "convex-helpers/react/sessions";
+import { useQuery } from "convex/react";
 import { Filter } from "lucide-react";
 import { useEffect, useState } from "react";
 import { DatePickerField } from "@/components/blocks/date-picker-field.js";
@@ -27,11 +27,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select.js";
+import { useNamespace } from "../context/_hooks/use-namespace.js";
 import {
   type EventsFiltersState,
   readEventsFiltersFromSearch,
   writeEventsFiltersToUrl,
-} from "../_hooks/use-events-filters-from-url.js";
+} from "../events/_hooks/use-events-filters-from-url.js";
 
 const ANY_DIM = "__any__";
 
@@ -94,13 +95,19 @@ export function EventsFiltersTrigger() {
   const [open, setOpen] = useState(false);
   const [fromCalOpen, setFromCalOpen] = useState(false);
   const [toCalOpen, setToCalOpen] = useState(false);
-  const eventTypeDims = useSessionQuery(
-    api.chat.unifiedTimeline.listUnifiedTimelineDimensionValues,
-    { kind: "eventType" },
+  const { namespace, sessionNamespaceResolved } = useNamespace();
+
+  const eventTypeDims = useQuery(
+    api.eventBusReads.listEventBusDimensions,
+    sessionNamespaceResolved
+      ? ({ namespace, kind: "eventType" } as const)
+      : "skip",
   );
-  const streamTypeDims = useSessionQuery(
-    api.chat.unifiedTimeline.listUnifiedTimelineDimensionValues,
-    { kind: "sourceStreamType" },
+  const streamTypeDims = useQuery(
+    api.eventBusReads.listEventBusDimensions,
+    sessionNamespaceResolved
+      ? ({ namespace, kind: "streamType" } as const)
+      : "skip",
   );
 
   const form = useForm({

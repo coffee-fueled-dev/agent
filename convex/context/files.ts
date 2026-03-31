@@ -1,11 +1,11 @@
 import { z } from "zod/v4";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
+import { context } from "../context";
 import { sessionAction, sessionMutation } from "../customFunctions";
 import { accountActor } from "../eventAttribution";
 import { assertAccountNamespace } from "../models/auth/contextNamespace";
 import {
-  createContextClient,
   getConvexSiteUrl,
   getEmbeddingServerUrl,
   getFileEmbeddingSecret,
@@ -53,8 +53,7 @@ export const addFileContext = sessionAction({
     const storageId = storageIdArg as Id<"_storage">;
 
     if (text) {
-      const client = createContextClient();
-      const result = await client.addContext(ctx, {
+      const result = await context.addContext(ctx, {
         ...entry,
         text,
         session: sessionId,

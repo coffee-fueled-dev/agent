@@ -1,4 +1,4 @@
-/** `/events/:eventId` — unified timeline document id. */
+/** `/events/:id` — `eventBusEntries` document id. */
 export function parseEventsEventPath(
   pathname: string,
 ): { eventId: string } | null {

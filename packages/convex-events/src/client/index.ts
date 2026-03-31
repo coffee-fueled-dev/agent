@@ -1,10 +1,4 @@
-import type {
-  GenericDataModel,
-  GenericMutationCtx,
-  GenericQueryCtx,
-  PaginationOptions,
-  PaginationResult,
-} from "convex/server";
+import type { PaginationOptions, PaginationResult } from "convex/server";
 import type { ComponentApi } from "../component/_generated/component.js";
 import type {
   AppendArgs,
@@ -14,17 +8,14 @@ import type {
   EventSubscribable,
   EventSubscriber,
   EventsConfig,
+  EventsMutationCtx,
+  EventsRunMutationCtx,
+  EventsRunQueryCtx,
   MetricGroupByField,
   MetricMatchFields,
   ProjectorCheckpoint,
   StreamTypeFor,
 } from "../component/types.js";
-
-type RunQueryCtx = Pick<GenericQueryCtx<GenericDataModel>, "runQuery">;
-type RunMutationCtx = Pick<
-  GenericMutationCtx<GenericDataModel>,
-  "runQuery" | "runMutation"
->;
 
 type StreamArgs<Streams extends readonly EventStreamTemplate[]> = {
   streamType: StreamTypeFor<Streams>;
@@ -96,7 +87,7 @@ export class EventsClient<const Streams extends readonly EventStreamTemplate[]>
   }
 
   appendToStream = async (
-    ctx: RunMutationCtx,
+    ctx: EventsMutationCtx,
     args: AppendArgs<Streams>,
   ): Promise<EventEntry<Streams>> => {
     this._assertRegisteredStream(
@@ -136,14 +127,14 @@ export class EventsClient<const Streams extends readonly EventStreamTemplate[]>
   };
 
   getEvent = async (
-    ctx: RunQueryCtx,
+    ctx: EventsRunQueryCtx,
     args: EventArgs<Streams>,
   ): Promise<EventEntry<Streams> | null> => {
     return await ctx.runQuery(this.component.public.read.getEvent, args);
   };
 
   listStreamEvents = async (
-    ctx: RunQueryCtx,
+    ctx: EventsRunQueryCtx,
     args: StreamArgs<Streams> & {
       paginationOpts: PaginationOptions;
       order?: "asc" | "desc";
@@ -157,7 +148,7 @@ export class EventsClient<const Streams extends readonly EventStreamTemplate[]>
   };
 
   listStreamEventsSince = async (
-    ctx: RunQueryCtx,
+    ctx: EventsRunQueryCtx,
     args: StreamArgs<Streams> & {
       minEventTime: number;
       paginationOpts: PaginationOptions;
@@ -173,7 +164,7 @@ export class EventsClient<const Streams extends readonly EventStreamTemplate[]>
   };
 
   listCategoryEvents = async (
-    ctx: RunQueryCtx,
+    ctx: EventsRunQueryCtx,
     args: {
       streamType: StreamTypeFor<Streams>;
       paginationOpts: PaginationOptions;
@@ -186,7 +177,7 @@ export class EventsClient<const Streams extends readonly EventStreamTemplate[]>
   };
 
   listDimensions = async (
-    ctx: RunQueryCtx,
+    ctx: EventsRunQueryCtx,
     args: { namespace?: string; kind: "eventType" | "streamType" },
   ): Promise<unknown[]> => {
     return await ctx.runQuery(
@@ -196,14 +187,14 @@ export class EventsClient<const Streams extends readonly EventStreamTemplate[]>
   };
 
   getStream = async (
-    ctx: RunQueryCtx,
+    ctx: EventsRunQueryCtx,
     args: StreamArgs<Streams>,
   ): Promise<EventStreamState<Streams> | null> => {
     return await ctx.runQuery(this.component.public.streams.getStream, args);
   };
 
   getVersion = async (
-    ctx: RunQueryCtx,
+    ctx: EventsRunQueryCtx,
     args: StreamArgs<Streams>,
   ): Promise<number> => {
     return await ctx.runQuery(
@@ -213,7 +204,7 @@ export class EventsClient<const Streams extends readonly EventStreamTemplate[]>
   };
 
   getBatch = async (
-    ctx: RunQueryCtx,
+    ctx: EventsRunQueryCtx,
     args: { name: string; groupKeys: string[] },
   ): Promise<Record<string, { count: number; lastEventTime: number }>> => {
     return await ctx.runQuery(
@@ -223,7 +214,7 @@ export class EventsClient<const Streams extends readonly EventStreamTemplate[]>
   };
 
   claimOrReadCheckpoint = async (
-    ctx: RunMutationCtx,
+    ctx: EventsRunMutationCtx,
     args: {
       projector: string;
       streamType: StreamTypeFor<Streams>;
@@ -241,7 +232,7 @@ export class EventsClient<const Streams extends readonly EventStreamTemplate[]>
   };
 
   advanceCheckpoint = async (
-    ctx: RunMutationCtx,
+    ctx: EventsRunMutationCtx,
     args: {
       projector: string;
       streamType: StreamTypeFor<Streams>;
@@ -258,7 +249,7 @@ export class EventsClient<const Streams extends readonly EventStreamTemplate[]>
   };
 
   readCheckpoint = async (
-    ctx: RunQueryCtx,
+    ctx: EventsRunQueryCtx,
     args: {
       projector: string;
       streamType: StreamTypeFor<Streams>;
@@ -271,7 +262,7 @@ export class EventsClient<const Streams extends readonly EventStreamTemplate[]>
   };
 
   listUnprocessed = async (
-    ctx: RunQueryCtx,
+    ctx: EventsRunQueryCtx,
     args: {
       projector: string;
       streamType: StreamTypeFor<Streams>;
@@ -322,7 +313,7 @@ export async function* projectorUnprocessedBatches<
   const Streams extends readonly EventStreamTemplate[],
 >(
   client: EventsClient<Streams>,
-  ctx: RunMutationCtx,
+  ctx: EventsRunMutationCtx,
   args: {
     projector: string;
     streamType: StreamTypeFor<Streams>;

@@ -1,49 +1,53 @@
+import { EventsClient } from "@very-coffee/convex-events";
 import { v } from "convex/values";
-import {
-  logContextMemoryCheckpoint,
-  onContextMemoryAppend,
-} from "../../context/contextMemoryEventHooks";
-import { EventsClient } from "../events/client";
 import { components } from "./_generated/api";
 
-export const memoryEvents = new EventsClient(components.events, {
+const eventActorArgs = v.optional(
+  v.object({
+    type: v.string(),
+    id: v.string(),
+  }),
+);
+
+export const events = new EventsClient(components.events, {
   streams: [
     {
-      streamType: "contextMemory",
       namespaceScoped: true,
-      eventTypes: ["searched", "viewed", "added", "edited", "deleted"],
+      streamType: "memories",
+      eventTypes: ["search_hit", "view", "create", "update", "delete"],
       payloads: {
-        searched: {
-          namespace: v.string(),
+        search_hit: {
           rank: v.number(),
           score: v.number(),
+          actor: eventActorArgs,
         },
-        viewed: { namespace: v.string() },
-        added: { namespace: v.string(), key: v.string() },
-        edited: { namespace: v.string(), oldEntryId: v.string() },
-        deleted: { namespace: v.string() },
+        view: {
+          actor: eventActorArgs,
+        },
+        create: {
+          actor: eventActorArgs,
+          key: v.string(),
+        },
+        update: {
+          actor: eventActorArgs,
+          lastVersionId: v.string(),
+        },
+        delete: {
+          actor: eventActorArgs,
+        },
       },
     },
-  ] as const,
-
+  ],
   metrics: [
     {
-      name: "searchCount",
-      match: { streamType: "contextMemory", eventType: "searched" },
+      name: "search_hit_count",
+      match: { streamType: "memories", eventType: "search_hit" },
       groupBy: ["streamId"],
     },
     {
-      name: "viewCount",
-      match: { streamType: "contextMemory", eventType: "viewed" },
+      name: "view_count",
+      match: { streamType: "memories", eventType: "view" },
       groupBy: ["streamId"],
     },
   ],
-
-  onAdvanceCheckpoint: (ctx, checkpoint) => {
-    logContextMemoryCheckpoint(ctx, checkpoint);
-  },
-});
-
-memoryEvents.subscribe("contextMemoryBridge", (ctx, entry) => {
-  void onContextMemoryAppend(ctx, entry);
 });

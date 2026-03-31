@@ -6,7 +6,7 @@ import type {
   GenericQueryCtx,
 } from "convex/server";
 import type { ComponentApi } from "../_generated/component";
-import { memoryEvents } from "../events";
+import { events } from "../events";
 import { graph } from "../graph";
 import { history } from "../history";
 
@@ -35,7 +35,7 @@ export class ContextClient {
   }
 
   get events() {
-    return memoryEvents;
+    return events;
   }
 
   get history() {

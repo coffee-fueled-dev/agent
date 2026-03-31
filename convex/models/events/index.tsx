@@ -1,9 +1,5 @@
-import { bus } from "../../eventBus";
-import { unifiedTimeline } from "../events/unifiedTimeline";
-import { unifiedTimelineDimensions } from "../events/unifiedTimelineDimensions";
+import { fifoTables } from "@very-coffee/convex-events/eventBus";
 
 export default {
-  unifiedTimeline,
-  unifiedTimelineDimensions,
-  ...bus.tables,
+  ...fifoTables,
 };

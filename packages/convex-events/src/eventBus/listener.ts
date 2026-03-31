@@ -1,22 +1,23 @@
-import type { GenericMutationCtx, GenericQueryCtx } from "convex/server";
 import type { EventsClient } from "../client/index.js";
 import type {
   EventEntry,
   EventStreamTemplate,
   EventSubscribable,
   EventSubscriber,
-  RunMutationCtx,
+  EventsMutationCtx,
+  EventsRunQueryCtx,
   StreamTypeFor,
 } from "../component/types.js";
 import type { DimensionKind } from "../domain/dimensions/fields.js";
 import { getOrCreateDimensionId } from "../domain/dimensions/helpers.js";
 import type { DimensionDoc } from "../domain/dimensions/types.js";
 import type { EvictionPolicy } from "./index.js";
-import type { ExpectedDataModel, ExpectedId } from "./models/types.js";
-import type { BusEntry } from "./types.js";
-
-type MutationCtx = GenericMutationCtx<ExpectedDataModel>;
-type QueryCtx = GenericQueryCtx<ExpectedDataModel>;
+import type { ExpectedId } from "./models/types.js";
+import type {
+  BusEntry,
+  EventsBusMutationCtx,
+  EventsBusQueryCtx,
+} from "./types.js";
 
 export type EventBusSource<
   Key extends string = string,
@@ -54,11 +55,9 @@ export class EventBusListener<const Sources extends readonly AnySource[]>
 
     for (const { client, key } of config.sources) {
       this._sourceMap.set(key, client);
-      // The subscriber fires inside appendToStream's mutation, so the runtime
-      // ctx is a full GenericMutationCtx even though the subscriber signature
-      // only exposes RunMutationCtx (runMutation + runQuery).
+      // Caller's ctx is `EventsMutationCtx`; bus rows need host `ExpectedDataModel`.
       client.subscribe(`__bus_${key}`, (ctx, entry) =>
-        this._onSourceEvent(ctx as unknown as MutationCtx, entry, key),
+        this._onSourceEvent(ctx as EventsBusMutationCtx, entry, key),
       );
     }
   }
@@ -72,13 +71,13 @@ export class EventBusListener<const Sources extends readonly AnySource[]>
   // ---------------------------------------------------------------------------
 
   private async _getOrCreateDimension(
-    ctx: MutationCtx,
+    ctx: EventsBusMutationCtx,
     args: { namespace: string; kind: DimensionKind; value: string },
   ) {
     return getOrCreateDimensionId(ctx, args);
   }
 
-  private async _getOrCreateCount(ctx: MutationCtx) {
+  private async _getOrCreateCount(ctx: EventsBusMutationCtx) {
     const row = await ctx.db.query("eventBusCount").first();
     if (row) return row;
     const id = await ctx.db.insert("eventBusCount", { currentSize: 0 });
@@ -88,7 +87,7 @@ export class EventBusListener<const Sources extends readonly AnySource[]>
   }
 
   private async _onSourceEvent(
-    ctx: MutationCtx,
+    ctx: EventsBusMutationCtx,
     entry: EventEntry,
     sourceKey: string,
   ) {
@@ -115,7 +114,7 @@ export class EventBusListener<const Sources extends readonly AnySource[]>
         await ctx.db.patch(counter._id, { currentSize: counter.currentSize });
       }
       for (const cb of this._subscribers.values()) {
-        await cb(ctx, entry);
+        await cb(ctx as EventsMutationCtx, entry);
       }
       return;
     }
@@ -162,7 +161,7 @@ export class EventBusListener<const Sources extends readonly AnySource[]>
     await ctx.db.patch(counter._id, { currentSize: counter.currentSize });
 
     for (const cb of this._subscribers.values()) {
-      await cb(ctx, entry);
+      await cb(ctx as EventsMutationCtx, entry);
     }
   }
 
@@ -171,7 +170,7 @@ export class EventBusListener<const Sources extends readonly AnySource[]>
   // ---------------------------------------------------------------------------
 
   async listEntries(
-    ctx: QueryCtx,
+    ctx: EventsBusQueryCtx,
     args: {
       namespace?: string;
       eventTypeId?: ExpectedId<"dimensions">;
@@ -241,7 +240,7 @@ export class EventBusListener<const Sources extends readonly AnySource[]>
   }
 
   async listDimensions(
-    ctx: QueryCtx,
+    ctx: EventsBusQueryCtx,
     args: { namespace?: string; kind: DimensionKind },
   ): Promise<DimensionDoc[]> {
     const namespace = normalizeNamespace(args.namespace);
@@ -254,7 +253,7 @@ export class EventBusListener<const Sources extends readonly AnySource[]>
   }
 
   async getOriginalEvent(
-    ctx: { runQuery: RunMutationCtx["runQuery"] },
+    ctx: EventsRunQueryCtx,
     busEntry: {
       sourceKey: SourceKey<Sources>;
       streamType: StreamTypeFor<AllStreams<Sources>>;

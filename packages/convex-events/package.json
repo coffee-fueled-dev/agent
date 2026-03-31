@@ -1,6 +1,6 @@
 {
   "name": "@very-coffee/convex-events",
-  "description": "A convex events component for Convex.",
+  "description": "An event sourcing component for Convex.",
   "repository": "github:coffee-fueled-dev/agent",
   "homepage": "https://github.com/coffee-fueled-dev/agent#readme",
   "bugs": {

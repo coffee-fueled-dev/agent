@@ -752,39 +752,5 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           Name
         >;
       };
-      unifiedTimelineProjectorBridge: {
-        advanceCheckpoint: FunctionReference<
-          "mutation",
-          "internal",
-          {
-            lastSequence: number;
-            leaseOwner?: string;
-            projector: string;
-            releaseClaim?: boolean;
-            streamType: string;
-          },
-          any,
-          Name
-        >;
-        claimOrReadCheckpoint: FunctionReference<
-          "mutation",
-          "internal",
-          {
-            leaseDurationMs?: number;
-            leaseOwner?: string;
-            projector: string;
-            streamType: string;
-          },
-          any,
-          Name
-        >;
-        listUnprocessedEvents: FunctionReference<
-          "query",
-          "internal",
-          { limit?: number; projector: string; streamType: string },
-          any,
-          Name
-        >;
-      };
     };
   };
