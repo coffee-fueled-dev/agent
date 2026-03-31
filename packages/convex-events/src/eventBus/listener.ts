@@ -28,16 +28,18 @@ export type EventBusSource<
   key: Key;
 };
 
-type SourceKey<S extends readonly EventBusSource[]> = S[number]["key"];
+type AnySource = EventBusSource<string, any>;
 
-type AllStreams<S extends readonly EventBusSource[]> =
+type SourceKey<S extends readonly AnySource[]> = S[number]["key"];
+
+type AllStreams<S extends readonly AnySource[]> =
   S[number] extends EventBusSource<string, infer Streams> ? Streams : never;
 
 function normalizeNamespace(ns: string | undefined): string {
   return ns ?? "";
 }
 
-export class EventBusListener<const Sources extends readonly EventBusSource[]>
+export class EventBusListener<const Sources extends readonly AnySource[]>
   implements EventSubscribable
 {
   private _subscribers = new Map<string, EventSubscriber>();

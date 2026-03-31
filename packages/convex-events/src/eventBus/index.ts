@@ -7,7 +7,7 @@ export type EvictionPolicy = FifoPolicy;
 export type { EventBusSource } from "./listener.js";
 
 export function createEventBus<
-  const Sources extends readonly EventBusSource[],
+  const Sources extends readonly EventBusSource<string, any>[],
 >(config: { sources: Sources; eviction: EvictionPolicy }) {
   return {
     listener: new EventBusListener(config),
