@@ -1,4 +1,4 @@
-import { GraphClient } from "../graph/client";
+import { GraphClient } from "@very-coffee/convex-graph";
 import { components } from "./_generated/api";
 import { graphConfig } from "./graph.config";
 

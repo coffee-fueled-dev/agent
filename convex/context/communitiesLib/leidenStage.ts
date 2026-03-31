@@ -1,5 +1,5 @@
+import { leiden } from "@very-coffee/convex-graph";
 import type { ActionCtx } from "../../_generated/server";
-import { leiden } from "../../components/graph/client";
 import { STAGING_ASSIGNMENT_BATCH, STAGING_EDGE_BATCH } from "./constants";
 import { communityApi, staging } from "./deps";
 import { loadCurrentEntryIdsPaginated } from "./loadEntries";

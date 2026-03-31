@@ -1,4 +1,4 @@
-import { edgeSchema, nodeSchema } from "../graph/client";
+import { edgeSchema, nodeSchema } from "@very-coffee/convex-graph";
 import schema from "./schema";
 
 export const graphConfig = {

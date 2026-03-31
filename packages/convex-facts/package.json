@@ -2,7 +2,7 @@
   "name": "@very-coffee/convex-facts",
   "description": "A facts projection component for Convex.",
   "repository": "github:coffee-fueled-dev/agent",
-  "homepage": "https://github.com/coffee-fueled-dev/agent#readme",
+  "homepage": "https://github.com/coffee-fueled-dev/agent/packages/convex-facts#readme",
   "bugs": {
     "url": "https://github.com/coffee-fueled-dev/agent/issues"
   },

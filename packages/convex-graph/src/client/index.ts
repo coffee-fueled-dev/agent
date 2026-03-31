@@ -8,11 +8,11 @@ import type {
   TableNamesInDataModel,
 } from "convex/server";
 import type { Validator } from "convex/values";
-import type { ComponentApi } from "../_generated/component";
+import type { ComponentApi } from "../component/_generated/component.js";
 
-export { normalizeLabel } from "../internal/normalize";
-export { buildKnnGraph } from "../lib/knn";
-export { leiden } from "../lib/leiden";
+export { normalizeLabel } from "../component/internal/normalize.js";
+export { buildKnnGraph } from "../lib/knn.js";
+export { leiden } from "../lib/leiden.js";
 
 type RunMutationCtx = Pick<GenericMutationCtx<GenericDataModel>, "runMutation">;
 type RunQueryCtx = Pick<GenericQueryCtx<GenericDataModel>, "runQuery">;

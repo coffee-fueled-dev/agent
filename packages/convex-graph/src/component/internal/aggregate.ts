@@ -1,5 +1,5 @@
 import { DirectAggregate } from "@convex-dev/aggregate";
-import { components } from "../_generated/api";
+import { components } from "../_generated/api.js";
 
 export type GraphAggregateNamespace = ["degree"] | ["degree", string];
 

@@ -5,11 +5,10 @@ import {
 import { v } from "convex/values";
 import { paginator } from "convex-helpers/server/pagination";
 import { doc } from "convex-helpers/validators";
-import { internal } from "../_generated/api";
-import { mutation, query } from "../_generated/server";
-import { graphCounters } from "../internal/counters";
-import { normalizeLabel } from "../internal/normalize";
-import schema from "../schema";
+import { mutation, query } from "../_generated/server.js";
+import { graphCounters, nodeTotalDegreeKey } from "../internal/counters.js";
+import { normalizeLabel } from "../internal/normalize.js";
+import schema from "../schema.js";
 
 function counterKey(prefix: string, label?: string) {
   return label ? `${prefix}:${label}` : prefix;
@@ -21,7 +20,7 @@ export const createNode = mutation({
   handler: async (ctx, args) => {
     const normalized = normalizeLabel(args.label);
     const existing = await ctx.db
-      .query("nodes")
+      .query("graph_nodes")
       .withIndex("by_label_key", (q) =>
         q.eq("label", normalized).eq("key", args.key),
       )
@@ -29,33 +28,20 @@ export const createNode = mutation({
     if (existing) return null;
 
     const labelRow = await ctx.db
-      .query("labels")
+      .query("graph_labels")
       .withIndex("by_value", (q) => q.eq("value", normalized))
       .first();
     if (!labelRow) {
-      await ctx.db.insert("labels", {
+      await ctx.db.insert("graph_labels", {
         value: normalized,
         displayValue: args.label,
       });
     }
 
-    await ctx.db.insert("nodes", { label: normalized, key: args.key });
+    await ctx.db.insert("graph_nodes", { label: normalized, key: args.key });
 
     await graphCounters.inc(ctx, counterKey("nodes"));
     await graphCounters.inc(ctx, counterKey("nodes", normalized));
-
-    const existingStats = await ctx.db
-      .query("nodeStats")
-      .withIndex("by_key", (q) => q.eq("key", args.key))
-      .first();
-    if (!existingStats) {
-      await ctx.db.insert("nodeStats", {
-        key: args.key,
-        inDegree: 0,
-        outDegree: 0,
-        totalDegree: 0,
-      });
-    }
 
     return null;
   },
@@ -66,19 +52,19 @@ export const getNode = query({
     key: v.string(),
     label: v.optional(v.string()),
   },
-  returns: v.union(v.null(), doc(schema, "nodes")),
+  returns: v.union(v.null(), doc(schema, "graph_nodes")),
   handler: async (ctx, args) => {
     if (args.label) {
       const normalized = normalizeLabel(args.label);
       return await ctx.db
-        .query("nodes")
+        .query("graph_nodes")
         .withIndex("by_label_key", (q) =>
           q.eq("label", normalized).eq("key", args.key),
         )
         .first();
     }
     return await ctx.db
-      .query("nodes")
+      .query("graph_nodes")
       .withIndex("by_key", (q) => q.eq("key", args.key))
       .first();
   },
@@ -90,7 +76,7 @@ export const deleteNode = mutation({
   handler: async (ctx, args) => {
     const normalized = normalizeLabel(args.label);
     const node = await ctx.db
-      .query("nodes")
+      .query("graph_nodes")
       .withIndex("by_label_key", (q) =>
         q.eq("label", normalized).eq("key", args.key),
       )
@@ -98,7 +84,7 @@ export const deleteNode = mutation({
     if (!node) return null;
 
     const edges = await ctx.db
-      .query("edges")
+      .query("graph_edges")
       .filter((q) =>
         q.or(q.eq(q.field("from"), args.key), q.eq(q.field("to"), args.key)),
       )
@@ -106,49 +92,23 @@ export const deleteNode = mutation({
 
     if (edges.length > 0) {
       const edgeLabelCounts = new Map<string, number>();
-      const degreeDeltas = new Map<string, number>();
       for (const edge of edges) {
         await ctx.db.delete(edge._id);
         edgeLabelCounts.set(
           edge.label,
           (edgeLabelCounts.get(edge.label) ?? 0) + 1,
         );
-        degreeDeltas.set(edge.from, (degreeDeltas.get(edge.from) ?? 0) + 1);
-        if (edge.from !== edge.to) {
-          degreeDeltas.set(edge.to, (degreeDeltas.get(edge.to) ?? 0) + 1);
-        }
+        await graphCounters.dec(ctx, nodeTotalDegreeKey(edge.from));
+        await graphCounters.dec(ctx, nodeTotalDegreeKey(edge.to));
       }
 
       await graphCounters.subtract(ctx, counterKey("edges"), edges.length);
       for (const [label, count] of edgeLabelCounts) {
         await graphCounters.subtract(ctx, counterKey("edges", label), count);
       }
-
-      for (const [nodeKey, delta] of degreeDeltas) {
-        if (nodeKey !== args.key) {
-          await ctx.db.insert("pendingDegreeUpdates", {
-            nodeKey,
-            delta: -delta,
-            edgeLabel: normalized,
-          });
-        }
-      }
-      if (degreeDeltas.size > 1 || !degreeDeltas.has(args.key)) {
-        await ctx.scheduler.runAfter(
-          0,
-          internal.public.stats.flushDegreeUpdates,
-          {},
-        );
-      }
     }
 
-    const stats = await ctx.db
-      .query("nodeStats")
-      .withIndex("by_key", (q) => q.eq("key", args.key))
-      .first();
-    if (stats) {
-      await ctx.db.delete(stats._id);
-    }
+    await graphCounters.reset(ctx, nodeTotalDegreeKey(args.key));
 
     await graphCounters.dec(ctx, counterKey("nodes"));
     await graphCounters.dec(ctx, counterKey("nodes", normalized));
@@ -163,11 +123,11 @@ export const listNodes = query({
     label: v.string(),
     paginationOpts: paginationOptsValidator,
   },
-  returns: paginationResultValidator(doc(schema, "nodes")),
+  returns: paginationResultValidator(doc(schema, "graph_nodes")),
   handler: async (ctx, args) => {
     const normalized = normalizeLabel(args.label);
     return await paginator(ctx.db, schema)
-      .query("nodes")
+      .query("graph_nodes")
       .withIndex("by_label_key", (q) => q.eq("label", normalized))
       .order("desc")
       .paginate(args.paginationOpts);

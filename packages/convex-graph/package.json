@@ -1,8 +1,8 @@
 {
-  "name": "@very-coffee/convex-events",
-  "description": "An event sourcing component for Convex.",
+  "name": "@very-coffee/convex-graph",
+  "description": "A graph component for Convex.",
   "repository": "github:coffee-fueled-dev/agent",
-  "homepage": "https://github.com/coffee-fueled-dev/agent/packages/convex-events#readme",
+  "homepage": "https://github.com/coffee-fueled-dev/agent/packages/convex-graph#readme",
   "bugs": {
     "url": "https://github.com/coffee-fueled-dev/agent/issues"
   },
@@ -16,13 +16,11 @@
   "scripts": {
     "dev": "bun ./scripts/dev.ts",
     "dev:convex": "bunx convex dev --typecheck-components",
-    "dev:example": "bun --env-file .env.local --hot example/src/index.ts",
-    "predev": "test -f .env.local && test -d dist || (bun run build && bunx convex dev --once)",
     "build": "tsc --project ./tsconfig.build.json",
     "clean": "rm -rf dist *.tsbuildinfo",
     "build:codegen": "bunx convex codegen --component-dir ./src/component && bun run build",
     "build:clean": "bun run clean && bun run build:codegen",
-    "typecheck": "tsc --noEmit && tsc -p example && tsc -p example/convex",
+    "typecheck": "tsc --noEmit",
     "test": "bun test",
     "test:watch": "bun test --watch",
     "test:debug": "bun test --inspect-brk",
@@ -62,27 +60,25 @@
       "types": "./dist/component/convex.config.d.ts",
       "default": "./dist/component/convex.config.js"
     },
-    "./eventBus": {
-      "types": "./dist/eventBus/index.d.ts",
-      "default": "./dist/eventBus/index.js"
-    },
     "./types": {
       "types": "./dist/types.d.ts",
       "default": "./dist/types.js"
     }
   },
   "dependencies": {
+    "@convex-dev/aggregate": "^0.2.1",
+    "@convex-dev/sharded-counter": "^0.2.0",
     "convex-helpers": "^0.1.114"
   },
   "peerDependencies": {
-    "convex": "^1.33.1",
+    "convex": "^1.34.0",
     "react": "^18.3.1 || ^19.0.0"
   },
   "devDependencies": {
     "@types/bun": "^1.2.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "convex": "1.33.1",
+    "convex": "1.34.0",
     "convex-test": "0.0.41",
     "knip": "^6.1.0",
     "prettier": "3.8.1",
