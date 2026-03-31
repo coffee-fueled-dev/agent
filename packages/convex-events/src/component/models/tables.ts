@@ -6,13 +6,13 @@ import {
   eventStreamMetricFields,
 } from "./fields";
 
-export const eventStreams = defineTable(eventStreamFields).index("by_stream", [
+const eventStreams = defineTable(eventStreamFields).index("by_stream", [
   "streamType",
   "namespace",
   "streamId",
 ]);
 
-export const eventEntries = defineTable(eventEntryFields)
+const eventEntries = defineTable(eventEntryFields)
   .index("by_global_sequence", ["globalSequence"])
   .index("by_stream_version", [
     "streamType",
@@ -29,12 +29,12 @@ export const eventEntries = defineTable(eventEntryFields)
   .index("by_stream_event", ["streamType", "namespace", "streamId", "eventId"])
   .index("by_type_sequence", ["streamType", "globalSequence"]);
 
-export const eventStreamMetrics = defineTable(eventStreamMetricFields).index(
+const eventStreamMetrics = defineTable(eventStreamMetricFields).index(
   "by_name_key",
   ["name", "groupKey"],
 );
 
-export const eventProjectorCheckpoints = defineTable(
+const eventProjectorCheckpoints = defineTable(
   eventProjectorCheckpointFields,
 ).index("by_projector_stream", ["projector", "streamType"]);
 

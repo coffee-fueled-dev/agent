@@ -9,8 +9,10 @@ export type { EventBusSource } from "./listener.js";
 export function createEventBus<
   const Sources extends readonly EventBusSource[],
 >(config: { sources: Sources; eviction: EvictionPolicy }) {
-  const listener = new EventBusListener(config);
-  return Object.assign(listener, { tables: fifoTables });
+  return {
+    listener: new EventBusListener(config),
+    tables: fifoTables,
+  };
 }
 
 export { EventBusListener } from "./listener.js";

@@ -1,16 +1,18 @@
 import type { GenericMutationCtx, GenericQueryCtx } from "convex/server";
 import type { EventsClient } from "../client/index.js";
 import type {
-  BusDimension,
-  BusDimensionKind,
-  BusEntry,
   EventEntry,
   EventStreamTemplate,
   EventSubscribable,
   EventSubscriber,
   RunMutationCtx,
   StreamTypeFor,
-} from "../types.js";
+} from "../component/types.js";
+import type {
+  BusDimension,
+  BusDimensionKind,
+  BusEntry,
+} from "./types.js";
 import type { EvictionPolicy } from "./index.js";
 import type { ExpectedDataModel, ExpectedId } from "./models/types.js";
 

@@ -18,7 +18,7 @@ import type {
   MetricMatchFields,
   ProjectorCheckpoint,
   StreamTypeFor,
-} from "../types.js";
+} from "../component/types.js";
 
 type RunQueryCtx = Pick<GenericQueryCtx<GenericDataModel>, "runQuery">;
 type RunMutationCtx = Pick<

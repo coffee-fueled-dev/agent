@@ -84,6 +84,7 @@
     "@types/react-dom": "^19.2.3",
     "convex": "1.33.1",
     "convex-test": "0.0.41",
+    "knip": "^6.1.0",
     "prettier": "3.8.1",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
