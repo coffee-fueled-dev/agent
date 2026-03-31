@@ -29,7 +29,7 @@ export const appendEvent = mutation({
     expectedVersion: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    return events.append.appendToStream(ctx, args as any);
+    return events.appendToStream(ctx, args as any);
   },
 });
 
@@ -46,7 +46,7 @@ export const listStreamEvents = query({
     order: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
   },
   handler: async (ctx, args) => {
-    return events.read.listStreamEvents(ctx, args);
+    return events.listStreamEvents(ctx, args);
   },
 });
 
@@ -58,7 +58,7 @@ export const listStreamEventsSince = query({
     minEventTime: v.number(),
   },
   handler: async (ctx, args) => {
-    return events.read.listStreamEventsSince(ctx, args);
+    return events.listStreamEventsSince(ctx, args);
   },
 });
 
@@ -73,7 +73,7 @@ export const getStream = query({
     namespace: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    return events.streams.getStream(ctx, args);
+    return events.getStream(ctx, args);
   },
 });
 
@@ -87,7 +87,7 @@ export const getMetrics = query({
     groupKeys: v.array(v.string()),
   },
   handler: async (ctx, args) => {
-    return events.metrics.getBatch(ctx, args);
+    return events.getBatch(ctx, args);
   },
 });
 
@@ -101,7 +101,7 @@ export const readCheckpoint = query({
     streamType: vStreamType,
   },
   handler: async (ctx, args) => {
-    return events.projectors.readCheckpoint(ctx, args);
+    return events.readCheckpoint(ctx, args);
   },
 });
 
@@ -112,7 +112,7 @@ export const listUnprocessed = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    return events.projectors.listUnprocessed(ctx, args);
+    return events.listUnprocessed(ctx, args);
   },
 });
 
@@ -122,7 +122,7 @@ export const claimCheckpoint = mutation({
     streamType: vStreamType,
   },
   handler: async (ctx, args) => {
-    return events.projectors.claimOrReadCheckpoint(ctx, args);
+    return events.claimOrReadCheckpoint(ctx, args);
   },
 });
 
@@ -133,7 +133,7 @@ export const advanceCheckpoint = mutation({
     lastSequence: v.number(),
   },
   handler: async (ctx, args) => {
-    return events.projectors.advanceCheckpoint(ctx, args);
+    return events.advanceCheckpoint(ctx, args);
   },
 });
 

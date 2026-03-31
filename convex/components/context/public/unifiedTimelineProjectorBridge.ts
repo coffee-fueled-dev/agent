@@ -27,7 +27,7 @@ export const claimOrReadCheckpoint = mutation({
   returns: v.any(),
   handler: async (ctx, args) => {
     assertUnifiedBridge(args);
-    return memoryEvents.projectors.claimOrReadCheckpoint(ctx, {
+    return memoryEvents.claimOrReadCheckpoint(ctx, {
       projector: args.projector,
       streamType: UNIFIED_STREAM_TYPE,
       leaseOwner: args.leaseOwner,
@@ -45,7 +45,7 @@ export const listUnprocessedEvents = query({
   returns: v.any(),
   handler: async (ctx, args) => {
     assertUnifiedBridge(args);
-    return memoryEvents.projectors.listUnprocessed(ctx, {
+    return memoryEvents.listUnprocessed(ctx, {
       projector: args.projector,
       streamType: UNIFIED_STREAM_TYPE,
       limit: args.limit,
@@ -64,7 +64,7 @@ export const advanceCheckpoint = mutation({
   returns: v.any(),
   handler: async (ctx, args) => {
     assertUnifiedBridge(args);
-    return memoryEvents.projectors.advanceCheckpoint(ctx, {
+    return memoryEvents.advanceCheckpoint(ctx, {
       projector: args.projector,
       streamType: UNIFIED_STREAM_TYPE,
       lastSequence: args.lastSequence,

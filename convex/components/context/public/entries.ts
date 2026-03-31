@@ -22,11 +22,11 @@ export const getAccessStatsBatch = query({
   returns: v.any(),
   handler: async (ctx, args) => {
     const [searchMetrics, viewMetrics] = await Promise.all([
-      memoryEvents.metrics.getBatch(ctx, {
+      memoryEvents.getBatch(ctx, {
         name: "searchCount",
         groupKeys: args.entryIds,
       }),
-      memoryEvents.metrics.getBatch(ctx, {
+      memoryEvents.getBatch(ctx, {
         name: "viewCount",
         groupKeys: args.entryIds,
       }),
@@ -203,7 +203,7 @@ export const add = action({
       },
     );
 
-    await memoryEvents.append.appendToStream(ctx, {
+    await memoryEvents.appendToStream(ctx, {
       streamType: "contextMemory",
       namespace: args.namespace,
       streamId: result.entryId,
@@ -303,7 +303,7 @@ export const recordView = mutation({
       args.idempotencyKey !== undefined
         ? viewEventIdFromKey(args.namespace, args.entryId, args.idempotencyKey)
         : crypto.randomUUID();
-    await memoryEvents.append.appendToStream(ctx, {
+    await memoryEvents.appendToStream(ctx, {
       streamType: "contextMemory",
       namespace: args.namespace,
       streamId: args.entryId,
@@ -348,7 +348,7 @@ export const remove = action({
       key: args.entryId,
     });
 
-    await memoryEvents.append.appendToStream(ctx, {
+    await memoryEvents.appendToStream(ctx, {
       streamType: "contextMemory",
       namespace: args.namespace,
       streamId: args.entryId,
@@ -546,7 +546,7 @@ export const edit = action({
       },
     );
 
-    await memoryEvents.append.appendToStream(ctx, {
+    await memoryEvents.appendToStream(ctx, {
       streamType: "contextMemory",
       namespace: args.namespace,
       streamId: current.entryId,

@@ -154,6 +154,7 @@ export type ProjectorCheckpoint<StreamType extends string = string> = Omit<
   streamType: StreamType;
 };
 
+/** Discriminated union correlating streamType ↔ eventType ↔ payload. */
 export type AppendArgs<Streams extends readonly EventStreamTemplate[]> = {
   [Stream in StreamTypeFor<Streams>]: {
     [EvType in EventTypeFor<Streams, Stream>]: {
@@ -173,3 +174,4 @@ export type AppendArgs<Streams extends readonly EventStreamTemplate[]> = {
     };
   }[EventTypeFor<Streams, Stream>];
 }[StreamTypeFor<Streams>];
+

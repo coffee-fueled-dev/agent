@@ -159,7 +159,7 @@ export const search = action({
       if (clientSessionIdArg) timelineMeta.sessionId = clientSessionIdArg;
 
       for (let i = 0; i < enriched.length; i++) {
-        await memoryEvents.append.appendToStream(ctx, {
+        await memoryEvents.appendToStream(ctx, {
           streamType: "contextMemory",
           namespace: args.namespace,
           streamId: enriched[i].entryId,

@@ -95,190 +95,180 @@ export class EventsClient<const Streams extends readonly EventStreamTemplate[]>
     }
   }
 
-  append = {
-    appendToStream: async (
-      ctx: RunMutationCtx,
-      args: AppendArgs<Streams>,
-    ): Promise<EventEntry<Streams>> => {
-      this._assertRegisteredStream(
-        args.streamType as string,
-        args.eventType as string,
-      );
-      const entry = await ctx.runMutation(
-        this.component.public.append.appendToStream,
-        args,
-      );
-      const rules = this.config.metrics;
-      if (rules && rules.length > 0) {
-        const increments: {
-          name: string;
-          groupKey: string;
-          eventTime: number;
-        }[] = [];
-        for (const rule of rules) {
-          if (matchesRule(rule.match, entry)) {
-            increments.push({
-              name: rule.name,
-              groupKey: buildGroupKey(rule.groupBy, entry),
-              eventTime: entry.eventTime,
-            });
-          }
-        }
-        if (increments.length > 0) {
-          await ctx.runMutation(this.component.public.metrics.incrementBatch, {
-            increments,
+  appendToStream = async (
+    ctx: RunMutationCtx,
+    args: AppendArgs<Streams>,
+  ): Promise<EventEntry<Streams>> => {
+    this._assertRegisteredStream(
+      args.streamType as string,
+      args.eventType as string,
+    );
+    const entry = await ctx.runMutation(
+      this.component.public.append.appendToStream,
+      args,
+    );
+    const rules = this.config.metrics;
+    if (rules && rules.length > 0) {
+      const increments: {
+        name: string;
+        groupKey: string;
+        eventTime: number;
+      }[] = [];
+      for (const rule of rules) {
+        if (matchesRule(rule.match, entry)) {
+          increments.push({
+            name: rule.name,
+            groupKey: buildGroupKey(rule.groupBy, entry),
+            eventTime: entry.eventTime,
           });
         }
       }
-      for (const cb of this._subscribers.values()) {
-        await cb(ctx, entry);
+      if (increments.length > 0) {
+        await ctx.runMutation(this.component.public.metrics.incrementBatch, {
+          increments,
+        });
       }
-      return entry;
-    },
+    }
+    for (const cb of this._subscribers.values()) {
+      await cb(ctx, entry);
+    }
+    return entry;
   };
 
-  read = {
-    getEvent: async (
-      ctx: RunQueryCtx,
-      args: EventArgs<Streams>,
-    ): Promise<EventEntry<Streams> | null> => {
-      return await ctx.runQuery(this.component.public.read.getEvent, args);
-    },
-
-    listStreamEvents: async (
-      ctx: RunQueryCtx,
-      args: StreamArgs<Streams> & {
-        paginationOpts: PaginationOptions;
-        order?: "asc" | "desc";
-        eventTypes?: string[];
-      },
-    ): Promise<PaginationResult<EventEntry<Streams>>> => {
-      return await ctx.runQuery(
-        this.component.public.read.listStreamEvents,
-        args,
-      );
-    },
-
-    listStreamEventsSince: async (
-      ctx: RunQueryCtx,
-      args: StreamArgs<Streams> & {
-        minEventTime: number;
-        eventTypes?: string[];
-      },
-    ): Promise<EventEntry<Streams>[]> => {
-      return await ctx.runQuery(
-        this.component.public.read.listStreamEventsSince,
-        args,
-      );
-    },
-
-    listCategoryEvents: async (
-      ctx: RunQueryCtx,
-      args: {
-        streamType: StreamTypeFor<Streams>;
-        paginationOpts: PaginationOptions;
-      },
-    ): Promise<PaginationResult<EventEntry<Streams>>> => {
-      return await ctx.runQuery(
-        this.component.public.read.listCategoryEvents,
-        args,
-      );
-    },
+  getEvent = async (
+    ctx: RunQueryCtx,
+    args: EventArgs<Streams>,
+  ): Promise<EventEntry<Streams> | null> => {
+    return await ctx.runQuery(this.component.public.read.getEvent, args);
   };
 
-  streams = {
-    getStream: async (
-      ctx: RunQueryCtx,
-      args: StreamArgs<Streams>,
-    ): Promise<EventStreamState<Streams> | null> => {
-      return await ctx.runQuery(this.component.public.streams.getStream, args);
+  listStreamEvents = async (
+    ctx: RunQueryCtx,
+    args: StreamArgs<Streams> & {
+      paginationOpts: PaginationOptions;
+      order?: "asc" | "desc";
+      eventTypes?: string[];
     },
-
-    getVersion: async (
-      ctx: RunQueryCtx,
-      args: StreamArgs<Streams>,
-    ): Promise<number> => {
-      return await ctx.runQuery(
-        this.component.public.streams.getStreamVersion,
-        args,
-      );
-    },
+  ): Promise<PaginationResult<EventEntry<Streams>>> => {
+    return await ctx.runQuery(
+      this.component.public.read.listStreamEvents,
+      args,
+    );
   };
 
-  metrics = {
-    getBatch: async (
-      ctx: RunQueryCtx,
-      args: { name: string; groupKeys: string[] },
-    ): Promise<Record<string, { count: number; lastEventTime: number }>> => {
-      return await ctx.runQuery(
-        this.component.public.metrics.getMetricsBatch,
-        args,
-      );
+  listStreamEventsSince = async (
+    ctx: RunQueryCtx,
+    args: StreamArgs<Streams> & {
+      minEventTime: number;
+      eventTypes?: string[];
     },
+  ): Promise<EventEntry<Streams>[]> => {
+    return await ctx.runQuery(
+      this.component.public.read.listStreamEventsSince,
+      args,
+    );
   };
 
-  projectors = {
-    claimOrReadCheckpoint: async (
-      ctx: RunMutationCtx,
-      args: {
-        projector: string;
-        streamType: StreamTypeFor<Streams>;
-        leaseOwner?: string;
-        leaseDurationMs?: number;
-      },
-    ): Promise<{
-      checkpoint: ProjectorCheckpoint<StreamTypeFor<Streams>>;
-      claimed: boolean;
-    }> => {
-      return await ctx.runMutation(
-        this.component.public.projectors.claimOrReadCheckpoint,
-        args,
-      );
+  listCategoryEvents = async (
+    ctx: RunQueryCtx,
+    args: {
+      streamType: StreamTypeFor<Streams>;
+      paginationOpts: PaginationOptions;
     },
+  ): Promise<PaginationResult<EventEntry<Streams>>> => {
+    return await ctx.runQuery(
+      this.component.public.read.listCategoryEvents,
+      args,
+    );
+  };
 
-    advanceCheckpoint: async (
-      ctx: RunMutationCtx,
-      args: {
-        projector: string;
-        streamType: StreamTypeFor<Streams>;
-        lastSequence: number;
-        leaseOwner?: string;
-        releaseClaim?: boolean;
-      },
-    ): Promise<ProjectorCheckpoint<StreamTypeFor<Streams>>> => {
-      const checkpoint = await ctx.runMutation(
-        this.component.public.projectors.advanceCheckpoint,
-        args,
-      );
-      return checkpoint;
-    },
+  getStream = async (
+    ctx: RunQueryCtx,
+    args: StreamArgs<Streams>,
+  ): Promise<EventStreamState<Streams> | null> => {
+    return await ctx.runQuery(this.component.public.streams.getStream, args);
+  };
 
-    readCheckpoint: async (
-      ctx: RunQueryCtx,
-      args: {
-        projector: string;
-        streamType: StreamTypeFor<Streams>;
-      },
-    ): Promise<ProjectorCheckpoint<StreamTypeFor<Streams>> | null> => {
-      return await ctx.runQuery(
-        this.component.public.projectors.readCheckpoint,
-        args,
-      );
-    },
+  getVersion = async (
+    ctx: RunQueryCtx,
+    args: StreamArgs<Streams>,
+  ): Promise<number> => {
+    return await ctx.runQuery(
+      this.component.public.streams.getStreamVersion,
+      args,
+    );
+  };
 
-    listUnprocessed: async (
-      ctx: RunQueryCtx,
-      args: {
-        projector: string;
-        streamType: StreamTypeFor<Streams>;
-        limit?: number;
-      },
-    ): Promise<EventEntry<Streams>[]> => {
-      return await ctx.runQuery(
-        this.component.public.projectors.listUnprocessedEvents,
-        args,
-      );
+  getBatch = async (
+    ctx: RunQueryCtx,
+    args: { name: string; groupKeys: string[] },
+  ): Promise<Record<string, { count: number; lastEventTime: number }>> => {
+    return await ctx.runQuery(
+      this.component.public.metrics.getMetricsBatch,
+      args,
+    );
+  };
+
+  claimOrReadCheckpoint = async (
+    ctx: RunMutationCtx,
+    args: {
+      projector: string;
+      streamType: StreamTypeFor<Streams>;
+      leaseOwner?: string;
+      leaseDurationMs?: number;
     },
+  ): Promise<{
+    checkpoint: ProjectorCheckpoint<StreamTypeFor<Streams>>;
+    claimed: boolean;
+  }> => {
+    return await ctx.runMutation(
+      this.component.public.projectors.claimOrReadCheckpoint,
+      args,
+    );
+  };
+
+  advanceCheckpoint = async (
+    ctx: RunMutationCtx,
+    args: {
+      projector: string;
+      streamType: StreamTypeFor<Streams>;
+      lastSequence: number;
+      leaseOwner?: string;
+      releaseClaim?: boolean;
+    },
+  ): Promise<ProjectorCheckpoint<StreamTypeFor<Streams>>> => {
+    const checkpoint = await ctx.runMutation(
+      this.component.public.projectors.advanceCheckpoint,
+      args,
+    );
+    return checkpoint;
+  };
+
+  readCheckpoint = async (
+    ctx: RunQueryCtx,
+    args: {
+      projector: string;
+      streamType: StreamTypeFor<Streams>;
+    },
+  ): Promise<ProjectorCheckpoint<StreamTypeFor<Streams>> | null> => {
+    return await ctx.runQuery(
+      this.component.public.projectors.readCheckpoint,
+      args,
+    );
+  };
+
+  listUnprocessed = async (
+    ctx: RunQueryCtx,
+    args: {
+      projector: string;
+      streamType: StreamTypeFor<Streams>;
+      limit?: number;
+    },
+  ): Promise<EventEntry<Streams>[]> => {
+    return await ctx.runQuery(
+      this.component.public.projectors.listUnprocessedEvents,
+      args,
+    );
   };
 }
 
@@ -330,18 +320,18 @@ export async function* projectorUnprocessedBatches<
   yield* projectorUnprocessedBatchesFromDeps(
     {
       claim: () =>
-        client.projectors.claimOrReadCheckpoint(ctx, {
+        client.claimOrReadCheckpoint(ctx, {
           projector: args.projector,
           streamType: args.streamType,
         }),
       list: (limit) =>
-        client.projectors.listUnprocessed(ctx, {
+        client.listUnprocessed(ctx, {
           projector: args.projector,
           streamType: args.streamType,
           limit,
         }),
       advance: (lastSequence) =>
-        client.projectors.advanceCheckpoint(ctx, {
+        client.advanceCheckpoint(ctx, {
           projector: args.projector,
           streamType: args.streamType,
           lastSequence,

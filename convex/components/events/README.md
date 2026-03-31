@@ -76,7 +76,7 @@ export const events = new EventsClient(components.events, eventsConfig);
 Write:
 
 ```ts
-await events.append.appendToStream(ctx, {
+await events.appendToStream(ctx, {
   streamType: "match",
   streamId: matchId,
   eventId: eventId,
@@ -89,12 +89,12 @@ await events.append.appendToStream(ctx, {
 Read:
 
 ```ts
-const stream = await events.streams.getVersion(ctx, {
+const stream = await events.getVersion(ctx, {
   streamType: "match",
   streamId: matchId,
 });
 
-const page = await events.read.listStreamEvents(ctx, {
+const page = await events.listStreamEvents(ctx, {
   streamType: "match",
   streamId: matchId,
   paginationOpts,
@@ -104,14 +104,14 @@ const page = await events.read.listStreamEvents(ctx, {
 Project:
 
 ```ts
-const { checkpoint } = await events.projectors.claimOrReadCheckpoint(ctx, {
+const { checkpoint } = await events.claimOrReadCheckpoint(ctx, {
   projector: "facts:matches",
   streamType: "match",
   leaseOwner: "worker-1",
   leaseDurationMs: 30_000,
 });
 
-const pending = await events.projectors.listUnprocessed(ctx, {
+const pending = await events.listUnprocessed(ctx, {
   projector: "facts:matches",
   streamType: "match",
   limit: 100,

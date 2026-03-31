@@ -286,7 +286,7 @@ export class EventBusListener<const Sources extends readonly AnySource[]>
   ): Promise<EventEntry<AllStreams<Sources>> | null> {
     const client = this._sourceMap.get(busEntry.sourceKey);
     if (!client) return null;
-    return client.read.getEvent(ctx, {
+    return client.getEvent(ctx, {
       streamType: busEntry.streamType,
       namespace: busEntry.namespace,
       streamId: busEntry.streamId,

@@ -246,11 +246,11 @@ export const getLatestProjection = query({
       const now = Date.now();
       const entryIds = [...new Set(points.map((p) => p.entryId))];
       const [searchM, viewM] = await Promise.all([
-        memoryEvents.metrics.getBatch(ctx, {
+        memoryEvents.getBatch(ctx, {
           name: "searchCount",
           groupKeys: entryIds,
         }),
-        memoryEvents.metrics.getBatch(ctx, {
+        memoryEvents.getBatch(ctx, {
           name: "viewCount",
           groupKeys: entryIds,
         }),
@@ -378,11 +378,11 @@ export const getProjectionStatus = query({
       const now = Date.now();
       const entryIds2 = [...new Set(points.map((p) => p.entryId))];
       const [searchM2, viewM2] = await Promise.all([
-        memoryEvents.metrics.getBatch(ctx, {
+        memoryEvents.getBatch(ctx, {
           name: "searchCount",
           groupKeys: entryIds2,
         }),
-        memoryEvents.metrics.getBatch(ctx, {
+        memoryEvents.getBatch(ctx, {
           name: "viewCount",
           groupKeys: entryIds2,
         }),

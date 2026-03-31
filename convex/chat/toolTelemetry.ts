@@ -37,7 +37,7 @@ export const appendThreadToolTelemetry = internalMutation({
     session: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await events.append.appendToStream(ctx, {
+    await events.appendToStream(ctx, {
       streamType: "threadIdentity",
       namespace: args.namespace,
       streamId: args.streamId,

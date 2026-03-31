@@ -195,7 +195,7 @@ async function appendThreadIdentityEvents(
     payload: Record<string, unknown>;
     extraMetadata?: Record<string, string | number | boolean | null>;
   }) => {
-    const entry = await events.append.appendToStream(ctx, {
+    const entry = await events.appendToStream(ctx, {
       streamType: "threadIdentity",
       namespace: args.namespace,
       streamId: args.threadId,

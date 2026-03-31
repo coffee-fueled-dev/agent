@@ -34,11 +34,11 @@ export const getAccessStatsBatch = internalQuery({
   returns: v.any(),
   handler: async (ctx, args) => {
     const [searchMetrics, viewMetrics] = await Promise.all([
-      memoryEvents.metrics.getBatch(ctx, {
+      memoryEvents.getBatch(ctx, {
         name: "searchCount",
         groupKeys: args.entryIds,
       }),
-      memoryEvents.metrics.getBatch(ctx, {
+      memoryEvents.getBatch(ctx, {
         name: "viewCount",
         groupKeys: args.entryIds,
       }),

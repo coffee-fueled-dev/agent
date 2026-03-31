@@ -110,7 +110,7 @@ const appEvents = new EventsClient(components.events, {
 });
 
 // In a mutation, after wiring auth as needed:
-await appEvents.append.appendToStream(ctx, {
+await appEvents.appendToStream(ctx, {
   streamType: "myStream",
   streamId: "id-1",
   eventId: crypto.randomUUID(),
@@ -118,7 +118,7 @@ await appEvents.append.appendToStream(ctx, {
 });
 ```
 
-See [example/convex/example.ts](./example/convex/example.ts) for a minimal app query.
+See [example/convex/functions.ts](./example/convex/functions.ts) for a minimal app query.
 
 <!-- END: Include on https://convex.dev/components -->
 

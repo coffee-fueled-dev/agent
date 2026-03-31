@@ -135,21 +135,19 @@ export class EventBusListener implements EventSubscribable {
   ): Promise<EventEntry | null> {
     const source = this._sourceMap.get(busEntry.sourceKey);
     if (!source) return null;
-    if (!("read" in source)) return null;
+    if (!("getEvent" in source)) return null;
     const client = source as EventSubscribable & {
-      read: {
-        getEvent: (
-          ctx: { runQuery: EventsAppendHookCtx["runQuery"] },
-          args: {
-            streamType: string;
-            namespace?: string;
-            streamId: string;
-            eventId: string;
-          },
-        ) => Promise<EventEntry | null>;
-      };
+      getEvent: (
+        ctx: { runQuery: EventsAppendHookCtx["runQuery"] },
+        args: {
+          streamType: string;
+          namespace?: string;
+          streamId: string;
+          eventId: string;
+        },
+      ) => Promise<EventEntry | null>;
     };
-    return client.read.getEvent(ctx, {
+    return client.getEvent(ctx, {
       streamType: busEntry.streamType,
       namespace: busEntry.namespace,
       streamId: busEntry.streamId,

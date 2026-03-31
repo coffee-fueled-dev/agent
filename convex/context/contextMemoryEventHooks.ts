@@ -3,7 +3,7 @@
  *
  * Imported from `convex/components/context/events.ts` when constructing `memoryEvents`.
  * Runs on the Convex **server** in the same isolate as the mutation or action that called
- * `EventsClient.append.appendToStream` (after the component append completes). The hook
+ * `EventsClient.appendToStream` (after the component append completes). The hook
  * receives the **caller’s** `ctx` so it can `runMutation` into app `internal.*` functions.
  */
 
