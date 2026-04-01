@@ -1,0 +1,21 @@
+{
+  "name": "@very-coffee/agent-identity",
+  "module": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "dependencies": {},
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "example:static": "bun run examples/01-static-toolkit.ts",
+    "example:dynamic": "bun run examples/02-dynamic-toolkit.ts",
+    "example:identity": "bun run examples/03-identity-snapshot.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "ai": "^6.0.142"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}
