@@ -23,7 +23,7 @@ type RunActionCtx = Pick<GenericActionCtx<GenericDataModel>, "runAction"> &
 type RunQueryCtx = Pick<GenericQueryCtx<GenericDataModel>, "runQuery">;
 
 /** App-facing facade: hashing runs in the outer action; the identity component only stores plain payloads. */
-export class IdentityComponentClient {
+export class IdentityClient {
   constructor(
     public component: {
       public: {
@@ -197,15 +197,15 @@ export class IdentityComponentClient {
   runFromAction = {
     registerAgentDefinition: (
       ctx: RunActionCtx,
-      args: Parameters<IdentityComponentClient["registerAgentDefinition"]>[1],
+      args: Parameters<IdentityClient["registerAgentDefinition"]>[1],
     ) => this.registerAgentDefinition(ctx, args),
     registerToolDefinition: (
       ctx: RunActionCtx,
-      args: Parameters<IdentityComponentClient["registerToolDefinition"]>[1],
+      args: Parameters<IdentityClient["registerToolDefinition"]>[1],
     ) => this.registerToolDefinition(ctx, args),
     recordAgentTurn: (
       ctx: RunActionCtx,
-      args: Parameters<IdentityComponentClient["recordAgentTurn"]>[1],
+      args: Parameters<IdentityClient["recordAgentTurn"]>[1],
     ) => this.recordAgentTurn(ctx, args),
     getAgentRegistration: (ctx: RunActionCtx, args: { agentId: string }) =>
       this.getAgentRegistration(ctx, args),
