@@ -42,11 +42,6 @@ export type EventMetadataValue = string | number | boolean | null;
 
 export type EventMetadata = Record<string, EventMetadataValue>;
 
-export type EventActor = {
-  byType: string;
-  byId: string;
-};
-
 export type EventStreamTemplate = {
   name: string;
   /** Event type names are the keys; values are per-field payload validators (same shape as `v.object({ ... })`). */
@@ -202,7 +197,6 @@ export type AppendArgs<Streams extends readonly EventStreamTemplate[]> = {
       metadata?: EventMetadata;
       causationId?: string;
       correlationId?: string;
-      actor?: EventActor;
       session?: string;
       eventTime?: number;
     };

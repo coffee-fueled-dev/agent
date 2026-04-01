@@ -8,6 +8,7 @@ import { readTimeDecay } from "../internal/accessStats";
 import { createContextRag } from "../rag";
 import { sourceValidator } from "../schema";
 import { search as searchClient } from "../search";
+import { mergeEventMetadata } from "../../../eventAttribution";
 
 function fusedRank(
   sortedResults: string[][],
@@ -171,11 +172,11 @@ export const search = action({
             rank: i,
             score: enriched[i].score,
           },
-          actor,
           session,
-          ...(Object.keys(timelineMeta).length > 0
-            ? { metadata: timelineMeta }
-            : {}),
+          metadata: mergeEventMetadata(
+            Object.keys(timelineMeta).length > 0 ? timelineMeta : undefined,
+            actor,
+          ),
         });
       }
       return enriched;

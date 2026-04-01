@@ -940,7 +940,6 @@ export const components = componentsGeneric() as unknown as {
           "mutation",
           "internal",
           {
-            actor?: { byId: string; byType: string };
             causationId?: string;
             correlationId?: string;
             eventId: string;
@@ -957,7 +956,6 @@ export const components = componentsGeneric() as unknown as {
           {
             _creationTime: number;
             _id: string;
-            actor?: { byId: string; byType: string };
             causationId?: string;
             correlationId?: string;
             eventId: string;
@@ -1046,7 +1044,6 @@ export const components = componentsGeneric() as unknown as {
           Array<{
             _creationTime: number;
             _id: string;
-            actor?: { byId: string; byType: string };
             causationId?: string;
             correlationId?: string;
             eventId: string;
@@ -1091,7 +1088,6 @@ export const components = componentsGeneric() as unknown as {
           {
             _creationTime: number;
             _id: string;
-            actor?: { byId: string; byType: string };
             causationId?: string;
             correlationId?: string;
             eventId: string;

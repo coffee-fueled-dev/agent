@@ -11,6 +11,7 @@ import { embedText } from "../internal/embedding";
 import { createContextRag } from "../rag";
 import { sourceValidator, versionDataValidator } from "../schema";
 import { search as searchClient } from "../search";
+import { mergeEventMetadata } from "../../../eventAttribution";
 
 const TEXT_PREVIEW_LENGTH = 280;
 
@@ -222,9 +223,11 @@ export const add = action({
       eventId: crypto.randomUUID(),
       eventType: "added",
       payload: { namespace: args.namespace, key: args.key },
-      ...(args.actor ? { actor: args.actor } : {}),
       ...(args.session ? { session: args.session } : {}),
-      ...(args.threadId ? { metadata: { threadId: args.threadId } } : {}),
+      metadata: mergeEventMetadata(
+        args.threadId ? { threadId: args.threadId } : undefined,
+        args.actor,
+      ),
     });
 
     return { entryId: result.entryId };
@@ -322,7 +325,7 @@ export const recordView = mutation({
       eventId,
       eventType: "viewed",
       payload: { namespace: args.namespace },
-      actor: args.actor,
+      metadata: mergeEventMetadata(undefined, args.actor),
       session: args.session,
     });
   },
@@ -367,9 +370,11 @@ export const remove = action({
       eventId: crypto.randomUUID(),
       eventType: "deleted",
       payload: { namespace: args.namespace },
-      ...(args.actor ? { actor: args.actor } : {}),
       ...(args.session ? { session: args.session } : {}),
-      ...(args.threadId ? { metadata: { threadId: args.threadId } } : {}),
+      metadata: mergeEventMetadata(
+        args.threadId ? { threadId: args.threadId } : undefined,
+        args.actor,
+      ),
     });
   },
 });
@@ -566,9 +571,11 @@ export const edit = action({
       eventId: crypto.randomUUID(),
       eventType: "edited",
       payload: { namespace: args.namespace, oldEntryId: args.entryId },
-      ...(args.actor ? { actor: args.actor } : {}),
       ...(args.session ? { session: args.session } : {}),
-      ...(args.threadId ? { metadata: { threadId: args.threadId } } : {}),
+      metadata: mergeEventMetadata(
+        args.threadId ? { threadId: args.threadId } : undefined,
+        args.actor,
+      ),
     });
 
     return { entryId: current.entryId };

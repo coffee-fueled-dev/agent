@@ -29,7 +29,6 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           "mutation",
           "internal",
           {
-            actor?: { byId: string; byType: string };
             causationId?: string;
             correlationId?: string;
             eventId: string;
@@ -46,7 +45,6 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           {
             _creationTime: number;
             _id: string;
-            actor?: { byId: string; byType: string };
             causationId?: string;
             correlationId?: string;
             eventId: string;
@@ -151,7 +149,6 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           Array<{
             _creationTime: number;
             _id: string;
-            actor?: { byId: string; byType: string };
             causationId?: string;
             correlationId?: string;
             eventId: string;
@@ -200,7 +197,6 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           {
             _creationTime: number;
             _id: string;
-            actor?: { byId: string; byType: string };
             causationId?: string;
             correlationId?: string;
             eventId: string;

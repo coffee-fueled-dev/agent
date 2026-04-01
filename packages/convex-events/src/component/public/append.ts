@@ -2,7 +2,6 @@ import { v } from "convex/values";
 import { getOrCreateDimensionId } from "../../domain/dimensions/helpers.js";
 import { mutation } from "../_generated/server.js";
 import {
-  actorValidator,
   eventEntryValidator,
   metadataValidator,
   normalizeStreamNamespace,
@@ -26,7 +25,6 @@ export const appendToStream = mutation({
     metadata: metadataValidator,
     causationId: v.optional(v.string()),
     correlationId: v.optional(v.string()),
-    actor: actorValidator,
     session: sessionValidator,
     eventTime: v.optional(v.number()),
   },
@@ -78,7 +76,6 @@ export const appendToStream = mutation({
       metadata: args.metadata,
       causationId: args.causationId,
       correlationId: args.correlationId,
-      actor: args.actor,
       session: args.session,
       eventTime: args.eventTime ?? now,
       eventTypeId,

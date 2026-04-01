@@ -31,13 +31,6 @@ export const metadataValidator = v.optional(
   v.record(v.string(), metadataValueValidator),
 );
 
-export const actorValidator = v.optional(
-  v.object({
-    byType: v.string(),
-    byId: v.string(),
-  }),
-);
-
 export const sessionValidator = v.optional(v.string());
 
 export const streamStateValidator = doc(schema, "event_streams");

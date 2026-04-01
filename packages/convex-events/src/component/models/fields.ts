@@ -4,13 +4,6 @@ export const metadataValidator = v.optional(
   v.record(v.string(), v.union(v.string(), v.number(), v.boolean(), v.null())),
 );
 
-export const actorValidator = v.optional(
-  v.object({
-    byType: v.string(),
-    byId: v.string(),
-  }),
-);
-
 export const eventStreamFields = {
   streamType: v.string(),
   namespace: v.string(),
@@ -33,7 +26,6 @@ export const eventEntryFields = {
   metadata: metadataValidator,
   causationId: v.optional(v.string()),
   correlationId: v.optional(v.string()),
-  actor: actorValidator,
   session: v.optional(v.string()),
   eventTime: v.number(),
   eventTypeId: v.id("dimensions"),

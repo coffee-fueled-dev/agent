@@ -352,7 +352,6 @@ export declare const components: {
           "mutation",
           "internal",
           {
-            actor?: { byId: string; byType: string };
             causationId?: string;
             correlationId?: string;
             eventId: string;
@@ -369,7 +368,6 @@ export declare const components: {
           {
             _creationTime: number;
             _id: string;
-            actor?: { byId: string; byType: string };
             causationId?: string;
             correlationId?: string;
             eventId: string;
@@ -458,7 +456,6 @@ export declare const components: {
           Array<{
             _creationTime: number;
             _id: string;
-            actor?: { byId: string; byType: string };
             causationId?: string;
             correlationId?: string;
             eventId: string;
@@ -503,7 +500,6 @@ export declare const components: {
           {
             _creationTime: number;
             _id: string;
-            actor?: { byId: string; byType: string };
             causationId?: string;
             correlationId?: string;
             eventId: string;

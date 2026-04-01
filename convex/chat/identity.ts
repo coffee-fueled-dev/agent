@@ -7,7 +7,7 @@ import {
   internalMutation,
   type MutationCtx,
 } from "../_generated/server";
-import { machineActor } from "../eventAttribution";
+import { machineActor, mergeEventMetadata } from "../eventAttribution";
 import { events } from "../events";
 import { ensureMachineAccount, grantThreadAccessToAccount } from "../lib/auth";
 import { updateIdentityCounters } from "./identityCounters";
@@ -204,8 +204,10 @@ async function appendThreadIdentityEvents(
       ...(parentEventId ? { correlationId: parentEventId } : {}),
       causationId: args.threadId,
       payload: params.payload as never,
-      metadata: { ...baseMeta, ...params.extraMetadata },
-      actor: machineActor(args.machineAccountId),
+      metadata: mergeEventMetadata(
+        { ...baseMeta, ...params.extraMetadata },
+        machineActor(args.machineAccountId),
+      ),
       ...(args.sessionId ? { session: args.sessionId } : {}),
     });
     parentEventId = entry.eventId;
