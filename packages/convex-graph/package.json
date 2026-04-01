@@ -66,6 +66,8 @@
     }
   },
   "dependencies": {
+    "@very-coffee/k-nearest-neighbors": "workspace:*",
+    "@very-coffee/leiden": "workspace:*",
     "@convex-dev/aggregate": "^0.2.1",
     "@convex-dev/sharded-counter": "^0.2.0",
     "convex-helpers": "^0.1.114"

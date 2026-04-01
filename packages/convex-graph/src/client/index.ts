@@ -11,8 +11,8 @@ import type { Validator } from "convex/values";
 import type { ComponentApi } from "../component/_generated/component.js";
 
 export { normalizeLabel } from "../component/internal/normalize.js";
-export { buildKnnGraph } from "../lib/knn.js";
-export { leiden } from "../lib/leiden.js";
+export { buildKnnGraph } from "@very-coffee/k-nearest-neighbors";
+export { leiden } from "@very-coffee/leiden";
 
 type RunMutationCtx = Pick<GenericMutationCtx<GenericDataModel>, "runMutation">;
 type RunQueryCtx = Pick<GenericQueryCtx<GenericDataModel>, "runQuery">;

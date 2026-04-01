@@ -162,6 +162,8 @@
       "dependencies": {
         "@convex-dev/aggregate": "^0.2.1",
         "@convex-dev/sharded-counter": "^0.2.0",
+        "@very-coffee/k-nearest-neighbors": "workspace:*",
+        "@very-coffee/leiden": "workspace:*",
         "convex-helpers": "^0.1.114",
       },
       "devDependencies": {
@@ -225,6 +227,24 @@
       "peerDependencies": {
         "convex": "^1.34.0",
         "react": "^18.3.1 || ^19.0.0",
+      },
+    },
+    "packages/k-nearest-neighbors": {
+      "name": "@very-coffee/k-nearest-neighbors",
+      "devDependencies": {
+        "@types/bun": "latest",
+      },
+      "peerDependencies": {
+        "typescript": "^5",
+      },
+    },
+    "packages/leiden": {
+      "name": "@very-coffee/leiden",
+      "devDependencies": {
+        "@types/bun": "latest",
+      },
+      "peerDependencies": {
+        "typescript": "^5",
       },
     },
     "packages/reciprocal-rank-fusion": {
@@ -774,6 +794,10 @@
     "@very-coffee/convex-history": ["@very-coffee/convex-history@workspace:packages/convex-history"],
 
     "@very-coffee/convex-search-features": ["@very-coffee/convex-search-features@workspace:packages/convex-lexical-search"],
+
+    "@very-coffee/k-nearest-neighbors": ["@very-coffee/k-nearest-neighbors@workspace:packages/k-nearest-neighbors"],
+
+    "@very-coffee/leiden": ["@very-coffee/leiden@workspace:packages/leiden"],
 
     "@very-coffee/reciprocal-rank-fusion": ["@very-coffee/reciprocal-rank-fusion@workspace:packages/reciprocal-rank-fusion"],
 
