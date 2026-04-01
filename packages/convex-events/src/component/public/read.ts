@@ -37,8 +37,7 @@ export const listStreamEvents = query({
     const stId = args.streamTypeId;
     const hasDimensionFilter = Boolean(etId || stId);
 
-    // `filterWith` narrows the stream type in a way that breaks reassignment; use a loose chain like listCategoryEvents.
-    let chain: any = paginator(ctx.db, schema)
+    const baseChain = paginator(ctx.db, schema)
       .query("event_entries")
       .withIndex("by_stream_version", (q) =>
         q
@@ -47,26 +46,39 @@ export const listStreamEvents = query({
           .eq("streamId", args.streamId),
       );
 
-    if (args.order === "desc") {
-      chain = chain.order("desc");
-    }
+    const chain = args.order === "desc" ? baseChain.order("desc") : baseChain;
 
     if (hasTypes && types) {
-      chain = chain.filterWith(async (doc: { eventType: string }) =>
-        types.length === 1
-          ? doc.eventType === types[0]
-          : types.includes(doc.eventType),
+      const typedChain = chain.filterWith(
+        async (doc: { eventType?: string }) =>
+          types.length === 1
+            ? doc.eventType === types[0]
+            : doc.eventType !== undefined && types.includes(doc.eventType),
       );
+      if (hasDimensionFilter) {
+        return await typedChain
+          .filterWith(
+            async (doc: { eventTypeId?: string; streamTypeId?: string }) => {
+              if (etId && doc.eventTypeId !== etId) return false;
+              if (stId && doc.streamTypeId !== stId) return false;
+              return true;
+            },
+          )
+          .paginate(args.paginationOpts);
+      }
+      return await typedChain.paginate(args.paginationOpts);
     }
 
     if (hasDimensionFilter) {
-      chain = chain.filterWith(
-        async (doc: { eventTypeId: string; streamTypeId: string }) => {
-          if (etId && doc.eventTypeId !== etId) return false;
-          if (stId && doc.streamTypeId !== stId) return false;
-          return true;
-        },
-      );
+      return await chain
+        .filterWith(
+          async (doc: { eventTypeId?: string; streamTypeId?: string }) => {
+            if (etId && doc.eventTypeId !== etId) return false;
+            if (stId && doc.streamTypeId !== stId) return false;
+            return true;
+          },
+        )
+        .paginate(args.paginationOpts);
     }
 
     return await chain.paginate(args.paginationOpts);
@@ -90,7 +102,7 @@ export const listStreamEventsSince = query({
     const stId = args.streamTypeId;
     const hasDimensionFilter = Boolean(etId || stId);
 
-    let chain: any = paginator(ctx.db, schema)
+    const chain = paginator(ctx.db, schema)
       .query("event_entries")
       .withIndex("by_stream_event_time", (q) =>
         q
@@ -101,21 +113,36 @@ export const listStreamEventsSince = query({
       );
 
     if (hasTypes && types) {
-      chain = chain.filterWith(async (doc: { eventType: string }) =>
-        types.length === 1
-          ? doc.eventType === types[0]
-          : types.includes(doc.eventType),
+      const typedChain = chain.filterWith(
+        async (doc: { eventType?: string }) =>
+          types.length === 1
+            ? doc.eventType === types[0]
+            : doc.eventType !== undefined && types.includes(doc.eventType),
       );
+      if (hasDimensionFilter) {
+        return await typedChain
+          .filterWith(
+            async (doc: { eventTypeId?: string; streamTypeId?: string }) => {
+              if (etId && doc.eventTypeId !== etId) return false;
+              if (stId && doc.streamTypeId !== stId) return false;
+              return true;
+            },
+          )
+          .paginate(args.paginationOpts);
+      }
+      return await typedChain.paginate(args.paginationOpts);
     }
 
     if (hasDimensionFilter) {
-      chain = chain.filterWith(
-        async (doc: { eventTypeId: string; streamTypeId: string }) => {
-          if (etId && doc.eventTypeId !== etId) return false;
-          if (stId && doc.streamTypeId !== stId) return false;
-          return true;
-        },
-      );
+      return await chain
+        .filterWith(
+          async (doc: { eventTypeId?: string; streamTypeId?: string }) => {
+            if (etId && doc.eventTypeId !== etId) return false;
+            if (stId && doc.streamTypeId !== stId) return false;
+            return true;
+          },
+        )
+        .paginate(args.paginationOpts);
     }
 
     return await chain.paginate(args.paginationOpts);

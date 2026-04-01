@@ -6,6 +6,7 @@ import facts from "@very-coffee/convex-facts/convex.config.js";
 import history from "@very-coffee/convex-history/convex.config.js";
 import { defineApp } from "convex/server";
 import context from "./components/context/convex.config.js";
+import memory from "./components/memory/convex.config.js";
 import policy from "./components/policy/convex.config.js";
 
 const app = defineApp();
@@ -14,6 +15,7 @@ app.use(facts);
 app.use(events);
 app.use(history);
 app.use(context);
+app.use(memory);
 app.use(policy);
 app.use(agent);
 app.use(shardedCounter);

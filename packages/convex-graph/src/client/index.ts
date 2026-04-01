@@ -1,111 +1,24 @@
-import type {
-  DataModelFromSchemaDefinition,
-  GenericDataModel,
-  GenericMutationCtx,
-  GenericQueryCtx,
-  PaginationOptions,
-  SchemaDefinition,
-  TableNamesInDataModel,
-} from "convex/server";
-import type { Validator } from "convex/values";
+import type { PaginationOptions } from "convex/server";
 import type { ComponentApi } from "../component/_generated/component.js";
+import type {
+  AllLabels,
+  EdgeDef,
+  EdgeLabel,
+  EdgePropertiesArg,
+  GraphConfig,
+  NodeDef,
+  NodeLabel,
+  RunMutationCtx,
+  RunQueryCtx,
+  TypedQueryEdgesReturn,
+} from "./types.js";
 
-export { normalizeLabel } from "../component/internal/normalize.js";
 export { buildKnnGraph } from "@very-coffee/k-nearest-neighbors";
 export { leiden } from "@very-coffee/leiden";
+export { normalizeLabel } from "../component/internal/normalize.js";
 
-type RunMutationCtx = Pick<GenericMutationCtx<GenericDataModel>, "runMutation">;
-type RunQueryCtx = Pick<GenericQueryCtx<GenericDataModel>, "runQuery">;
-
-// ---------------------------------------------------------------------------
-// Definition types
-// ---------------------------------------------------------------------------
-
-export type NodeDef<L extends string = string, T extends string = string> = {
-  readonly label: L;
-  readonly tableName: T;
-};
-
-export type EdgeDef<
-  L extends string = string,
-  V extends Validator<any, "required", any> | undefined =
-    | Validator<any, "required", any>
-    | undefined,
-  D extends boolean = boolean,
-> = {
-  readonly label: L;
-  readonly properties: V;
-  readonly directed: D;
-};
-
-export type GraphConfig<
-  N extends readonly NodeDef[],
-  E extends readonly EdgeDef[],
-> = {
-  readonly nodes: N;
-  readonly edges: E;
-};
-
-// ---------------------------------------------------------------------------
-// Derived utility types
-// ---------------------------------------------------------------------------
-
-type NodeLabel<N extends readonly NodeDef[]> = N[number]["label"];
-type EdgeLabel<E extends readonly EdgeDef[]> = E[number]["label"];
-
-type AllLabels<N extends readonly NodeDef[], E extends readonly EdgeDef[]> =
-  | NodeLabel<N>
-  | EdgeLabel<E>;
-
-type EdgePropertiesArg<E extends readonly EdgeDef[], L extends string> =
-  Extract<E[number], { label: L }>["properties"] extends Validator<
-    infer T,
-    any,
-    any
-  >
-    ? { properties: T }
-    : { properties?: Record<string, unknown> };
-
-// ---------------------------------------------------------------------------
-// Factory helpers
-// ---------------------------------------------------------------------------
-
-export function nodeSchema<
-  S extends SchemaDefinition<any, boolean>,
-  L extends string,
-  T extends TableNamesInDataModel<DataModelFromSchemaDefinition<S>> & string,
->(_schema: S, label: L, tableName: T): NodeDef<L, T> {
-  void _schema;
-  return { label, tableName };
-}
-
-export function edgeSchema<L extends string>(
-  label: L,
-): EdgeDef<L, undefined, true>;
-export function edgeSchema<
-  L extends string,
-  V extends Validator<any, "required", any>,
->(label: L, properties: V): EdgeDef<L, V, true>;
-export function edgeSchema<L extends string>(
-  label: L,
-  properties: undefined,
-  options: { directed: false },
-): EdgeDef<L, undefined, false>;
-export function edgeSchema<
-  L extends string,
-  V extends Validator<any, "required", any>,
->(label: L, properties: V, options: { directed: false }): EdgeDef<L, V, false>;
-export function edgeSchema(
-  label: string,
-  properties?: Validator<any, "required", any>,
-  options?: { directed: boolean },
-): EdgeDef {
-  return { label, properties, directed: options?.directed !== false };
-}
-
-// ---------------------------------------------------------------------------
-// GraphClient
-// ---------------------------------------------------------------------------
+export * from "./helpers.js";
+export * from "./types.js";
 
 export class GraphClient<
   const N extends readonly NodeDef[],
@@ -234,23 +147,23 @@ export class GraphClient<
         paginationOpts: PaginationOptions;
       },
     ) => {
-      return await ctx.runQuery(this.component.public.edges.queryEdges, {
+      return (await ctx.runQuery(this.component.public.edges.queryEdges, {
         label: args.label,
         from: args.from,
         to: args.to,
         paginationOpts: args.paginationOpts,
-      });
+      })) as TypedQueryEdgesReturn<E, L>;
     },
 
     neighbors: async <L extends EdgeLabel<E>>(
       ctx: RunQueryCtx,
       args: { label: L; node: string; paginationOpts: PaginationOptions },
     ) => {
-      return await ctx.runQuery(this.component.public.edges.queryEdges, {
+      return (await ctx.runQuery(this.component.public.edges.queryEdges, {
         label: args.label,
         node: args.node,
         paginationOpts: args.paginationOpts,
-      });
+      })) as TypedQueryEdgesReturn<E, L>;
     },
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- available after codegen
