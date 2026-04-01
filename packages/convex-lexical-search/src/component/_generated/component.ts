@@ -54,7 +54,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         >;
       };
       search: {
-        searchFeatures: FunctionReference<
+        lexicalSearch: FunctionReference<
           "query",
           "internal",
           {

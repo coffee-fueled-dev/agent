@@ -1,6 +1,6 @@
 {
   "name": "@very-coffee/convex-search-features",
-  "description": "Focused lexical search-features component for Convex (canonical rows + fulltext slices).",
+  "description": "Focused lexical search component for Convex (canonical rows + fulltext slices).",
   "repository": "github:coffee-fueled-dev/agent",
   "homepage": "https://github.com/coffee-fueled-dev/agent/packages/convex-search-features#readme",
   "bugs": {

@@ -58,11 +58,11 @@ type UpsertFeature<NAME extends Name = Name> =
 type DeleteFeature<NAME extends Name = Name> =
   ComponentApi<NAME>["public"]["add"]["deleteFeature"];
 
-type SearchFeatures<NAME extends Name = Name> =
-  ComponentApi<NAME>["public"]["search"]["searchFeatures"];
+type LexicalSearch<NAME extends Name = Name> =
+  ComponentApi<NAME>["public"]["search"]["lexicalSearch"];
 
 /** Canonical row in the component (identity + opaque `sourceRef`). */
-export type SearchFeatureItemDoc = Doc<"searchFeatureItems">;
+export type LexicalSearchItemDoc = Doc<"searchFeatureItems">;
 
 export class SearchClient<
   DATA_MODEL extends GenericDataModel,
@@ -84,6 +84,6 @@ export class SearchClient<
     args: FunctionArgs<DeleteFeature<NAME>>,
   ) => ctx.runMutation(this.component.public.add.deleteFeature, args);
 
-  search = (ctx: RunQueryCtx, args: FunctionArgs<SearchFeatures<NAME>>) =>
-    ctx.runQuery(this.component.public.search.searchFeatures, args);
+  search = (ctx: RunQueryCtx, args: FunctionArgs<LexicalSearch<NAME>>) =>
+    ctx.runQuery(this.component.public.search.lexicalSearch, args);
 }

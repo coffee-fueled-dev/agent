@@ -1,7 +1,7 @@
 export type {
   FieldKeysFor,
+  LexicalSearchItemDoc,
   SearchClientConfig,
-  SearchFeatureItemDoc,
   SearchSourceConfig,
   SearchSourceConfigForAnyTable,
   TableNameFor,

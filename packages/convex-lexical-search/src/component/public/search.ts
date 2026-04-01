@@ -4,7 +4,7 @@ import { query } from "../_generated/server.js";
 import { sourceRefValidator } from "../schema.js";
 
 /** Lexical hit: canonical row plus which text slice matched (for RRF / display). */
-const searchFeatureHitValidator = v.object({
+const lexicalSearchHitValidator = v.object({
   _id: v.id("searchFeatureItems"),
   _creationTime: v.number(),
   namespace: v.string(),
@@ -21,14 +21,14 @@ const searchFeatureHitValidator = v.object({
   matchedPropKey: v.string(),
 });
 
-export const searchFeatures = query({
+export const lexicalSearch = query({
   args: {
     namespace: v.string(),
     query: v.string(),
     limit: v.optional(v.number()),
     sourceSystem: v.optional(v.string()),
   },
-  returns: v.array(searchFeatureHitValidator),
+  returns: v.array(lexicalSearchHitValidator),
   handler: async (ctx, args) => {
     const limit = args.limit ?? 20;
     const candidateCap = Math.max(limit * 4, 40);

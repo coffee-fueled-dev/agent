@@ -96,7 +96,7 @@ export const searchContext = sessionAction({
     namespace: z.string(),
     query: z.union([z.string(), z.array(z.number())]),
     limit: z.number().optional(),
-    /** When false, RAG vector filters exclude historical chunks only; does not affect lexical search-features. */
+    /** When false, RAG vector filters exclude historical chunks only; does not affect lexical search. */
     includeHistorical: z.boolean().optional(),
     retrievalMode: z.enum(["vector", "lexical", "hybrid"]).optional(),
     rrfK: z.number().optional(),
@@ -139,7 +139,7 @@ export const searchContextInternal = internalAction({
     namespace: v.string(),
     query: v.union(v.string(), v.array(v.number())),
     limit: v.optional(v.number()),
-    /** RAG chunk filter only; lexical search-features are unaffected. */
+    /** RAG chunk filter only; lexical search is unaffected. */
     includeHistorical: v.optional(v.boolean()),
     retrievalMode: v.optional(
       v.union(v.literal("vector"), v.literal("lexical"), v.literal("hybrid")),
