@@ -94,6 +94,16 @@ const eventActorArgs = v.optional(
   }),
 );
 
+function historyActorAttrs(actor: { byType: string; byId: string } | undefined) {
+  if (!actor) return {};
+  return {
+    attrs: {
+      actor_by_type: actor.byType,
+      actor_by_id: actor.byId,
+    },
+  };
+}
+
 export const add = action({
   args: {
     namespace: v.string(),
@@ -516,6 +526,7 @@ export const edit = action({
         title: args.title,
         textPreview: args.text.slice(0, TEXT_PREVIEW_LENGTH),
       },
+      ...historyActorAttrs(args.actor),
     });
 
     await ctx.runMutation(internal.public.projection.markProjectionsStale, {

@@ -10,12 +10,6 @@ export default defineSchema({
     payload: v.optional(v.any()),
     parentEntryIds: v.array(v.string()),
     entryTime: v.number(),
-    author: v.optional(
-      v.object({
-        byType: v.string(),
-        byId: v.string(),
-      }),
-    ),
     attrs: v.optional(
       v.record(
         v.string(),

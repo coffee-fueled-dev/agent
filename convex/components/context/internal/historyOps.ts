@@ -10,7 +10,6 @@ const historyEntryValidator = v.object({
   entryTime: v.number(),
   parentEntryIds: v.array(v.string()),
   payload: v.optional(v.any()),
-  author: v.optional(v.object({ byId: v.string(), byType: v.string() })),
   attrs: v.optional(
     v.record(
       v.string(),

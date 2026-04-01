@@ -111,9 +111,7 @@ export type StreamTypeFor<Streams extends readonly EventStreamTemplate[]> =
 export type EventTypeFor<
   Streams extends readonly EventStreamTemplate[],
   StreamName extends StreamNameFor<Streams>,
-> = [Extract<RegisteredStream<Streams>, { name: StreamName }>] extends [
-  never,
-]
+> = [Extract<RegisteredStream<Streams>, { name: StreamName }>] extends [never]
   ? string
   : Extract<RegisteredStream<Streams>, { name: StreamName }> extends {
         events: infer E;

@@ -8,13 +8,11 @@
  * @module
  */
 
-import type * as client_index from "../client/index.js";
 import type * as internal_graph from "../internal/graph.js";
 import type * as internal_shared from "../internal/shared.js";
 import type * as public_append from "../public/append.js";
 import type * as public_heads from "../public/heads.js";
 import type * as public_read from "../public/read.js";
-import type * as types from "../types.js";
 
 import type {
   ApiFromModules,
@@ -24,13 +22,11 @@ import type {
 import { anyApi, componentsGeneric } from "convex/server";
 
 const fullApi: ApiFromModules<{
-  "client/index": typeof client_index;
   "internal/graph": typeof internal_graph;
   "internal/shared": typeof internal_shared;
   "public/append": typeof public_append;
   "public/heads": typeof public_heads;
   "public/read": typeof public_read;
-  types: typeof types;
 }> = anyApi as any;
 
 /**

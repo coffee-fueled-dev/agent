@@ -68,8 +68,7 @@ function matchesRule<Streams extends readonly EventStreamTemplate[]>(
 ): boolean {
   if (match.namespace !== undefined && match.namespace !== entry.namespace)
     return false;
-  if (match.name !== undefined && match.name !== entry.streamType)
-    return false;
+  if (match.name !== undefined && match.name !== entry.streamType) return false;
   if (match.eventType !== undefined && match.eventType !== entry.eventType)
     return false;
   return true;
@@ -127,10 +126,7 @@ export class EventsClient<const Streams extends readonly EventStreamTemplate[]>
     ctx: EventsMutationCtx,
     args: AppendArgs<Streams>,
   ): Promise<EventEntry<Streams>> => {
-    this._assertRegisteredStream(
-      args.name as string,
-      args.eventType as string,
-    );
+    this._assertRegisteredStream(args.name as string, args.eventType as string);
     const { name, ...rest } = args as AppendArgs<Streams> & { name: string };
     const entryRaw = await ctx.runMutation(
       this.component.public.append.appendToStream,
@@ -160,10 +156,7 @@ export class EventsClient<const Streams extends readonly EventStreamTemplate[]>
       }
     }
     for (const cb of this._subscribers.values()) {
-      await cb(
-        ctx,
-        entry as EventEntry<readonly EventStreamTemplate[]>,
-      );
+      await cb(ctx, entry as EventEntry<readonly EventStreamTemplate[]>);
     }
     return entry;
   };
@@ -257,14 +250,11 @@ export class EventsClient<const Streams extends readonly EventStreamTemplate[]>
     ctx: EventsRunQueryCtx,
     args: StreamArgs<Streams>,
   ): Promise<number> => {
-    return await ctx.runQuery(
-      this.component.public.streams.getStreamVersion,
-      {
-        streamType: args.name,
-        namespace: args.namespace,
-        streamId: args.streamId,
-      },
-    );
+    return await ctx.runQuery(this.component.public.streams.getStreamVersion, {
+      streamType: args.name,
+      namespace: args.namespace,
+      streamId: args.streamId,
+    });
   };
 
   getBatch = async (

@@ -612,7 +612,6 @@ export declare const components: {
           "internal",
           {
             attrs?: Record<string, string | number | boolean | null>;
-            author?: { byId: string; byType: string };
             entryId: string;
             entryTime?: number;
             kind: string;
@@ -623,7 +622,6 @@ export declare const components: {
           },
           {
             attrs?: Record<string, string | number | boolean | null>;
-            author?: { byId: string; byType: string };
             entryId: string;
             entryTime: number;
             kind: string;
@@ -654,7 +652,6 @@ export declare const components: {
           { entryId: string; streamId: string; streamType: string },
           Array<{
             attrs?: Record<string, string | number | boolean | null>;
-            author?: { byId: string; byType: string };
             entryId: string;
             entryTime: number;
             kind: string;
@@ -670,7 +667,6 @@ export declare const components: {
           { entryId: string; streamId: string; streamType: string },
           {
             attrs?: Record<string, string | number | boolean | null>;
-            author?: { byId: string; byType: string };
             entryId: string;
             entryTime: number;
             kind: string;
@@ -691,7 +687,6 @@ export declare const components: {
           },
           {
             attrs?: Record<string, string | number | boolean | null>;
-            author?: { byId: string; byType: string };
             entryId: string;
             entryTime: number;
             kind: string;
@@ -707,7 +702,6 @@ export declare const components: {
           { entryId: string; streamId: string; streamType: string },
           Array<{
             attrs?: Record<string, string | number | boolean | null>;
-            author?: { byId: string; byType: string };
             entryId: string;
             entryTime: number;
             kind: string;
@@ -723,7 +717,6 @@ export declare const components: {
           { entryId: string; streamId: string; streamType: string },
           Array<{
             attrs?: Record<string, string | number | boolean | null>;
-            author?: { byId: string; byType: string };
             entryId: string;
             entryTime: number;
             kind: string;

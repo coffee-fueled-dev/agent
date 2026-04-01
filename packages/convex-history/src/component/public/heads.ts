@@ -1,6 +1,6 @@
 import { v } from "convex/values";
-import { query } from "../_generated/server";
-import { historyHeadValidator } from "../internal/shared";
+import { query } from "../_generated/server.js";
+import { historyHeadValidator } from "../internal/shared.js";
 
 export const listHeads = query({
   args: {

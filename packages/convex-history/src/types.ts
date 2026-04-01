@@ -2,11 +2,6 @@ export type MetadataValue = string | number | boolean | null;
 
 export type HistoryMetadata = Record<string, MetadataValue>;
 
-export type HistoryAuthor = {
-  byType: string;
-  byId: string;
-};
-
 export type HistoryStreamTemplate = {
   streamType: string;
   kinds: readonly string[];
@@ -63,7 +58,6 @@ export type HistoryEntry<
   payload?: unknown;
   parentEntryIds: string[];
   entryTime: number;
-  author?: HistoryAuthor;
   attrs?: HistoryMetadata;
 };
 
@@ -76,7 +70,6 @@ export type AppendArgs<Streams extends readonly HistoryStreamTemplate[]> = {
     payload?: unknown;
     parentEntryIds?: string[];
     entryTime?: number;
-    author?: HistoryAuthor;
     attrs?: HistoryMetadata;
   };
 }[StreamTypeFor<Streams>];

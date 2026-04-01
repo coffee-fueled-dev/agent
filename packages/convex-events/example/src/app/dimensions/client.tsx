@@ -11,12 +11,14 @@ function DimensionList({
   onSelect,
 }: {
   title: string;
-  dimensions: Array<{
-    _id: string;
-    value: string;
-    firstSeenAt: number;
-    lastSeenAt: number;
-  }> | undefined;
+  dimensions:
+    | Array<{
+        _id: string;
+        value: string;
+        firstSeenAt: number;
+        lastSeenAt: number;
+      }>
+    | undefined;
   selectedId: string | null;
   onSelect: (id: string | null) => void;
 }) {
@@ -53,7 +55,10 @@ function ComponentDimensions() {
 
   return (
     <div>
-      <p>These dimensions come from the component's <code>dimensions</code> table — no bus required.</p>
+      <p>
+        These dimensions come from the component's <code>dimensions</code> table
+        — no bus required.
+      </p>
       <div style={{ display: "flex", gap: "2rem" }}>
         <DimensionList
           title="Stream types"
@@ -99,7 +104,10 @@ function BusDimensions() {
 
   return (
     <div>
-      <p>These dimensions come from the bus's <code>dimensions</code> table. Click one to filter bus entries.</p>
+      <p>
+        These dimensions come from the bus's <code>dimensions</code> table.
+        Click one to filter bus entries.
+      </p>
       <div style={{ display: "flex", gap: "2rem" }}>
         <DimensionList
           title="Stream types"
@@ -167,7 +175,10 @@ function Dimensions() {
         <button
           type="button"
           onClick={() => setTab("component")}
-          style={{ fontWeight: tab === "component" ? "bold" : "normal", marginRight: "0.5rem" }}
+          style={{
+            fontWeight: tab === "component" ? "bold" : "normal",
+            marginRight: "0.5rem",
+          }}
         >
           Component dimensions
         </button>

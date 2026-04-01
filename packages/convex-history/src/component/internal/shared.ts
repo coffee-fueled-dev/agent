@@ -21,13 +21,6 @@ export const metadataValidator = v.optional(
   v.record(v.string(), metadataValueValidator),
 );
 
-export const authorValidator = v.optional(
-  v.object({
-    byType: v.string(),
-    byId: v.string(),
-  }),
-);
-
 export const streamRefValidator = v.object(streamRefFields);
 
 export const entryRefValidator = v.object(entryRefFields);
@@ -40,7 +33,6 @@ export const historyEntryValidator = v.object({
   payload: v.optional(v.any()),
   parentEntryIds: v.array(v.string()),
   entryTime: v.number(),
-  author: authorValidator,
   attrs: metadataValidator,
 });
 

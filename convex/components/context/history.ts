@@ -1,4 +1,4 @@
-import { HistoryClient } from "../history/client";
+import { HistoryClient } from "@very-coffee/convex-history";
 import { components } from "./_generated/api";
 import { historyConfig } from "./history.config";
 

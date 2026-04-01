@@ -1,7 +1,7 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { paginator } from "convex-helpers/server/pagination";
-import { query } from "../_generated/server";
+import { query } from "../_generated/server.js";
 import {
   getPrimaryPathToRoot,
   isAncestorEntry,
@@ -9,14 +9,14 @@ import {
   loadChildren,
   loadEntryByRef,
   loadParents,
-} from "../internal/graph";
+} from "../internal/graph.js";
 import {
   entryRefFields,
   historyEntryValidator,
   streamRefFields,
   stripSystemFields,
-} from "../internal/shared";
-import schema from "../schema";
+} from "../internal/shared.js";
+import schema from "../schema.js";
 
 export const getEntry = query({
   args: entryRefFields,

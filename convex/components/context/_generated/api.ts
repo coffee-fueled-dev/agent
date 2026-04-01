@@ -495,7 +495,6 @@ export const components = componentsGeneric() as unknown as {
           "internal",
           {
             attrs?: Record<string, string | number | boolean | null>;
-            author?: { byId: string; byType: string };
             entryId: string;
             entryTime?: number;
             kind: string;
@@ -506,7 +505,6 @@ export const components = componentsGeneric() as unknown as {
           },
           {
             attrs?: Record<string, string | number | boolean | null>;
-            author?: { byId: string; byType: string };
             entryId: string;
             entryTime: number;
             kind: string;
@@ -537,7 +535,6 @@ export const components = componentsGeneric() as unknown as {
           { entryId: string; streamId: string; streamType: string },
           Array<{
             attrs?: Record<string, string | number | boolean | null>;
-            author?: { byId: string; byType: string };
             entryId: string;
             entryTime: number;
             kind: string;
@@ -553,7 +550,6 @@ export const components = componentsGeneric() as unknown as {
           { entryId: string; streamId: string; streamType: string },
           {
             attrs?: Record<string, string | number | boolean | null>;
-            author?: { byId: string; byType: string };
             entryId: string;
             entryTime: number;
             kind: string;
@@ -574,7 +570,6 @@ export const components = componentsGeneric() as unknown as {
           },
           {
             attrs?: Record<string, string | number | boolean | null>;
-            author?: { byId: string; byType: string };
             entryId: string;
             entryTime: number;
             kind: string;
@@ -590,7 +585,6 @@ export const components = componentsGeneric() as unknown as {
           { entryId: string; streamId: string; streamType: string },
           Array<{
             attrs?: Record<string, string | number | boolean | null>;
-            author?: { byId: string; byType: string };
             entryId: string;
             entryTime: number;
             kind: string;
@@ -606,7 +600,6 @@ export const components = componentsGeneric() as unknown as {
           { entryId: string; streamId: string; streamType: string },
           Array<{
             attrs?: Record<string, string | number | boolean | null>;
-            author?: { byId: string; byType: string };
             entryId: string;
             entryTime: number;
             kind: string;

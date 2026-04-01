@@ -30,7 +30,6 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           "internal",
           {
             attrs?: Record<string, string | number | boolean | null>;
-            author?: { byId: string; byType: string };
             entryId: string;
             entryTime?: number;
             kind: string;
@@ -41,7 +40,6 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           },
           {
             attrs?: Record<string, string | number | boolean | null>;
-            author?: { byId: string; byType: string };
             entryId: string;
             entryTime: number;
             kind: string;
@@ -74,7 +72,6 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           { entryId: string; streamId: string; streamType: string },
           Array<{
             attrs?: Record<string, string | number | boolean | null>;
-            author?: { byId: string; byType: string };
             entryId: string;
             entryTime: number;
             kind: string;
@@ -91,7 +88,6 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           { entryId: string; streamId: string; streamType: string },
           {
             attrs?: Record<string, string | number | boolean | null>;
-            author?: { byId: string; byType: string };
             entryId: string;
             entryTime: number;
             kind: string;
@@ -113,7 +109,6 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           },
           {
             attrs?: Record<string, string | number | boolean | null>;
-            author?: { byId: string; byType: string };
             entryId: string;
             entryTime: number;
             kind: string;
@@ -130,7 +125,6 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           { entryId: string; streamId: string; streamType: string },
           Array<{
             attrs?: Record<string, string | number | boolean | null>;
-            author?: { byId: string; byType: string };
             entryId: string;
             entryTime: number;
             kind: string;
@@ -147,7 +141,6 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           { entryId: string; streamId: string; streamType: string },
           Array<{
             attrs?: Record<string, string | number | boolean | null>;
-            author?: { byId: string; byType: string };
             entryId: string;
             entryTime: number;
             kind: string;

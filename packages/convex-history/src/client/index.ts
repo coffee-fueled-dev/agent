@@ -5,7 +5,8 @@ import type {
   PaginationOptions,
   PaginationResult,
 } from "convex/server";
-import type { ComponentApi } from "../_generated/component";
+import { assertRegisteredStream } from "../assertStream.js";
+import type { ComponentApi } from "../component/_generated/component.js";
 import type {
   AppendArgs,
   HistoryConfig,
@@ -13,7 +14,7 @@ import type {
   HistoryHeadRef,
   HistoryStreamTemplate,
   StreamTypeFor,
-} from "../types";
+} from "../types.js";
 
 type RunQueryCtx = Pick<GenericQueryCtx<GenericDataModel>, "runQuery">;
 type RunMutationCtx = Pick<
@@ -39,6 +40,7 @@ export class HistoryClient<
     ctx: RunMutationCtx,
     args: AppendArgs<Streams>,
   ): Promise<HistoryEntry<Streams>> {
+    assertRegisteredStream(this.config.streams, args.streamType, args.kind);
     return await ctx.runMutation(this.component.public.append.append, args);
   }
 

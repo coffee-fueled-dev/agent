@@ -1,48 +1,16 @@
 import { v } from "convex/values";
-import { historyConfig } from "../../../history.config";
-import { mutation } from "../_generated/server";
+import { mutation } from "../_generated/server.js";
 import {
   assertEntryDoesNotExist,
   assertParentsExistInStream,
   computeNextHeads,
   listHeadsForStream,
-} from "../internal/graph";
+} from "../internal/graph.js";
 import {
-  authorValidator,
   historyEntryValidator,
   metadataValidator,
   normalizeParentEntryIds,
-} from "../internal/shared";
-
-function assertRegisteredStream(streamType: string, kind: string) {
-  const streams = historyConfig.streams as readonly {
-    streamType: string;
-    kinds: readonly string[];
-  }[];
-
-  if (streams.length === 0) {
-    return;
-  }
-
-  const stream = streams.find(
-    (candidate) => candidate.streamType === streamType,
-  );
-
-  if (!stream) {
-    throw new Error(
-      `Unknown history streamType "${streamType}". Register it in convex/history.config.ts.`,
-    );
-  }
-
-  if (
-    stream.kinds.length > 0 &&
-    !(stream.kinds as readonly string[]).includes(kind)
-  ) {
-    throw new Error(
-      `Unknown history kind "${kind}" for streamType "${streamType}". Register it in convex/history.config.ts.`,
-    );
-  }
-}
+} from "../internal/shared.js";
 
 export const append = mutation({
   args: {
@@ -53,13 +21,10 @@ export const append = mutation({
     payload: v.optional(v.any()),
     parentEntryIds: v.optional(v.array(v.string())),
     entryTime: v.optional(v.number()),
-    author: authorValidator,
     attrs: metadataValidator,
   },
   returns: historyEntryValidator,
   handler: async (ctx, args) => {
-    assertRegisteredStream(args.streamType, args.kind);
-
     const parentEntryIds = normalizeParentEntryIds(args.parentEntryIds);
 
     await assertEntryDoesNotExist(ctx, args);
@@ -77,7 +42,6 @@ export const append = mutation({
       payload: args.payload,
       parentEntryIds,
       entryTime: args.entryTime ?? Date.now(),
-      author: args.author,
       attrs: args.attrs,
     };
 

@@ -1,7 +1,7 @@
 import { EventsClient } from "@very-coffee/convex-events";
 import { createEventBus } from "@very-coffee/convex-events/eventBus";
 import type { EventsConfig } from "@very-coffee/convex-events/types";
-import { v, type PropertyValidators } from "convex/values";
+import { type PropertyValidators, v } from "convex/values";
 import { components } from "./_generated/api";
 
 export const eventsConfig = {

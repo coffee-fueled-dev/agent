@@ -1,16 +1,16 @@
 import type { PaginationOptions, PaginationResult } from "convex/server";
-import { zid } from "convex-helpers/server/zod4";
 import { paginator } from "convex-helpers/server/pagination";
+import { zid } from "convex-helpers/server/zod4";
 import { z } from "zod/v4";
 import type { Doc, Id } from "../_generated/dataModel";
-import schema from "../schema";
 import {
+  type SessionQueryCtx,
   sessionPaginatedQuery,
   sessionQuery,
-  type SessionQueryCtx,
 } from "../customFunctions";
 import { busListener } from "../events";
 import { expectedAccountNamespace } from "../models/auth/contextNamespace";
+import schema from "../schema";
 
 const scopeSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("namespace") }),
@@ -231,9 +231,7 @@ export const listEventBusEntriesForSession = sessionPaginatedQuery({
         })
         .order("desc");
       const raw = await (optStreamTypeId
-        ? base.filterWith(
-            async (doc) => doc.streamTypeId === optStreamTypeId,
-          )
+        ? base.filterWith(async (doc) => doc.streamTypeId === optStreamTypeId)
         : base
       ).paginate(args.paginationOpts);
       return {

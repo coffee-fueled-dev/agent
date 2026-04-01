@@ -1,4 +1,4 @@
-import type { HistoryConfig } from "../history/types.ts";
+import type { HistoryConfig } from "@very-coffee/convex-history/types";
 
 export const historyConfig = {
   streams: [

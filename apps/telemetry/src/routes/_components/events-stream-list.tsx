@@ -21,7 +21,8 @@ import { eventsDetail, Link } from "@/navigation/index.js";
 const PAGE_SIZE = 25;
 const ESTIMATE_ROW = 88;
 
-const listEventBusEntriesForSession = api.chat.eventBus.listEventBusEntriesForSession;
+const listEventBusEntriesForSession =
+  api.chat.eventBus.listEventBusEntriesForSession;
 
 export type EventsStreamScope =
   | { kind: "namespace" }
