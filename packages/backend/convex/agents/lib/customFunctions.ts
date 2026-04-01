@@ -1,18 +1,10 @@
 import type { ToolCtx } from "@convex-dev/agent";
+import type { ToolkitContext as IdentityToolkitContext } from "@very-coffee/agent-identity";
 import type {
   FunctionReference,
   GenericActionCtx,
   GenericDataModel,
 } from "convex/server";
-
-export type ToolExecutionContext = ToolCtx & {
-  threadId: string;
-  messageId: string;
-  sessionId: string;
-  namespace: string;
-  agentId: string;
-  agentName: string;
-};
 
 export type ToolPolicyArgs = {
   threadId: string;
@@ -20,13 +12,10 @@ export type ToolPolicyArgs = {
   sessionId: string;
 };
 
-export type ToolkitContext = {
-  runPolicyQuery: (
-    query: FunctionReference<"query", "internal", ToolPolicyArgs, boolean>,
-  ) => Promise<boolean>;
-  runDependencyQuery: <T>(
-    query: FunctionReference<"query", "internal", ToolPolicyArgs, T>,
-  ) => Promise<T>;
+export type AgentIdentityCtx = {
+  threadId: string;
+  messageId: string;
+  sessionId: string;
   namespace: string;
   agentId: string;
   agentName: string;
@@ -38,26 +27,45 @@ export type ToolBuilderContext = Pick<
 > &
   AgentIdentityCtx;
 
-export type AgentIdentityCtx = {
-  threadId: string;
-  messageId: string;
-  sessionId: string;
-  namespace: string;
-  agentId: string;
-  agentName: string;
-};
+export type ConvexAgentEnv = AgentIdentityCtx &
+  Pick<ToolBuilderContext, "runAction"> & {
+    runPolicyQuery: (
+      query: FunctionReference<"query", "internal", ToolPolicyArgs, boolean>,
+    ) => Promise<boolean>;
+    runDependencyQuery: <T>(
+      query: FunctionReference<"query", "internal", ToolPolicyArgs, T>,
+    ) => Promise<T>;
+  };
 
-export function createToolkitContext(ctx: ToolBuilderContext): ToolkitContext {
+export type ToolExecutionContext = ToolCtx & AgentIdentityCtx;
+
+export type ToolkitContext = IdentityToolkitContext<ConvexAgentEnv>;
+
+export function createConvexAgentEnv(ctx: ToolBuilderContext): ConvexAgentEnv {
   const args: ToolPolicyArgs = {
     threadId: ctx.threadId,
     messageId: ctx.messageId,
     sessionId: ctx.sessionId,
   };
   return {
-    runPolicyQuery: (query) => ctx.runQuery(query, args),
-    runDependencyQuery: (query) => ctx.runQuery(query, args),
+    threadId: ctx.threadId,
+    messageId: ctx.messageId,
+    sessionId: ctx.sessionId,
     namespace: ctx.namespace,
     agentId: ctx.agentId,
     agentName: ctx.agentName,
+    runAction: ctx.runAction,
+    runPolicyQuery: (query) => ctx.runQuery(query, args),
+    runDependencyQuery: (query) => ctx.runQuery(query, args),
+  };
+}
+
+export function createToolkitContext(ctx: ToolBuilderContext): ToolkitContext {
+  const env = createConvexAgentEnv(ctx);
+  return {
+    env,
+    namespace: env.namespace,
+    agentId: env.agentId,
+    agentName: env.agentName,
   };
 }

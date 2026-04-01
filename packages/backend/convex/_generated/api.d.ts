@@ -15,6 +15,7 @@ import type * as agents_lib_customFunctions from "../agents/lib/customFunctions.
 import type * as agents_lib_models from "../agents/lib/models.js";
 import type * as agents_lib_toolSpecAdapter from "../agents/lib/toolSpecAdapter.js";
 import type * as agents_lib_toolkit from "../agents/lib/toolkit.js";
+import type * as agents_policies_convexPolicy from "../agents/policies/convexPolicy.js";
 import type * as agents_tools_filesystem_runShell_internal from "../agents/tools/filesystem/runShell/internal.js";
 import type * as agents_tools_filesystem_runShell_tool from "../agents/tools/filesystem/runShell/tool.js";
 import type * as agents_tools_filesystem_toolkit from "../agents/tools/filesystem/toolkit.js";
@@ -48,6 +49,7 @@ declare const fullApi: ApiFromModules<{
   "agents/lib/models": typeof agents_lib_models;
   "agents/lib/toolSpecAdapter": typeof agents_lib_toolSpecAdapter;
   "agents/lib/toolkit": typeof agents_lib_toolkit;
+  "agents/policies/convexPolicy": typeof agents_policies_convexPolicy;
   "agents/tools/filesystem/runShell/internal": typeof agents_tools_filesystem_runShell_internal;
   "agents/tools/filesystem/runShell/tool": typeof agents_tools_filesystem_runShell_tool;
   "agents/tools/filesystem/toolkit": typeof agents_tools_filesystem_toolkit;
@@ -110,6 +112,34 @@ export declare const components: {
             textPreview: string;
             title?: string;
             updatedAt: number;
+          }
+        >;
+        listMemoryPage: FunctionReference<
+          "query",
+          "internal",
+          {
+            namespace: string;
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
+          },
+          {
+            continueCursor: string;
+            isDone: boolean;
+            page: Array<{
+              key: string;
+              memoryId: string;
+              textPreview: string;
+              title?: string;
+              updatedAt: number;
+            }>;
+            pageStatus?: "SplitRecommended" | "SplitRequired" | null;
+            splitCursor?: string | null;
           }
         >;
         listVersionsPage: FunctionReference<

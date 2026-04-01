@@ -15,6 +15,7 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_memoryId", ["memoryId"])
+    .index("by_namespace", ["namespace"])
     .index("by_namespace_and_key", ["namespace", "key"]),
 
   /** Maps opaque source refs to a stable memory id. */

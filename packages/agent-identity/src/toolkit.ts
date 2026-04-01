@@ -14,6 +14,8 @@ export type AnyComposable<Env = unknown> = Composable<
 >;
 
 type Simplify<T> = { [K in keyof T]: T[K] } & {};
+// biome-ignore lint/suspicious/noExplicitAny: required to express "any env" while preserving member inference
+type AnyEnv = any;
 
 type UnionToIntersection<T> = (
   T extends unknown ? (value: T) => void : never
@@ -28,6 +30,14 @@ export type ExtractComposableTools<T> = T extends Composable<
   ? TOOLS
   : never;
 
+export type ExtractComposableEnv<T> = T extends Composable<
+  infer _,
+  infer __,
+  infer Env
+>
+  ? Env
+  : never;
+
 type ExactToolMap<T> = {
   [K in keyof T]: Extract<T[K], ToolSpec>;
 };
@@ -36,10 +46,13 @@ type MergeToolMaps<T> = [T] extends [never]
   ? Record<never, never>
   : Simplify<ExactToolMap<UnionToIntersection<T>>>;
 
-export type ToolMapFromMembers<MEMBERS extends readonly Composable[]> =
+export type ToolMapFromMembers<MEMBERS extends readonly AnyComposable<AnyEnv>[]> =
   MergeToolMaps<ExtractComposableTools<MEMBERS[number]>>;
 
-type KeyedStaticProps<MEMBERS extends readonly Composable[]> = {
+export type EnvFromMembers<MEMBERS extends readonly AnyComposable<AnyEnv>[]> =
+  ExtractComposableEnv<MEMBERS[number]>;
+
+type KeyedStaticProps<MEMBERS extends readonly AnyComposable<AnyEnv>[]> = {
   [M in MEMBERS[number] as M["staticProps"] extends { name: infer N extends string }
     ? N
     : never]: M["staticProps"];
@@ -47,7 +60,7 @@ type KeyedStaticProps<MEMBERS extends readonly Composable[]> = {
 
 export type ToolkitStaticProps<
   NAME extends string,
-  MEMBERS extends readonly Composable[],
+  MEMBERS extends readonly AnyComposable<AnyEnv>[],
 > = {
   kind: "toolkit";
   name: NAME;
@@ -72,15 +85,14 @@ async function resolvePolicies<Env>(
 
 export function toolkit<
   const NAME extends string,
-  const MEMBERS extends readonly Composable[],
-  Env = unknown,
+  const MEMBERS extends readonly AnyComposable<AnyEnv>[],
 >(
   members: MEMBERS,
   options: { name: NAME; instructions?: string[] },
 ): Composable<
   ToolkitStaticProps<NAME, MEMBERS>,
   ToolMapFromMembers<MEMBERS>,
-  Env
+  EnvFromMembers<MEMBERS>
 > {
   const policies = members.flatMap((m) => m.policies);
 
@@ -94,7 +106,7 @@ export function toolkit<
   };
 
   async function evaluate(
-    ctx: ToolkitContext<Env>,
+    ctx: ToolkitContext<EnvFromMembers<MEMBERS>>,
     resolvedPolicies?: PolicyResultMap,
   ): Promise<ToolkitResult<ToolMapFromMembers<MEMBERS>>> {
     const resolved = resolvedPolicies ?? new Map<SharedPolicy, boolean>();

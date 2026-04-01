@@ -1,58 +1,47 @@
+import { createTool } from "@convex-dev/agent";
+import type { Tool, ToolCallOptions } from "ai";
+import type { ToolRuntimeContext, ToolSpec } from "@very-coffee/agent-identity";
 import type {
-  EffectiveStaticProps,
-  StandardSchemaV1,
-  ToolkitResult,
-  ToolSpec,
-} from "@very-coffee/agent-identity";
-import type { Tool } from "ai";
+  ConvexAgentEnv,
+  ToolExecutionContext,
+} from "./customFunctions.js";
 
-/**
- * Maps AI SDK {@link Tool} instances (from `@convex-dev/agent` / `createTool`) to
- * {@link ToolSpec} so {@link ToolkitResult} matches `@very-coffee/agent-identity` for
- * `IdentityClient.recordAgentTurn` / `createIdentityLink`.
- *
- * Identity hashing uses static/runtime props, not these handlers; the adapter is for
- * structural typing and optional future hashing of tool surfaces.
- */
-export function toolToToolSpec(name: string, tool: Tool): ToolSpec {
-  const t = tool as Tool & {
-    execute?: (
-      input: unknown,
-      options?: unknown,
-    ) => Promise<unknown> | AsyncIterable<unknown>;
-  };
+function createToolRuntimeContext(
+  env: ConvexAgentEnv,
+): ToolRuntimeContext<ConvexAgentEnv> {
   return {
-    name,
-    description: tool.description,
-    inputSchema: tool.inputSchema as StandardSchemaV1,
-    instructions: tool.description ?? "",
-    handler: async (_ctx, input, options) => {
-      if (typeof t.execute !== "function") {
-        throw new Error(`Tool "${name}" has no execute`);
-      }
-      return t.execute(input, options);
-    },
+    env,
+    namespace: env.namespace,
+    agentId: env.agentId,
+    agentName: env.agentName,
   };
 }
 
-export function toolsRecordToToolSpecs(
-  tools: Record<string, Tool>,
-): Record<string, ToolSpec> {
-  const out: Record<string, ToolSpec> = {};
-  for (const [name, tool] of Object.entries(tools)) {
-    out[name] = toolToToolSpec(name, tool);
+export function toolSpecToAgentTool(
+  spec: ToolSpec,
+  env: ConvexAgentEnv,
+): Tool {
+  return createTool<unknown, unknown, ToolExecutionContext>({
+    description: spec.description,
+    args: spec.inputSchema as never,
+    handler: (_ctx, input, options: ToolCallOptions) =>
+      spec.handler(createToolRuntimeContext(env), input, options),
+  });
+}
+
+export function toolSpecsToAgentTools(
+  tools: Record<string, ToolSpec>,
+  env: ConvexAgentEnv,
+): Record<string, Tool> {
+  const out: Record<string, Tool> = {};
+  for (const [name, spec] of Object.entries(tools)) {
+    out[name] = toolSpecToAgentTool(
+      {
+        ...spec,
+        name,
+      },
+      env,
+    );
   }
   return out;
-}
-
-export function toolkitResultForIdentity(args: {
-  tools: Record<string, Tool>;
-  instructions: string;
-  effectiveStaticProps?: EffectiveStaticProps;
-}): ToolkitResult {
-  return {
-    tools: toolsRecordToToolSpecs(args.tools),
-    instructions: args.instructions,
-    effectiveStaticProps: args.effectiveStaticProps,
-  };
 }

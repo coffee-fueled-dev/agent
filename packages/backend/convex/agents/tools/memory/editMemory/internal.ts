@@ -1,7 +1,7 @@
 import { v } from "convex/values";
+import { memoryClient } from "../../../../_clients/memory.js";
 import { internalAction } from "../../../../_generated/server.js";
 
-/** TODO: port edit memory flow. */
 export const execute = internalAction({
   args: {
     namespace: v.string(),
@@ -10,8 +10,45 @@ export const execute = internalAction({
     title: v.optional(v.string()),
     observationTime: v.optional(v.number()),
   },
-  returns: v.any(),
-  handler: async (_ctx, _args) => {
-    throw new Error("editMemory: not yet ported to packages/backend — TODO");
+  returns: v.object({
+    memoryId: v.string(),
+    key: v.string(),
+    title: v.optional(v.string()),
+    textPreview: v.string(),
+    updatedAt: v.number(),
+    observationTime: v.optional(v.number()),
+  }),
+  handler: async (ctx, args) => {
+    const existing = await memoryClient.getMemory(ctx, {
+      namespace: args.namespace,
+      memoryId: args.entryId,
+    });
+    if (!existing) {
+      throw new Error(`editMemory: memory not found: ${args.entryId}`);
+    }
+    const nextText = args.text ?? existing.fullText;
+    const nextTitle = args.title ?? existing.title;
+    await memoryClient.upsertMemory(ctx, {
+      namespace: args.namespace,
+      key: existing.key,
+      title: nextTitle,
+      text: nextText,
+      sourceRef: args.entryId,
+    });
+    const updated = await memoryClient.getMemory(ctx, {
+      namespace: args.namespace,
+      memoryId: args.entryId,
+    });
+    if (!updated) {
+      throw new Error(`editMemory: failed to reload memory: ${args.entryId}`);
+    }
+    return {
+      memoryId: updated.memoryId,
+      key: updated.key,
+      title: updated.title,
+      textPreview: updated.textPreview,
+      updatedAt: updated.updatedAt,
+      observationTime: args.observationTime,
+    };
   },
 });

@@ -52,6 +52,8 @@ export {
 } from "./toolkit.js";
 export type {
   AnyComposable,
+  EnvFromMembers,
+  ExtractComposableEnv,
   ExtractComposableTools,
   ToolkitStaticProps,
   ToolMapFromMembers,

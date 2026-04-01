@@ -1,8 +1,10 @@
 import type { InferUITool, Tool } from "ai";
+import { tool } from "@very-coffee/agent-identity";
 import { z } from "zod/v4";
 import { internal } from "../../../../_generated/api.js";
-import type { DynamicToolDef } from "../../../lib/toolkit.js";
-import { dynamicTool, withFormattedResults } from "../../../lib/toolkit.js";
+import type { ConvexAgentEnv } from "../../../lib/customFunctions.js";
+import type { ToolRuntimeContext } from "../../../lib/toolkit.js";
+import { withFormattedResults } from "../../../lib/toolkit.js";
 
 declare module "../../registeredToolMap.js" {
   interface RegisteredToolMap {
@@ -10,12 +12,12 @@ declare module "../../registeredToolMap.js" {
   }
 }
 
-export function searchMemoryTool(): DynamicToolDef<"searchMemory", unknown, Tool> {
-  return dynamicTool({
+export function searchMemoryTool() {
+  return tool({
     name: "searchMemory" as const,
     description:
       "Search stored memories using hybrid semantic and lexical retrieval.",
-    args: z.object({
+    inputSchema: z.object({
       query: z.string().describe("Natural language search query"),
       limit: z.number().optional().describe("Max results (default 10)"),
       retrievalMode: z
@@ -27,20 +29,18 @@ export function searchMemoryTool(): DynamicToolDef<"searchMemory", unknown, Tool
         .optional()
         .describe("Minimum fused score floor; omit for no floor"),
     }),
-    handler: async (ctx, args) => {
+    handler: async (
+      ctx: ToolRuntimeContext<ConvexAgentEnv>,
+      args,
+    ) => {
       return await withFormattedResults(
-        (async () => {
-          return await ctx.runAction(
-            internal.agents.tools.memory.searchMemory.internal.execute,
-            {
-              namespace: ctx.namespace,
-              query: args.query,
-              limit: args.limit,
-              retrievalMode: args.retrievalMode,
-              minScore: args.minScore,
-            },
-          );
-        })(),
+        ctx.env.runAction(internal.agents.tools.memory.searchMemory.internal.execute, {
+          namespace: ctx.namespace ?? ctx.env.namespace,
+          query: args.query,
+          limit: args.limit,
+          retrievalMode: args.retrievalMode,
+          minScore: args.minScore,
+        }),
       );
     },
   });

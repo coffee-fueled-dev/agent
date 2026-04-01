@@ -1,8 +1,10 @@
 import type { InferUITool, Tool } from "ai";
+import { tool } from "@very-coffee/agent-identity";
 import { z } from "zod/v4";
 import { internal } from "../../../../_generated/api.js";
-import type { DynamicToolDef } from "../../../lib/toolkit.js";
-import { dynamicTool, withFormattedResults } from "../../../lib/toolkit.js";
+import type { ConvexAgentEnv } from "../../../lib/customFunctions.js";
+import type { ToolRuntimeContext } from "../../../lib/toolkit.js";
+import { withFormattedResults } from "../../../lib/toolkit.js";
 
 declare module "../../registeredToolMap.js" {
   interface RegisteredToolMap {
@@ -10,14 +12,14 @@ declare module "../../registeredToolMap.js" {
   }
 }
 
-export function addMemoryTool(): DynamicToolDef<"addMemory", unknown, Tool> {
-  return dynamicTool({
+export function addMemoryTool() {
+  return tool({
     name: "addMemory" as const,
     instructions: [
       "Use addMemory to store memories relevant to the user or to your own experiences.",
     ],
     description: "Create a new memory entry with text (and optional title).",
-    args: z.object({
+    inputSchema: z.object({
       text: z.string().describe("Body text for the entry"),
       title: z.string().optional().describe("Short title"),
       observationTime: z
@@ -25,19 +27,17 @@ export function addMemoryTool(): DynamicToolDef<"addMemory", unknown, Tool> {
         .optional()
         .describe("Unix ms observation time"),
     }),
-    handler: async (ctx, args) => {
+    handler: async (
+      ctx: ToolRuntimeContext<ConvexAgentEnv>,
+      args,
+    ) => {
       return await withFormattedResults(
-        (async () => {
-          return await ctx.runAction(
-            internal.agents.tools.memory.addMemory.internal.execute,
-            {
-              namespace: ctx.namespace,
-              text: args.text,
-              title: args.title,
-              observationTime: args.observationTime,
-            },
-          );
-        })(),
+        ctx.env.runAction(internal.agents.tools.memory.addMemory.internal.execute, {
+          namespace: ctx.namespace ?? ctx.env.namespace,
+          text: args.text,
+          title: args.title,
+          observationTime: args.observationTime,
+        }),
       );
     },
   });

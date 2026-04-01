@@ -1,7 +1,7 @@
 import { v } from "convex/values";
+import { memoryClient } from "../../../../_clients/memory.js";
 import { internalAction } from "../../../../_generated/server.js";
 
-/** TODO: port add memory flow (upsertMemory via MemoryClient). */
 export const execute = internalAction({
   args: {
     namespace: v.string(),
@@ -9,10 +9,23 @@ export const execute = internalAction({
     title: v.optional(v.string()),
     observationTime: v.optional(v.number()),
   },
-  returns: v.any(),
-  handler: async (_ctx, _args) => {
-    throw new Error(
-      "addMemory: not yet ported to packages/backend; use MemoryClient.upsertMemory — TODO",
-    );
+  returns: v.object({
+    memoryId: v.string(),
+    key: v.string(),
+    observationTime: v.optional(v.number()),
+  }),
+  handler: async (ctx, args) => {
+    const key = `memory-${crypto.randomUUID()}`;
+    const result = await memoryClient.upsertMemory(ctx, {
+      namespace: args.namespace,
+      key,
+      title: args.title,
+      text: args.text,
+    });
+    return {
+      memoryId: result.memoryId,
+      key,
+      observationTime: args.observationTime,
+    };
   },
 });

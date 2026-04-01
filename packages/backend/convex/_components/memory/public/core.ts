@@ -81,6 +81,14 @@ const versionRowValidator = v.object({
   createdAt: v.number(),
 });
 
+const memoryListRowValidator = v.object({
+  memoryId: v.string(),
+  key: v.string(),
+  title: v.optional(v.string()),
+  textPreview: v.string(),
+  updatedAt: v.number(),
+});
+
 export const upsertMemory = action({
   args: {
     namespace: v.string(),
@@ -267,6 +275,31 @@ export const getMemory = query({
       textPreview: row.textPreview,
       fullText: chunks.page.map((c) => c.text).join("\n"),
       updatedAt: row.updatedAt,
+    };
+  },
+});
+
+export const listMemoryPage = query({
+  args: {
+    namespace: v.string(),
+    paginationOpts: paginationOptsValidator,
+  },
+  returns: paginationResultValidator(memoryListRowValidator),
+  handler: async (ctx, args) => {
+    const result = await ctx.db
+      .query("memoryRecords")
+      .withIndex("by_namespace", (q) => q.eq("namespace", args.namespace))
+      .order("desc")
+      .paginate(args.paginationOpts);
+    return {
+      ...result,
+      page: result.page.map((row) => ({
+        memoryId: row.memoryId,
+        key: row.key,
+        title: row.title,
+        textPreview: row.textPreview,
+        updatedAt: row.updatedAt,
+      })),
     };
   },
 });

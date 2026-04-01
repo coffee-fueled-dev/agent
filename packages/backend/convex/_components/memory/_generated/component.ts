@@ -40,6 +40,35 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           },
           Name
         >;
+        listMemoryPage: FunctionReference<
+          "query",
+          "internal",
+          {
+            namespace: string;
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
+          },
+          {
+            continueCursor: string;
+            isDone: boolean;
+            page: Array<{
+              key: string;
+              memoryId: string;
+              textPreview: string;
+              title?: string;
+              updatedAt: number;
+            }>;
+            pageStatus?: "SplitRecommended" | "SplitRequired" | null;
+            splitCursor?: string | null;
+          },
+          Name
+        >;
         listVersionsPage: FunctionReference<
           "query",
           "internal",

@@ -3,9 +3,9 @@ import { defineAgentIdentity } from "@very-coffee/agent-identity";
 import { identityClient } from "../../_clients/identity.js";
 import { components } from "../../_generated/api.js";
 import type { ToolBuilderContext } from "../lib/customFunctions.js";
-import { createToolkitContext } from "../lib/customFunctions.js";
+import { createConvexAgentEnv, createToolkitContext } from "../lib/customFunctions.js";
 import { languageModels } from "../lib/models.js";
-import { toolkitResultForIdentity } from "../lib/toolSpecAdapter.js";
+import { toolSpecsToAgentTools } from "../lib/toolSpecAdapter.js";
 import { toolkit } from "../lib/toolkit.js";
 import { toolLibrary } from "../tools/toolRegistry.js";
 
@@ -21,20 +21,23 @@ const assistantDefinition = defineAgentIdentity({
 
 export async function createAssistantAgent(ctx: ToolBuilderContext) {
   const toolkitCtx = createToolkitContext(ctx);
+  const env = createConvexAgentEnv(ctx);
   const { tools, instructions, effectiveStaticProps } =
     await assistantTools.evaluate(toolkitCtx);
 
   await identityClient.recordAgentTurn(ctx, {
     agent: assistantDefinition,
-    evaluated: toolkitResultForIdentity({
+    evaluated: {
       tools,
       instructions,
       effectiveStaticProps,
-    }),
+    },
     threadId: ctx.threadId,
     messageId: ctx.messageId,
     sessionId: ctx.sessionId,
   });
+
+  const runtimeTools = toolSpecsToAgentTools(tools, env);
 
   return new Agent(components.agent, {
     name: assistantDefinition.name,
@@ -42,6 +45,6 @@ export async function createAssistantAgent(ctx: ToolBuilderContext) {
     languageModel: languageModels.chat,
     textEmbeddingModel: languageModels.textEmbedding,
     maxSteps: 15,
-    tools,
+    tools: runtimeTools,
   });
 }

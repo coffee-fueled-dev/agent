@@ -60,6 +60,13 @@ export class MemoryClient {
     return await ctx.runQuery(this.coreAPI.getMemory, args);
   };
 
+  listMemoryPage = async (
+    ctx: RunQueryCtx,
+    args: FunctionArgs<typeof this.coreAPI.listMemoryPage>,
+  ) => {
+    return await ctx.runQuery(this.coreAPI.listMemoryPage, args);
+  };
+
   listVersionsPage = async (
     ctx: RunQueryCtx,
     args: FunctionArgs<typeof this.coreAPI.listVersionsPage>,
