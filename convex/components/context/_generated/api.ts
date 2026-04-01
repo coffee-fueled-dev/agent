@@ -670,7 +670,6 @@ export const components = componentsGeneric() as unknown as {
                   sourceType: "text" | "binary";
                 };
             sourceSystem: string;
-            status: "current" | "historical";
             text: string;
             title?: string;
             updatedAt?: number;
@@ -683,7 +682,6 @@ export const components = componentsGeneric() as unknown as {
           "query",
           "internal",
           {
-            includeHistorical?: boolean;
             limit?: number;
             namespace: string;
             query: string;
@@ -709,7 +707,6 @@ export const components = componentsGeneric() as unknown as {
                   sourceType: "text" | "binary";
                 };
             sourceSystem: string;
-            status: "current" | "historical";
             text: string;
             title?: string;
             updatedAt: number;

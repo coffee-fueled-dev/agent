@@ -1,4 +1,4 @@
-import type { SearchClientConfig } from "../search/client";
+import type { SearchClientConfig } from "@very-coffee/convex-search-features";
 import type { DataModel } from "./_generated/dataModel";
 
 export const searchConfig = {

@@ -306,7 +306,6 @@ export const search = action({
           namespace: args.namespace,
           query: lexicalQuery,
           limit: candidateLimit,
-          includeHistorical,
           sourceSystem: "context",
         })
       : [];

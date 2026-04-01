@@ -8,7 +8,6 @@
  * @module
  */
 
-import type * as client_index from "../client/index.js";
 import type * as public_add from "../public/add.js";
 import type * as public_search from "../public/search.js";
 
@@ -20,7 +19,6 @@ import type {
 import { anyApi, componentsGeneric } from "convex/server";
 
 const fullApi: ApiFromModules<{
-  "client/index": typeof client_index;
   "public/add": typeof public_add;
   "public/search": typeof public_search;
 }> = anyApi as any;

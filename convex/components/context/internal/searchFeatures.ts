@@ -24,7 +24,6 @@ export const upsertSearchFeature = internalMutation({
     ),
     title: v.optional(v.string()),
     text: v.string(),
-    status: v.union(v.literal("current"), v.literal("historical")),
     updatedAt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
@@ -47,7 +46,6 @@ export const searchFeatures = internalQuery({
     namespace: v.string(),
     query: v.string(),
     limit: v.optional(v.number()),
-    includeHistorical: v.optional(v.boolean()),
     sourceSystem: v.optional(v.string()),
   },
   handler: async (ctx, args) => {

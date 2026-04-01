@@ -6,8 +6,8 @@ import type {
   GenericQueryCtx,
   TableNamesInDataModel,
 } from "convex/server";
-import type { ComponentApi } from "../_generated/component";
-import type { Doc } from "../_generated/dataModel";
+import type { ComponentApi } from "../component/_generated/component.js";
+import type { Doc } from "../component/_generated/dataModel.js";
 
 type RunMutationCtx = Pick<GenericMutationCtx<GenericDataModel>, "runMutation">;
 type RunQueryCtx = Pick<GenericQueryCtx<GenericDataModel>, "runQuery">;
@@ -20,6 +20,7 @@ export type FieldKeysFor<
   TABLE_NAME extends TableNameFor<DATA_MODEL>,
 > = Extract<keyof DocumentByName<DATA_MODEL, TABLE_NAME>, string>;
 
+/** Optional documentation of which host tables feed search; not validated by the component. */
 export type SearchSourceConfig<
   DATA_MODEL extends GenericDataModel,
   SOURCE_SYSTEM extends string,
@@ -60,6 +61,9 @@ type DeleteFeature<NAME extends Name = Name> =
 type SearchFeatures<NAME extends Name = Name> =
   ComponentApi<NAME>["public"]["search"]["searchFeatures"];
 
+/** Canonical row in the component (identity + opaque `sourceRef`). */
+export type SearchFeatureItemDoc = Doc<"searchFeatureItems">;
+
 export class SearchClient<
   DATA_MODEL extends GenericDataModel,
   SOURCE_SYSTEM extends string = string,
@@ -74,36 +78,6 @@ export class SearchClient<
     ctx: RunMutationCtx,
     args: FunctionArgs<UpsertFeature<NAME>>,
   ) => ctx.runMutation(this.component.public.add.upsertFeature, args);
-
-  upsertDocumentFeature = <
-    TableName extends TableNameFor<DATA_MODEL>,
-    FieldName extends FieldKeysFor<DATA_MODEL, TableName>,
-  >(
-    ctx: RunMutationCtx,
-    args: Omit<FunctionArgs<UpsertFeature<NAME>>, "source" | "sourceSystem"> & {
-      sourceSystem: SOURCE_SYSTEM;
-      source: Extract<Doc<"searchFeatures">["source"], { kind: "document" }> & {
-        document: TableName;
-      };
-      fields?: readonly FieldName[];
-    },
-  ) =>
-    this.upsertFeature(ctx, {
-      ...args,
-      source: { ...args.source, kind: "document" },
-    });
-
-  upsertContentFeature = (
-    ctx: RunMutationCtx,
-    args: Omit<FunctionArgs<UpsertFeature<NAME>>, "source" | "sourceSystem"> & {
-      sourceSystem: SOURCE_SYSTEM;
-      source: Extract<Doc<"searchFeatures">["source"], { kind: "content" }>;
-    },
-  ) =>
-    this.upsertFeature(ctx, {
-      ...args,
-      source: { ...args.source, kind: "content" },
-    });
 
   deleteFeature = (
     ctx: RunMutationCtx,

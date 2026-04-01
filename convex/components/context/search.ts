@@ -1,4 +1,4 @@
-import { SearchClient } from "../search/client";
+import { SearchClient } from "@very-coffee/convex-search-features";
 import { components } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
 import { searchConfig } from "./search.config";

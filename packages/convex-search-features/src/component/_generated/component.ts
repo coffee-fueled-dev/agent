@@ -36,25 +36,16 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           "mutation",
           "internal",
           {
+            bucketId?: string;
+            bucketType?: string;
             featureId: string;
             namespace: string;
-            source:
-              | {
-                  document: string;
-                  documentId: string;
-                  entryId: string;
-                  key: string;
-                  kind: "document";
-                  sourceType: "text" | "binary";
-                }
-              | {
-                  contentId: string;
-                  kind: "content";
-                  sourceType: "text" | "binary";
-                };
+            sourceRef: string;
             sourceSystem: string;
-            status: "current" | "historical";
-            text: string;
+            sourceVersion?: number;
+            supersededAt?: number;
+            text?: string;
+            textSlices?: Array<{ propKey: string; text: string }>;
             title?: string;
             updatedAt?: number;
           },
@@ -67,7 +58,6 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           "query",
           "internal",
           {
-            includeHistorical?: boolean;
             limit?: number;
             namespace: string;
             query: string;
@@ -76,24 +66,15 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           Array<{
             _creationTime: number;
             _id: string;
+            bucketId?: string;
+            bucketType?: string;
             featureId: string;
+            matchedPropKey: string;
             namespace: string;
-            source:
-              | {
-                  document: string;
-                  documentId: string;
-                  entryId: string;
-                  key: string;
-                  kind: "document";
-                  sourceType: "text" | "binary";
-                }
-              | {
-                  contentId: string;
-                  kind: "content";
-                  sourceType: "text" | "binary";
-                };
+            sourceRef: string;
             sourceSystem: string;
-            status: "current" | "historical";
+            sourceVersion?: number;
+            supersededAt?: number;
             text: string;
             title?: string;
             updatedAt: number;

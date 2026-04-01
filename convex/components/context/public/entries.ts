@@ -182,7 +182,6 @@ export const add = action({
       source,
       title: args.title,
       text: args.searchText ?? args.text,
-      status: "current",
     });
 
     await ctx.runMutation(internal.internal.embeddingStore.insert, {
@@ -499,21 +498,11 @@ export const edit = action({
     });
     await searchClient.upsertFeature(ctx, {
       namespace: args.namespace,
-      featureId: featureId(historical.entryId),
-      sourceSystem: "context",
-      source: historicalSource,
-      title: oldEntry?.title,
-      text: oldText,
-      status: "historical",
-    });
-    await searchClient.upsertFeature(ctx, {
-      namespace: args.namespace,
       featureId: featureId(current.entryId),
       sourceSystem: "context",
       source: currentSource,
       title: args.title,
       text: args.text,
-      status: "current",
     });
 
     const heads = await history.listHeads(ctx, {
