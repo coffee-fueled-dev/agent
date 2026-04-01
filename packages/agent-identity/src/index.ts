@@ -12,6 +12,14 @@ export { defineAgentIdentity } from "./identity.js";
 export type { RegisteredAgentIdentity } from "./types.js";
 
 export {
+  createIdentityLink,
+} from "./identity-link.js";
+export type {
+  CreateIdentityLinkOptions,
+  IdentityLink,
+} from "./identity-link.js";
+
+export {
   createAgentRegistry,
 } from "./agent-registry.js";
 export type {

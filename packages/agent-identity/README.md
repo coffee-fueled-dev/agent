@@ -16,6 +16,7 @@ Framework-agnostic **agent identity** and **capability graph** primitives:
 - `toolkit([...members], { name, instructions? })`
 - `dynamicToolkit({ name, policies?, instructions?, create })`
 - `evaluateComposable(composable, ctx)` — `ToolkitContext` is `{ env, namespace?, agentId?, agentName? }`
+- `createIdentityLink(agent, evaluated, options?)` — pure **attribution** object (`IdentityLink`) with `staticHash` / `runtimeHash` tying the registered agent to a toolkit evaluation. Optional `includeSnapshots: true` adds normalized JSON snapshots. No persistence; consumers store it in Convex (or elsewhere) if needed.
 
 ## Registration and static hashing
 
