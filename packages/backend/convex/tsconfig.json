@@ -4,6 +4,10 @@
    * You can modify it, but some settings are required to use Convex.
    */
   "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@very-coffee/agent-identity": ["../../agent-identity/src/index.ts"]
+    },
     /* These settings are not required by Convex and can be modified. */
     "allowJs": true,
     "strict": true,

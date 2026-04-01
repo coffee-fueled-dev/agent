@@ -126,6 +126,7 @@
     "packages/backend": {
       "name": "backend",
       "dependencies": {
+        "@very-coffee/agent-identity": "workspace:*",
         "convex": "^1.34.0",
       },
       "devDependencies": {

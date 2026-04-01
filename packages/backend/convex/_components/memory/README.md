@@ -12,7 +12,7 @@ App-owned Convex component under `convex/components/memory` with isolated tables
 
 ## Host registration
 
-Registered in root [`convex/convex.config.ts`](../convex.config.ts) via `app.use(memory)`. Wire `components.memory` in the host app and use `new MemoryClient(components.memory, { googleApiKey })`.
+Registered in [`convex/convex.config.ts`](../../convex.config.ts) via `app.use(memory)`. Wire `components.memory` in the host app and use `new MemoryClient(components.memory, { googleApiKey })`.
 
 ## Codegen
 

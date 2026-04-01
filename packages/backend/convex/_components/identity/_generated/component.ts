@@ -1,6 +1,6 @@
 /* eslint-disable */
 /**
- * Generated `api` utility.
+ * Generated `ComponentApi` utility.
  *
  * THIS CODE IS AUTOMATICALLY GENERATED.
  *
@@ -8,207 +8,21 @@
  * @module
  */
 
-import type {
-  ApiFromModules,
-  FilterApi,
-  FunctionReference,
-} from "convex/server";
-
-declare const fullApi: ApiFromModules<{}>;
+import type { FunctionReference } from "convex/server";
 
 /**
- * A utility for referencing Convex functions in your app's public API.
+ * A utility for referencing a Convex component's exposed API.
  *
+ * Useful when expecting a parameter like `components.myComponent`.
  * Usage:
- * ```js
- * const myFunctionReference = api.myModule.myFunction;
+ * ```ts
+ * async function myFunction(ctx: QueryCtx, component: ComponentApi) {
+ *   return ctx.runQuery(component.someFile.someQuery, { ...args });
+ * }
  * ```
  */
-export declare const api: FilterApi<
-  typeof fullApi,
-  FunctionReference<any, "public">
->;
-
-/**
- * A utility for referencing Convex functions in your app's internal API.
- *
- * Usage:
- * ```js
- * const myFunctionReference = internal.myModule.myFunction;
- * ```
- */
-export declare const internal: FilterApi<
-  typeof fullApi,
-  FunctionReference<any, "internal">
->;
-
-export declare const components: {
-  memory: {
-    public: {
-      core: {
-        getMemory: FunctionReference<
-          "query",
-          "internal",
-          { memoryId: string; namespace: string },
-          null | {
-            fullText: string;
-            key: string;
-            memoryId: string;
-            namespace: string;
-            textPreview: string;
-            title?: string;
-            updatedAt: number;
-          }
-        >;
-        listVersionsPage: FunctionReference<
-          "query",
-          "internal",
-          {
-            memoryId: string;
-            namespace: string;
-            paginationOpts: {
-              cursor: string | null;
-              endCursor?: string | null;
-              id?: number;
-              maximumBytesRead?: number;
-              maximumRowsRead?: number;
-              numItems: number;
-            };
-          },
-          {
-            continueCursor: string;
-            isDone: boolean;
-            page: Array<{
-              createdAt: number;
-              entryId: string;
-              key: string;
-              memoryId: string;
-              textSnapshot: string;
-              title?: string;
-            }>;
-            pageStatus?: "SplitRecommended" | "SplitRequired" | null;
-            splitCursor?: string | null;
-          }
-        >;
-        recallVersion: FunctionReference<
-          "query",
-          "internal",
-          { entryId: string; memoryId: string; namespace: string },
-          null | {
-            createdAt: number;
-            entryId: string;
-            key: string;
-            memoryId: string;
-            textSnapshot: string;
-            title?: string;
-          }
-        >;
-        removeMemory: FunctionReference<
-          "action",
-          "internal",
-          { apiKey?: string; memoryId: string; namespace: string },
-          null
-        >;
-        upsertMemory: FunctionReference<
-          "action",
-          "internal",
-          {
-            actor?: { byId: string; byType: string };
-            apiKey?: string;
-            chunks?: Array<{ embedding: Array<number>; text: string }>;
-            key: string;
-            namespace: string;
-            searchText?: string;
-            similarityK?: number;
-            similarityThreshold?: number;
-            sourceRef?: string;
-            text: string;
-            title?: string;
-          },
-          { memoryId: string }
-        >;
-      };
-      graph: {
-        createCommunityJob: FunctionReference<
-          "mutation",
-          "internal",
-          { namespace: string; params: { k: number; resolution: number } },
-          string
-        >;
-        expandNeighbors: FunctionReference<
-          "query",
-          "internal",
-          { limit?: number; memoryId: string },
-          Array<string>
-        >;
-        getCommunityForMemory: FunctionReference<
-          "query",
-          "internal",
-          { memoryId: string; namespace: string },
-          null | { communityId: number }
-        >;
-        getLatestCommunities: FunctionReference<
-          "query",
-          "internal",
-          { namespace: string },
-          | null
-          | {
-              communities: Array<{
-                id: number;
-                memberCount: number;
-                sampleMemoryIds: Array<string>;
-              }>;
-              completionTime: number;
-              edgeCount: number;
-              jobId: string;
-              memoryCount: number;
-              stale: boolean;
-              status: "completed";
-            }
-          | any
-        >;
-        getNeighborEdges: FunctionReference<
-          "query",
-          "internal",
-          { memoryId: string },
-          Array<{ neighbor: string; score: number }>
-        >;
-        scheduleCommunityRebuild: FunctionReference<
-          "mutation",
-          "internal",
-          { jobId: string; namespace: string },
-          null
-        >;
-      };
-      retrieval: {
-        searchMemory: FunctionReference<
-          "action",
-          "internal",
-          {
-            apiKey?: string;
-            fileEmbeddings?: Array<Array<number>>;
-            graphWeight?: number;
-            lexicalWeight?: number;
-            limit?: number;
-            minScore?: number;
-            namespace: string;
-            query: string | Array<number>;
-            retrievalMode?: "vector" | "lexical" | "hybrid";
-            rrfK?: number;
-            vectorWeight?: number;
-          },
-          Array<{
-            key: string;
-            memoryId: string;
-            score: number;
-            text: string;
-            title?: string;
-          }>
-        >;
-      };
-    };
-  };
-  identity: {
+export type ComponentApi<Name extends string | undefined = string | undefined> =
+  {
     public: {
       queries: {
         getAgentRegistration: FunctionReference<
@@ -223,7 +37,8 @@ export declare const components: {
             metadata?: Record<string, any>;
             name: string;
             updatedAt: number;
-          }
+          },
+          Name
         >;
         getAgentVersionHistory: FunctionReference<
           "query",
@@ -237,7 +52,8 @@ export declare const components: {
               staticHash: string;
               staticSnapshot?: any;
             }>;
-          }
+          },
+          Name
         >;
         getRuntimeVersionsForStaticVersion: FunctionReference<
           "query",
@@ -251,7 +67,8 @@ export declare const components: {
               runtimeSnapshot?: any;
               staticVersionId: string;
             }>;
-          }
+          },
+          Name
         >;
         getToolRegistration: FunctionReference<
           "query",
@@ -264,7 +81,8 @@ export declare const components: {
             staticSnapshot: any;
             toolKey: string;
             updatedAt: number;
-          }
+          },
+          Name
         >;
         getToolVersionHistory: FunctionReference<
           "query",
@@ -278,7 +96,8 @@ export declare const components: {
               staticSnapshot: any;
               toolHash: string;
             }>;
-          }
+          },
+          Name
         >;
         getTurnBinding: FunctionReference<
           "query",
@@ -304,7 +123,8 @@ export declare const components: {
               toolKey: string;
               toolVersionId: string;
             }>;
-          }
+          },
+          Name
         >;
         listTurnBindingsForThread: FunctionReference<
           "query",
@@ -332,7 +152,8 @@ export declare const components: {
                 toolVersionId: string;
               }>;
             }>;
-          }
+          },
+          Name
         >;
       };
       record: {
@@ -373,7 +194,8 @@ export declare const components: {
               toolKey: string;
               toolVersionId: string;
             }>;
-          }
+          },
+          Name
         >;
       };
       register: {
@@ -391,7 +213,8 @@ export declare const components: {
             created: { registration: boolean; staticVersion: boolean };
             registrationId: string;
             staticVersionId: string;
-          }
+          },
+          Name
         >;
         registerTool: FunctionReference<
           "mutation",
@@ -406,9 +229,9 @@ export declare const components: {
             created: { toolRegistration: boolean; toolVersion: boolean };
             registrationId: string;
             toolVersionId: string;
-          }
+          },
+          Name
         >;
       };
     };
   };
-};

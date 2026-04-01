@@ -10,6 +10,7 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@very-coffee/agent-identity": "workspace:*",
     "convex": "^1.34.0"
   }
 }
