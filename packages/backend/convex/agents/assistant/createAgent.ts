@@ -2,12 +2,15 @@ import { Agent } from "@convex-dev/agent";
 import { defineAgentIdentity } from "@very-coffee/agent-identity";
 import { identityClient } from "../../_clients/identity.js";
 import { components } from "../../_generated/api.js";
+import { toolLibrary } from "../_tools/toolRegistry.js";
 import type { ToolBuilderContext } from "../lib/customFunctions.js";
-import { createConvexAgentEnv, createToolkitContext } from "../lib/customFunctions.js";
+import {
+  createConvexAgentEnv,
+  createToolkitContext,
+} from "../lib/customFunctions.js";
 import { languageModels } from "../lib/models.js";
-import { toolSpecsToAgentTools } from "../lib/toolSpecAdapter.js";
 import { toolkit } from "../lib/toolkit.js";
-import { toolLibrary } from "../tools/toolRegistry.js";
+import { toolSpecsToAgentTools } from "../lib/toolSpecAdapter.js";
 
 const assistantTools = toolkit([toolLibrary.memory, toolLibrary.filesystem], {
   name: "assistant-tools",

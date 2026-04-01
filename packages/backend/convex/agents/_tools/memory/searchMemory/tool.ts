@@ -1,5 +1,5 @@
-import type { InferUITool, Tool } from "ai";
 import { tool } from "@very-coffee/agent-identity";
+import type { InferUITool, Tool } from "ai";
 import { z } from "zod/v4";
 import { internal } from "../../../../_generated/api.js";
 import type { ConvexAgentEnv } from "../../../lib/customFunctions.js";
@@ -29,18 +29,18 @@ export function searchMemoryTool() {
         .optional()
         .describe("Minimum fused score floor; omit for no floor"),
     }),
-    handler: async (
-      ctx: ToolRuntimeContext<ConvexAgentEnv>,
-      args,
-    ) => {
+    handler: async (ctx: ToolRuntimeContext<ConvexAgentEnv>, args) => {
       return await withFormattedResults(
-        ctx.env.runAction(internal.agents.tools.memory.searchMemory.internal.execute, {
-          namespace: ctx.namespace ?? ctx.env.namespace,
-          query: args.query,
-          limit: args.limit,
-          retrievalMode: args.retrievalMode,
-          minScore: args.minScore,
-        }),
+        ctx.env.runAction(
+          internal.agents._tools.memory.searchMemory.internal.execute,
+          {
+            namespace: ctx.namespace ?? ctx.env.namespace,
+            query: args.query,
+            limit: args.limit,
+            retrievalMode: args.retrievalMode,
+            minScore: args.minScore,
+          },
+        ),
       );
     },
   });

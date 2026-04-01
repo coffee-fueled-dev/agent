@@ -1,5 +1,5 @@
-import type { InferUITool, Tool } from "ai";
 import { tool } from "@very-coffee/agent-identity";
+import type { InferUITool, Tool } from "ai";
 import { z } from "zod/v4";
 import { internal } from "../../../../_generated/api.js";
 import type { ConvexAgentEnv } from "../../../lib/customFunctions.js";
@@ -27,17 +27,17 @@ export function addMemoryTool() {
         .optional()
         .describe("Unix ms observation time"),
     }),
-    handler: async (
-      ctx: ToolRuntimeContext<ConvexAgentEnv>,
-      args,
-    ) => {
+    handler: async (ctx: ToolRuntimeContext<ConvexAgentEnv>, args) => {
       return await withFormattedResults(
-        ctx.env.runAction(internal.agents.tools.memory.addMemory.internal.execute, {
-          namespace: ctx.namespace ?? ctx.env.namespace,
-          text: args.text,
-          title: args.title,
-          observationTime: args.observationTime,
-        }),
+        ctx.env.runAction(
+          internal.agents._tools.memory.addMemory.internal.execute,
+          {
+            namespace: ctx.namespace ?? ctx.env.namespace,
+            text: args.text,
+            title: args.title,
+            observationTime: args.observationTime,
+          },
+        ),
       );
     },
   });

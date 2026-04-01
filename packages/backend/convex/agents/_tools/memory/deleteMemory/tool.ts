@@ -22,7 +22,7 @@ export function deleteMemoryTool() {
     handler: async (ctx: ToolRuntimeContext<ConvexAgentEnv>, args) => {
       return await withFormattedResults(
         ctx.env.runAction(
-          internal.agents.tools.memory.deleteMemory.internal.execute,
+          internal.agents._tools.memory.deleteMemory.internal.execute,
           {
             namespace: ctx.namespace ?? ctx.env.namespace,
             entryId: args.entryId,
