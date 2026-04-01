@@ -1,5 +1,9 @@
 {
   "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@very-coffee/agent-identity": ["../agent-identity/src/index.ts"]
+    },
     // Environment setup & latest features
     "lib": ["ESNext"],
     "target": "ESNext",
@@ -25,5 +29,7 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false
-  }
+  },
+  "include": ["./**/*.ts", "./convex/**/*.ts"],
+  "exclude": ["node_modules", "./convex/_generated"]
 }

@@ -10,7 +10,17 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^2",
+    "@convex-dev/agent": "^0.3.2",
     "@very-coffee/agent-identity": "workspace:*",
-    "convex": "^1.34.0"
+    "@very-coffee/convex-graph": "workspace:*",
+    "@very-coffee/convex-history": "workspace:*",
+    "@very-coffee/convex-search-features": "workspace:*",
+    "@very-coffee/reciprocal-rank-fusion": "workspace:*",
+    "@very-coffee/k-nearest-neighbors": "workspace:*",
+    "@very-coffee/leiden": "workspace:*",
+    "ai": "^5.0.82",
+    "convex": "^1.34.0",
+    "zod": "^4.3.6"
   }
 }

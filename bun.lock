@@ -126,8 +126,12 @@
     "packages/backend": {
       "name": "backend",
       "dependencies": {
+        "@ai-sdk/openai": "^2",
+        "@convex-dev/agent": "^0.3.2",
         "@very-coffee/agent-identity": "workspace:*",
+        "ai": "^5.0.82",
         "convex": "^1.34.0",
+        "zod": "^4.3.6",
       },
       "devDependencies": {
         "@types/bun": "latest",
