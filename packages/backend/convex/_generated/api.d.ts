@@ -35,6 +35,7 @@ import type * as agents_lib_customFunctions from "../agents/lib/customFunctions.
 import type * as agents_lib_models from "../agents/lib/models.js";
 import type * as agents_lib_toolSpecAdapter from "../agents/lib/toolSpecAdapter.js";
 import type * as agents_lib_toolkit from "../agents/lib/toolkit.js";
+import type * as chat_thread from "../chat/thread.js";
 import type * as files from "../files.js";
 import type * as filesEnv from "../filesEnv.js";
 
@@ -72,6 +73,7 @@ declare const fullApi: ApiFromModules<{
   "agents/lib/models": typeof agents_lib_models;
   "agents/lib/toolSpecAdapter": typeof agents_lib_toolSpecAdapter;
   "agents/lib/toolkit": typeof agents_lib_toolkit;
+  "chat/thread": typeof chat_thread;
   files: typeof files;
   filesEnv: typeof filesEnv;
 }>;
