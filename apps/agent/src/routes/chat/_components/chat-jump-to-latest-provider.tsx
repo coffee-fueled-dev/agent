@@ -8,6 +8,7 @@ import {
 } from "react";
 import { Button } from "@/components/ui/button";
 import { useChatScrollAnchor } from "../_hooks/use-chat-scroll-anchor.js";
+import { useChatThread } from "../_hooks/use-chat-thread.js";
 
 type ChatJumpToLatestContextValue = {
   lastPairRef: React.RefObject<HTMLDivElement | null>;
@@ -32,19 +33,18 @@ export function ChatJumpToLatestProvider({
   children,
   viewportRef,
   messageCount,
-  threadId,
 }: {
   children: ReactNode;
   viewportRef: React.RefObject<HTMLDivElement | null>;
   messageCount: number;
-  threadId: string;
 }) {
+  const { threadId } = useChatThread();
   const lastPairRef = useRef<HTMLDivElement>(null);
   const { showJumpToLatest, scrollToTail } = useChatScrollAnchor({
     viewportRef,
     lastPairRef,
     messageCount,
-    threadId,
+    threadId: threadId as string,
   });
 
   const value = useMemo(

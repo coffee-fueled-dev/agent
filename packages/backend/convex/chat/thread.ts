@@ -211,7 +211,7 @@ export const continueThreadStream = internalAction({
     const result = await thread.streamText(
       { promptMessageId: args.promptMessageId },
       {
-        saveStreamDeltas: { throttleMs: 50 },
+        saveStreamDeltas: { throttleMs: 100, returnImmediately: true },
         contextOptions: {
           searchOtherThreads: false,
         },

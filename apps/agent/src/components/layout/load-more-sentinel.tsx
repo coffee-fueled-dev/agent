@@ -1,7 +1,7 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
 import { useEffect, useRef } from "react";
+import { Spinner } from "../ui/spinner";
 
 const ROOT_MARGIN = "100px"; // Trigger slightly before sentinel is visible
 
@@ -45,9 +45,7 @@ export default function LoadMoreSentinel({
 
   return (
     <div ref={sentinelRef} className="flex justify-center py-4">
-      {isLoadingMore && (
-        <Loader2 className="size-4 animate-spin text-muted-foreground" />
-      )}
+      {isLoadingMore && <Spinner />}
     </div>
   );
 }

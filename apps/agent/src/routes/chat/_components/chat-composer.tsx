@@ -1,3 +1,4 @@
+import { optimisticallySendMessage } from "@convex-dev/agent/react";
 import { api } from "@very-coffee/backend/api";
 import { useMutation } from "convex/react";
 import { PaperclipIcon } from "lucide-react";
@@ -9,6 +10,7 @@ import {
   InputGroupButton,
   InputGroupTextarea,
 } from "@/components/ui/input-group";
+import { useChatThread } from "../_hooks/use-chat-thread.js";
 import {
   ChatComposerFileProvider,
   ChatComposerFileRow,
@@ -16,17 +18,14 @@ import {
   useChatComposerFile,
 } from "./chat-composer-file-provider.js";
 
-function ChatComposerInner({
-  threadId,
-  userId,
-  setThreadId,
-}: {
-  threadId: string | null;
-  userId: string;
-  setThreadId: (id: string) => void;
-}) {
-  const createThread = useMutation(api.chat.thread.createThread);
-  const sendMessage = useMutation(api.chat.thread.sendMessage);
+function ChatComposerInner() {
+  const { threadId, userId, createThread, setAwaitingAssistantStream } =
+    useChatThread();
+  const sendMessage = useMutation(
+    api.chat.thread.sendMessage,
+  ).withOptimisticUpdate(
+    optimisticallySendMessage(api.chat.thread.listThreadMessages),
+  );
   const { files, addFiles, clearFiles } = useFiles();
   const { allAttachmentsReady, fileEmbedStates } = useChatComposerFile();
   const [text, setText] = useState("");
@@ -37,14 +36,12 @@ function ChatComposerInner({
     const trimmed = text.trim();
     if ((!trimmed && files.length === 0) || sending) return;
     if (files.length > 0 && !allAttachmentsReady) return;
+    if (!userId) return;
     setSending(true);
     setError(null);
     try {
       const activeThreadId =
-        threadId ?? (await createThread({ userId, title: "Chat" }));
-      if (!threadId) {
-        setThreadId(activeThreadId);
-      }
+        threadId ?? (await createThread({ title: "Chat" }));
 
       const attachments =
         files.length > 0
@@ -75,6 +72,7 @@ function ChatComposerInner({
         sessionId: activeThreadId,
         attachments,
       });
+      setAwaitingAssistantStream(true);
       setText("");
       clearFiles();
     } catch (e) {
@@ -92,7 +90,7 @@ function ChatComposerInner({
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-2">
-      {files.length > 0 ? (
+      {files.length > 0 && userId ? (
         <div className="flex flex-col gap-2">
           {files.map((f) => {
             const fk = fileKeyFor(f);
@@ -160,22 +158,10 @@ function ChatComposerInner({
   );
 }
 
-export function ChatComposer({
-  threadId,
-  userId,
-  setThreadId,
-}: {
-  threadId: string | null;
-  userId: string;
-  setThreadId: (id: string) => void;
-}) {
+export function ChatComposer() {
   return (
     <ChatComposerFileProvider>
-      <ChatComposerInner
-        threadId={threadId}
-        userId={userId}
-        setThreadId={setThreadId}
-      />
+      <ChatComposerInner />
     </ChatComposerFileProvider>
   );
 }

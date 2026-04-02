@@ -17,28 +17,19 @@ import {
 import { AppSidebarAccountMenu } from "./app-sidebar-account-menu.js";
 import { AppSidebarMobileNav, AppSidebarNav } from "./app-sidebar-nav.js";
 
-function SidebarAccountFooter({
-  current,
-}: {
-  current: "context" | "chat" | "events";
-}) {
+function SidebarAccountFooter() {
   const { isExpanded } = useSidebar();
   return (
     <SidebarFooter className={cn(!isExpanded && "items-center")}>
-      <AppSidebarAccountMenu current={current} className="w-full" />
+      <AppSidebarAccountMenu className="w-full" />
     </SidebarFooter>
   );
 }
 
-function MobileSidebarAccountFooter({
-  current,
-}: {
-  current: "context" | "chat" | "events";
-}) {
+function MobileSidebarAccountFooter() {
   const { closeMobile } = useSidebar();
   return (
     <AppSidebarAccountMenu
-      current={current}
       onNavigate={closeMobile}
       forceExpanded
       className="w-full"
@@ -48,13 +39,11 @@ function MobileSidebarAccountFooter({
 
 export function AppLayout({
   children,
-  current,
   segmentLead,
   segmentTrail,
   rightSidebar,
 }: {
   children: ReactNode;
-  current: "context" | "chat" | "events";
   /** Left cluster after menu trigger (e.g. Back). */
   segmentLead?: ReactNode;
   /** Right-aligned inner segment nav (e.g. entry sub-tabs). */
@@ -65,7 +54,6 @@ export function AppLayout({
   return (
     <AppLayoutSidebarProvider>
       <AppLayoutFrame
-        current={current}
         segmentLead={segmentLead}
         segmentTrail={segmentTrail}
         rightSidebar={rightSidebar}
@@ -78,13 +66,11 @@ export function AppLayout({
 
 function AppLayoutFrame({
   children,
-  current,
   segmentLead,
   segmentTrail,
   rightSidebar,
 }: {
   children: ReactNode;
-  current: "context" | "chat" | "events";
   segmentLead?: ReactNode;
   segmentTrail?: ReactNode;
   rightSidebar?: ReactNode;
@@ -97,9 +83,9 @@ function AppLayoutFrame({
         <aside className="hidden min-h-0 self-stretch md:flex md:min-h-dvh">
           <Sidebar>
             <SidebarMain>
-              <AppSidebarNav current={current} />
+              <AppSidebarNav />
             </SidebarMain>
-            <SidebarAccountFooter current={current} />
+            <SidebarAccountFooter />
           </Sidebar>
         </aside>
         <SidebarInset className="col-span-1 md:col-start-2">
@@ -133,10 +119,8 @@ function AppLayoutFrame({
           </main>
         </SidebarInset>
       </div>
-      <MobileSidebarSheet
-        footer={<MobileSidebarAccountFooter current={current} />}
-      >
-        <AppSidebarMobileNav current={current} />
+      <MobileSidebarSheet footer={<MobileSidebarAccountFooter />}>
+        <AppSidebarMobileNav />
       </MobileSidebarSheet>
     </SidebarProvider>
   );

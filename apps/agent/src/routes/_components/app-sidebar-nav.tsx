@@ -17,6 +17,7 @@ import {
   SidebarGroupLabel,
   useSidebar,
 } from "@/components/layout/sidebar";
+import { Button } from "@/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
@@ -94,25 +95,17 @@ function ChatThreadHistoryList({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
-export function AppSidebarMobileNav({
-  current,
-}: {
-  current: "context" | "chat" | "events";
-}) {
+export function AppSidebarMobileNav() {
   const { closeMobile } = useSidebar();
-  return (
-    <AppSidebarNav current={current} onNavigate={closeMobile} forceExpanded />
-  );
+  return <AppSidebarNav onNavigate={closeMobile} forceExpanded />;
 }
 
 /** `forceExpanded`: always show text links (e.g. mobile sheet when desktop rail is collapsed). */
 export function AppSidebarNav({
-  current,
   onNavigate,
   className,
   forceExpanded,
 }: {
-  current: "context" | "chat" | "events";
   onNavigate?: () => void;
   className?: string;
   forceExpanded?: boolean;
@@ -149,21 +142,20 @@ export function AppSidebarNav({
   return (
     <div className={cn("flex flex-col gap-4", className)}>
       <SidebarGroup>
-        <SidebarGroupLabel>Chat</SidebarGroupLabel>
+        <span className="flex items-center justify-between">
+          <SidebarGroupLabel>Chat</SidebarGroupLabel>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" asChild>
+                <Link href={chat({ new: true })}>
+                  <PlusIcon className="size-4" />
+                </Link>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">New chat</TooltipContent>
+          </Tooltip>
+        </span>
         <SidebarGroupContent>
-          <SidebarGroupButton
-            variant={current === "chat" ? "secondary" : "ghost"}
-            asChild
-          >
-            <Link
-              href={chat({ new: true })}
-              onBeforeNavigate={onNavigate}
-              className="flex items-center gap-2"
-            >
-              <PlusIcon className="size-4 shrink-0" />
-              Chat
-            </Link>
-          </SidebarGroupButton>
           <ChatThreadHistoryList onNavigate={onNavigate} />
         </SidebarGroupContent>
       </SidebarGroup>

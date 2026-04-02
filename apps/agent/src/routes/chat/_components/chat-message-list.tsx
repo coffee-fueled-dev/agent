@@ -3,19 +3,24 @@ import { type UIMessagesQuery, useUIMessages } from "@convex-dev/agent/react";
 import type { StreamArgs } from "@convex-dev/agent/validators";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { api } from "@very-coffee/backend/api";
+import type { UIMessage } from "@very-coffee/backend/types";
 import type { FunctionReference } from "convex/server";
 import { useEffect, useRef, useState } from "react";
 import { FadeOverflow } from "@/components/layout/fade-overflow";
 import LoadMoreSentinel from "@/components/layout/load-more-sentinel";
-import { Empty, EmptyContent, EmptyTitle } from "@/components/ui/empty";
+import { Empty, EmptyContent, EmptyDescription } from "@/components/ui/empty";
 import { Spinner } from "@/components/ui/spinner";
-import type { UIMessage } from "../../../../../../packages/backend/convex/agents/_tools/uiMessage.js";
+import { useChatThread } from "../_hooks/use-chat-thread.js";
 import {
   ChatJumpToLatestProvider,
   JumpToLatest,
   LastMessagePair,
 } from "./chat-jump-to-latest-provider.js";
 import { ChatMessagePart } from "./chat-message-part.js";
+import {
+  findLastUserMessageIndex,
+  hasRenderableAssistantContent,
+} from "./chat-message-utils.js";
 
 const PAGE_SIZE = 15;
 
@@ -36,7 +41,20 @@ const listThreadMessagesQuery = api.chat.thread
 
 const ESTIMATE_ROW = 120;
 
-export function ChatMessageList({ threadId }: { threadId: string }) {
+function AssistantLoadingBubble() {
+  return (
+    <div className="flex max-w-lg flex-col gap-2 rounded-lg border border-dashed border-muted-foreground/25 bg-muted/20 px-4 py-3 text-muted-foreground text-sm">
+      <div className="flex items-center gap-2">
+        <Spinner className="size-4" />
+        <span>Thinking…</span>
+      </div>
+    </div>
+  );
+}
+
+export function ChatMessageList() {
+  const { threadId, awaitingAssistantStream, setAwaitingAssistantStream } =
+    useChatThread();
   const viewportRef = useRef<HTMLDivElement>(null);
   const [viewportHeight, setViewportHeight] = useState(0);
 
@@ -53,9 +71,11 @@ export function ChatMessageList({ threadId }: { threadId: string }) {
     };
   }, []);
 
+  const activeThreadId = threadId as string;
+
   const paginated = useUIMessages(
     listThreadMessagesQuery,
-    { threadId },
+    { threadId: activeThreadId },
     {
       initialNumItems: PAGE_SIZE,
       stream: true,
@@ -65,14 +85,40 @@ export function ChatMessageList({ threadId }: { threadId: string }) {
   const results =
     paginated?.results.filter((message) => message.role !== "system") ?? [];
 
-  const messagesBefore =
-    results.length >= 2 ? results.slice(0, -2) : ([] as UIMessage[]);
-  const lastPair: UIMessage[] =
-    results.length >= 2
+  const lastUserIdx = findLastUserMessageIndex(results);
+  const hasActiveUserTurn = lastUserIdx >= 0;
+
+  const messagesBefore = hasActiveUserTurn
+    ? results.slice(0, lastUserIdx)
+    : results.length >= 2
+      ? results.slice(0, -2)
+      : [];
+
+  const turnTail = hasActiveUserTurn
+    ? results.slice(lastUserIdx)
+    : results.length >= 2
       ? results.slice(-2)
       : results.length === 1
         ? results.slice(-1)
         : [];
+
+  const userMessage = turnTail[0];
+  const assistantMessages =
+    turnTail.length > 1
+      ? turnTail.slice(1).filter((m) => m.role === "assistant")
+      : [];
+  const lastAssistant = assistantMessages[assistantMessages.length - 1];
+
+  const showAssistantLoading =
+    awaitingAssistantStream &&
+    (!lastAssistant || !hasRenderableAssistantContent(lastAssistant));
+
+  useEffect(() => {
+    if (!awaitingAssistantStream || !lastAssistant) return;
+    if (hasRenderableAssistantContent(lastAssistant)) {
+      setAwaitingAssistantStream(false);
+    }
+  }, [lastAssistant, awaitingAssistantStream, setAwaitingAssistantStream]);
 
   const virtualizer = useVirtualizer({
     count: messagesBefore.length,
@@ -95,14 +141,32 @@ export function ChatMessageList({ threadId }: { threadId: string }) {
   const canLoadMore = status === "CanLoadMore";
   const isLoadingMore = status === "LoadingMore";
 
+  const lastPairContent =
+    hasActiveUserTurn && userMessage ? (
+      <>
+        <ChatMessageBubble message={userMessage} />
+        {showAssistantLoading ? (
+          <AssistantLoadingBubble />
+        ) : (
+          assistantMessages.map((m) => (
+            <ChatMessageBubble key={m.id} message={m} />
+          ))
+        )}
+      </>
+    ) : turnTail.length > 0 ? (
+      turnTail.map((row) => <ChatMessageBubble key={row.id} message={row} />)
+    ) : null;
+
   return (
     <ChatJumpToLatestProvider
       viewportRef={viewportRef}
       messageCount={results.length}
-      threadId={threadId}
     >
       <div className="relative flex h-full min-h-0 flex-1 flex-col">
-        <FadeOverflow viewportRef={viewportRef} className="h-full min-h-0 flex-1">
+        <FadeOverflow
+          viewportRef={viewportRef}
+          className="h-full min-h-0 flex-1"
+        >
           <div className="mx-auto flex min-h-full w-full max-w-240 flex-col gap-0 pt-4">
             <LoadMoreSentinel
               onLoadMore={() => loadMore(PAGE_SIZE)}
@@ -135,21 +199,19 @@ export function ChatMessageList({ threadId }: { threadId: string }) {
               </div>
             ) : null}
 
-            {lastPair.length > 0 ? (
+            {lastPairContent ? (
               <LastMessagePair
                 className="flex w-full flex-shrink-0 flex-col justify-start gap-5 pt-5"
                 style={
                   viewportHeight > 0 ? { minHeight: viewportHeight } : undefined
                 }
               >
-                {lastPair.map((row) => (
-                  <ChatMessageBubble key={row.id} message={row} />
-                ))}
+                {lastPairContent}
               </LastMessagePair>
             ) : (
               <Empty>
                 <EmptyContent>
-                  <EmptyTitle>No messages yet.</EmptyTitle>
+                  <EmptyDescription>No messages yet.</EmptyDescription>
                 </EmptyContent>
               </Empty>
             )}

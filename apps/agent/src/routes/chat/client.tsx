@@ -17,24 +17,25 @@ import {
 } from "../_components/app-layout-sidebar-context.js";
 import { ChatComposer } from "./_components/chat-composer.js";
 import { ChatMessageList } from "./_components/chat-message-list.js";
-import { useChatThread } from "./_hooks/use-chat-thread.js";
+import { ChatThreadProvider, useChatThread } from "./_hooks/use-chat-thread.js";
 
 export function ChatRoute() {
   return (
     <AppLayoutSidebarProvider>
-      <ChatRouteInner />
+      <ChatThreadProvider>
+        <ChatRouteInner />
+      </ChatThreadProvider>
     </AppLayoutSidebarProvider>
   );
 }
 
 function ChatRouteInner() {
-  const { threadId, userId, hasUserId, setThreadId } = useChatThread();
+  const { threadId, hasUserId } = useChatThread();
   const { innerSidebarVisible, toggleInnerSidebarVisible } =
     useAppLayoutSidebar();
 
   return (
     <AppLayout
-      current="chat"
       segmentLead={
         <span className="text-muted-foreground text-xs font-medium uppercase tracking-wide space-x-2">
           <b>Chat</b>
@@ -52,7 +53,7 @@ function ChatRouteInner() {
               onClick={toggleInnerSidebarVisible}
               aria-pressed={innerSidebarVisible}
             >
-              <ActivityIcon className="size-4" />
+              <ActivityIcon />
               <span className="sr-only">
                 {innerSidebarVisible ? "Hide side panel" : "Show side panel"}
               </span>
@@ -92,19 +93,20 @@ function ChatRouteInner() {
                     <div className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-4">
                       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
                         {threadId ? (
-                          <ChatMessageList threadId={threadId} />
+                          <ChatMessageList />
                         ) : (
-                          <div className="text-muted-foreground flex min-h-[8rem] items-center justify-center text-sm">
-                            No messages yet. Send a message to start a thread.
-                          </div>
+                          <Empty>
+                            <EmptyContent>
+                              <EmptyDescription>
+                                No messages yet. Send a message to start a
+                                thread.
+                              </EmptyDescription>
+                            </EmptyContent>
+                          </Empty>
                         )}
                       </div>
                       <div className="flex-shrink-0 pb-8">
-                        <ChatComposer
-                          threadId={threadId}
-                          userId={userId}
-                          setThreadId={setThreadId}
-                        />
+                        <ChatComposer />
                       </div>
                     </div>
                   </PageSection.Body>

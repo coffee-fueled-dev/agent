@@ -19,23 +19,14 @@ import {
 import { cn } from "@/lib/utils";
 import { contextList, eventsList, Link } from "@/navigation/index.js";
 
-function AccountMenuItems({
-  current,
-  onNavigate,
-}: {
-  current: "context" | "chat" | "events";
-  onNavigate?: () => void;
-}) {
+function AccountMenuItems({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <DropdownMenuGroup>
       <DropdownMenuItem asChild>
         <Link
           href={eventsList()}
           onBeforeNavigate={onNavigate}
-          className={cn(
-            "flex cursor-pointer items-center gap-2",
-            current === "events" && "bg-accent text-accent-foreground",
-          )}
+          className={cn("flex cursor-pointer items-center gap-2")}
         >
           <ActivityIcon className="size-4" />
           Events
@@ -45,10 +36,7 @@ function AccountMenuItems({
         <Link
           href={contextList()}
           onBeforeNavigate={onNavigate}
-          className={cn(
-            "flex cursor-pointer items-center gap-2",
-            current === "context" && "bg-accent text-accent-foreground",
-          )}
+          className={cn("flex cursor-pointer items-center gap-2")}
         >
           <BookOpenIcon className="size-4" />
           Memories
@@ -59,12 +47,10 @@ function AccountMenuItems({
 }
 
 export function AppSidebarAccountMenu({
-  current,
   onNavigate,
   forceExpanded,
   className,
 }: {
-  current: "context" | "chat" | "events";
   onNavigate?: () => void;
   /** Mobile sheet: use wide trigger with label. */
   forceExpanded?: boolean;
@@ -72,7 +58,6 @@ export function AppSidebarAccountMenu({
 }) {
   const { isExpanded } = useSidebar();
   const showText = forceExpanded || isExpanded;
-  const accountActive = current === "events" || current === "context";
 
   return (
     <div className={cn("w-full", className)}>
@@ -98,7 +83,7 @@ export function AppSidebarAccountMenu({
           ) : (
             <Button
               type="button"
-              variant={accountActive ? "secondary" : "ghost"}
+              variant="ghost"
               size="icon"
               className="shrink-0"
               aria-label="Account menu"
@@ -113,7 +98,7 @@ export function AppSidebarAccountMenu({
           align={showText ? "end" : "start"}
           sideOffset={8}
         >
-          <AccountMenuItems current={current} onNavigate={onNavigate} />
+          <AccountMenuItems onNavigate={onNavigate} />
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
