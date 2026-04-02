@@ -25,19 +25,20 @@ const assistantDefinition = defineAgentIdentity({
   staticProps: assistantTools.staticProps,
 });
 
-const recordAgentTurnBackgroundRef =
-  internal.agents.assistant.createAgent.recordAgentTurnBackground;
-
 export async function createAssistantAgent(ctx: ToolBuilderContext) {
   const toolkitCtx = createToolkitContext(ctx);
   const env = createConvexAgentEnv(ctx);
   const { tools } = await assistantTools.evaluate(toolkitCtx);
-  await pool.enqueueAction(ctx, recordAgentTurnBackgroundRef, {
-    threadId: ctx.threadId,
-    messageId: ctx.messageId,
-    sessionId: ctx.sessionId,
-    namespace: ctx.namespace,
-  });
+  await pool.enqueueAction(
+    ctx,
+    internal.agents.assistant.createAgent.recordAgentTurnBackground,
+    {
+      threadId: ctx.threadId,
+      messageId: ctx.messageId,
+      sessionId: ctx.sessionId,
+      namespace: ctx.namespace,
+    },
+  );
 
   const runtimeTools = toolSpecsToAgentTools(tools, env);
 
