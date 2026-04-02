@@ -11,7 +11,7 @@ Mount in [`convex/convex.config.ts`](../../convex.config.ts) via `app.use(identi
 - **public/register.ts** — `registerAgent`, `registerTool`
 - **public/record.ts** — `recordTurnIdentity` (upserts versions + turn row; idempotent per `messageId`)
 - **public/queries.ts** — registrations, bounded version history, turn lookups
-- **`client/index.ts`** — `IdentityClient` (hashes + `normalizeStaticProps` + `createIdentityLink`). See [`client/README.md`](./client/README.md).
+- **`client/index.ts`** — `IdentityClient` (forwards pre-computed `staticHash` / `runtimeHash` / per-tool refs from the host). See [`client/README.md`](./client/README.md).
 
 ## Codegen
 

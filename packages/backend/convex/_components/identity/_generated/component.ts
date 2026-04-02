@@ -50,7 +50,6 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
               createdAt: number;
               registrationId: string;
               staticHash: string;
-              staticSnapshot?: any;
             }>;
           },
           Name
@@ -64,7 +63,6 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
               _id: string;
               createdAt: number;
               runtimeHash: string;
-              runtimeSnapshot?: any;
               staticVersionId: string;
             }>;
           },
@@ -78,7 +76,6 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             _id: string;
             latestToolHash: string;
             metadata?: Record<string, any>;
-            staticSnapshot: any;
             toolKey: string;
             updatedAt: number;
           },
@@ -93,7 +90,6 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
               _id: string;
               createdAt: number;
               registrationId: string;
-              staticSnapshot: any;
               toolHash: string;
             }>;
           },
@@ -111,11 +107,9 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             messageId: string;
             registrationId: string;
             runtimeHash: string;
-            runtimeSnapshot?: any;
             runtimeVersionId: string;
             sessionId?: string;
             staticHash: string;
-            staticSnapshot?: any;
             staticVersionId: string;
             threadId: string;
             toolRefs?: Array<{
@@ -139,11 +133,9 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
               messageId: string;
               registrationId: string;
               runtimeHash: string;
-              runtimeSnapshot?: any;
               runtimeVersionId: string;
               sessionId?: string;
               staticHash: string;
-              staticSnapshot?: any;
               staticVersionId: string;
               threadId: string;
               toolRefs?: Array<{
@@ -165,16 +157,10 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             agentName: string;
             messageId: string;
             runtimeHash: string;
-            runtimeSnapshot?: any;
             sessionId?: string;
             staticHash: string;
-            staticSnapshot?: any;
             threadId: string;
-            tools?: Array<{
-              staticSnapshot?: any;
-              toolHash: string;
-              toolKey: string;
-            }>;
+            tools?: Array<{ toolHash: string; toolKey: string }>;
           },
           {
             bindingId: string;
@@ -207,7 +193,6 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             metadata?: Record<string, any>;
             name: string;
             staticHash: string;
-            staticSnapshot?: any;
           },
           {
             created: { registration: boolean; staticVersion: boolean };
@@ -219,12 +204,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         registerTool: FunctionReference<
           "mutation",
           "internal",
-          {
-            metadata?: Record<string, any>;
-            staticSnapshot: any;
-            toolHash: string;
-            toolKey: string;
-          },
+          { metadata?: Record<string, any>; toolHash: string; toolKey: string },
           {
             created: { toolRegistration: boolean; toolVersion: boolean };
             registrationId: string;

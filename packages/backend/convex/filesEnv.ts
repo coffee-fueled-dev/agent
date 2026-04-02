@@ -3,8 +3,6 @@ import { z } from "zod/v4";
 const backendFileEnvSchema = z.object({
   AGENT_APP_URL: z.string().optional(),
   BINARY_EMBEDDING_SECRET: z.string().optional(),
-  LOCAL_AGENT: z.string().optional(),
-  NGROK_URL: z.string().optional(),
 });
 
 const env = backendFileEnvSchema.parse(process.env);
@@ -23,12 +21,4 @@ export function getFileEmbeddingSecret(): string {
   return (
     trim(env.BINARY_EMBEDDING_SECRET) ?? "dev-only-binary-embedding-secret"
   );
-}
-
-export function isLocalAgentMode(): boolean {
-  return trim(env.LOCAL_AGENT) === "true";
-}
-
-export function getNgrokUrl(): string | undefined {
-  return trim(env.NGROK_URL);
 }

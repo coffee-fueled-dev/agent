@@ -8,3 +8,5 @@ export type UIMessage<
 > = BaseUIMessage<METADATA, DATA_PARTS, RegisteredUITools>;
 
 export type UITools = RegisteredUITools;
+
+export type { RegisteredToolName } from "./registeredToolMap.js";

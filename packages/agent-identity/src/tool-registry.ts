@@ -1,16 +1,14 @@
-import { hashToolStaticIdentity } from "./tool-identity.js";
+import type { AnyComposable } from "./toolkit.js";
 
 export type RegisteredToolEntry = {
   key: string;
   hash: string;
-  staticProps: unknown;
+  composable: AnyComposable;
 };
 
 export type ToolRegistry = {
-  /** Returns the computed static hash. */
-  register: (key: string, staticProps: unknown) => Promise<string>;
+  register: (key: string, composable: AnyComposable) => Promise<string>;
   get: (key: string) => RegisteredToolEntry | undefined;
-  /** If multiple keys share the same hash, the last registered entry wins. */
   getByHash: (hash: string) => RegisteredToolEntry | undefined;
   has: (key: string) => boolean;
   listKeys: () => string[];
@@ -18,15 +16,18 @@ export type ToolRegistry = {
 };
 
 /**
- * In-memory tool registration map keyed by caller string (convention: same as `staticProps.name`).
+ * In-memory tool registration map keyed by caller string (convention: same as tool name).
  */
 export function createToolRegistry(): ToolRegistry {
   const byKey = new Map<string, RegisteredToolEntry>();
   const byHash = new Map<string, RegisteredToolEntry>();
 
-  async function register(key: string, staticProps: unknown): Promise<string> {
-    const hash = await hashToolStaticIdentity(staticProps);
-    const entry: RegisteredToolEntry = { key, hash, staticProps };
+  async function register(
+    key: string,
+    composable: AnyComposable,
+  ): Promise<string> {
+    const hash = await composable.computeStaticHash();
+    const entry: RegisteredToolEntry = { key, hash, composable };
     byKey.set(key, entry);
     byHash.set(hash, entry);
     return hash;

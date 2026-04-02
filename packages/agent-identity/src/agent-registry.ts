@@ -1,4 +1,3 @@
-import { hashIdentityInput } from "./hash.js";
 import type { RegisteredAgentIdentity } from "./types.js";
 
 export type RegisteredAgentEntry = {
@@ -7,8 +6,7 @@ export type RegisteredAgentEntry = {
 };
 
 export type AgentRegistry = {
-  /** Computes static hash from `agent.getStaticIdentityInput()`. Last register wins for the same `agentId`. */
-  register: (agent: RegisteredAgentIdentity) => Promise<{ staticHash: string }>;
+  register: (agent: RegisteredAgentIdentity) => { staticHash: string };
   get: (agentId: string) => RegisteredAgentEntry | undefined;
   has: (agentId: string) => boolean;
   listKeys: () => string[];
@@ -21,12 +19,9 @@ export type AgentRegistry = {
 export function createAgentRegistry(): AgentRegistry {
   const byId = new Map<string, RegisteredAgentEntry>();
 
-  async function register(
-    agent: RegisteredAgentIdentity,
-  ): Promise<{ staticHash: string }> {
-    const staticHash = await hashIdentityInput(agent.getStaticIdentityInput());
-    byId.set(agent.agentId, { agent, staticHash });
-    return { staticHash };
+  function register(agent: RegisteredAgentIdentity): { staticHash: string } {
+    byId.set(agent.agentId, { agent, staticHash: agent.staticHash });
+    return { staticHash: agent.staticHash };
   }
 
   function get(agentId: string): RegisteredAgentEntry | undefined {

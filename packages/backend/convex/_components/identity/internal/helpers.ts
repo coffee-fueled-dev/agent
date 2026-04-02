@@ -16,7 +16,6 @@ export async function ensureAgentRegistration(
     agentId: string;
     name: string;
     staticHash: string;
-    staticSnapshot: unknown | undefined;
     now: number;
     metadata: Record<string, unknown> | undefined;
   },
@@ -73,7 +72,6 @@ export async function ensureAgentRegistration(
   const staticVersionId = await ctx.db.insert("agentStaticVersions", {
     registrationId,
     staticHash: args.staticHash,
-    staticSnapshot: args.staticSnapshot,
     createdAt: args.now,
   });
 
@@ -92,7 +90,6 @@ export async function ensureRuntimeVersion(
   args: {
     staticVersionId: Id<"agentStaticVersions">;
     runtimeHash: string;
-    runtimeSnapshot: unknown | undefined;
     now: number;
   },
 ): Promise<{
@@ -115,7 +112,6 @@ export async function ensureRuntimeVersion(
   const runtimeVersionId = await ctx.db.insert("agentRuntimeVersions", {
     staticVersionId: args.staticVersionId,
     runtimeHash: args.runtimeHash,
-    runtimeSnapshot: args.runtimeSnapshot,
     createdAt: args.now,
   });
 
@@ -127,7 +123,6 @@ export async function ensureToolRegistration(
   args: {
     toolKey: string;
     toolHash: string;
-    staticSnapshot: unknown;
     now: number;
     metadata: Record<string, unknown> | undefined;
   },
@@ -148,7 +143,6 @@ export async function ensureToolRegistration(
     registrationId = existingReg._id;
     await ctx.db.patch(registrationId, {
       latestToolHash: args.toolHash,
-      staticSnapshot: args.staticSnapshot,
       updatedAt: args.now,
       ...(args.metadata !== undefined ? { metadata: args.metadata } : {}),
     });
@@ -156,7 +150,6 @@ export async function ensureToolRegistration(
     registrationId = await ctx.db.insert("toolRegistrations", {
       toolKey: args.toolKey,
       latestToolHash: args.toolHash,
-      staticSnapshot: args.staticSnapshot,
       updatedAt: args.now,
       ...(args.metadata !== undefined ? { metadata: args.metadata } : {}),
     });
@@ -181,7 +174,6 @@ export async function ensureToolRegistration(
   const toolVersionId = await ctx.db.insert("toolVersions", {
     registrationId,
     toolHash: args.toolHash,
-    staticSnapshot: args.staticSnapshot,
     createdAt: args.now,
   });
 

@@ -1,8 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
-export const jsonValueValidator = v.any();
-
 export default defineSchema({
   agentRegistrations: defineTable({
     agentId: v.string(),
@@ -10,13 +8,12 @@ export default defineSchema({
     latestStaticHash: v.string(),
     latestRuntimeHash: v.optional(v.string()),
     updatedAt: v.number(),
-    metadata: v.optional(v.record(v.string(), jsonValueValidator)),
+    metadata: v.optional(v.record(v.string(), v.any())),
   }).index("by_agentId", ["agentId"]),
 
   agentStaticVersions: defineTable({
     registrationId: v.id("agentRegistrations"),
     staticHash: v.string(),
-    staticSnapshot: v.optional(jsonValueValidator),
     createdAt: v.number(),
   })
     .index("by_registration_and_staticHash", ["registrationId", "staticHash"])
@@ -25,7 +22,6 @@ export default defineSchema({
   agentRuntimeVersions: defineTable({
     staticVersionId: v.id("agentStaticVersions"),
     runtimeHash: v.string(),
-    runtimeSnapshot: v.optional(jsonValueValidator),
     createdAt: v.number(),
   })
     .index("by_static_and_runtime", ["staticVersionId", "runtimeHash"])
@@ -34,15 +30,13 @@ export default defineSchema({
   toolRegistrations: defineTable({
     toolKey: v.string(),
     latestToolHash: v.string(),
-    staticSnapshot: jsonValueValidator,
     updatedAt: v.number(),
-    metadata: v.optional(v.record(v.string(), jsonValueValidator)),
+    metadata: v.optional(v.record(v.string(), v.any())),
   }).index("by_toolKey", ["toolKey"]),
 
   toolVersions: defineTable({
     registrationId: v.id("toolRegistrations"),
     toolHash: v.string(),
-    staticSnapshot: jsonValueValidator,
     createdAt: v.number(),
   })
     .index("by_registration_and_toolHash", ["registrationId", "toolHash"])
@@ -60,8 +54,6 @@ export default defineSchema({
     runtimeVersionId: v.id("agentRuntimeVersions"),
     staticHash: v.string(),
     runtimeHash: v.string(),
-    staticSnapshot: v.optional(jsonValueValidator),
-    runtimeSnapshot: v.optional(jsonValueValidator),
     toolRefs: v.optional(
       v.array(
         v.object({

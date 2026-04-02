@@ -1,3 +1,4 @@
+import { hashPlainObject, schemaToHashInput } from "./hash.js";
 import type { StandardSchemaV1 } from "./standard-schema.js";
 import type {
   Composable,
@@ -51,6 +52,23 @@ export function tool<
     instructions: args.instructions,
   };
 
+  const policyIds = [...policies.map((p) => p.id)].sort((a, b) =>
+    a.localeCompare(b),
+  );
+
+  async function computeStaticHash(): Promise<string> {
+    return hashPlainObject({
+      kind: "tool",
+      name: args.name,
+      description: args.description ?? null,
+      schema: schemaToHashInput(args.inputSchema),
+      instructions: [...(args.instructions ?? [])].sort((a, b) =>
+        a.localeCompare(b),
+      ),
+      policies: policyIds,
+    });
+  }
+
   async function evaluate(
     ctx: ToolkitContext<Env>,
     resolvedPolicies?: PolicyResultMap,
@@ -80,6 +98,7 @@ export function tool<
       description: args.description,
       inputSchema: args.inputSchema,
       instructions: (args.instructions ?? []).join("\n\n"),
+      policyIds,
       handler: (_ctxUnknown, inputUnknown, options) =>
         args.handler(toolCtx, inputUnknown as INPUT, options),
     };
@@ -87,9 +106,8 @@ export function tool<
     return {
       tools: { [args.name]: spec } as Record<NAME, ToolSpec>,
       instructions: spec.instructions,
-      effectiveStaticProps: staticProps as unknown as Record<string, unknown>,
     };
   }
 
-  return { staticProps, policies, evaluate };
+  return { staticProps, policies, evaluate, computeStaticHash };
 }

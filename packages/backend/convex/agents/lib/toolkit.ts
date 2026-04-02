@@ -6,7 +6,6 @@ export type ToolOutput<DATA = unknown> =
 
 export type {
   Composable,
-  EffectiveStaticProps,
   ExtractComposableTools,
   PolicyResultMap,
   SharedPolicy,

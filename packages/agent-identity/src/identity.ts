@@ -1,17 +1,14 @@
 import type { RegisteredAgentIdentity } from "./types.js";
 
-export function defineAgentIdentity<STATIC_PROPS>(args: {
+export function defineAgentIdentity(args: {
   agentId: string;
   name: string;
-  staticProps: STATIC_PROPS;
-}): RegisteredAgentIdentity<STATIC_PROPS> {
+  staticHash: string;
+}): RegisteredAgentIdentity {
   return {
     agentId: args.agentId,
     name: args.name,
-    staticProps: args.staticProps,
-    getStaticIdentityInput: () => args.staticProps,
-    getRuntimeIdentityInput: (runtimeStaticProps?: unknown) =>
-      runtimeStaticProps ?? args.staticProps,
+    staticHash: args.staticHash,
   };
 }
 

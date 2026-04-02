@@ -1,4 +1,4 @@
-import type { UIMessage } from "@very-coffee/backend/types";
+import type { UIMessage, UITools } from "@very-coffee/backend/types";
 import { getToolName, isToolUIPart } from "ai";
 import { Badge } from "@/components/ui/badge.js";
 import { Item, ItemContent, ItemDescription } from "@/components/ui/item.js";
@@ -10,7 +10,7 @@ export function ChatMessagePartTool({ part }: { part: MessagePart }) {
   if (part.type !== "dynamic-tool" && !isToolUIPart(part)) return null;
 
   const toolName =
-    part.type === "dynamic-tool" ? part.toolName : getToolName(part);
+    part.type === "dynamic-tool" ? part.toolName : getToolName<UITools>(part);
 
   const label =
     part.state === "output-available"

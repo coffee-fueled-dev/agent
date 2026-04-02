@@ -13,8 +13,6 @@ export const recordTurnIdentity = mutation({
     agentName: v.string(),
     staticHash: v.string(),
     runtimeHash: v.string(),
-    staticSnapshot: v.optional(v.any()),
-    runtimeSnapshot: v.optional(v.any()),
     threadId: v.string(),
     messageId: v.string(),
     sessionId: v.optional(v.string()),
@@ -23,7 +21,6 @@ export const recordTurnIdentity = mutation({
         v.object({
           toolKey: v.string(),
           toolHash: v.string(),
-          staticSnapshot: v.optional(v.any()),
         }),
       ),
     ),
@@ -80,7 +77,6 @@ export const recordTurnIdentity = mutation({
       agentId: args.agentId,
       name: args.agentName,
       staticHash: args.staticHash,
-      staticSnapshot: args.staticSnapshot,
       now,
       metadata: undefined,
     });
@@ -93,7 +89,6 @@ export const recordTurnIdentity = mutation({
     const runtime = await ensureRuntimeVersion(ctx, {
       staticVersionId: agent.staticVersionId,
       runtimeHash: args.runtimeHash,
-      runtimeSnapshot: args.runtimeSnapshot,
       now,
     });
 
@@ -105,53 +100,20 @@ export const recordTurnIdentity = mutation({
       created: { toolRegistration: boolean; toolVersion: boolean };
     }> = [];
 
-    if (args.tools) {
-      for (const t of args.tools) {
-        if (t.staticSnapshot === undefined) {
-          const reg = await ctx.db
-            .query("toolRegistrations")
-            .withIndex("by_toolKey", (q) => q.eq("toolKey", t.toolKey))
-            .first();
-          if (!reg) {
-            throw new Error(
-              `recordTurnIdentity: missing staticSnapshot for new tool "${t.toolKey}"`,
-            );
-          }
-          const ver = await ctx.db
-            .query("toolVersions")
-            .withIndex("by_registration_and_toolHash", (q) =>
-              q.eq("registrationId", reg._id).eq("toolHash", t.toolHash),
-            )
-            .first();
-          if (!ver) {
-            throw new Error(
-              `recordTurnIdentity: unknown tool version ${t.toolKey}@${t.toolHash}`,
-            );
-          }
-          toolResults.push({
-            toolKey: t.toolKey,
-            toolHash: t.toolHash,
-            registrationId: reg._id,
-            toolVersionId: ver._id,
-            created: { toolRegistration: false, toolVersion: false },
-          });
-        } else {
-          const ensured = await ensureToolRegistration(ctx, {
-            toolKey: t.toolKey,
-            toolHash: t.toolHash,
-            staticSnapshot: t.staticSnapshot,
-            now,
-            metadata: undefined,
-          });
-          toolResults.push({
-            toolKey: t.toolKey,
-            toolHash: t.toolHash,
-            registrationId: ensured.registrationId,
-            toolVersionId: ensured.toolVersionId,
-            created: ensured.created,
-          });
-        }
-      }
+    for (const t of args.tools ?? []) {
+      const ensured = await ensureToolRegistration(ctx, {
+        toolKey: t.toolKey,
+        toolHash: t.toolHash,
+        now,
+        metadata: undefined,
+      });
+      toolResults.push({
+        toolKey: t.toolKey,
+        toolHash: t.toolHash,
+        registrationId: ensured.registrationId,
+        toolVersionId: ensured.toolVersionId,
+        created: ensured.created,
+      });
     }
 
     const bindingId = await ctx.db.insert("turnIdentityBindings", {
@@ -165,8 +127,6 @@ export const recordTurnIdentity = mutation({
       runtimeVersionId: runtime.runtimeVersionId,
       staticHash: args.staticHash,
       runtimeHash: args.runtimeHash,
-      staticSnapshot: args.staticSnapshot,
-      runtimeSnapshot: args.runtimeSnapshot,
       toolRefs:
         toolResults.length > 0
           ? toolResults.map((r) => ({

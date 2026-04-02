@@ -20,7 +20,6 @@ const toolRegistrationDoc = v.union(
     _id: v.id("toolRegistrations"),
     toolKey: v.string(),
     latestToolHash: v.string(),
-    staticSnapshot: v.any(),
     updatedAt: v.number(),
     metadata: v.optional(v.record(v.string(), v.any())),
   }),
@@ -30,7 +29,6 @@ const staticVersionDoc = v.object({
   _id: v.id("agentStaticVersions"),
   registrationId: v.id("agentRegistrations"),
   staticHash: v.string(),
-  staticSnapshot: v.optional(v.any()),
   createdAt: v.number(),
 });
 
@@ -38,7 +36,6 @@ const runtimeVersionDoc = v.object({
   _id: v.id("agentRuntimeVersions"),
   staticVersionId: v.id("agentStaticVersions"),
   runtimeHash: v.string(),
-  runtimeSnapshot: v.optional(v.any()),
   createdAt: v.number(),
 });
 
@@ -46,7 +43,6 @@ const toolVersionDoc = v.object({
   _id: v.id("toolVersions"),
   registrationId: v.id("toolRegistrations"),
   toolHash: v.string(),
-  staticSnapshot: v.any(),
   createdAt: v.number(),
 });
 
@@ -64,8 +60,6 @@ const turnBindingDoc = v.union(
     runtimeVersionId: v.id("agentRuntimeVersions"),
     staticHash: v.string(),
     runtimeHash: v.string(),
-    staticSnapshot: v.optional(v.any()),
-    runtimeSnapshot: v.optional(v.any()),
     toolRefs: v.optional(
       v.array(
         v.object({
@@ -113,7 +107,6 @@ export const getToolRegistration = query({
       _id: row._id,
       toolKey: row.toolKey,
       latestToolHash: row.latestToolHash,
-      staticSnapshot: row.staticSnapshot,
       updatedAt: row.updatedAt,
       metadata: row.metadata,
     };
@@ -149,7 +142,6 @@ export const getAgentVersionHistory = query({
         _id: r._id,
         registrationId: r.registrationId,
         staticHash: r.staticHash,
-        staticSnapshot: r.staticSnapshot,
         createdAt: r.createdAt,
       })),
     };
@@ -185,7 +177,6 @@ export const getToolVersionHistory = query({
         _id: r._id,
         registrationId: r.registrationId,
         toolHash: r.toolHash,
-        staticSnapshot: r.staticSnapshot,
         createdAt: r.createdAt,
       })),
     };
@@ -214,7 +205,6 @@ export const getRuntimeVersionsForStaticVersion = query({
         _id: r._id,
         staticVersionId: r.staticVersionId,
         runtimeHash: r.runtimeHash,
-        runtimeSnapshot: r.runtimeSnapshot,
         createdAt: r.createdAt,
       })),
     };
@@ -242,8 +232,6 @@ export const getTurnBinding = query({
       runtimeVersionId: row.runtimeVersionId,
       staticHash: row.staticHash,
       runtimeHash: row.runtimeHash,
-      staticSnapshot: row.staticSnapshot,
-      runtimeSnapshot: row.runtimeSnapshot,
       toolRefs: row.toolRefs,
       createdAt: row.createdAt,
     };
@@ -269,8 +257,6 @@ export const listTurnBindingsForThread = query({
         runtimeVersionId: v.id("agentRuntimeVersions"),
         staticHash: v.string(),
         runtimeHash: v.string(),
-        staticSnapshot: v.optional(v.any()),
-        runtimeSnapshot: v.optional(v.any()),
         toolRefs: v.optional(
           v.array(
             v.object({
@@ -304,8 +290,6 @@ export const listTurnBindingsForThread = query({
         runtimeVersionId: row.runtimeVersionId,
         staticHash: row.staticHash,
         runtimeHash: row.runtimeHash,
-        staticSnapshot: row.staticSnapshot,
-        runtimeSnapshot: row.runtimeSnapshot,
         toolRefs: row.toolRefs,
         createdAt: row.createdAt,
       })),

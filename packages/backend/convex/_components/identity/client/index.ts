@@ -1,12 +1,3 @@
-import {
-  createIdentityLink,
-  hashIdentityInput,
-  hashToolStaticIdentity,
-  type IdentityLink,
-  normalizeStaticProps,
-  type RegisteredAgentIdentity,
-  type ToolkitResult,
-} from "@very-coffee/agent-identity";
 import type {
   GenericDataModel,
   GenericMutationCtx,
@@ -20,7 +11,7 @@ type RunMutationCtx = Pick<
 >;
 type RunQueryCtx = Pick<GenericQueryCtx<GenericDataModel>, "runQuery">;
 
-/** App-facing facade: hashing runs in the outer action; the identity component only stores plain payloads. */
+/** App-facing facade: hashes are computed in the host; the identity component stores plain payloads. */
 export class IdentityClient {
   constructor(public component: ComponentApi) {}
 
@@ -37,18 +28,16 @@ export class IdentityClient {
   registerAgentDefinition = async (
     ctx: RunMutationCtx,
     args: {
-      agent: RegisteredAgentIdentity;
+      agentId: string;
+      name: string;
+      staticHash: string;
       metadata?: Record<string, unknown>;
     },
   ) => {
-    const staticInput = args.agent.getStaticIdentityInput();
-    const staticSnapshot = normalizeStaticProps(staticInput);
-    const staticHash = await hashIdentityInput(staticSnapshot);
     return await ctx.runMutation(this.registerAPI.registerAgent, {
-      agentId: args.agent.agentId,
-      name: args.agent.name,
-      staticHash,
-      staticSnapshot,
+      agentId: args.agentId,
+      name: args.name,
+      staticHash: args.staticHash,
       metadata: args.metadata,
     });
   };
@@ -57,16 +46,13 @@ export class IdentityClient {
     ctx: RunMutationCtx,
     args: {
       toolKey: string;
-      staticProps: unknown;
+      toolHash: string;
       metadata?: Record<string, unknown>;
     },
   ) => {
-    const staticSnapshot = normalizeStaticProps(args.staticProps);
-    const toolHash = await hashToolStaticIdentity(args.staticProps);
     return await ctx.runMutation(this.registerAPI.registerTool, {
       toolKey: args.toolKey,
-      toolHash,
-      staticSnapshot,
+      toolHash: args.toolHash,
       metadata: args.metadata,
     });
   };
@@ -74,50 +60,26 @@ export class IdentityClient {
   recordAgentTurn = async (
     ctx: RunMutationCtx,
     args: {
-      agent: RegisteredAgentIdentity;
-      evaluated: ToolkitResult;
-      identityLink?: IdentityLink;
+      agentId: string;
+      agentName: string;
+      staticHash: string;
+      runtimeHash: string;
       threadId: string;
       messageId: string;
       sessionId?: string;
-      tools?: Array<{ toolKey: string; staticProps: unknown }>;
+      /** Tools afforded this turn (key + bottom-up static hash each). */
+      tools: Array<{ toolKey: string; toolHash: string }>;
     },
   ) => {
-    const link =
-      args.identityLink ??
-      (await createIdentityLink(args.agent, args.evaluated, {
-        includeSnapshots: true,
-      }));
-
-    const staticSnapshot = normalizeStaticProps(
-      args.agent.getStaticIdentityInput(),
-    );
-    const runtimeSnapshot = normalizeStaticProps(
-      args.agent.getRuntimeIdentityInput(args.evaluated.effectiveStaticProps),
-    );
-
-    const toolPayloads =
-      args.tools == null
-        ? undefined
-        : await Promise.all(
-            args.tools.map(async (t) => {
-              const snap = normalizeStaticProps(t.staticProps);
-              const toolHash = await hashToolStaticIdentity(t.staticProps);
-              return { toolKey: t.toolKey, toolHash, staticSnapshot: snap };
-            }),
-          );
-
     return await ctx.runMutation(this.recordAPI.recordTurnIdentity, {
-      agentId: link.agentId,
-      agentName: link.agentName,
-      staticHash: link.staticHash,
-      runtimeHash: link.runtimeHash,
-      staticSnapshot: link.staticSnapshot ?? staticSnapshot,
-      runtimeSnapshot: link.runtimeSnapshot ?? runtimeSnapshot,
+      agentId: args.agentId,
+      agentName: args.agentName,
+      staticHash: args.staticHash,
+      runtimeHash: args.runtimeHash,
       threadId: args.threadId,
       messageId: args.messageId,
       sessionId: args.sessionId,
-      tools: toolPayloads,
+      tools: args.tools,
     });
   };
 

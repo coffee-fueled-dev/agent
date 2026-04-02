@@ -14,7 +14,6 @@
     "convex": "1.34.0"
   },
   "devDependencies": {
-    "@ngrok/ngrok": "^1.7.0",
     "@types/bun": "latest"
   },
   "scripts": {

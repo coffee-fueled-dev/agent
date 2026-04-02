@@ -36,7 +36,6 @@ import type * as agents_lib_toolkit from "../agents/lib/toolkit.js";
 import type * as chat_thread from "../chat/thread.js";
 import type * as files from "../files.js";
 import type * as filesEnv from "../filesEnv.js";
-import type * as publicStorageUrl from "../publicStorageUrl.js";
 import type * as types from "../types.js";
 import type * as workpool from "../workpool.js";
 
@@ -75,7 +74,6 @@ declare const fullApi: ApiFromModules<{
   "chat/thread": typeof chat_thread;
   files: typeof files;
   filesEnv: typeof filesEnv;
-  publicStorageUrl: typeof publicStorageUrl;
   types: typeof types;
   workpool: typeof workpool;
 }>;
@@ -460,7 +458,6 @@ export declare const components: {
               createdAt: number;
               registrationId: string;
               staticHash: string;
-              staticSnapshot?: any;
             }>;
           }
         >;
@@ -473,7 +470,6 @@ export declare const components: {
               _id: string;
               createdAt: number;
               runtimeHash: string;
-              runtimeSnapshot?: any;
               staticVersionId: string;
             }>;
           }
@@ -486,7 +482,6 @@ export declare const components: {
             _id: string;
             latestToolHash: string;
             metadata?: Record<string, any>;
-            staticSnapshot: any;
             toolKey: string;
             updatedAt: number;
           }
@@ -500,7 +495,6 @@ export declare const components: {
               _id: string;
               createdAt: number;
               registrationId: string;
-              staticSnapshot: any;
               toolHash: string;
             }>;
           }
@@ -517,11 +511,9 @@ export declare const components: {
             messageId: string;
             registrationId: string;
             runtimeHash: string;
-            runtimeSnapshot?: any;
             runtimeVersionId: string;
             sessionId?: string;
             staticHash: string;
-            staticSnapshot?: any;
             staticVersionId: string;
             threadId: string;
             toolRefs?: Array<{
@@ -544,11 +536,9 @@ export declare const components: {
               messageId: string;
               registrationId: string;
               runtimeHash: string;
-              runtimeSnapshot?: any;
               runtimeVersionId: string;
               sessionId?: string;
               staticHash: string;
-              staticSnapshot?: any;
               staticVersionId: string;
               threadId: string;
               toolRefs?: Array<{
@@ -569,16 +559,10 @@ export declare const components: {
             agentName: string;
             messageId: string;
             runtimeHash: string;
-            runtimeSnapshot?: any;
             sessionId?: string;
             staticHash: string;
-            staticSnapshot?: any;
             threadId: string;
-            tools?: Array<{
-              staticSnapshot?: any;
-              toolHash: string;
-              toolKey: string;
-            }>;
+            tools?: Array<{ toolHash: string; toolKey: string }>;
           },
           {
             bindingId: string;
@@ -610,7 +594,6 @@ export declare const components: {
             metadata?: Record<string, any>;
             name: string;
             staticHash: string;
-            staticSnapshot?: any;
           },
           {
             created: { registration: boolean; staticVersion: boolean };
@@ -621,12 +604,7 @@ export declare const components: {
         registerTool: FunctionReference<
           "mutation",
           "internal",
-          {
-            metadata?: Record<string, any>;
-            staticSnapshot: any;
-            toolHash: string;
-            toolKey: string;
-          },
+          { metadata?: Record<string, any>; toolHash: string; toolKey: string },
           {
             created: { toolRegistration: boolean; toolVersion: boolean };
             registrationId: string;

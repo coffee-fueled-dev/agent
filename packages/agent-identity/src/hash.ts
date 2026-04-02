@@ -1,53 +1,4 @@
-type JsonValue =
-  | null
-  | boolean
-  | number
-  | string
-  | JsonValue[]
-  | { [key: string]: JsonValue };
-
-function isSharedPolicyLike(value: unknown): value is { id: string } {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "id" in value &&
-    "evaluate" in value &&
-    typeof (value as { id: unknown }).id === "string"
-  );
-}
-
-export function normalizeStaticProps(value: unknown): JsonValue {
-  if (value === null) return null;
-  if (
-    typeof value === "string" ||
-    typeof value === "number" ||
-    typeof value === "boolean"
-  ) {
-    return value;
-  }
-  if (value === undefined) return null;
-  if (Array.isArray(value)) {
-    return value.map(normalizeStaticProps);
-  }
-  if (typeof value === "function") {
-    return `[function:${value.name || "anonymous"}]`;
-  }
-  if (typeof value === "object") {
-    if (isSharedPolicyLike(value)) {
-      return String(value.id);
-    }
-    const entries = Object.entries(value)
-      .filter(
-        ([key, entryValue]) => entryValue !== undefined && !key.startsWith("$"),
-      )
-      .sort(([left], [right]) => left.localeCompare(right))
-      .map(
-        ([key, entryValue]) => [key, normalizeStaticProps(entryValue)] as const,
-      );
-    return Object.fromEntries(entries);
-  }
-  return String(value);
-}
+import type { StandardSchemaV1 } from "./standard-schema.js";
 
 async function sha256Hex(value: string): Promise<string> {
   const bytes = new TextEncoder().encode(value);
@@ -57,6 +8,47 @@ async function sha256Hex(value: string): Promise<string> {
   ).join("");
 }
 
-export async function hashIdentityInput(value: unknown): Promise<string> {
-  return sha256Hex(JSON.stringify(normalizeStaticProps(value)));
+/**
+ * SHA-256 of canonical JSON for a plain object tree (no functions, no class instances).
+ * Keys are sorted recursively for determinism.
+ */
+export async function hashPlainObject(obj: unknown): Promise<string> {
+  return sha256Hex(canonicalStringify(obj));
+}
+
+function canonicalStringify(value: unknown): string {
+  return JSON.stringify(sortValue(value));
+}
+
+function sortValue(value: unknown): unknown {
+  if (value === null || typeof value !== "object") {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value.map(sortValue);
+  }
+  const entries = Object.entries(value as Record<string, unknown>)
+    .filter(([, v]) => v !== undefined)
+    .map(([k, v]) => [k, sortValue(v)] as const)
+    .sort(([a], [b]) => a.localeCompare(b));
+  return Object.fromEntries(entries);
+}
+
+type SchemaWithJson = StandardSchemaV1 & {
+  toJSONSchema?: () => unknown;
+};
+
+/**
+ * Stable representation of a Standard Schema for hashing (JSON Schema when available).
+ */
+export function schemaToHashInput(schema: StandardSchemaV1): unknown {
+  const s = schema as SchemaWithJson;
+  if (typeof s.toJSONSchema === "function") {
+    return s.toJSONSchema();
+  }
+  const std = s["~standard"];
+  return {
+    vendor: std.vendor,
+    version: std.version,
+  };
 }

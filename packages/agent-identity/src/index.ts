@@ -3,13 +3,10 @@ export type {
   RegisteredAgentEntry,
 } from "./agent-registry.js";
 export { createAgentRegistry } from "./agent-registry.js";
-export {
-  hashIdentityInput,
-  normalizeStaticProps,
-} from "./hash.js";
+export { hashPlainObject, schemaToHashInput } from "./hash.js";
 export { defineAgentIdentity } from "./identity.js";
 export type {
-  CreateIdentityLinkOptions,
+  CreateIdentityLinkArgs,
   IdentityLink,
 } from "./identity-link.js";
 export { createIdentityLink } from "./identity-link.js";
@@ -20,16 +17,18 @@ export type {
 } from "./output.js";
 export { withFormattedResults } from "./output.js";
 export { policy } from "./policy.js";
+export {
+  collectToolStaticHashes,
+  computeRuntimeHash,
+  hashToolSpecIdentity,
+} from "./runtime-hashes.js";
 export type {
   StandardSchemaV1,
   StandardTypedV1,
 } from "./standard-schema.js";
 export type { ToolRuntimeContext, ToolStaticProps } from "./tool.js";
 export { tool } from "./tool.js";
-export {
-  hashToolComposableStatic,
-  hashToolStaticIdentity,
-} from "./tool-identity.js";
+export { hashToolComposableStatic } from "./tool-identity.js";
 export type {
   RegisteredToolEntry,
   ToolRegistry,
@@ -37,6 +36,7 @@ export type {
 export { createToolRegistry } from "./tool-registry.js";
 export type {
   AnyComposable,
+  ComposableWithChildren,
   EnvFromMembers,
   ExtractComposableEnv,
   ExtractComposableTools,
@@ -50,7 +50,6 @@ export {
 } from "./toolkit.js";
 export type {
   Composable,
-  EffectiveStaticProps,
   PolicyResultMap,
   RegisteredAgentIdentity,
   SharedPolicy,

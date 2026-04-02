@@ -1,3 +1,4 @@
+import { hashPlainObject } from "./hash.js";
 import type {
   Composable,
   PolicyResultMap,
@@ -64,6 +65,11 @@ export type ToolkitStaticProps<
   members: KeyedStaticProps<MEMBERS>;
 };
 
+/** Toolkit / nested composable nodes expose child composables for static hash collection. */
+export type ComposableWithChildren<Env = unknown> = AnyComposable<Env> & {
+  childComposables?: readonly AnyComposable<Env>[];
+};
+
 async function resolvePolicies<Env>(
   policies: SharedPolicy[],
   ctx: ToolkitContext<Env>,
@@ -85,11 +91,12 @@ export function toolkit<
 >(
   members: MEMBERS,
   options: { name: NAME; instructions?: string[] },
-): Composable<
-  ToolkitStaticProps<NAME, MEMBERS>,
-  ToolMapFromMembers<MEMBERS>,
-  EnvFromMembers<MEMBERS>
-> {
+): ComposableWithChildren<EnvFromMembers<MEMBERS>> &
+  Composable<
+    ToolkitStaticProps<NAME, MEMBERS>,
+    ToolMapFromMembers<MEMBERS>,
+    EnvFromMembers<MEMBERS>
+  > {
   const policies = members.flatMap((m) => m.policies);
 
   const staticProps = {
@@ -100,6 +107,22 @@ export function toolkit<
       members.map((m) => [m.staticProps.name, m.staticProps]),
     ) as KeyedStaticProps<MEMBERS>,
   };
+
+  async function computeStaticHash(): Promise<string> {
+    const memberPairs = await Promise.all(
+      members.map(async (m) => ({
+        name: m.staticProps.name,
+        hash: await m.computeStaticHash(),
+      })),
+    );
+    memberPairs.sort((a, b) => a.name.localeCompare(b.name));
+    return hashPlainObject({
+      kind: "toolkit",
+      name: options.name,
+      instructions: options.instructions ?? null,
+      members: memberPairs.map((p) => ({ name: p.name, hash: p.hash })),
+    });
+  }
 
   async function evaluate(
     ctx: ToolkitContext<EnvFromMembers<MEMBERS>>,
@@ -116,18 +139,6 @@ export function toolkit<
       {} as ToolMapFromMembers<MEMBERS>,
       ...results.map((r) => r.tools),
     );
-    const effectiveMembers = Object.fromEntries(
-      results.flatMap((result) =>
-        result.effectiveStaticProps
-          ? [
-              [
-                result.effectiveStaticProps.name as string,
-                result.effectiveStaticProps,
-              ] as const,
-            ]
-          : [],
-      ),
-    );
     const hasAnyTool = results.some((r) => Object.keys(r.tools).length > 0);
     return {
       tools: mergedTools,
@@ -139,16 +150,16 @@ export function toolkit<
             .filter(Boolean)
             .join("\n\n")
         : "",
-      effectiveStaticProps: {
-        kind: "toolkit",
-        name: options.name,
-        instructions: options.instructions,
-        members: effectiveMembers,
-      },
     };
   }
 
-  return { staticProps, policies, evaluate };
+  return {
+    staticProps,
+    policies,
+    evaluate,
+    computeStaticHash,
+    childComposables: members,
+  };
 }
 
 export function dynamicToolkit<const NAME extends string, Env = unknown>({
@@ -172,6 +183,9 @@ export function dynamicToolkit<const NAME extends string, Env = unknown>({
   Env
 > {
   const policies = policiesConfig ?? [];
+  const policyIds = [...policies.map((p) => p.id)].sort((a, b) =>
+    a.localeCompare(b),
+  );
 
   const staticProps = {
     kind: "dynamicToolkit" as const,
@@ -179,6 +193,15 @@ export function dynamicToolkit<const NAME extends string, Env = unknown>({
     instructions,
     policies,
   };
+
+  async function computeStaticHash(): Promise<string> {
+    return hashPlainObject({
+      kind: "dynamicToolkit",
+      name,
+      instructions: instructions ?? null,
+      policies: policyIds,
+    });
+  }
 
   async function evaluate(
     ctx: ToolkitContext<Env>,
@@ -206,18 +229,6 @@ export function dynamicToolkit<const NAME extends string, Env = unknown>({
       {} as Record<string, ToolSpec>,
       ...results.map((r) => r.tools),
     );
-    const effectiveMembers = Object.fromEntries(
-      results.flatMap((result) =>
-        result.effectiveStaticProps
-          ? [
-              [
-                result.effectiveStaticProps.name as string,
-                result.effectiveStaticProps,
-              ] as const,
-            ]
-          : [],
-      ),
-    );
     const hasAnyTool = results.some((r) => Object.keys(r.tools).length > 0);
     return {
       tools: mergedTools,
@@ -226,17 +237,10 @@ export function dynamicToolkit<const NAME extends string, Env = unknown>({
             .filter(Boolean)
             .join("\n\n")
         : "",
-      effectiveStaticProps: {
-        kind: "dynamicToolkit",
-        name,
-        instructions,
-        policies,
-        members: effectiveMembers,
-      },
     };
   }
 
-  return { staticProps, policies, evaluate };
+  return { staticProps, policies, evaluate, computeStaticHash };
 }
 
 export async function evaluateComposable<Env>(

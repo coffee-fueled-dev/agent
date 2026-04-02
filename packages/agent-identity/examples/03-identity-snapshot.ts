@@ -1,41 +1,51 @@
 /**
- * Static vs runtime identity snapshots + hashes.
- * Run: bun run examples/03-identity-snapshot.ts
+ * Bottom-up identity: static hash from the composable tree, runtime hash from enabled tools.
  */
 import {
+  collectToolStaticHashes,
+  computeRuntimeHash,
   defineAgentIdentity,
-  evaluateComposable,
-  hashIdentityInput,
-  normalizeStaticProps,
-  tool,
-  toolkit,
-} from "../src/index.ts";
-import { greetInputSchema } from "./standard-schema-helpers.ts";
+} from "../src/index.js";
+import type { StandardSchemaV1 } from "../src/standard-schema.js";
+import { tool } from "../src/tool.js";
+import { evaluateComposable, toolkit } from "../src/toolkit.js";
 
-const greet = tool({
-  name: "greet",
-  description: "Greet",
-  inputSchema: greetInputSchema(),
-  handler: async (_ctx, input) => `Hi ${input.name}`,
+const schema: StandardSchemaV1<{ n: number }> = {
+  "~standard": {
+    version: 1,
+    vendor: "example",
+    types: { input: {} as { n: number }, output: {} as { n: number } },
+    validate: (v) =>
+      typeof v === "object" &&
+      v !== null &&
+      "n" in v &&
+      typeof (v as { n: unknown }).n === "number"
+        ? { value: v as { n: number } }
+        : { issues: [{ message: "bad" }] },
+  },
+};
+
+const t = tool({
+  name: "echo",
+  inputSchema: schema,
+  handler: async (_c, i) => i.n,
 });
 
-const graph = toolkit([greet], { name: "id-demo", instructions: ["Root."] });
+const graph = toolkit([t], { name: "demo" });
 
+const staticHash = await graph.computeStaticHash();
 const agent = defineAgentIdentity({
   agentId: "demo-agent",
-  name: "Demo Agent",
-  staticProps: graph.staticProps,
+  name: "Demo",
+  staticHash,
 });
 
-const staticSnap = normalizeStaticProps(agent.getStaticIdentityInput());
-const staticHash = await hashIdentityInput(staticSnap);
-
 const evaluated = await evaluateComposable(graph, { env: {} });
-const runtimeSnap = normalizeStaticProps(
-  agent.getRuntimeIdentityInput(evaluated.effectiveStaticProps),
+const nameToStaticHash = await collectToolStaticHashes(graph);
+const runtimeHash = await computeRuntimeHash(
+  Object.keys(evaluated.tools),
+  nameToStaticHash,
+  evaluated.tools,
 );
-const runtimeHash = await hashIdentityInput(runtimeSnap);
 
-console.log("staticHash", `${staticHash.slice(0, 16)}…`);
-console.log("runtimeHash", `${runtimeHash.slice(0, 16)}…`);
-console.log("same graph =>", staticHash === runtimeHash);
+console.log({ agentId: agent.agentId, staticHash, runtimeHash });

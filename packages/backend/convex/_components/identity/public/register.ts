@@ -10,7 +10,6 @@ export const registerAgent = mutation({
     agentId: v.string(),
     name: v.string(),
     staticHash: v.string(),
-    staticSnapshot: v.optional(v.any()),
     metadata: v.optional(v.record(v.string(), v.any())),
   },
   returns: v.object({
@@ -27,7 +26,6 @@ export const registerAgent = mutation({
       agentId: args.agentId,
       name: args.name,
       staticHash: args.staticHash,
-      staticSnapshot: args.staticSnapshot,
       now,
       metadata: args.metadata,
     });
@@ -38,7 +36,6 @@ export const registerTool = mutation({
   args: {
     toolKey: v.string(),
     toolHash: v.string(),
-    staticSnapshot: v.any(),
     metadata: v.optional(v.record(v.string(), v.any())),
   },
   returns: v.object({
@@ -54,7 +51,6 @@ export const registerTool = mutation({
     return await ensureToolRegistration(ctx, {
       toolKey: args.toolKey,
       toolHash: args.toolHash,
-      staticSnapshot: args.staticSnapshot,
       now,
       metadata: args.metadata,
     });

@@ -6,11 +6,11 @@ import {
   syncStreams,
 } from "@convex-dev/agent";
 import type { StreamArgs } from "@convex-dev/agent/validators";
-import type { Id } from "_generated/dataModel.js";
 import type { ModelMessage, UserContent, UserModelMessage } from "ai";
 import { type PaginationResult, paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { components, internal } from "../_generated/api.js";
+import type { Id } from "../_generated/dataModel.js";
 import {
   type ActionCtx,
   internalAction,
@@ -20,7 +20,6 @@ import {
 } from "../_generated/server.js";
 import type { UIMessage } from "../agents/_tools/uiMessage.js";
 import { createAssistantAgent } from "../agents/assistant/createAgent.js";
-import { publicStorageUrl } from "../publicStorageUrl.js";
 
 /** Convex `Agent` expects `ActionCtx & Record<string, unknown>`. */
 function agentActionCtx(ctx: ActionCtx): ActionCtx & Record<string, unknown> {
@@ -79,7 +78,7 @@ async function buildUserMessageWithFiles(
       throw new Error(`Missing file in storage: ${attachment.fileName}`);
     }
     const { filePart, imagePart } = getFileParts(
-      publicStorageUrl(rawUrl),
+      rawUrl,
       attachment.mimeType || "application/octet-stream",
       attachment.fileName,
     );
@@ -213,7 +212,7 @@ export const continueThreadStream = internalAction({
       {
         saveStreamDeltas: { throttleMs: 100, returnImmediately: true },
         contextOptions: {
-          searchOtherThreads: false,
+          searchOtherThreads: true,
         },
       },
     );
@@ -255,6 +254,7 @@ export const listThreadMessages = query({
     const streams = await syncStreams(ctx, components.agent, agentArgs);
     return {
       ...paginated,
+      page: paginated.page as UIMessage[],
       streams,
     };
   },

@@ -4,10 +4,7 @@ import { defineAgentIdentity } from "./identity.js";
 import { policy } from "./policy.js";
 import type { StandardSchemaV1 } from "./standard-schema.js";
 import { tool } from "./tool.js";
-import {
-  hashToolComposableStatic,
-  hashToolStaticIdentity,
-} from "./tool-identity.js";
+import { hashToolComposableStatic } from "./tool-identity.js";
 import { createToolRegistry } from "./tool-registry.js";
 import { toolkit } from "./toolkit.js";
 
@@ -26,43 +23,15 @@ const schema: StandardSchemaV1<{ n: number }> = {
   },
 };
 
-describe("hashToolStaticIdentity", () => {
-  test("stable for same static props", async () => {
-    const p = policy("p", async () => true);
-    const a = {
-      kind: "tool" as const,
-      name: "t",
-      description: "d",
-      inputSchema: schema,
-      policies: [p],
-      instructions: ["i"],
-    };
-    const b = {
-      kind: "tool" as const,
-      name: "t",
-      description: "d",
-      inputSchema: schema,
-      policies: [p],
-      instructions: ["i"],
-    };
-    const h1 = await hashToolStaticIdentity(a);
-    const h2 = await hashToolStaticIdentity(b);
-    expect(h1).toBe(h2);
-  });
-});
-
 describe("createToolRegistry", () => {
   test("get and getByHash after register", async () => {
     const reg = createToolRegistry();
-    const staticProps = {
-      kind: "tool" as const,
+    const t = tool({
       name: "add",
-      description: undefined,
       inputSchema: schema,
-      policies: [] as ReturnType<typeof policy>[],
-      instructions: undefined,
-    };
-    const hash = await reg.register("add", staticProps);
+      handler: async () => 0,
+    });
+    const hash = await reg.register("add", t);
     expect(reg.get("add")?.hash).toBe(hash);
     expect(reg.getByHash(hash)?.key).toBe("add");
     expect(reg.has("add")).toBe(true);
@@ -71,28 +40,33 @@ describe("createToolRegistry", () => {
 
   test("last register wins for same key", async () => {
     const reg = createToolRegistry();
-    await reg.register("t", { kind: "tool", name: "t", policies: [] });
-    await reg.register("t", {
-      kind: "tool",
+    const t1 = tool({
+      name: "t",
+      inputSchema: schema,
+      handler: async () => 0,
+    });
+    await reg.register("t", t1);
+    const t2 = tool({
       name: "t",
       description: "v2",
-      policies: [],
+      inputSchema: schema,
+      handler: async () => 0,
     });
-    expect(
-      (reg.get("t")?.staticProps as { description?: string }).description,
-    ).toBe("v2");
+    await reg.register("t", t2);
+    expect(await reg.get("t")?.composable.computeStaticHash()).toBe(
+      await t2.computeStaticHash(),
+    );
   });
 
   test("getByHash last write wins for same hash", async () => {
     const reg = createToolRegistry();
-    const staticProps = {
-      kind: "tool" as const,
+    const t = tool({
       name: "x",
-      policies: [],
       inputSchema: schema,
-    };
-    const hash = await reg.register("a", staticProps);
-    await reg.register("b", staticProps);
+      handler: async () => 0,
+    });
+    const hash = await reg.register("a", t);
+    await reg.register("b", t);
     expect(reg.getByHash(hash)?.key).toBe("b");
   });
 });
@@ -105,15 +79,17 @@ describe("createAgentRegistry", () => {
       inputSchema: schema,
       handler: async () => 0,
     });
+    const staticHash = await graph.computeStaticHash();
     const agent = defineAgentIdentity({
       agentId: "a1",
       name: "Agent",
-      staticProps: graph.staticProps,
+      staticHash,
     });
-    const { staticHash } = await reg.register(agent);
-    const got = reg.get("a1");
-    expect(got?.staticHash).toBe(staticHash);
-    expect(got?.agent.agentId).toBe("a1");
+    const { staticHash: got } = reg.register(agent);
+    const entry = reg.get("a1");
+    expect(got).toBe(staticHash);
+    expect(entry?.staticHash).toBe(staticHash);
+    expect(entry?.agent.agentId).toBe("a1");
   });
 
   test("last register wins for same agentId", async () => {
@@ -124,14 +100,14 @@ describe("createAgentRegistry", () => {
       defineAgentIdentity({
         agentId: "same",
         name: "One",
-        staticProps: g1.staticProps,
+        staticHash: await g1.computeStaticHash(),
       }),
     );
     await reg.register(
       defineAgentIdentity({
         agentId: "same",
         name: "Two",
-        staticProps: g2.staticProps,
+        staticHash: await g2.computeStaticHash(),
       }),
     );
     expect(reg.get("same")?.agent.name).toBe("Two");
@@ -146,8 +122,8 @@ describe("hashToolComposableStatic", () => {
       handler: async () => 0,
     });
     const tk = toolkit([t], { name: "root" });
-    expect(hashToolComposableStatic(t)).resolves.toBeDefined();
-    expect(hashToolComposableStatic(tk)).rejects.toThrow(
+    await expect(hashToolComposableStatic(t)).resolves.toBeDefined();
+    await expect(hashToolComposableStatic(tk as never)).rejects.toThrow(
       'expected composable with kind "tool"',
     );
   });

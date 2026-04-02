@@ -1,7 +1,5 @@
 import type { StandardSchemaV1 } from "./standard-schema.js";
 
-export type EffectiveStaticProps = Record<string, unknown>;
-
 /** Policy nodes are deduped by object identity in a Map (same as Convex sharedPolicy). */
 export type SharedPolicy = {
   readonly id: string;
@@ -23,6 +21,8 @@ export type ToolSpec = {
   description?: string;
   inputSchema: StandardSchemaV1;
   instructions: string;
+  /** Sorted policy ids gating this tool (for runtime hashing parity with static tool hash). */
+  policyIds?: string[];
   handler: (
     ctx: unknown,
     input: unknown,
@@ -35,7 +35,6 @@ export type ToolkitResult<
 > = {
   tools: TOOLS;
   instructions: string;
-  effectiveStaticProps?: EffectiveStaticProps;
 };
 
 export type Composable<
@@ -48,16 +47,17 @@ export type Composable<
 > = {
   staticProps: STATIC_PROPS;
   policies: SharedPolicy[];
+  /** Bottom-up SHA-256 of this node's semantic identity (max potential affordances). */
+  computeStaticHash: () => Promise<string>;
   evaluate: (
     ctx: ToolkitContext<Env>,
     resolvedPolicies?: PolicyResultMap,
   ) => Promise<ToolkitResult<TOOLS>>;
 };
 
-export type RegisteredAgentIdentity<STATIC_PROPS = unknown> = {
+export type RegisteredAgentIdentity = {
   agentId: string;
   name: string;
-  staticProps: STATIC_PROPS;
-  getStaticIdentityInput: () => STATIC_PROPS;
-  getRuntimeIdentityInput: (runtimeStaticProps?: unknown) => unknown;
+  /** Pre-computed from root composable via bottom-up hashing. */
+  staticHash: string;
 };

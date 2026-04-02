@@ -1,6 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { defineAgentIdentity } from "./identity.js";
 import { createIdentityLink } from "./identity-link.js";
+import {
+  collectToolStaticHashes,
+  computeRuntimeHash,
+} from "./runtime-hashes.js";
 import type { StandardSchemaV1 } from "./standard-schema.js";
 import { tool } from "./tool.js";
 import { evaluateComposable, toolkit } from "./toolkit.js";
@@ -28,40 +32,49 @@ describe("createIdentityLink", () => {
       handler: async () => 0,
     });
     const graph = toolkit([t], { name: "root" });
+    const staticHash = await graph.computeStaticHash();
     const agent = defineAgentIdentity({
       agentId: "a",
       name: "Agent",
-      staticProps: graph.staticProps,
+      staticHash,
     });
     const evaluated = await evaluateComposable(graph, { env: {} });
-    const link = await createIdentityLink(agent, evaluated);
+    const nameToStaticHash = await collectToolStaticHashes(graph);
+    const enabled = Object.keys(evaluated.tools);
+    const runtimeHash = await computeRuntimeHash(
+      enabled,
+      nameToStaticHash,
+      evaluated.tools,
+    );
+    const link = await createIdentityLink({
+      agent,
+      enabledToolNames: enabled,
+      nameToStaticHash,
+      tools: evaluated.tools,
+    });
 
     expect(link.agentId).toBe("a");
     expect(link.agentName).toBe("Agent");
     expect(link.staticHash).toMatch(/^[a-f0-9]{64}$/);
     expect(link.runtimeHash).toMatch(/^[a-f0-9]{64}$/);
-    expect(link.staticSnapshot).toBeUndefined();
-    expect(link.runtimeSnapshot).toBeUndefined();
+    expect(link.runtimeHash).toBe(runtimeHash);
   });
 
-  test("includeSnapshots adds normalized snapshots", async () => {
+  test("runtime hash differs for empty vs non-empty enabled tools", async () => {
     const t = tool({
       name: "t",
       inputSchema: schema,
       handler: async () => 0,
     });
     const graph = toolkit([t], { name: "root" });
-    const agent = defineAgentIdentity({
-      agentId: "a",
-      name: "Agent",
-      staticProps: graph.staticProps,
-    });
+    const nameToStaticHash = await collectToolStaticHashes(graph);
     const evaluated = await evaluateComposable(graph, { env: {} });
-    const link = await createIdentityLink(agent, evaluated, {
-      includeSnapshots: true,
-    });
-
-    expect(link.staticSnapshot).toBeDefined();
-    expect(link.runtimeSnapshot).toBeDefined();
+    const hWithTools = await computeRuntimeHash(
+      Object.keys(evaluated.tools),
+      nameToStaticHash,
+      evaluated.tools,
+    );
+    const hEmpty = await computeRuntimeHash([], nameToStaticHash, {});
+    expect(hWithTools).not.toBe(hEmpty);
   });
 });
