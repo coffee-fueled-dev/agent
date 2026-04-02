@@ -1,22 +1,19 @@
-import type { SyncStreamsReturnValue } from "@convex-dev/agent";
-import { type UIMessagesQuery, useUIMessages } from "@convex-dev/agent/react";
-import type { StreamArgs } from "@convex-dev/agent/validators";
+import { useUIMessages } from "@convex-dev/agent/react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { api } from "@very-coffee/backend/api";
-import type { UIMessage } from "@very-coffee/backend/types";
-import type { FunctionReference } from "convex/server";
 import { useEffect, useRef, useState } from "react";
 import { FadeOverflow } from "@/components/layout/fade-overflow";
 import LoadMoreSentinel from "@/components/layout/load-more-sentinel";
 import { Empty, EmptyContent, EmptyDescription } from "@/components/ui/empty";
 import { Spinner } from "@/components/ui/spinner";
 import { useChatThread } from "../_hooks/use-chat-thread.js";
+import { ChatAssistantLoadingBubble } from "./chat-assistant-loading-bubble.js";
 import {
   ChatJumpToLatestProvider,
   JumpToLatest,
   LastMessagePair,
 } from "./chat-jump-to-latest-provider.js";
-import { ChatMessagePart } from "./chat-message-part.js";
+import { ChatMessageBubble } from "./chat-message-bubble.js";
 import {
   findLastUserMessageIndex,
   hasRenderableAssistantContent,
@@ -24,33 +21,7 @@ import {
 
 const PAGE_SIZE = 15;
 
-type StreamQuery = FunctionReference<
-  "query",
-  "public",
-  {
-    threadId: string;
-    paginationOpts: { cursor: string | null; numItems: number };
-    streamArgs?: StreamArgs;
-  },
-  { streams: SyncStreamsReturnValue }
->;
-
-const listThreadMessagesQuery = api.chat.thread
-  .listThreadMessages as UIMessagesQuery<{ threadId: string }, UIMessage> &
-  StreamQuery;
-
 const ESTIMATE_ROW = 120;
-
-function AssistantLoadingBubble() {
-  return (
-    <div className="flex max-w-lg flex-col gap-2 rounded-lg border border-dashed border-muted-foreground/25 bg-muted/20 px-4 py-3 text-muted-foreground text-sm">
-      <div className="flex items-center gap-2">
-        <Spinner className="size-4" />
-        <span>Thinking…</span>
-      </div>
-    </div>
-  );
-}
 
 export function ChatMessageList() {
   const { threadId, awaitingAssistantStream, setAwaitingAssistantStream } =
@@ -74,7 +45,7 @@ export function ChatMessageList() {
   const activeThreadId = threadId as string;
 
   const paginated = useUIMessages(
-    listThreadMessagesQuery,
+    api.chat.thread.listThreadMessages,
     { threadId: activeThreadId },
     {
       initialNumItems: PAGE_SIZE,
@@ -146,7 +117,7 @@ export function ChatMessageList() {
       <>
         <ChatMessageBubble message={userMessage} />
         {showAssistantLoading ? (
-          <AssistantLoadingBubble />
+          <ChatAssistantLoadingBubble />
         ) : (
           assistantMessages.map((m) => (
             <ChatMessageBubble key={m.id} message={m} />
@@ -220,28 +191,5 @@ export function ChatMessageList() {
         <JumpToLatest />
       </div>
     </ChatJumpToLatestProvider>
-  );
-}
-
-function ChatMessageBubble({ message }: { message: UIMessage }) {
-  const isUser = message.role === "user";
-  return (
-    <div
-      className={`flex flex-col gap-2 rounded-lg text-sm ${
-        isUser && "ml-auto max-w-lg bg-muted/50 text-muted-foreground p-4"
-      }`}
-    >
-      <div className="flex flex-col gap-2">
-        {message.parts.map((part, i) => (
-          <ChatMessagePart
-            // biome-ignore lint/suspicious/noArrayIndexKey: UIMessage parts have no stable id
-            key={`${message.id}-${i}-${part.type}`}
-            part={part}
-            role={message.role}
-            messageStatus={message.status}
-          />
-        ))}
-      </div>
-    </div>
   );
 }
