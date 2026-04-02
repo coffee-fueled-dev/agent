@@ -4,15 +4,17 @@ import type { StreamArgs } from "@convex-dev/agent/validators";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { api } from "@very-coffee/backend/api";
 import type { FunctionReference } from "convex/server";
-import { ArrowDownIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { FadeOverflow } from "@/components/layout/fade-overflow";
 import LoadMoreSentinel from "@/components/layout/load-more-sentinel";
-import { Button } from "@/components/ui/button";
 import { Empty, EmptyContent, EmptyTitle } from "@/components/ui/empty";
 import { Spinner } from "@/components/ui/spinner";
 import type { UIMessage } from "../../../../../../packages/backend/convex/agents/_tools/uiMessage.js";
-import { useChatScrollAnchor } from "../_hooks/use-chat-scroll-anchor.js";
+import {
+  ChatJumpToLatestProvider,
+  JumpToLatest,
+  LastMessagePair,
+} from "./chat-jump-to-latest-provider.js";
 import { ChatMessagePart } from "./chat-message-part.js";
 
 const PAGE_SIZE = 15;
@@ -36,7 +38,6 @@ const ESTIMATE_ROW = 120;
 
 export function ChatMessageList({ threadId }: { threadId: string }) {
   const viewportRef = useRef<HTMLDivElement>(null);
-  const lastPairRef = useRef<HTMLDivElement>(null);
   const [viewportHeight, setViewportHeight] = useState(0);
 
   useEffect(() => {
@@ -82,13 +83,6 @@ export function ChatMessageList({ threadId }: { threadId: string }) {
     overscan: 6,
   });
 
-  const { showJumpToLatest, scrollToTail } = useChatScrollAnchor({
-    viewportRef,
-    lastPairRef,
-    messageCount: results.length,
-    threadId,
-  });
-
   if (!paginated) {
     return (
       <Empty className="min-h-[12rem]">
@@ -102,74 +96,68 @@ export function ChatMessageList({ threadId }: { threadId: string }) {
   const isLoadingMore = status === "LoadingMore";
 
   return (
-    <div className="relative flex h-full min-h-0 flex-1 flex-col">
-      <FadeOverflow viewportRef={viewportRef} className="h-full min-h-0 flex-1">
-        <div className="mx-auto flex min-h-full w-full max-w-240 flex-col gap-0 pt-4">
-          <LoadMoreSentinel
-            onLoadMore={() => loadMore(PAGE_SIZE)}
-            canLoadMore={canLoadMore}
-            isLoadingMore={isLoadingMore}
-            scrollContainerSelector='[data-slot="scroll-area-viewport"]'
-          />
-          {messagesBefore.length > 0 ? (
-            <div
-              className="relative w-full space-y-5"
-              style={{ height: virtualizer.getTotalSize() }}
-            >
-              {virtualizer.getVirtualItems().map((vi) => {
-                const row = messagesBefore[vi.index];
-                if (!row) return null;
-                return (
-                  <div
-                    key={row.id}
-                    data-index={vi.index}
-                    ref={virtualizer.measureElement}
-                    className="absolute top-0 left-0 flex w-full flex-col"
-                    style={{
-                      transform: `translateY(${vi.start}px)`,
-                    }}
-                  >
-                    <ChatMessageBubble message={row} />
-                  </div>
-                );
-              })}
-            </div>
-          ) : null}
+    <ChatJumpToLatestProvider
+      viewportRef={viewportRef}
+      messageCount={results.length}
+      threadId={threadId}
+    >
+      <div className="relative flex h-full min-h-0 flex-1 flex-col">
+        <FadeOverflow viewportRef={viewportRef} className="h-full min-h-0 flex-1">
+          <div className="mx-auto flex min-h-full w-full max-w-240 flex-col gap-0 pt-4">
+            <LoadMoreSentinel
+              onLoadMore={() => loadMore(PAGE_SIZE)}
+              canLoadMore={canLoadMore}
+              isLoadingMore={isLoadingMore}
+              scrollContainerSelector='[data-slot="scroll-area-viewport"]'
+            />
+            {messagesBefore.length > 0 ? (
+              <div
+                className="relative w-full space-y-5"
+                style={{ height: virtualizer.getTotalSize() }}
+              >
+                {virtualizer.getVirtualItems().map((vi) => {
+                  const row = messagesBefore[vi.index];
+                  if (!row) return null;
+                  return (
+                    <div
+                      key={row.id}
+                      data-index={vi.index}
+                      ref={virtualizer.measureElement}
+                      className="absolute top-0 left-0 flex w-full flex-col"
+                      style={{
+                        transform: `translateY(${vi.start}px)`,
+                      }}
+                    >
+                      <ChatMessageBubble message={row} />
+                    </div>
+                  );
+                })}
+              </div>
+            ) : null}
 
-          {lastPair.length > 0 ? (
-            <div
-              ref={lastPairRef}
-              className="flex w-full flex-shrink-0 flex-col justify-start gap-5 pt-5"
-              style={
-                viewportHeight > 0 ? { minHeight: viewportHeight } : undefined
-              }
-            >
-              {lastPair.map((row) => (
-                <ChatMessageBubble key={row.id} message={row} />
-              ))}
-            </div>
-          ) : (
-            <Empty>
-              <EmptyContent>
-                <EmptyTitle>No messages yet.</EmptyTitle>
-              </EmptyContent>
-            </Empty>
-          )}
-        </div>
-      </FadeOverflow>
-      {showJumpToLatest ? (
-        <div className="absolute w-full z-10 bottom-3 flex justify-center">
-          <Button
-            type="button"
-            size="icon"
-            onClick={() => scrollToTail()}
-            className="rounded-full"
-          >
-            <ArrowDownIcon />
-          </Button>
-        </div>
-      ) : null}
-    </div>
+            {lastPair.length > 0 ? (
+              <LastMessagePair
+                className="flex w-full flex-shrink-0 flex-col justify-start gap-5 pt-5"
+                style={
+                  viewportHeight > 0 ? { minHeight: viewportHeight } : undefined
+                }
+              >
+                {lastPair.map((row) => (
+                  <ChatMessageBubble key={row.id} message={row} />
+                ))}
+              </LastMessagePair>
+            ) : (
+              <Empty>
+                <EmptyContent>
+                  <EmptyTitle>No messages yet.</EmptyTitle>
+                </EmptyContent>
+              </Empty>
+            )}
+          </div>
+        </FadeOverflow>
+        <JumpToLatest />
+      </div>
+    </ChatJumpToLatestProvider>
   );
 }
 

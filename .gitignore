@@ -1,5 +1,6 @@
 *.plan.md
 .notes
+.agent_home
 
 # local SQLite cache (embedding-cache.sqlite + WAL/SHM)
 .sqlite/

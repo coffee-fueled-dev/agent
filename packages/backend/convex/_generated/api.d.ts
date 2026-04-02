@@ -21,8 +21,6 @@ import type * as agents__tools_memory_deleteMemory_internal from "../agents/_too
 import type * as agents__tools_memory_deleteMemory_tool from "../agents/_tools/memory/deleteMemory/tool.js";
 import type * as agents__tools_memory_editMemory_internal from "../agents/_tools/memory/editMemory/internal.js";
 import type * as agents__tools_memory_editMemory_tool from "../agents/_tools/memory/editMemory/tool.js";
-import type * as agents__tools_memory_listMemory_internal from "../agents/_tools/memory/listMemory/internal.js";
-import type * as agents__tools_memory_listMemory_tool from "../agents/_tools/memory/listMemory/tool.js";
 import type * as agents__tools_memory_searchMemory_internal from "../agents/_tools/memory/searchMemory/internal.js";
 import type * as agents__tools_memory_searchMemory_tool from "../agents/_tools/memory/searchMemory/tool.js";
 import type * as agents__tools_memory_toolkit from "../agents/_tools/memory/toolkit.js";
@@ -38,6 +36,9 @@ import type * as agents_lib_toolkit from "../agents/lib/toolkit.js";
 import type * as chat_thread from "../chat/thread.js";
 import type * as files from "../files.js";
 import type * as filesEnv from "../filesEnv.js";
+import type * as publicStorageUrl from "../publicStorageUrl.js";
+import type * as types from "../types.js";
+import type * as workpool from "../workpool.js";
 
 import type {
   ApiFromModules,
@@ -59,8 +60,6 @@ declare const fullApi: ApiFromModules<{
   "agents/_tools/memory/deleteMemory/tool": typeof agents__tools_memory_deleteMemory_tool;
   "agents/_tools/memory/editMemory/internal": typeof agents__tools_memory_editMemory_internal;
   "agents/_tools/memory/editMemory/tool": typeof agents__tools_memory_editMemory_tool;
-  "agents/_tools/memory/listMemory/internal": typeof agents__tools_memory_listMemory_internal;
-  "agents/_tools/memory/listMemory/tool": typeof agents__tools_memory_listMemory_tool;
   "agents/_tools/memory/searchMemory/internal": typeof agents__tools_memory_searchMemory_internal;
   "agents/_tools/memory/searchMemory/tool": typeof agents__tools_memory_searchMemory_tool;
   "agents/_tools/memory/toolkit": typeof agents__tools_memory_toolkit;
@@ -76,6 +75,9 @@ declare const fullApi: ApiFromModules<{
   "chat/thread": typeof chat_thread;
   files: typeof files;
   filesEnv: typeof filesEnv;
+  publicStorageUrl: typeof publicStorageUrl;
+  types: typeof types;
+  workpool: typeof workpool;
 }>;
 
 /**
@@ -3483,6 +3485,104 @@ export declare const components: {
           null
         >;
       };
+    };
+  };
+  workpool: {
+    config: {
+      update: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          logLevel?: "DEBUG" | "TRACE" | "INFO" | "REPORT" | "WARN" | "ERROR";
+          maxParallelism?: number;
+        },
+        any
+      >;
+    };
+    lib: {
+      cancel: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          id: string;
+          logLevel?: "DEBUG" | "TRACE" | "INFO" | "REPORT" | "WARN" | "ERROR";
+        },
+        any
+      >;
+      cancelAll: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          before?: number;
+          limit?: number;
+          logLevel?: "DEBUG" | "TRACE" | "INFO" | "REPORT" | "WARN" | "ERROR";
+        },
+        any
+      >;
+      enqueue: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          config: {
+            logLevel?: "DEBUG" | "TRACE" | "INFO" | "REPORT" | "WARN" | "ERROR";
+            maxParallelism?: number;
+          };
+          fnArgs: any;
+          fnHandle: string;
+          fnName: string;
+          fnType: "action" | "mutation" | "query";
+          onComplete?: { context?: any; fnHandle: string };
+          retryBehavior?: {
+            base: number;
+            initialBackoffMs: number;
+            maxAttempts: number;
+          };
+          runAt: number;
+        },
+        string
+      >;
+      enqueueBatch: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          config: {
+            logLevel?: "DEBUG" | "TRACE" | "INFO" | "REPORT" | "WARN" | "ERROR";
+            maxParallelism?: number;
+          };
+          items: Array<{
+            fnArgs: any;
+            fnHandle: string;
+            fnName: string;
+            fnType: "action" | "mutation" | "query";
+            onComplete?: { context?: any; fnHandle: string };
+            retryBehavior?: {
+              base: number;
+              initialBackoffMs: number;
+              maxAttempts: number;
+            };
+            runAt: number;
+          }>;
+        },
+        Array<string>
+      >;
+      status: FunctionReference<
+        "query",
+        "internal",
+        { id: string },
+        | { previousAttempts: number; state: "pending" }
+        | { previousAttempts: number; state: "running" }
+        | { state: "finished" }
+      >;
+      statusBatch: FunctionReference<
+        "query",
+        "internal",
+        { ids: Array<string> },
+        Array<
+          | { previousAttempts: number; state: "pending" }
+          | { previousAttempts: number; state: "running" }
+          | { state: "finished" }
+        >
+      >;
     };
   };
 };

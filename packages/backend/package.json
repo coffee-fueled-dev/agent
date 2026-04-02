@@ -11,6 +11,10 @@
     "./dataModel": {
       "types": "./convex/_generated/dataModel.d.ts",
       "default": "./convex/_generated/dataModel.js"
+    },
+    "./types": {
+      "types": "./convex/types.ts",
+      "default": "./convex/types.ts"
     }
   },
   "devDependencies": {
@@ -22,6 +26,7 @@
   "dependencies": {
     "@ai-sdk/openai": "^2",
     "@convex-dev/agent": "^0.3.2",
+    "@convex-dev/workpool": "^0.4.6",
     "@very-coffee/agent-identity": "workspace:*",
     "@very-coffee/convex-graph": "workspace:*",
     "@very-coffee/convex-history": "workspace:*",

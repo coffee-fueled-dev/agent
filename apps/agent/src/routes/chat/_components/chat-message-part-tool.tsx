@@ -1,7 +1,7 @@
+import type { UIMessage } from "@very-coffee/backend/types";
 import { getToolName, isToolUIPart } from "ai";
 import { Badge } from "@/components/ui/badge.js";
 import { Item, ItemContent, ItemDescription } from "@/components/ui/item.js";
-import type { UIMessage } from "../../../../../../packages/backend/convex/agents/_tools/uiMessage.js";
 
 type MessagePart = UIMessage["parts"][number];
 
@@ -11,12 +11,20 @@ export function ChatMessagePartTool({ part }: { part: MessagePart }) {
 
   const toolName =
     part.type === "dynamic-tool" ? part.toolName : getToolName(part);
+
   const label =
     part.state === "output-available"
       ? "Tool result"
       : part.state === "output-error"
         ? "Tool error"
         : "Tool call";
+
+  const partContent =
+    part.state === "input-streaming" || part.state === "input-available"
+      ? JSON.stringify(part.input ?? {})
+      : part.state === "output-available"
+        ? JSON.stringify(part.input)
+        : "Error";
 
   return (
     <Item size="sm" variant="outline">
@@ -28,11 +36,7 @@ export function ChatMessagePartTool({ part }: { part: MessagePart }) {
           <span className="text-muted-foreground text-xs">{label}</span>
         </span>
         <ItemDescription className="break-all font-mono text-[11px]">
-          {part.state === "input-streaming" || part.state === "input-available"
-            ? JSON.stringify(part.input ?? {})
-            : part.state === "output-available"
-              ? JSON.stringify(part.output)
-              : part.errorText}
+          {partContent}
         </ItemDescription>
       </ItemContent>
     </Item>
