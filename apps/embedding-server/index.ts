@@ -1,6 +1,8 @@
 import { Database } from "bun:sqlite";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
+import { ConvexHttpClient } from "convex/browser";
+import { anyApi } from "convex/server";
 import {
   createPartFromBase64,
   createPartFromText,
@@ -17,23 +19,25 @@ import {
 } from "./env";
 
 const embeddingModel = "gemini-embedding-2-preview";
-const callbackBaseUrl = getConvexBaseUrl();
+const backendApi = anyApi as unknown as {
+  files: {
+    completeFileProcess: Parameters<ConvexHttpClient["action"]>[0];
+    failFileProcess: Parameters<ConvexHttpClient["mutation"]>[0];
+  };
+};
+
 mkdirSync(dirname(cacheDbPath), { recursive: true });
 const cacheDb = new Database(cacheDbPath, { create: true });
 cacheDb.run("PRAGMA journal_mode = WAL;");
 cacheDb.run(
-  "CREATE TABLE IF NOT EXISTS cache (hash TEXT PRIMARY KEY, embedding TEXT NOT NULL, created_at INTEGER NOT NULL)",
+  "CREATE TABLE IF NOT EXISTS file_cache (hash TEXT PRIMARY KEY, result TEXT NOT NULL, created_at INTEGER NOT NULL)",
 );
-const cacheGet = cacheDb.query<{ embedding: string }, { $hash: string }>(
-  "SELECT embedding FROM cache WHERE hash = $hash",
+const cacheGet = cacheDb.query<{ result: string }, { $hash: string }>(
+  "SELECT result FROM file_cache WHERE hash = $hash",
 );
 const cacheSet = cacheDb.query(
-  "INSERT OR REPLACE INTO cache (hash, embedding, created_at) VALUES ($hash, $embedding, $created_at)",
+  "INSERT OR REPLACE INTO file_cache (hash, result, created_at) VALUES ($hash, $result, $created_at)",
 );
-
-function normalizeBaseUrl(value: string) {
-  return value.replace(/\/+$/, "");
-}
 
 function buildRetrievalText(args: {
   text?: string;
@@ -58,9 +62,11 @@ function createGenAIClient() {
   return new GoogleGenAI(apiKey ? { apiKey } : {});
 }
 
-/** Must match [`contextFileFailPath`](../../convex/context/fileHttp.ts) in Convex HTTP routes. */
-function failUrl() {
-  return `${normalizeBaseUrl(callbackBaseUrl)}/context/file/fail`;
+let convexClient: ConvexHttpClient | null = null;
+
+function getConvexClient() {
+  convexClient ??= new ConvexHttpClient(getConvexBaseUrl());
+  return convexClient;
 }
 
 async function postJson(url: string, body: unknown) {
@@ -77,12 +83,54 @@ async function postJson(url: string, body: unknown) {
   }
 }
 
+function normalizeChunksForLegacyCompletion(
+  retrievalText: string,
+  chunks: ProcessedChunk[],
+) {
+  return chunks.map((chunk) => ({
+    text: chunk.text ?? retrievalText,
+    embedding: chunk.embedding,
+  }));
+}
+
+async function reportCompletion(job: EmbedJob, result: ProcessedFileResult) {
+  if (job.completeUrl) {
+    await postJson(job.completeUrl, {
+      processId: job.processId,
+      retrievalText: result.retrievalText,
+      lexicalText: result.lexicalText,
+      chunks: normalizeChunksForLegacyCompletion(
+        result.retrievalText,
+        result.chunks,
+      ),
+      contentHash: job.contentHash,
+    });
+    return;
+  }
+
+  await getConvexClient().action(backendApi.files.completeFileProcess, {
+    secret: sharedSecret,
+    jobId: job.processId,
+    retrievalText: result.retrievalText,
+    lexicalText: result.lexicalText,
+    chunks: result.chunks,
+  });
+}
+
 async function reportFailure(job: EmbedJob, error: unknown) {
   const message =
     error instanceof Error ? error.message : "Binary embedding worker failed";
   try {
-    await postJson(job.failUrl ?? failUrl(), {
-      processId: job.processId,
+    if (job.failUrl) {
+      await postJson(job.failUrl, {
+        processId: job.processId,
+        error: message,
+      });
+      return;
+    }
+    await getConvexClient().mutation(backendApi.files.failFileProcess, {
+      secret: sharedSecret,
+      jobId: job.processId,
       error: message,
     });
   } catch (reportError) {
@@ -90,10 +138,22 @@ async function reportFailure(job: EmbedJob, error: unknown) {
   }
 }
 
+type ProcessedChunk = {
+  text?: string;
+  embedding: number[];
+};
+
+type ProcessedFileResult = {
+  retrievalText: string;
+  lexicalText?: string;
+  chunks: ProcessedChunk[];
+};
+
 type EmbedJob = {
   processId: string;
   fileUrl: string;
   namespace?: string;
+  key?: string;
   title?: string;
   text?: string;
   mimeType: string;
@@ -107,6 +167,46 @@ type EmbedJob = {
 function tempDownloadPath(job: EmbedJob) {
   const tempDir = getTempDir();
   return `${tempDir}/binary-embedding-${job.processId}-${Date.now()}`;
+}
+
+function isTextLikeMime(mimeType: string) {
+  return (
+    mimeType.startsWith("text/") ||
+    mimeType === "application/json" ||
+    mimeType === "application/xml" ||
+    mimeType === "application/yaml" ||
+    mimeType === "text/markdown" ||
+    mimeType === "application/javascript"
+  );
+}
+
+function splitTextContent(text: string) {
+  const paragraphs = text
+    .replace(/\r\n/g, "\n")
+    .split(/\n\s*\n+/)
+    .map((chunk) => chunk.trim())
+    .filter(Boolean);
+  const chunks = paragraphs.length > 0 ? paragraphs : [text.trim()];
+  return chunks.flatMap((chunk) => {
+    if (chunk.length <= 4000) return [chunk];
+    const out: string[] = [];
+    for (let start = 0; start < chunk.length; start += 4000) {
+      out.push(chunk.slice(start, start + 4000));
+    }
+    return out;
+  });
+}
+
+async function embedTextChunk(client: GoogleGenAI, text: string) {
+  const response = await client.models.embedContent({
+    model: embeddingModel,
+    contents: [createPartFromText(text)],
+  });
+  const values = response.embeddings?.[0]?.values;
+  if (!values?.length) {
+    throw new Error("Google did not return any text embeddings");
+  }
+  return values;
 }
 
 async function downloadFileWithCurl(job: EmbedJob) {
@@ -127,25 +227,19 @@ async function downloadFileWithCurl(job: EmbedJob) {
 async function processEmbeddingJob(job: EmbedJob) {
   let tempFilePath: string | undefined;
   try {
-    // Check SQLite cache if a content hash was provided
     if (job.contentHash) {
       const cached = cacheGet.get({ $hash: job.contentHash });
       if (cached) {
-        const embedding: number[] = JSON.parse(cached.embedding);
-        const retrievalText = buildRetrievalText(job);
-        const chunks = [{ text: retrievalText, embedding }];
-        if (job.completeUrl) {
-          await postJson(job.completeUrl, {
-            processId: job.processId,
-            retrievalText,
-            chunks,
-            contentHash: job.contentHash,
-          });
-        }
+        const result = JSON.parse(cached.result) as ProcessedFileResult;
+        await reportCompletion(job, result);
         if (job.cacheCompleteUrl) {
+          const firstChunk = result.chunks[0];
+          if (!firstChunk) {
+            throw new Error("Cached file result did not contain any chunks");
+          }
           await postJson(job.cacheCompleteUrl, {
             contentHash: job.contentHash,
-            embedding,
+            embedding: firstChunk.embedding,
             mimeType: job.mimeType,
           });
         }
@@ -154,53 +248,60 @@ async function processEmbeddingJob(job: EmbedJob) {
     }
 
     tempFilePath = await downloadFileWithCurl(job);
-    const retrievalText = buildRetrievalText(job);
-    const fileBytes = await Bun.file(tempFilePath).arrayBuffer();
-    const fileBase64 = Buffer.from(fileBytes).toString("base64");
     const client = createGenAIClient();
-    const embeddingResponse = await client.models.embedContent({
-      model: embeddingModel,
-      contents: [
-        createPartFromBase64(fileBase64, job.mimeType),
-        createPartFromText(retrievalText),
-      ],
-    });
-    const chunks = (embeddingResponse.embeddings ?? []).flatMap((embedding) =>
-      embedding?.values?.length
-        ? [
-            {
-              text: retrievalText,
-              embedding: embedding.values,
-            },
-          ]
-        : [],
-    );
-    if (chunks.length === 0) {
-      throw new Error("Google did not return any embeddings");
-    }
+    const result = isTextLikeMime(job.mimeType)
+      ? await (async (): Promise<ProcessedFileResult> => {
+          const text = (await Bun.file(tempFilePath).text()).trim();
+          const retrievalText = text || buildRetrievalText(job);
+          const chunkTexts = splitTextContent(retrievalText);
+          if (chunkTexts.length === 0) {
+            throw new Error("No text chunks were produced");
+          }
+          const chunks = await Promise.all(
+            chunkTexts.map(async (chunkText) => ({
+              text: chunkText,
+              embedding: await embedTextChunk(client, chunkText),
+            })),
+          );
+          return { retrievalText, lexicalText: retrievalText, chunks };
+        })()
+      : await (async (): Promise<ProcessedFileResult> => {
+          const retrievalText = buildRetrievalText(job);
+          const fileBytes = await Bun.file(tempFilePath).arrayBuffer();
+          const fileBase64 = Buffer.from(fileBytes).toString("base64");
+          const embeddingResponse = await client.models.embedContent({
+            model: embeddingModel,
+            contents: [
+              createPartFromBase64(fileBase64, job.mimeType),
+              createPartFromText(retrievalText),
+            ],
+          });
+          const chunks = (embeddingResponse.embeddings ?? []).flatMap(
+            (embedding) =>
+              embedding?.values?.length
+                ? [{ embedding: embedding.values }]
+                : [],
+          );
+          if (chunks.length === 0) {
+            throw new Error("Google did not return any embeddings");
+          }
+          return { retrievalText, chunks };
+        })();
 
-    // Store in SQLite cache
-    if (job.contentHash && chunks[0]) {
+    if (job.contentHash) {
       cacheSet.run({
         $hash: job.contentHash,
-        $embedding: JSON.stringify(chunks[0].embedding),
+        $result: JSON.stringify(result),
         $created_at: Date.now(),
       });
     }
 
-    if (job.completeUrl) {
-      await postJson(job.completeUrl, {
-        processId: job.processId,
-        retrievalText,
-        chunks,
-        contentHash: job.contentHash,
-      });
-    }
+    await reportCompletion(job, result);
 
-    if (job.cacheCompleteUrl && job.contentHash && chunks[0]) {
+    if (job.cacheCompleteUrl && job.contentHash && result.chunks[0]) {
       await postJson(job.cacheCompleteUrl, {
         contentHash: job.contentHash,
-        embedding: chunks[0].embedding,
+        embedding: result.chunks[0].embedding,
         mimeType: job.mimeType,
       });
     }
@@ -219,9 +320,11 @@ function readJob(payload: unknown): EmbedJob {
     throw new Error("Expected a JSON object");
   }
   const {
+    jobId,
     processId,
     fileUrl,
     namespace,
+    key,
     title,
     text,
     mimeType,
@@ -232,21 +335,26 @@ function readJob(payload: unknown): EmbedJob {
     cacheCompleteUrl,
   } = payload as Record<string, unknown>;
   if (
-    typeof processId !== "string" ||
+    (typeof jobId !== "string" && typeof processId !== "string") ||
     typeof fileUrl !== "string" ||
     typeof mimeType !== "string"
   ) {
     throw new Error("Missing required embedding job fields");
   }
   return {
-    processId,
+    processId: (typeof jobId === "string" ? jobId : processId) as string,
     fileUrl,
     namespace: typeof namespace === "string" ? namespace : undefined,
+    key: typeof key === "string" ? key : undefined,
     title: typeof title === "string" ? title : undefined,
     text: typeof text === "string" ? text : undefined,
     mimeType,
     fileName:
-      typeof fileName === "string" || fileName === null ? fileName : undefined,
+      typeof fileName === "string"
+        ? fileName
+        : fileName === null
+          ? null
+          : undefined,
     completeUrl:
       typeof jobCompleteUrl === "string" ? jobCompleteUrl : undefined,
     failUrl: typeof jobFailUrl === "string" ? jobFailUrl : undefined,

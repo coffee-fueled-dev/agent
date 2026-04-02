@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as _clients_files from "../_clients/files.js";
 import type * as _clients_identity from "../_clients/identity.js";
 import type * as _clients_memory from "../_clients/memory.js";
 import type * as agents__policies_convexPolicy from "../agents/_policies/convexPolicy.js";
@@ -34,6 +35,8 @@ import type * as agents_lib_customFunctions from "../agents/lib/customFunctions.
 import type * as agents_lib_models from "../agents/lib/models.js";
 import type * as agents_lib_toolSpecAdapter from "../agents/lib/toolSpecAdapter.js";
 import type * as agents_lib_toolkit from "../agents/lib/toolkit.js";
+import type * as files from "../files.js";
+import type * as filesEnv from "../filesEnv.js";
 
 import type {
   ApiFromModules,
@@ -42,6 +45,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "_clients/files": typeof _clients_files;
   "_clients/identity": typeof _clients_identity;
   "_clients/memory": typeof _clients_memory;
   "agents/_policies/convexPolicy": typeof agents__policies_convexPolicy;
@@ -68,6 +72,8 @@ declare const fullApi: ApiFromModules<{
   "agents/lib/models": typeof agents_lib_models;
   "agents/lib/toolSpecAdapter": typeof agents_lib_toolSpecAdapter;
   "agents/lib/toolkit": typeof agents_lib_toolkit;
+  files: typeof files;
+  filesEnv: typeof filesEnv;
 }>;
 
 /**
@@ -286,6 +292,139 @@ export declare const components: {
             text: string;
             title?: string;
           }>
+        >;
+      };
+    };
+  };
+  files: {
+    public: {
+      core: {
+        createFileProcess: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            contentHash?: string;
+            fileName?: string;
+            key: string;
+            mimeType: string;
+            namespace: string;
+            storageId: string;
+            title?: string;
+          },
+          string
+        >;
+        getCachedFileResult: FunctionReference<
+          "query",
+          "internal",
+          { contentHash: string },
+          null | {
+            chunks: Array<{ embedding: Array<number>; text?: string }>;
+            contentHash: string;
+            lexicalText?: string;
+            mimeType: string;
+            retrievalText: string;
+            updatedAt: number;
+          }
+        >;
+        getFileProcess: FunctionReference<
+          "query",
+          "internal",
+          { processId: string },
+          null | {
+            _id: string;
+            contentHash?: string;
+            error?: string;
+            fileName?: string;
+            key: string;
+            memoryId?: string;
+            mimeType: string;
+            namespace: string;
+            status: "pending" | "dispatched" | "completed" | "failed";
+            storageId: string;
+            title?: string;
+            updatedAt: number;
+          }
+        >;
+        getLatestFileForMemory: FunctionReference<
+          "query",
+          "internal",
+          { memoryId: string; namespace: string },
+          null | {
+            _id: string;
+            contentHash?: string;
+            error?: string;
+            fileName?: string;
+            key: string;
+            memoryId?: string;
+            mimeType: string;
+            namespace: string;
+            status: "pending" | "dispatched" | "completed" | "failed";
+            storageId: string;
+            title?: string;
+            updatedAt: number;
+          }
+        >;
+        listFileProcessesPage: FunctionReference<
+          "query",
+          "internal",
+          {
+            namespace: string;
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
+          },
+          {
+            continueCursor: string;
+            isDone: boolean;
+            page: Array<{
+              error?: string;
+              fileName?: string;
+              key: string;
+              memoryId?: string;
+              mimeType: string;
+              processId: string;
+              status: "pending" | "dispatched" | "completed" | "failed";
+              title?: string;
+              updatedAt: number;
+            }>;
+            pageStatus?: "SplitRecommended" | "SplitRequired" | null;
+            splitCursor?: string | null;
+          }
+        >;
+        markFileProcessCompleted: FunctionReference<
+          "mutation",
+          "internal",
+          { memoryId: string; processId: string },
+          null
+        >;
+        markFileProcessDispatched: FunctionReference<
+          "mutation",
+          "internal",
+          { processId: string },
+          null
+        >;
+        markFileProcessFailed: FunctionReference<
+          "mutation",
+          "internal",
+          { error: string; processId: string },
+          null
+        >;
+        upsertCachedFileResult: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            chunks: Array<{ embedding: Array<number>; text?: string }>;
+            contentHash: string;
+            lexicalText?: string;
+            mimeType: string;
+            retrievalText: string;
+          },
+          null
         >;
       };
     };

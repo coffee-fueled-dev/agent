@@ -20,6 +20,9 @@
     "isolatedModules": true,
     "noEmit": true
   },
-  "include": ["./**/*"],
+  "include": [
+    "./**/*",
+    "../packages/backend/convex/_components/memory/http.ts"
+  ],
   "exclude": ["./_generated"]
 }
