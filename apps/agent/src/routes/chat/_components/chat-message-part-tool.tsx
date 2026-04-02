@@ -1,7 +1,7 @@
-import type { UIMessage } from "@backend/llms/uiMessage.js";
 import { getToolName, isToolUIPart } from "ai";
 import { Badge } from "@/components/ui/badge.js";
 import { Item, ItemContent, ItemDescription } from "@/components/ui/item.js";
+import type { UIMessage } from "../../../../../../packages/backend/convex/agents/_tools/uiMessage.js";
 
 type MessagePart = UIMessage["parts"][number];
 

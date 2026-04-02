@@ -1,6 +1,9 @@
 import { v } from "convex/values";
 import { mutation } from "../_generated/server";
-import { ensureAgentRegistration, ensureToolRegistration } from "../internal/helpers";
+import {
+  ensureAgentRegistration,
+  ensureToolRegistration,
+} from "../internal/helpers";
 
 export const registerAgent = mutation({
   args: {

@@ -1,8 +1,8 @@
 import type { KnnApproxOptions, KnnEntry } from "../types.js";
 import { buildKnnGraphExact } from "./exact.js";
 import { dotPrefix, normalizePrefix } from "./math.js";
-import { TopKHeap } from "./topk.js";
 import { mulberry32, randGaussian } from "./rng.js";
+import { TopKHeap } from "./topk.js";
 
 function symmetrize(adj: Map<string, Map<string, number>>): void {
   for (const [nodeId, neighbors] of adj) {

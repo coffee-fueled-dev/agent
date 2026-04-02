@@ -15,7 +15,11 @@ const paginationResultValidator = v.object({
   isDone: v.boolean(),
   continueCursor: v.string(),
   pageStatus: v.optional(
-    v.union(v.literal("SplitRecommended"), v.literal("SplitRequired"), v.null()),
+    v.union(
+      v.literal("SplitRecommended"),
+      v.literal("SplitRequired"),
+      v.null(),
+    ),
   ),
   splitCursor: v.optional(v.union(v.string(), v.null())),
 });

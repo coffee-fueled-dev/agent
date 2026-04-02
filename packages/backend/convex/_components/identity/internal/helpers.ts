@@ -102,7 +102,9 @@ export async function ensureRuntimeVersion(
   const existing = await ctx.db
     .query("agentRuntimeVersions")
     .withIndex("by_static_and_runtime", (q) =>
-      q.eq("staticVersionId", args.staticVersionId).eq("runtimeHash", args.runtimeHash),
+      q
+        .eq("staticVersionId", args.staticVersionId)
+        .eq("runtimeHash", args.runtimeHash),
     )
     .first();
 

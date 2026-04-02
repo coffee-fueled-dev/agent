@@ -1,26 +1,21 @@
-import { api } from "@backend/api.js";
-import type { Id } from "@backend/dataModel.js";
 import { contentHashFromArrayBuffer } from "@convex-dev/rag";
-import {
-  useSessionAction,
-  useSessionMutation,
-} from "convex-helpers/react/sessions";
+import { api } from "@very-coffee/backend/api";
+import type { Id } from "@very-coffee/backend/dataModel";
+import { useAction, useMutation } from "convex/react";
 import { useCallback } from "react";
-import { isTextLikeFile, readFileText } from "./context-file.js";
+import { buildContextFileKey } from "./context-file.js";
 
 export type PreparedAttachment = {
   storageId: Id<"_storage">;
   contentHash: string;
   mimeType: string;
   fileName: string;
-  text?: string;
+  key: string;
 };
 
 export function useContextFileUpload() {
-  const generateUploadUrl = useSessionMutation(
-    api.context.files.generateContextUploadUrl,
-  );
-  const addFileContext = useSessionAction(api.context.files.addFileContext);
+  const generateUploadUrl = useMutation(api.files.generateFileUploadUrl);
+  const processFile = useAction(api.files.processFile);
 
   const uploadFileToStorage = useCallback(
     async (file: File): Promise<Id<"_storage">> => {
@@ -48,48 +43,48 @@ export function useContextFileUpload() {
         uploadFileToStorage(file),
         contentHashFromArrayBuffer(await file.arrayBuffer()),
       ]);
-      const fileText = isTextLikeFile(file)
-        ? await readFileText(file)
-        : undefined;
       return {
         storageId,
         contentHash,
         mimeType: file.type || "application/octet-stream",
         fileName: file.name,
-        text: fileText,
+        key: buildContextFileKey({
+          fileName: file.name,
+          prefix: "chat",
+          fallback: "file",
+        }),
       };
     },
     [uploadFileToStorage],
   );
 
-  const indexFileInContext = useCallback(
+  const startFileProcessing = useCallback(
     async (args: {
+      userId: string;
       namespace: string;
       key: string;
       title?: string;
-      storageId: string;
+      storageId: Id<"_storage">;
       mimeType: string;
       fileName?: string;
-      text?: string;
       contentHash?: string;
     }) => {
-      await addFileContext({
+      return await processFile({
         namespace: args.namespace,
         key: args.key,
         title: args.title,
-        storageId: args.storageId as never,
+        storageId: args.storageId,
         mimeType: args.mimeType,
         fileName: args.fileName,
-        text: args.text,
         contentHash: args.contentHash,
       });
     },
-    [addFileContext],
+    [processFile],
   );
 
   return {
     uploadFileToStorage,
     prepareAttachment,
-    indexFileInContext,
+    startFileProcessing,
   };
 }

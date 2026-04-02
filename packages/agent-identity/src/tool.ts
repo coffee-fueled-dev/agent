@@ -8,11 +8,7 @@ import type {
   ToolSpec,
 } from "./types.js";
 
-export type ToolStaticProps<
-  NAME extends string,
-  INPUT,
-  _Env = unknown,
-> = {
+export type ToolStaticProps<NAME extends string, INPUT, _Env = unknown> = {
   kind: "tool";
   name: NAME;
   description: string | undefined;
@@ -44,11 +40,7 @@ export function tool<
     input: INPUT,
     options?: unknown,
   ) => Promise<OUTPUT> | AsyncIterable<OUTPUT>;
-}): Composable<
-  ToolStaticProps<NAME, INPUT, Env>,
-  Record<NAME, ToolSpec>,
-  Env
-> {
+}): Composable<ToolStaticProps<NAME, INPUT, Env>, Record<NAME, ToolSpec>, Env> {
   const policies = args.policies ?? [];
   const staticProps: ToolStaticProps<NAME, INPUT, Env> = {
     kind: "tool",
@@ -66,8 +58,7 @@ export function tool<
     const resolved = resolvedPolicies ?? new Map<SharedPolicy, boolean>();
 
     for (const policy of policies) {
-      const ok =
-        resolved.get(policy) ?? (await policy.evaluate(ctx.env));
+      const ok = resolved.get(policy) ?? (await policy.evaluate(ctx.env));
       resolved.set(policy, ok);
       if (!ok) {
         return {
@@ -90,11 +81,7 @@ export function tool<
       inputSchema: args.inputSchema,
       instructions: (args.instructions ?? []).join("\n\n"),
       handler: (_ctxUnknown, inputUnknown, options) =>
-        args.handler(
-          toolCtx,
-          inputUnknown as INPUT,
-          options,
-        ),
+        args.handler(toolCtx, inputUnknown as INPUT, options),
     };
 
     return {

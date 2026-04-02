@@ -1,4 +1,9 @@
-import { LoaderIcon, XIcon } from "lucide-react";
+import {
+  AlertCircleIcon,
+  CheckCircle2Icon,
+  LoaderIcon,
+  XIcon,
+} from "lucide-react";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,35 +16,46 @@ export type { AttachedFileEmbeddingState };
 
 export function AttachedFileEmbedRow({
   file,
+  userId,
   onRemove,
   onEmbeddingStateChange,
 }: {
   file: File;
+  userId: string;
   onRemove: () => void;
   onEmbeddingStateChange?: (state: AttachedFileEmbeddingState) => void;
 }) {
   const {
     contentHash,
-    fileTextForLexical,
-    embedding,
+    storageId,
+    processId,
+    memoryId,
     embeddingPending,
     fileContentResolved,
-  } = useAttachedFileEmbedForSearch(file);
+    status,
+    error,
+  } = useAttachedFileEmbedForSearch(file, userId);
 
   useEffect(() => {
     onEmbeddingStateChange?.({
       contentHash,
-      fileTextForLexical,
-      embedding,
+      storageId,
+      processId,
+      memoryId,
       embeddingPending,
       fileContentResolved,
+      status,
+      error,
     });
   }, [
     contentHash,
-    fileTextForLexical,
-    embedding,
+    storageId,
+    processId,
+    memoryId,
     embeddingPending,
     fileContentResolved,
+    status,
+    error,
     onEmbeddingStateChange,
   ]);
 
@@ -52,9 +68,15 @@ export function AttachedFileEmbedRow({
       <span className="min-w-0 truncate text-muted-foreground">
         {file.name}
       </span>
-      {embeddingPending && (
+      {status === "completed" ? (
+        <CheckCircle2Icon className="size-3.5 shrink-0 text-green-600" />
+      ) : status === "failed" ? (
+        <span title={error ?? "Processing failed"}>
+          <AlertCircleIcon className="size-3.5 shrink-0 text-destructive" />
+        </span>
+      ) : embeddingPending ? (
         <LoaderIcon className="size-3 shrink-0 animate-spin text-muted-foreground" />
-      )}
+      ) : null}
       <Button
         type="button"
         variant="ghost"

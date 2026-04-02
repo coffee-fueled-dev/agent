@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { policy } from "./policy.js";
+import type { StandardSchemaV1 } from "./standard-schema.js";
 import { tool } from "./tool.js";
 import { evaluateComposable, toolkit } from "./toolkit.js";
-import type { StandardSchemaV1 } from "./standard-schema.js";
 
 const schema: StandardSchemaV1<{ n: number }> = {
   "~standard": {

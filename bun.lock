@@ -92,6 +92,7 @@
       "name": "@agent/embedding-server",
       "dependencies": {
         "@google/genai": "^1.46.0",
+        "@very-coffee/backend": "workspace:*",
         "convex": "^1.34.0",
         "zod": "^4.3.6",
       },

@@ -37,7 +37,13 @@ const result = await evaluateComposable(root, {
   env: { features: ["add"] },
 });
 console.log("tools:", Object.keys(result.tools));
-console.log(await result.tools.add?.handler({ env: { features: ["add"] } }, 41, undefined));
+console.log(
+  await result.tools.add?.handler(
+    { env: { features: ["add"] } },
+    41,
+    undefined,
+  ),
+);
 
 const aiTools = toolMapToAiTools(result.tools, { env: { features: ["add"] } });
 console.log("ai tools:", Object.keys(aiTools));

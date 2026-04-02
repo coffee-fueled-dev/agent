@@ -8,15 +8,14 @@
  * @module
  */
 
-import type * as public_add from "../public/add.js";
-import type * as public_search from "../public/search.js";
-
 import type {
   ApiFromModules,
   FilterApi,
   FunctionReference,
 } from "convex/server";
 import { anyApi, componentsGeneric } from "convex/server";
+import type * as public_add from "../public/add.js";
+import type * as public_search from "../public/search.js";
 
 const fullApi: ApiFromModules<{
   "public/add": typeof public_add;

@@ -1,14 +1,12 @@
 "use client";
 
 import { api } from "@very-coffee/backend/api";
-
+import { usePaginatedQuery } from "convex/react";
 import type {
   FunctionReference,
   PaginationOptions,
   PaginationResult,
 } from "convex/server";
-import { useSessionPaginatedQuery } from "convex-helpers/react/sessions";
-import type { SessionId } from "convex-helpers/server/sessions";
 import { PlusIcon } from "lucide-react";
 import { FadeOverflow } from "@/components/layout/fade-overflow";
 import LoadMoreSentinel from "@/components/layout/load-more-sentinel";
@@ -36,23 +34,23 @@ type ThreadRow = {
   title?: string;
 };
 
-const listRecentThreadsQuery = api.chat.threads
+const listRecentThreadsQuery = api.chat.thread
   .listRecentThreads as FunctionReference<
   "query",
   "public",
-  { sessionId: SessionId; token: string; paginationOpts: PaginationOptions },
+  { userId: string; paginationOpts: PaginationOptions },
   PaginationResult<ThreadRow>
 >;
 
 function ChatThreadHistoryList({ onNavigate }: { onNavigate?: () => void }) {
-  const { accountToken: token } = usePublicEnv();
-  const paginated = useSessionPaginatedQuery(
+  const { accountToken: userId } = usePublicEnv();
+  const paginated = usePaginatedQuery(
     listRecentThreadsQuery,
-    token ? { token } : "skip",
+    userId ? { userId } : "skip",
     { initialNumItems: PAGE_SIZE },
   );
 
-  if (!token) return null;
+  if (!userId) return null;
   if (!paginated) {
     return (
       <p className="text-muted-foreground px-1 py-0.5 text-[11px]">Loading…</p>

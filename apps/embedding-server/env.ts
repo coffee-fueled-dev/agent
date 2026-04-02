@@ -1,6 +1,5 @@
 /**
- * @agent/embedding-server — loaded via root `bun --env-file=.env.local` and optional
- * `bun --env-file=apps/embedding-server/.env.local` (see root package.json).
+ * Minimal env surface for the embedding server.
  */
 import { z } from "zod/v4";
 

@@ -151,8 +151,12 @@ export function adaptArm<TItem, TId extends ItemId = ItemId>(
 
   if (sortByScore) {
     enriched.sort((a, b) => {
-      const as = a.score ?? (descending ? Number.NEGATIVE_INFINITY : Number.POSITIVE_INFINITY);
-      const bs = b.score ?? (descending ? Number.NEGATIVE_INFINITY : Number.POSITIVE_INFINITY);
+      const as =
+        a.score ??
+        (descending ? Number.NEGATIVE_INFINITY : Number.POSITIVE_INFINITY);
+      const bs =
+        b.score ??
+        (descending ? Number.NEGATIVE_INFINITY : Number.POSITIVE_INFINITY);
       if (as !== bs) return descending ? bs - as : as - bs;
       return a.index - b.index;
     });
@@ -161,7 +165,9 @@ export function adaptArm<TItem, TId extends ItemId = ItemId>(
   const limited = input.limit ? enriched.slice(0, input.limit) : enriched;
   const ranked = limited.map(({ item, score }, i) => {
     const boost =
-      score !== undefined && scoreToBoost ? scoreToBoost(score, item, i) : undefined;
+      score !== undefined && scoreToBoost
+        ? scoreToBoost(score, item, i)
+        : undefined;
     return boost === undefined
       ? { id: input.getId(item) }
       : { id: input.getId(item), boost };

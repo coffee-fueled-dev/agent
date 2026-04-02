@@ -1,5 +1,5 @@
-import type { UIMessage } from "@backend/llms/uiMessage.js";
 import { isToolUIPart } from "ai";
+import type { UIMessage } from "../../../../../../packages/backend/convex/agents/_tools/uiMessage.js";
 import { ChatMessagePartAssistantText } from "./chat-message-part-assistant-text.js";
 import { ChatMessagePartData } from "./chat-message-part-data.js";
 import { ChatMessagePartFile } from "./chat-message-part-file.js";

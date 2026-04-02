@@ -8,9 +8,7 @@ export type RegisteredAgentEntry = {
 
 export type AgentRegistry = {
   /** Computes static hash from `agent.getStaticIdentityInput()`. Last register wins for the same `agentId`. */
-  register: (
-    agent: RegisteredAgentIdentity,
-  ) => Promise<{ staticHash: string }>;
+  register: (agent: RegisteredAgentIdentity) => Promise<{ staticHash: string }>;
   get: (agentId: string) => RegisteredAgentEntry | undefined;
   has: (agentId: string) => boolean;
   listKeys: () => string[];

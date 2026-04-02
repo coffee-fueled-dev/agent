@@ -10,6 +10,7 @@ const convexEnvSchema = z.object({
   GEMINI_API_KEY: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),
   EMBEDDING_SERVER_URL: z.string().optional(),
+  AGENT_APP_URL: z.string().optional(),
   BINARY_EMBEDDING_SECRET: z.string().optional(),
   LOCAL_SHELL_URL: z.string().optional(),
   LOCAL_SHELL_SECRET: z.string().optional(),

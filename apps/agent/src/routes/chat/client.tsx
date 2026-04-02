@@ -11,14 +11,24 @@ import {
 } from "@/components/ui/tooltip";
 import { renderApp } from "../../render-root.js";
 import { AppLayout } from "../_components/app-layout.js";
-import { useAppLayoutSidebar } from "../_components/app-layout-sidebar-context.js";
+import {
+  AppLayoutSidebarProvider,
+  useAppLayoutSidebar,
+} from "../_components/app-layout-sidebar-context.js";
 import { ChatComposer } from "./_components/chat-composer.js";
 import { ChatMessageList } from "./_components/chat-message-list.js";
-import { ChatThreadEventsList } from "./_components/chat-thread-events-list.js";
 import { useChatThread } from "./_hooks/use-chat-thread.js";
 
 export function ChatRoute() {
-  const { threadId, token, hasToken, setThreadId } = useChatThread();
+  return (
+    <AppLayoutSidebarProvider>
+      <ChatRouteInner />
+    </AppLayoutSidebarProvider>
+  );
+}
+
+function ChatRouteInner() {
+  const { threadId, userId, hasUserId, setThreadId } = useChatThread();
   const { innerSidebarVisible, toggleInnerSidebarVisible } =
     useAppLayoutSidebar();
 
@@ -44,36 +54,28 @@ export function ChatRoute() {
             >
               <ActivityIcon className="size-4" />
               <span className="sr-only">
-                {innerSidebarVisible
-                  ? "Hide telemetry event stream"
-                  : "Show telemetry event stream"}
+                {innerSidebarVisible ? "Hide side panel" : "Show side panel"}
               </span>
             </Button>
           </TooltipTrigger>
           <TooltipContent side="left">
-            {innerSidebarVisible
-              ? "Hide telemetry event stream"
-              : "Show telemetry event stream"}
+            {innerSidebarVisible ? "Hide side panel" : "Show side panel"}
           </TooltipContent>
         </Tooltip>
       }
       rightSidebar={
         innerSidebarVisible ? (
-          threadId ? (
-            <ChatThreadEventsList threadId={threadId} />
-          ) : (
-            <Empty>
-              <EmptyContent className="text-muted-foreground text-xs">
-                <EmptyDescription>
-                  Event stream appears after you start a thread.
-                </EmptyDescription>
-              </EmptyContent>
-            </Empty>
-          )
+          <Empty>
+            <EmptyContent className="text-muted-foreground text-xs">
+              <EmptyDescription>
+                Side panel content is not wired yet.
+              </EmptyDescription>
+            </EmptyContent>
+          </Empty>
         ) : null
       }
     >
-      {!hasToken ? (
+      {!hasUserId ? (
         <Empty>
           <p className="text-muted-foreground text-sm">
             Set <code className="font-mono">BUN_PUBLIC_ACCOUNT_TOKEN</code> in
@@ -100,7 +102,7 @@ export function ChatRoute() {
                       <div className="flex-shrink-0 pb-8">
                         <ChatComposer
                           threadId={threadId}
-                          token={token}
+                          userId={userId}
                           setThreadId={setThreadId}
                         />
                       </div>

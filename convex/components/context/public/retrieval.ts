@@ -1,5 +1,6 @@
 import type { EventsMutationCtx } from "@very-coffee/convex-events/types";
 import { v } from "convex/values";
+import { mergeEventMetadata } from "../../../eventAttribution";
 import { internal } from "../_generated/api";
 import { action } from "../_generated/server";
 import { memoryEvents } from "../events";
@@ -8,7 +9,6 @@ import { readTimeDecay } from "../internal/accessStats";
 import { createContextRag } from "../rag";
 import { sourceValidator } from "../schema";
 import { search as searchClient } from "../search";
-import { mergeEventMetadata } from "../../../eventAttribution";
 
 function fusedRank(
   sortedResults: string[][],

@@ -1,4 +1,4 @@
-import { leiden, type Adjacency } from "./index";
+import { type Adjacency, leiden } from "./index";
 
 type BenchRecord = {
   ts: string;
@@ -129,10 +129,9 @@ async function runSuite(
               [40, 40, 40, 40, 40, 40],
               [120, 180],
             ];
-            const sizes =
-              options[Math.floor(Math.random() * options.length)] ?? [
-                80, 110, 130,
-              ];
+            const sizes = options[
+              Math.floor(Math.random() * options.length)
+            ] ?? [80, 110, 130];
             return makeClusteredGraph(
               sizes,
               0.08 + Math.random() * 0.08,
@@ -140,7 +139,8 @@ async function runSuite(
             );
           })();
     const neighborsPerNode = suite === "homogeneous" ? 6 : 0;
-    const resolution = suite === "homogeneous" ? 1.0 : 0.7 + Math.random() * 1.2;
+    const resolution =
+      suite === "homogeneous" ? 1.0 : 0.7 + Math.random() * 1.2;
 
     const start = performance.now();
     const out = leiden(graph, resolution);

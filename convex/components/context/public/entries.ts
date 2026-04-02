@@ -1,6 +1,7 @@
 import type { EntryId } from "@convex-dev/rag";
 import type { EventsMutationCtx } from "@very-coffee/convex-events/types";
 import { v } from "convex/values";
+import { mergeEventMetadata } from "../../../eventAttribution";
 import { internal } from "../_generated/api";
 import { action, mutation, query } from "../_generated/server";
 import { memoryEvents } from "../events";
@@ -11,7 +12,6 @@ import { embedText } from "../internal/embedding";
 import { createContextRag } from "../rag";
 import { sourceValidator, versionDataValidator } from "../schema";
 import { search as searchClient } from "../search";
-import { mergeEventMetadata } from "../../../eventAttribution";
 
 const TEXT_PREVIEW_LENGTH = 280;
 
@@ -95,7 +95,9 @@ const eventActorArgs = v.optional(
   }),
 );
 
-function historyActorAttrs(actor: { byType: string; byId: string } | undefined) {
+function historyActorAttrs(
+  actor: { byType: string; byId: string } | undefined,
+) {
   if (!actor) return {};
   return {
     attrs: {

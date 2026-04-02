@@ -25,9 +25,7 @@ type ChatComposerFileContextValue = {
     fileKey: string,
     state: AttachedFileEmbeddingState,
   ) => void;
-  allAttachmentsEmbedded: boolean;
-  /** Same order as `files`; undefined if any embedding missing. */
-  getOrderedFileEmbeddings: (files: File[]) => number[][] | undefined;
+  allAttachmentsReady: boolean;
 };
 
 const ChatComposerFileContext =
@@ -82,39 +80,21 @@ export function ChatComposerFileProvider({
       return (
         s?.fileContentResolved &&
         !s.embeddingPending &&
-        s.embedding !== null &&
-        s.embedding.length > 0
+        s.storageId !== null &&
+        s.contentHash !== null &&
+        s.memoryId !== null &&
+        s.status === "completed"
       );
     });
   }, [files, fileEmbedStates]);
-
-  const getOrderedFileEmbeddings = useCallback(
-    (orderFiles: File[]) => {
-      if (orderFiles.length === 0) return undefined;
-      const out: number[][] = [];
-      for (const f of orderFiles) {
-        const emb = fileEmbedStates[fileKeyFor(f)]?.embedding;
-        if (!emb?.length) return undefined;
-        out.push(emb);
-      }
-      return out;
-    },
-    [fileEmbedStates],
-  );
 
   const value = useMemo(
     (): ChatComposerFileContextValue => ({
       fileEmbedStates,
       reportEmbedState,
-      allAttachmentsEmbedded,
-      getOrderedFileEmbeddings,
+      allAttachmentsReady: allAttachmentsEmbedded,
     }),
-    [
-      fileEmbedStates,
-      reportEmbedState,
-      allAttachmentsEmbedded,
-      getOrderedFileEmbeddings,
-    ],
+    [fileEmbedStates, reportEmbedState, allAttachmentsEmbedded],
   );
 
   return (
@@ -130,9 +110,11 @@ export function ChatComposerFileProvider({
 export function ChatComposerFileRow({
   fileKey,
   file,
+  userId,
 }: {
   fileKey: string;
   file: File;
+  userId: string;
 }) {
   const { reportEmbedState } = useChatComposerFile();
   const { removeFile } = useFiles();
@@ -151,6 +133,7 @@ export function ChatComposerFileRow({
   return (
     <AttachedFileEmbedRow
       file={file}
+      userId={userId}
       onRemove={handleRemove}
       onEmbeddingStateChange={report}
     />

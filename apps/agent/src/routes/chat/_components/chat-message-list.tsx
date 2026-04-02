@@ -1,12 +1,9 @@
-import { api } from "@backend/api.js";
-import type { UIMessage } from "@backend/llms/uiMessage.js";
 import type { SyncStreamsReturnValue } from "@convex-dev/agent";
 import { type UIMessagesQuery, useUIMessages } from "@convex-dev/agent/react";
 import type { StreamArgs } from "@convex-dev/agent/validators";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { api } from "@very-coffee/backend/api";
 import type { FunctionReference } from "convex/server";
-import { useSessionIdArg } from "convex-helpers/react/sessions";
-import type { SessionId } from "convex-helpers/server/sessions";
 import { ArrowDownIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { FadeOverflow } from "@/components/layout/fade-overflow";
@@ -14,22 +11,26 @@ import LoadMoreSentinel from "@/components/layout/load-more-sentinel";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyContent, EmptyTitle } from "@/components/ui/empty";
 import { Spinner } from "@/components/ui/spinner";
+import type { UIMessage } from "../../../../../../packages/backend/convex/agents/_tools/uiMessage.js";
 import { useChatScrollAnchor } from "../_hooks/use-chat-scroll-anchor.js";
 import { ChatMessagePart } from "./chat-message-part.js";
 
 const PAGE_SIZE = 15;
 
-/** Same shape as `StreamQuery<{ sessionId: SessionId }>` from `@convex-dev/agent` (not exported from `react`). */
-type StreamQueryWithSession = FunctionReference<
+type StreamQuery = FunctionReference<
   "query",
   "public",
-  { threadId: string; streamArgs?: StreamArgs } & { sessionId: SessionId },
+  {
+    threadId: string;
+    paginationOpts: { cursor: string | null; numItems: number };
+    streamArgs?: StreamArgs;
+  },
   { streams: SyncStreamsReturnValue }
 >;
 
-const listThreadMessagesQuery = api.chat.threads
-  .listThreadMessages as UIMessagesQuery<{ sessionId: SessionId }, UIMessage> &
-  StreamQueryWithSession;
+const listThreadMessagesQuery = api.chat.thread
+  .listThreadMessages as UIMessagesQuery<{ threadId: string }, UIMessage> &
+  StreamQuery;
 
 const ESTIMATE_ROW = 120;
 
@@ -53,7 +54,7 @@ export function ChatMessageList({ threadId }: { threadId: string }) {
 
   const paginated = useUIMessages(
     listThreadMessagesQuery,
-    useSessionIdArg({ threadId }),
+    { threadId },
     {
       initialNumItems: PAGE_SIZE,
       stream: true,

@@ -8,6 +8,12 @@
  * @module
  */
 
+import type {
+  ApiFromModules,
+  FilterApi,
+  FunctionReference,
+} from "convex/server";
+import { anyApi, componentsGeneric } from "convex/server";
 import type * as internal_shared from "../internal/shared.js";
 import type * as internal_store from "../internal/store.js";
 import type * as models_fields from "../models/fields.js";
@@ -21,13 +27,6 @@ import type * as public_projectors from "../public/projectors.js";
 import type * as public_read from "../public/read.js";
 import type * as public_streams from "../public/streams.js";
 import type * as types from "../types.js";
-
-import type {
-  ApiFromModules,
-  FilterApi,
-  FunctionReference,
-} from "convex/server";
-import { anyApi, componentsGeneric } from "convex/server";
 
 const fullApi: ApiFromModules<{
   "internal/shared": typeof internal_shared;

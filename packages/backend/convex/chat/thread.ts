@@ -13,8 +13,8 @@ import { components, internal } from "../_generated/api.js";
 import {
   type ActionCtx,
   internalAction,
-  mutation,
   type MutationCtx,
+  mutation,
   query,
 } from "../_generated/server.js";
 import type { UIMessage } from "../agents/_tools/uiMessage.js";

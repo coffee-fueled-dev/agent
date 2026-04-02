@@ -8,19 +8,19 @@ import {
 } from "@google/genai";
 import { api } from "@very-coffee/backend/api";
 import { $ } from "bun";
-import { ConvexClient } from "convex/browser";
+import { ConvexHttpClient } from "convex/browser";
 import {
-  cacheDbPath,
-  getConvexBaseUrl,
+  getConvexUrl,
+  getEmbeddingCacheDbPath,
+  getFileEmbeddingSecret,
   getGoogleApiKey,
   getTempDir,
-  port,
-  sharedSecret,
-} from "./env";
-
-const client = new ConvexClient(getConvexBaseUrl());
+} from "./env.js";
 
 const embeddingModel = "gemini-embedding-2-preview";
+const sharedSecret = getFileEmbeddingSecret();
+const convex = new ConvexHttpClient(getConvexUrl());
+const cacheDbPath = getEmbeddingCacheDbPath();
 
 mkdirSync(dirname(cacheDbPath), { recursive: true });
 const cacheDb = new Database(cacheDbPath, { create: true });
@@ -34,98 +34,6 @@ const cacheGet = cacheDb.query<{ result: string }, { $hash: string }>(
 const cacheSet = cacheDb.query(
   "INSERT OR REPLACE INTO file_cache (hash, result, created_at) VALUES ($hash, $result, $created_at)",
 );
-
-function buildRetrievalText(args: {
-  text?: string;
-  title?: string;
-  fileName?: string | null;
-  mimeType: string;
-}) {
-  const text = args.text?.trim();
-  if (text) {
-    return text;
-  }
-  return (
-    [args.title, args.fileName, args.mimeType]
-      .filter(Boolean)
-      .join(" ")
-      .trim() || "binary file"
-  );
-}
-
-function createGenAIClient() {
-  const apiKey = getGoogleApiKey();
-  return new GoogleGenAI(apiKey ? { apiKey } : {});
-}
-
-async function postJson(url: string, body: unknown) {
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-binary-embedding-secret": sharedSecret,
-    },
-    body: JSON.stringify(body),
-  });
-  if (!response.ok) {
-    throw new Error(`${url} rejected the request with ${response.status}`);
-  }
-}
-
-function normalizeChunksForLegacyCompletion(
-  retrievalText: string,
-  chunks: ProcessedChunk[],
-) {
-  return chunks.map((chunk) => ({
-    text: chunk.text ?? retrievalText,
-    embedding: chunk.embedding,
-  }));
-}
-
-async function reportCompletion(job: EmbedJob, result: ProcessedFileResult) {
-  if (job.completeUrl) {
-    await postJson(job.completeUrl, {
-      processId: job.processId,
-      retrievalText: result.retrievalText,
-      lexicalText: result.lexicalText,
-      chunks: normalizeChunksForLegacyCompletion(
-        result.retrievalText,
-        result.chunks,
-      ),
-      contentHash: job.contentHash,
-    });
-    return;
-  }
-
-  await client.action(api.files.completeFileProcess, {
-    secret: sharedSecret,
-    jobId: job.processId,
-    retrievalText: result.retrievalText,
-    lexicalText: result.lexicalText,
-    chunks: result.chunks,
-  });
-}
-
-async function reportFailure(job: EmbedJob, error: unknown) {
-  const message =
-    error instanceof Error ? error.message : "Binary embedding worker failed";
-  try {
-    if (job.failUrl) {
-      await postJson(job.failUrl, {
-        processId: job.processId,
-        error: message,
-      });
-      return;
-    }
-    await client.mutation(api.files.failFileProcess, {
-      secret: sharedSecret,
-      jobId: job.processId,
-      error: message,
-    });
-  } catch (reportError) {
-    console.error("Failed to report embedding failure", reportError);
-  }
-}
 
 type ProcessedChunk = {
   text?: string;
@@ -141,21 +49,60 @@ type ProcessedFileResult = {
 type EmbedJob = {
   processId: string;
   fileUrl: string;
-  namespace?: string;
-  key?: string;
   title?: string;
   text?: string;
   mimeType: string;
   fileName?: string | null;
-  completeUrl?: string;
-  failUrl?: string;
   contentHash?: string;
-  cacheCompleteUrl?: string;
 };
 
+function buildRetrievalText(args: {
+  text?: string;
+  title?: string;
+  fileName?: string | null;
+  mimeType: string;
+}) {
+  const text = args.text?.trim();
+  if (text) return text;
+  return (
+    [args.title, args.fileName, args.mimeType]
+      .filter(Boolean)
+      .join(" ")
+      .trim() || "binary file"
+  );
+}
+
+function createGenAIClient() {
+  const apiKey = getGoogleApiKey();
+  return new GoogleGenAI(apiKey ? { apiKey } : {});
+}
+
+async function reportCompletion(job: EmbedJob, result: ProcessedFileResult) {
+  await convex.action(api.files.completeFileProcess, {
+    secret: sharedSecret,
+    jobId: job.processId,
+    retrievalText: result.retrievalText,
+    lexicalText: result.lexicalText,
+    chunks: result.chunks,
+  });
+}
+
+async function reportFailure(job: EmbedJob, error: unknown) {
+  const message =
+    error instanceof Error ? error.message : "File embedding worker failed";
+  try {
+    await convex.mutation(api.files.failFileProcess, {
+      secret: sharedSecret,
+      jobId: job.processId,
+      error: message,
+    });
+  } catch (reportError) {
+    console.error("Failed to report embedding failure", reportError);
+  }
+}
+
 function tempDownloadPath(job: EmbedJob) {
-  const tempDir = getTempDir();
-  return `${tempDir}/binary-embedding-${job.processId}-${Date.now()}`;
+  return `${getTempDir()}/file-embedding-${job.processId}-${Date.now()}`;
 }
 
 function isTextLikeMime(mimeType: string) {
@@ -198,7 +145,7 @@ async function embedTextChunk(client: GoogleGenAI, text: string) {
   return values;
 }
 
-async function downloadFileWithCurl(job: EmbedJob) {
+async function downloadFile(job: EmbedJob) {
   const path = tempDownloadPath(job);
   const result =
     await $`curl -fsSL --retry 3 --retry-connrefused ${job.fileUrl} > ${Bun.file(path)}`
@@ -219,24 +166,15 @@ async function processEmbeddingJob(job: EmbedJob) {
     if (job.contentHash) {
       const cached = cacheGet.get({ $hash: job.contentHash });
       if (cached) {
-        const result = JSON.parse(cached.result) as ProcessedFileResult;
-        await reportCompletion(job, result);
-        if (job.cacheCompleteUrl) {
-          const firstChunk = result.chunks[0];
-          if (!firstChunk) {
-            throw new Error("Cached file result did not contain any chunks");
-          }
-          await postJson(job.cacheCompleteUrl, {
-            contentHash: job.contentHash,
-            embedding: firstChunk.embedding,
-            mimeType: job.mimeType,
-          });
-        }
+        await reportCompletion(
+          job,
+          JSON.parse(cached.result) as ProcessedFileResult,
+        );
         return;
       }
     }
 
-    tempFilePath = await downloadFileWithCurl(job);
+    tempFilePath = await downloadFile(job);
     const client = createGenAIClient();
     const result = isTextLikeMime(job.mimeType)
       ? await (async (): Promise<ProcessedFileResult> => {
@@ -286,14 +224,6 @@ async function processEmbeddingJob(job: EmbedJob) {
     }
 
     await reportCompletion(job, result);
-
-    if (job.cacheCompleteUrl && job.contentHash && result.chunks[0]) {
-      await postJson(job.cacheCompleteUrl, {
-        contentHash: job.contentHash,
-        embedding: result.chunks[0].embedding,
-        mimeType: job.mimeType,
-      });
-    }
   } catch (error) {
     console.error("Embedding job failed", error);
     await reportFailure(job, error);
@@ -308,33 +238,18 @@ function readJob(payload: unknown): EmbedJob {
   if (!payload || typeof payload !== "object") {
     throw new Error("Expected a JSON object");
   }
-  const {
-    jobId,
-    processId,
-    fileUrl,
-    namespace,
-    key,
-    title,
-    text,
-    mimeType,
-    fileName,
-    completeUrl: jobCompleteUrl,
-    failUrl: jobFailUrl,
-    contentHash,
-    cacheCompleteUrl,
-  } = payload as Record<string, unknown>;
+  const { jobId, fileUrl, title, text, mimeType, fileName, contentHash } =
+    payload as Record<string, unknown>;
   if (
-    (typeof jobId !== "string" && typeof processId !== "string") ||
+    typeof jobId !== "string" ||
     typeof fileUrl !== "string" ||
     typeof mimeType !== "string"
   ) {
     throw new Error("Missing required embedding job fields");
   }
   return {
-    processId: (typeof jobId === "string" ? jobId : processId) as string,
+    processId: jobId,
     fileUrl,
-    namespace: typeof namespace === "string" ? namespace : undefined,
-    key: typeof key === "string" ? key : undefined,
     title: typeof title === "string" ? title : undefined,
     text: typeof text === "string" ? text : undefined,
     mimeType,
@@ -344,50 +259,32 @@ function readJob(payload: unknown): EmbedJob {
         : fileName === null
           ? null
           : undefined,
-    completeUrl:
-      typeof jobCompleteUrl === "string" ? jobCompleteUrl : undefined,
-    failUrl: typeof jobFailUrl === "string" ? jobFailUrl : undefined,
     contentHash: typeof contentHash === "string" ? contentHash : undefined,
-    cacheCompleteUrl:
-      typeof cacheCompleteUrl === "string" ? cacheCompleteUrl : undefined,
   };
 }
 
-const server = Bun.serve({
-  port,
-  routes: {
-    "/health": () => Response.json({ ok: true }),
-    "/embed": {
-      POST: async (request) => {
-        if (request.headers.get("x-binary-embedding-secret") !== sharedSecret) {
-          return new Response("Unauthorized", { status: 401 });
-        }
-        try {
-          const job = readJob(await request.json());
-          queueMicrotask(() => {
-            void processEmbeddingJob(job);
-          });
-          return Response.json(
-            {
-              accepted: true,
-              processId: job.processId,
-            },
-            { status: 202 },
-          );
-        } catch (error) {
-          return Response.json(
-            {
-              error:
-                error instanceof Error
-                  ? error.message
-                  : "Invalid embedding job",
-            },
-            { status: 400 },
-          );
-        }
-      },
-    },
+export const fileEmbeddingRoute = {
+  POST: async (request: Request) => {
+    if (request.headers.get("x-binary-embedding-secret") !== sharedSecret) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+    try {
+      const job = readJob(await request.json());
+      queueMicrotask(() => {
+        void processEmbeddingJob(job);
+      });
+      return Response.json(
+        { accepted: true, processId: job.processId },
+        { status: 202 },
+      );
+    } catch (error) {
+      return Response.json(
+        {
+          error:
+            error instanceof Error ? error.message : "Invalid embedding job",
+        },
+        { status: 400 },
+      );
+    }
   },
-});
-
-console.log(`Embedding server listening at ${server.url}`);
+};

@@ -10,11 +10,11 @@ import {
   useSidebar,
 } from "@/components/layout/sidebar";
 import { cn } from "@/lib/utils";
-import { AppSidebarAccountMenu } from "./app-sidebar-account-menu.js";
 import {
   AppLayoutSidebarProvider,
   useAppLayoutSidebar,
 } from "./app-layout-sidebar-context.js";
+import { AppSidebarAccountMenu } from "./app-sidebar-account-menu.js";
 import { AppSidebarMobileNav, AppSidebarNav } from "./app-sidebar-nav.js";
 
 function SidebarAccountFooter({
@@ -123,8 +123,8 @@ function AppLayoutFrame({
             {rightSidebar && innerSidebarVisible ? (
               <div className="flex h-full min-h-0 flex-col gap-2 lg:flex-row">
                 <div className="min-h-0 min-w-0 flex-1">{children}</div>
-                <aside className="bg-muted/50 flex min-h-[10rem] shrink-0 flex-col p-6 lg:min-h-0 lg:w-72 fade-mask">
-                  {rightSidebar}
+                <aside className="flex flex-column justify-start shrink-0 p-6 lg:min-h-0 lg:w-72">
+                  <div className="bg-muted/50 fade-mask">{rightSidebar}</div>
                 </aside>
               </div>
             ) : (

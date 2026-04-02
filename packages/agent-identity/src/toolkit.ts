@@ -18,25 +18,18 @@ type Simplify<T> = { [K in keyof T]: T[K] } & {};
 type AnyEnv = any;
 
 type UnionToIntersection<T> = (
-  T extends unknown ? (value: T) => void : never
+  T extends unknown
+    ? (value: T) => void
+    : never
 ) extends (value: infer I) => void
   ? I
   : never;
 
-export type ExtractComposableTools<T> = T extends Composable<
-  infer _,
-  infer TOOLS
->
-  ? TOOLS
-  : never;
+export type ExtractComposableTools<T> =
+  T extends Composable<infer _, infer TOOLS> ? TOOLS : never;
 
-export type ExtractComposableEnv<T> = T extends Composable<
-  infer _,
-  infer __,
-  infer Env
->
-  ? Env
-  : never;
+export type ExtractComposableEnv<T> =
+  T extends Composable<infer _, infer __, infer Env> ? Env : never;
 
 type ExactToolMap<T> = {
   [K in keyof T]: Extract<T[K], ToolSpec>;
@@ -46,14 +39,17 @@ type MergeToolMaps<T> = [T] extends [never]
   ? Record<never, never>
   : Simplify<ExactToolMap<UnionToIntersection<T>>>;
 
-export type ToolMapFromMembers<MEMBERS extends readonly AnyComposable<AnyEnv>[]> =
-  MergeToolMaps<ExtractComposableTools<MEMBERS[number]>>;
+export type ToolMapFromMembers<
+  MEMBERS extends readonly AnyComposable<AnyEnv>[],
+> = MergeToolMaps<ExtractComposableTools<MEMBERS[number]>>;
 
 export type EnvFromMembers<MEMBERS extends readonly AnyComposable<AnyEnv>[]> =
   ExtractComposableEnv<MEMBERS[number]>;
 
 type KeyedStaticProps<MEMBERS extends readonly AnyComposable<AnyEnv>[]> = {
-  [M in MEMBERS[number] as M["staticProps"] extends { name: infer N extends string }
+  [M in MEMBERS[number] as M["staticProps"] extends {
+    name: infer N extends string;
+  }
     ? N
     : never]: M["staticProps"];
 };
@@ -155,10 +151,7 @@ export function toolkit<
   return { staticProps, policies, evaluate };
 }
 
-export function dynamicToolkit<
-  const NAME extends string,
-  Env = unknown,
->({
+export function dynamicToolkit<const NAME extends string, Env = unknown>({
   name,
   policies: policiesConfig,
   instructions,
@@ -194,8 +187,7 @@ export function dynamicToolkit<
     const resolved = resolvedPolicies ?? new Map<SharedPolicy, boolean>();
 
     for (const policy of policies) {
-      const ok =
-        resolved.get(policy) ?? (await policy.evaluate(ctx.env));
+      const ok = resolved.get(policy) ?? (await policy.evaluate(ctx.env));
       resolved.set(policy, ok);
       if (!ok) {
         return { tools: {}, instructions: "" };

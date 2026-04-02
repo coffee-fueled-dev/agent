@@ -1,8 +1,5 @@
-import { api } from "@backend/api.js";
-import {
-  useSessionAction,
-  useSessionMutation,
-} from "convex-helpers/react/sessions";
+import { api } from "@very-coffee/backend/api";
+import { useMutation } from "convex/react";
 import { PaperclipIcon } from "lucide-react";
 import { useState } from "react";
 import { useFiles } from "@/components/files";
@@ -12,10 +9,6 @@ import {
   InputGroupButton,
   InputGroupTextarea,
 } from "@/components/ui/input-group";
-import { buildContextFileKey } from "../../_hooks/context-file.js";
-import { buildLexicalContextQueryMulti } from "../../_hooks/context-search-query.js";
-import { useContextFileUpload } from "../../_hooks/use-context-file-upload.js";
-import { useNamespace } from "../../context/_hooks/use-namespace.js";
 import {
   ChatComposerFileProvider,
   ChatComposerFileRow,
@@ -25,22 +18,17 @@ import {
 
 function ChatComposerInner({
   threadId,
-  token,
+  userId,
   setThreadId,
-  enrichWithContext = false,
 }: {
   threadId: string | null;
-  token: string;
+  userId: string;
   setThreadId: (id: string) => void;
-  enrichWithContext?: boolean;
 }) {
-  const createThread = useSessionMutation(api.chat.threads.createThread);
-  const sendMessage = useSessionAction(api.chat.threads.sendMessage);
-  const { namespace, sessionNamespaceResolved } = useNamespace();
-  const { prepareAttachment, indexFileInContext } = useContextFileUpload();
+  const createThread = useMutation(api.chat.thread.createThread);
+  const sendMessage = useMutation(api.chat.thread.sendMessage);
   const { files, addFiles, clearFiles } = useFiles();
-  const { allAttachmentsEmbedded, getOrderedFileEmbeddings } =
-    useChatComposerFile();
+  const { allAttachmentsReady, fileEmbedStates } = useChatComposerFile();
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,81 +36,44 @@ function ChatComposerInner({
   const handleSend = async () => {
     const trimmed = text.trim();
     if ((!trimmed && files.length === 0) || sending) return;
-    if (files.length > 0 && !sessionNamespaceResolved) return;
-    if (files.length > 0 && !allAttachmentsEmbedded) return;
+    if (files.length > 0 && !allAttachmentsReady) return;
     setSending(true);
     setError(null);
     try {
-      let activeThreadId = threadId;
-      if (!activeThreadId) {
-        activeThreadId = await createThread({ token, title: "Telemetry chat" });
+      const activeThreadId =
+        threadId ?? (await createThread({ userId, title: "Chat" }));
+      if (!threadId) {
         setThreadId(activeThreadId);
       }
 
       const attachments =
         files.length > 0
-          ? await Promise.all(
-              files.map(async (file) => {
-                const prepared = await prepareAttachment(file);
-                const key = buildContextFileKey({
-                  fileName: file.name,
-                  prefix: "chat",
-                });
-                await indexFileInContext({
-                  namespace,
-                  key,
-                  title: file.name,
-                  storageId: prepared.storageId,
-                  mimeType: prepared.mimeType,
-                  fileName: prepared.fileName,
-                  text: prepared.text,
-                  contentHash: prepared.contentHash,
-                });
-                return {
-                  storageId: prepared.storageId,
-                  fileName: prepared.fileName,
-                  mimeType: prepared.mimeType,
-                  contentHash: prepared.contentHash,
-                  text: prepared.text,
-                };
-              }),
-            )
+          ? files.map((file) => {
+              const state = fileEmbedStates[fileKeyFor(file)];
+              if (
+                !state ||
+                state.status !== "completed" ||
+                !state.storageId ||
+                !state.contentHash
+              ) {
+                throw new Error(`File is not ready yet: ${file.name}`);
+              }
+              return {
+                storageId: state.storageId,
+                fileName: file.name,
+                mimeType: file.type || "application/octet-stream",
+                contentHash: state.contentHash,
+              };
+            })
           : undefined;
-
-      let contextEnrichment:
-        | {
-            searchQuery?: string;
-            fileEmbeddings?: number[][];
-            minScore?: number;
-          }
-        | undefined;
-
-      if (enrichWithContext) {
-        const searchQuery = buildLexicalContextQueryMulti({
-          userQuery: trimmed,
-          files:
-            attachments?.map((a) => ({
-              fileName: a.fileName,
-              fileText: a.text,
-            })) ?? [],
-        });
-
-        const fileEmbeddings =
-          files.length > 0 ? getOrderedFileEmbeddings(files) : undefined;
-
-        contextEnrichment = {
-          searchQuery,
-          fileEmbeddings,
-          minScore: 0.02,
-        };
-      }
 
       await sendMessage({
         threadId: activeThreadId,
+        userId,
+        namespace: userId,
         prompt: trimmed,
-        token,
+        sessionId: activeThreadId,
         attachments,
-        contextEnrichment,
       });
       setText("");
       clearFiles();
@@ -136,9 +87,8 @@ function ChatComposerInner({
   const sendDisabled =
     sending ||
     (!text.trim() && files.length === 0) ||
-    !token ||
-    (files.length > 0 && !sessionNamespaceResolved) ||
-    (files.length > 0 && !allAttachmentsEmbedded);
+    !userId ||
+    (files.length > 0 && !allAttachmentsReady);
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-2">
@@ -146,7 +96,14 @@ function ChatComposerInner({
         <div className="flex flex-col gap-2">
           {files.map((f) => {
             const fk = fileKeyFor(f);
-            return <ChatComposerFileRow key={fk} fileKey={fk} file={f} />;
+            return (
+              <ChatComposerFileRow
+                key={fk}
+                fileKey={fk}
+                file={f}
+                userId={userId}
+              />
+            );
           })}
         </div>
       ) : null}
@@ -205,22 +162,19 @@ function ChatComposerInner({
 
 export function ChatComposer({
   threadId,
-  token,
+  userId,
   setThreadId,
-  enrichWithContext = false,
 }: {
   threadId: string | null;
-  token: string;
+  userId: string;
   setThreadId: (id: string) => void;
-  enrichWithContext?: boolean;
 }) {
   return (
     <ChatComposerFileProvider>
       <ChatComposerInner
         threadId={threadId}
-        token={token}
+        userId={userId}
         setThreadId={setThreadId}
-        enrichWithContext={enrichWithContext}
       />
     </ChatComposerFileProvider>
   );

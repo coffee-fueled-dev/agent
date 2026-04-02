@@ -33,7 +33,9 @@ export async function createIdentityLink(
   options?: CreateIdentityLinkOptions,
 ): Promise<IdentityLink> {
   const staticInput = agent.getStaticIdentityInput();
-  const runtimeInput = agent.getRuntimeIdentityInput(evaluated.effectiveStaticProps);
+  const runtimeInput = agent.getRuntimeIdentityInput(
+    evaluated.effectiveStaticProps,
+  );
 
   const [staticHash, runtimeHash] = await Promise.all([
     hashIdentityInput(staticInput),

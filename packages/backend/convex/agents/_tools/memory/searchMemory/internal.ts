@@ -8,11 +8,7 @@ export const execute = internalAction({
     query: v.string(),
     limit: v.optional(v.number()),
     retrievalMode: v.optional(
-      v.union(
-        v.literal("vector"),
-        v.literal("lexical"),
-        v.literal("hybrid"),
-      ),
+      v.union(v.literal("vector"), v.literal("lexical"), v.literal("hybrid")),
     ),
     minScore: v.optional(v.number()),
   },

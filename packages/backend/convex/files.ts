@@ -12,7 +12,7 @@ import {
   mutation,
   query,
 } from "./_generated/server.js";
-import { getEmbeddingServerUrl, getFileEmbeddingSecret } from "./filesEnv.js";
+import { getFileEmbeddingApiUrl, getFileEmbeddingSecret } from "./filesEnv.js";
 
 const fileChunkValidator = v.object({
   text: v.optional(v.string()),
@@ -28,11 +28,11 @@ const processStatusValidator = v.union(
 
 const processResultValidator = v.union(
   v.object({
-    processId: v.id("fileProcesses"),
+    processId: v.string(),
     status: v.literal("dispatched"),
   }),
   v.object({
-    processId: v.id("fileProcesses"),
+    processId: v.string(),
     status: v.literal("completed"),
     memoryId: v.string(),
   }),
@@ -159,7 +159,7 @@ export const processFile = action({
     }
 
     try {
-      const response = await fetch(`${getEmbeddingServerUrl()}/embed`, {
+      const response = await fetch(getFileEmbeddingApiUrl(), {
         method: "POST",
         headers: {
           "content-type": "application/json",
@@ -168,8 +168,6 @@ export const processFile = action({
         body: JSON.stringify({
           jobId: processId,
           fileUrl,
-          namespace: args.namespace,
-          key: args.key,
           title: args.title,
           mimeType: args.mimeType,
           fileName: args.fileName ?? null,
@@ -199,7 +197,7 @@ export const processFile = action({
 export const completeFileProcess = action({
   args: {
     secret: v.string(),
-    jobId: v.id("fileProcesses"),
+    jobId: v.string(),
     retrievalText: v.string(),
     lexicalText: v.optional(v.string()),
     chunks: v.array(fileChunkValidator),
@@ -210,7 +208,7 @@ export const completeFileProcess = action({
       throw new Error("Unauthorized");
     }
     return await completeProcessWithPayload(ctx, {
-      processId: args.jobId,
+      processId: args.jobId as Id<"fileProcesses">,
       retrievalText: args.retrievalText,
       lexicalText: args.lexicalText,
       chunks: args.chunks,
@@ -221,7 +219,7 @@ export const completeFileProcess = action({
 export const failFileProcess = mutation({
   args: {
     secret: v.string(),
-    jobId: v.id("fileProcesses"),
+    jobId: v.string(),
     error: v.string(),
   },
   returns: v.null(),
@@ -230,7 +228,7 @@ export const failFileProcess = mutation({
       throw new Error("Unauthorized");
     }
     await filesClient.markFileProcessFailed(ctx, {
-      processId: args.jobId,
+      processId: args.jobId as Id<"fileProcesses">,
       error: args.error,
     });
     return null;
@@ -238,15 +236,15 @@ export const failFileProcess = mutation({
 });
 
 export const getFileProcess = query({
-  args: { processId: v.id("fileProcesses") },
+  args: { processId: v.string() },
   returns: v.union(
     v.null(),
     v.object({
-      processId: v.id("fileProcesses"),
+      processId: v.string(),
       namespace: v.string(),
       key: v.string(),
       title: v.optional(v.string()),
-      storageId: v.id("_storage"),
+      storageId: v.string(),
       mimeType: v.string(),
       fileName: v.optional(v.string()),
       contentHash: v.optional(v.string()),
@@ -257,14 +255,16 @@ export const getFileProcess = query({
     }),
   ),
   handler: async (ctx, args) => {
-    const row = await filesClient.getFileProcess(ctx, args);
+    const row = await filesClient.getFileProcess(ctx, {
+      processId: args.processId as Id<"fileProcesses">,
+    });
     if (!row) return null;
     return {
       processId: args.processId,
       namespace: row.namespace,
       key: row.key,
       title: row.title,
-      storageId: row.storageId as Id<"_storage">,
+      storageId: row.storageId,
       mimeType: row.mimeType,
       fileName: row.fileName,
       contentHash: row.contentHash,
@@ -283,7 +283,7 @@ export const listFileProcessesPage = query({
   },
   returns: paginationResultValidator(
     v.object({
-      processId: v.id("fileProcesses"),
+      processId: v.string(),
       key: v.string(),
       title: v.optional(v.string()),
       mimeType: v.string(),
@@ -299,7 +299,7 @@ export const listFileProcessesPage = query({
     return {
       ...result,
       page: result.page.map((row) => ({
-        processId: row.processId as Id<"fileProcesses">,
+        processId: row.processId,
         key: row.key,
         title: row.title,
         mimeType: row.mimeType,
@@ -321,8 +321,8 @@ export const getFileForMemory = query({
   returns: v.union(
     v.null(),
     v.object({
-      processId: v.id("fileProcesses"),
-      storageId: v.id("_storage"),
+      processId: v.string(),
+      storageId: v.string(),
       mimeType: v.string(),
       fileName: v.optional(v.string()),
       contentHash: v.optional(v.string()),
@@ -335,8 +335,8 @@ export const getFileForMemory = query({
     if (!row) return null;
     const url = await ctx.storage.getUrl(row.storageId as Id<"_storage">);
     return {
-      processId: row._id as Id<"fileProcesses">,
-      storageId: row.storageId as Id<"_storage">,
+      processId: row._id,
+      storageId: row.storageId,
       mimeType: row.mimeType,
       fileName: row.fileName,
       contentHash: row.contentHash,

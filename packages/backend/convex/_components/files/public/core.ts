@@ -1,4 +1,7 @@
-import { paginationOptsValidator, paginationResultValidator } from "convex/server";
+import {
+  paginationOptsValidator,
+  paginationResultValidator,
+} from "convex/server";
 import { v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 
@@ -186,7 +189,9 @@ export const getLatestFileForMemory = query({
   handler: async (ctx, args) => {
     const rows = await ctx.db
       .query("fileProcesses")
-      .withIndex("by_memoryId_updatedAt", (q) => q.eq("memoryId", args.memoryId))
+      .withIndex("by_memoryId_updatedAt", (q) =>
+        q.eq("memoryId", args.memoryId),
+      )
       .order("desc")
       .take(20);
     const row =

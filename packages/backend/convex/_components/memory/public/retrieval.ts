@@ -74,8 +74,7 @@ export const searchMemory = action({
     };
 
     const isStringQuery = typeof args.query === "string";
-    const hasText =
-      isStringQuery && (args.query as string).trim().length > 0;
+    const hasText = isStringQuery && (args.query as string).trim().length > 0;
     const fileEmbeddingsList =
       args.fileEmbeddings && args.fileEmbeddings.length > 0
         ? args.fileEmbeddings
@@ -175,9 +174,7 @@ export const searchMemory = action({
 
     const fileVectorsResults = fileEmbeddingsList?.length
       ? await Promise.all(
-          fileEmbeddingsList.map((emb) =>
-            runVectorQuery(emb, candidateLimit),
-          ),
+          fileEmbeddingsList.map((emb) => runVectorQuery(emb, candidateLimit)),
         )
       : [];
 
@@ -231,8 +228,7 @@ export const searchMemory = action({
           paginationOpts: { cursor: null, numItems: GRAPH_NEIGHBORS_PER_SEED },
         });
         for (const edge of page) {
-          const nId =
-            edge.from === seed.memoryId ? edge.to : edge.from;
+          const nId = edge.from === seed.memoryId ? edge.to : edge.from;
           if (!allIds.has(nId) || seen.has(nId)) continue;
           seen.add(nId);
           const edgeScore = edge.properties?.score ?? 0;
@@ -250,7 +246,7 @@ export const searchMemory = action({
     if (rankedLists.length === 1) {
       const first = textVector.length
         ? textVector
-        : fileVectorsResults.find((fv) => fv.length) ?? lexicalMapped;
+        : (fileVectorsResults.find((fv) => fv.length) ?? lexicalMapped);
       return mergeAndFilter(first.slice(0, limit));
     }
 

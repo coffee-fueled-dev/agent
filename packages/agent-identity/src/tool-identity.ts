@@ -5,7 +5,9 @@ import type { Composable, ToolSpec } from "./types.js";
  * Hash a tool’s **static** identity (what is knowable before `evaluate`), e.g. `ToolStaticProps`.
  * Uses the same normalization as [`hashIdentityInput`](./hash.ts) (policies collapse to `id`).
  */
-export async function hashToolStaticIdentity(staticProps: unknown): Promise<string> {
+export async function hashToolStaticIdentity(
+  staticProps: unknown,
+): Promise<string> {
   return hashIdentityInput(staticProps);
 }
 

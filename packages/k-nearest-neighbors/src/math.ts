@@ -37,7 +37,11 @@ export function normalizePrefix(
   return true;
 }
 
-export function dotPrefix(a: Float64Array, b: Float64Array, len: number): number {
+export function dotPrefix(
+  a: Float64Array,
+  b: Float64Array,
+  len: number,
+): number {
   let s = 0;
   for (let i = 0; i < len; i++) s += (a[i] ?? 0) * (b[i] ?? 0);
   return s;

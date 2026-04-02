@@ -38,11 +38,12 @@ export function normalizeStaticProps(value: unknown): JsonValue {
     }
     const entries = Object.entries(value)
       .filter(
-        ([key, entryValue]) =>
-          entryValue !== undefined && !key.startsWith("$"),
+        ([key, entryValue]) => entryValue !== undefined && !key.startsWith("$"),
       )
       .sort(([left], [right]) => left.localeCompare(right))
-      .map(([key, entryValue]) => [key, normalizeStaticProps(entryValue)] as const);
+      .map(
+        ([key, entryValue]) => [key, normalizeStaticProps(entryValue)] as const,
+      );
     return Object.fromEntries(entries);
   }
   return String(value);

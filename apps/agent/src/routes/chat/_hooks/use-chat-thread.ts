@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { usePublicEnv } from "../../../env/index.js";
 
-const STORAGE_KEY = "telemetry_chat_thread_id";
+const STORAGE_KEY = "agent_chat_thread_id";
 
 function replaceUrlSearch(nextSearch: string) {
   if (typeof window === "undefined") return;
@@ -50,7 +50,7 @@ function syncThreadToUrl(threadId: string | null) {
 }
 
 export function useChatThread() {
-  const { accountToken: token } = usePublicEnv();
+  const { accountToken } = usePublicEnv();
   const [threadId, setThreadIdState] = useState<string | null>(
     readInitialThreadId,
   );
@@ -75,8 +75,8 @@ export function useChatThread() {
   return {
     threadId,
     setThreadId,
-    token,
-    hasToken: Boolean(token),
+    userId: accountToken,
+    hasUserId: Boolean(accountToken),
     resetThread,
   };
 }

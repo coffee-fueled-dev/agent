@@ -210,7 +210,11 @@ async function runImplSuite(
   const recalls: number[] = [];
 
   for (let run = 1; run <= runs; run++) {
-    const entries = makeEntries(n, dim, run * 0.13 + (suite === "heterogeneous" ? 1.7 : 0));
+    const entries = makeEntries(
+      n,
+      dim,
+      run * 0.13 + (suite === "heterogeneous" ? 1.7 : 0),
+    );
     const start = performance.now();
 
     let graph: Map<string, Map<string, number>>;
@@ -278,7 +282,10 @@ const allResults = await Promise.all([
 ]);
 
 const summaryMap = new Map(
-  allResults.map((r) => [`${r.summary.impl}:${r.summary.suite}:${r.summary.profile}`, r.summary]),
+  allResults.map((r) => [
+    `${r.summary.impl}:${r.summary.suite}:${r.summary.profile}`,
+    r.summary,
+  ]),
 );
 
 function s(impl: Impl, suite: Suite, profile: Profile): BenchSummary {
@@ -290,7 +297,8 @@ function s(impl: Impl, suite: Suite, profile: Profile): BenchSummary {
 }
 
 const exactP90ImprovementPct =
-  ((s("baseline", "homogeneous", "medium").p90 - s("exact", "homogeneous", "medium").p90) /
+  ((s("baseline", "homogeneous", "medium").p90 -
+    s("exact", "homogeneous", "medium").p90) /
     s("baseline", "homogeneous", "medium").p90) *
   100;
 

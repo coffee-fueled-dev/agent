@@ -1,6 +1,6 @@
 import { createTool } from "@convex-dev/agent";
-import type { Tool, ToolCallOptions } from "ai";
 import type { ToolRuntimeContext, ToolSpec } from "@very-coffee/agent-identity";
+import type { Tool, ToolCallOptions } from "ai";
 import type {
   ConvexAgentEnv,
   ToolExecutionContext,
@@ -17,10 +17,7 @@ function createToolRuntimeContext(
   };
 }
 
-export function toolSpecToAgentTool(
-  spec: ToolSpec,
-  env: ConvexAgentEnv,
-): Tool {
+export function toolSpecToAgentTool(spec: ToolSpec, env: ConvexAgentEnv): Tool {
   return createTool<unknown, unknown, ToolExecutionContext>({
     description: spec.description,
     args: spec.inputSchema as never,

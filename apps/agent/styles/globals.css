@@ -118,3 +118,68 @@
     @apply bg-background text-foreground;
   }
 }
+
+.fade-mask-y {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    black 5%,
+    black 95%,
+    transparent
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    black 5%,
+    black 95%,
+    transparent
+  );
+}
+
+.fade-mask-t {
+  -webkit-mask-image: linear-gradient(to top, black 95%, transparent);
+  mask-image: linear-gradient(to top, black 95%, transparent);
+}
+
+.fade-mask-b {
+  -webkit-mask-image: linear-gradient(to bottom, black 95%, transparent);
+  mask-image: linear-gradient(to bottom, black 95%, transparent);
+}
+
+.fade-mask-x {
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 5%,
+    black 95%,
+    transparent
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 5%,
+    black 95%,
+    transparent
+  );
+}
+
+.fade-mask {
+  -webkit-mask-image:
+    linear-gradient(to bottom, transparent, black 5%, black 95%, transparent),
+    linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(to bottom, transparent, black 5%, black 95%, transparent),
+    linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+  mask-composite: intersect;
+}
+
+.fade-mask-l {
+  -webkit-mask-image: linear-gradient(to left, black 95%, transparent);
+  mask-image: linear-gradient(to left, black 95%, transparent);
+}
+
+.fade-mask-r {
+  -webkit-mask-image: linear-gradient(to right, black 95%, transparent);
+  mask-image: linear-gradient(to right, black 95%, transparent);
+}

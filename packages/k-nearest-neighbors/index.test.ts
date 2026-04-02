@@ -126,7 +126,12 @@ describe("k-nearest-neighbors", () => {
     for (let i = 0; i < 120; i++) {
       entries.push({
         id: `e${i}`,
-        embedding: [Math.sin(i), Math.cos(i), Math.sin(i * 0.3), Math.cos(i * 0.7)],
+        embedding: [
+          Math.sin(i),
+          Math.cos(i),
+          Math.sin(i * 0.3),
+          Math.cos(i * 0.7),
+        ],
       });
     }
     const a = buildKnnGraphApprox(entries, 8, { seed: 7 });
