@@ -1,8 +1,24 @@
 import type { UIMessage } from "@very-coffee/backend/types";
+import type { FileUIPart } from "ai";
 import { ChatMessagePart } from "./chat-message-part.js";
+import { ChatMessagePartFile } from "./chat-message-part-file.js";
+
+function separateFileParts(message: UIMessage["parts"]) {
+  const fileParts: FileUIPart[] = [];
+  const otherParts: UIMessage["parts"][number][] = [];
+  for (const part of message) {
+    if (part.type === "file") {
+      fileParts.push(part);
+    } else {
+      otherParts.push(part);
+    }
+  }
+  return { fileParts, otherParts };
+}
 
 export function ChatMessageBubble({ message }: { message: UIMessage }) {
   const isUser = message.role === "user";
+  const { fileParts, otherParts } = separateFileParts(message.parts);
   return (
     <div
       className={`flex flex-col gap-2 rounded-lg text-sm ${
@@ -10,7 +26,7 @@ export function ChatMessageBubble({ message }: { message: UIMessage }) {
       }`}
     >
       <div className="flex flex-col gap-2">
-        {message.parts.map((part, i) => (
+        {otherParts.map((part, i) => (
           <ChatMessagePart
             // biome-ignore lint/suspicious/noArrayIndexKey: UIMessage parts have no stable id
             key={`${message.id}-${i}-${part.type}`}
@@ -19,6 +35,16 @@ export function ChatMessageBubble({ message }: { message: UIMessage }) {
             messageStatus={message.status}
           />
         ))}
+        <div className="flex flex-wrap gap-2">
+          {fileParts.map((part, i) => (
+            <ChatMessagePartFile
+              // biome-ignore lint/suspicious/noArrayIndexKey: UIMessage parts have no stable id
+              key={`${message.id}-${i}-${part.type}`}
+              filename={part.filename}
+              mediaType={part.mediaType}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );

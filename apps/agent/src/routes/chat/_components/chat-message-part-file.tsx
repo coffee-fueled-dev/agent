@@ -10,7 +10,7 @@ export function ChatMessagePartFile({
 }) {
   const name = filename ?? mediaType ?? "file";
   return (
-    <Item size="sm" variant="outline" className="gap-2">
+    <Item size="sm" variant="outline" className="gap-2 p-2 px-3">
       <MimeTypeIcon
         mimeType={mediaType ?? undefined}
         className="size-4 shrink-0"
