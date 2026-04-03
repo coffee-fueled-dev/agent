@@ -1,7 +1,6 @@
 import { v } from "convex/values";
 import type { Id } from "../_generated/dataModel.js";
 import { mutation } from "../_generated/server.js";
-import { sourceRefValidator } from "../schema.js";
 
 const textSliceValidator = v.object({
   propKey: v.string(),
@@ -29,8 +28,7 @@ export const upsertFeature = mutation({
     namespace: v.string(),
     featureId: v.string(),
     sourceSystem: v.string(),
-    sourceRef: sourceRefValidator,
-    title: v.optional(v.string()),
+    sourceRef: v.string(),
     bucketId: v.optional(v.string()),
     bucketType: v.optional(v.string()),
     supersededAt: v.optional(v.number()),
@@ -58,7 +56,6 @@ export const upsertFeature = mutation({
       featureId: args.featureId,
       sourceSystem: args.sourceSystem,
       sourceRef: args.sourceRef,
-      title: args.title,
       updatedAt,
       bucketId: args.bucketId,
       bucketType: args.bucketType,

@@ -18,6 +18,8 @@ import {
 } from "./env.js";
 
 const embeddingModel = "gemini-embedding-2-preview";
+/** Keep each Convex HTTP request small (embedding vectors are large). */
+const CHUNKS_PER_HTTP_BATCH = 12;
 const sharedSecret = getFileEmbeddingSecret();
 const convex = new ConvexHttpClient(getConvexUrl());
 const cacheDbPath = getEmbeddingCacheDbPath();
@@ -78,12 +80,25 @@ function createGenAIClient() {
 }
 
 async function reportCompletion(job: EmbedJob, result: ProcessedFileResult) {
-  await convex.action(api.files.completeFileProcess, {
+  const { chunks, retrievalText, lexicalText } = result;
+  if (chunks.length === 0) {
+    throw new Error("No embedding chunks to report");
+  }
+  for (let i = 0; i < chunks.length; i += CHUNKS_PER_HTTP_BATCH) {
+    const slice = chunks.slice(i, i + CHUNKS_PER_HTTP_BATCH);
+    const batchIndex = Math.floor(i / CHUNKS_PER_HTTP_BATCH);
+    await convex.mutation(api.files.appendFileProcessChunkBatch, {
+      secret: sharedSecret,
+      jobId: job.processId,
+      batchIndex,
+      chunks: slice,
+    });
+  }
+  await convex.action(api.files.finalizeFileProcessEmbedding, {
     secret: sharedSecret,
     jobId: job.processId,
-    retrievalText: result.retrievalText,
-    lexicalText: result.lexicalText,
-    chunks: result.chunks,
+    retrievalText,
+    lexicalText,
   });
 }
 

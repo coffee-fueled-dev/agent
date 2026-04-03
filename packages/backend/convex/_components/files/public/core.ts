@@ -234,6 +234,69 @@ export const getCachedFileResult = query({
   },
 });
 
+export const insertFileEmbeddingChunkBatch = mutation({
+  args: {
+    processId: v.id("fileProcesses"),
+    batchIndex: v.number(),
+    chunks: v.array(fileChunkValidator),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("fileEmbeddingChunkBatches")
+      .withIndex("by_process_batch", (q) =>
+        q.eq("processId", args.processId).eq("batchIndex", args.batchIndex),
+      )
+      .unique();
+    if (existing) {
+      await ctx.db.patch(existing._id, { chunks: args.chunks });
+    } else {
+      await ctx.db.insert("fileEmbeddingChunkBatches", {
+        processId: args.processId,
+        batchIndex: args.batchIndex,
+        chunks: args.chunks,
+      });
+    }
+    return null;
+  },
+});
+
+export const listFileEmbeddingChunkBatchesForProcess = query({
+  args: { processId: v.id("fileProcesses") },
+  returns: v.array(
+    v.object({
+      batchIndex: v.number(),
+      chunks: v.array(fileChunkValidator),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    const rows = await ctx.db
+      .query("fileEmbeddingChunkBatches")
+      .withIndex("by_process_batch", (q) => q.eq("processId", args.processId))
+      .collect();
+    rows.sort((a, b) => a.batchIndex - b.batchIndex);
+    return rows.map((r) => ({
+      batchIndex: r.batchIndex,
+      chunks: r.chunks,
+    }));
+  },
+});
+
+export const deleteFileEmbeddingChunkBatchesForProcess = mutation({
+  args: { processId: v.id("fileProcesses") },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const rows = await ctx.db
+      .query("fileEmbeddingChunkBatches")
+      .withIndex("by_process_batch", (q) => q.eq("processId", args.processId))
+      .collect();
+    for (const row of rows) {
+      await ctx.db.delete(row._id);
+    }
+    return null;
+  },
+});
+
 export const upsertCachedFileResult = mutation({
   args: {
     contentHash: v.string(),

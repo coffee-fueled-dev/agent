@@ -81,4 +81,31 @@ export class FilesClient {
   ) => {
     return await ctx.runMutation(this.coreAPI.upsertCachedFileResult, args);
   };
+
+  insertFileEmbeddingChunkBatch = async (
+    ctx: RunMutationCtx,
+    args: FunctionArgs<typeof this.coreAPI.insertFileEmbeddingChunkBatch>,
+  ) => {
+    return await ctx.runMutation(this.coreAPI.insertFileEmbeddingChunkBatch, args);
+  };
+
+  listFileEmbeddingChunkBatchesForProcess = async (
+    ctx: RunQueryCtx,
+    args: FunctionArgs<typeof this.coreAPI.listFileEmbeddingChunkBatchesForProcess>,
+  ) => {
+    return await ctx.runQuery(
+      this.coreAPI.listFileEmbeddingChunkBatchesForProcess,
+      args,
+    );
+  };
+
+  deleteFileEmbeddingChunkBatchesForProcess = async (
+    ctx: RunMutationCtx,
+    args: FunctionArgs<typeof this.coreAPI.deleteFileEmbeddingChunkBatchesForProcess>,
+  ) => {
+    return await ctx.runMutation(
+      this.coreAPI.deleteFileEmbeddingChunkBatchesForProcess,
+      args,
+    );
+  };
 }

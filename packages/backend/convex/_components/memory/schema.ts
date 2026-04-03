@@ -10,8 +10,6 @@ export default defineSchema({
     namespace: v.string(),
     memoryId: v.string(),
     key: v.string(),
-    title: v.optional(v.string()),
-    textPreview: v.string(),
     updatedAt: v.number(),
   })
     .index("by_memoryId", ["memoryId"])

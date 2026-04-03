@@ -53,6 +53,26 @@ export class MemoryClient {
     });
   };
 
+  getUpsertMemoryContext = async (
+    ctx: RunQueryCtx,
+    args: FunctionArgs<typeof this.coreAPI.getUpsertMemoryContext>,
+  ) => {
+    return await ctx.runQuery(this.coreAPI.getUpsertMemoryContext, args);
+  };
+
+  recordMemoryAfterRagAdd = async (
+    ctx: RunActionCtx,
+    args: FunctionArgs<typeof this.coreAPI.recordMemoryAfterRagAdd>,
+  ) => {
+    return await ctx.runAction(this.coreAPI.recordMemoryAfterRagAdd, {
+      ...args,
+      apiKey: args.apiKey ?? this.apiKey,
+      similarityK: args.similarityK ?? this.config.similarityK,
+      similarityThreshold:
+        args.similarityThreshold ?? this.config.similarityThreshold,
+    });
+  };
+
   getMemory = async (
     ctx: RunQueryCtx,
     args: FunctionArgs<typeof this.coreAPI.getMemory>,

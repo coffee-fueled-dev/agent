@@ -65,8 +65,6 @@ const memoryDetailValidator = v.union(
     namespace: v.string(),
     memoryId: v.string(),
     key: v.string(),
-    title: v.optional(v.string()),
-    textPreview: v.string(),
     fullText: v.string(),
     updatedAt: v.number(),
   }),
@@ -84,9 +82,176 @@ const versionRowValidator = v.object({
 const memoryListRowValidator = v.object({
   memoryId: v.string(),
   key: v.string(),
-  title: v.optional(v.string()),
-  textPreview: v.string(),
   updatedAt: v.number(),
+});
+
+export const getUpsertMemoryContext = query({
+  args: {
+    namespace: v.string(),
+    key: v.string(),
+    sourceRef: v.optional(v.string()),
+  },
+  returns: v.object({
+    ragKey: v.string(),
+    resolvedMemoryId: v.union(v.string(), v.null()),
+  }),
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{ ragKey: string; resolvedMemoryId: string | null }> => {
+    const sourceMapping = args.sourceRef
+      ? await ctx.runQuery(internal.internal.memoryStore.getSourceMapping, {
+          namespace: args.namespace,
+          sourceRef: args.sourceRef,
+        })
+      : null;
+
+    const byKey = await ctx.runQuery(
+      internal.internal.memoryStore.getByNamespaceKey,
+      { namespace: args.namespace, key: args.key },
+    );
+
+    const resolvedMemoryId: string | null =
+      sourceMapping?.memoryId ?? byKey?.memoryId ?? null;
+
+    const existingRow = resolvedMemoryId
+      ? await ctx.runQuery(internal.internal.memoryStore.getByMemoryId, {
+          memoryId: resolvedMemoryId,
+        })
+      : null;
+
+    const ragKey = existingRow?.key ?? args.key;
+
+    return { ragKey, resolvedMemoryId };
+  },
+});
+
+/** Called after `rag.add` runs inline (e.g. file embedding) so chunks are not serialized through a nested action. */
+export const recordMemoryAfterRagAdd = action({
+  args: {
+    namespace: v.string(),
+    key: v.string(),
+    title: v.optional(v.string()),
+    text: v.string(),
+    searchText: v.optional(v.string()),
+    sourceRef: v.optional(v.string()),
+    memoryId: v.string(),
+    ragKey: v.string(),
+    resolvedMemoryId: v.union(v.string(), v.null()),
+    embedding: v.array(v.number()),
+    apiKey: v.optional(v.string()),
+    similarityK: v.optional(v.number()),
+    similarityThreshold: v.optional(v.number()),
+    actor: eventActorArgs,
+  },
+  returns: v.object({ memoryId: v.string() }),
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const { memoryId } = args;
+    const textPreview = args.text.slice(0, TEXT_PREVIEW_LENGTH);
+
+    if (!args.resolvedMemoryId) {
+      await ctx.runMutation(internal.internal.memoryStore.insertRecord, {
+        namespace: args.namespace,
+        memoryId,
+        key: args.ragKey,
+        title: args.title,
+        textPreview,
+        updatedAt: now,
+      });
+      if (args.sourceRef) {
+        await ctx.runMutation(internal.internal.memoryStore.upsertSourceMap, {
+          namespace: args.namespace,
+          sourceRef: args.sourceRef,
+          memoryId,
+        });
+      }
+      await history.append(ctx, {
+        streamType: "memoryRecord",
+        streamId: memoryId,
+        entryId: memoryId,
+        kind: "created",
+        payload: {
+          key: args.ragKey,
+          title: args.title,
+          textPreview,
+          textSnapshot: args.text,
+        },
+        ...historyActorAttrs(args.actor),
+      });
+      await graph.nodes.create(ctx, {
+        label: "memoryRecord",
+        key: memoryId,
+      });
+    } else {
+      await ctx.runMutation(internal.internal.memoryStore.patchRecord, {
+        memoryId,
+        key: args.key !== args.ragKey ? args.key : undefined,
+        title: args.title,
+        textPreview,
+        updatedAt: now,
+      });
+      if (args.sourceRef) {
+        await ctx.runMutation(internal.internal.memoryStore.upsertSourceMap, {
+          namespace: args.namespace,
+          sourceRef: args.sourceRef,
+          memoryId,
+        });
+      }
+      const heads = await history.listHeads(ctx, {
+        streamType: "memoryRecord",
+        streamId: memoryId,
+      });
+      await history.append(ctx, {
+        streamType: "memoryRecord",
+        streamId: memoryId,
+        entryId: memoryId,
+        kind: "edited",
+        parentEntryIds:
+          heads.length > 0 ? heads.map((h) => h.entryId) : undefined,
+        payload: {
+          key: args.key,
+          title: args.title,
+          textPreview,
+          textSnapshot: args.text,
+        },
+        ...historyActorAttrs(args.actor),
+      });
+    }
+
+    await ctx.runMutation(internal.internal.embeddingStore.upsert, {
+      memoryId,
+      namespace: args.namespace,
+      embedding: args.embedding,
+    });
+
+    await searchClient.upsertFeature(ctx, {
+      namespace: args.namespace,
+      featureId: featureId(memoryId),
+      sourceSystem: "memory",
+      sourceRef: memoryId,
+      title: args.title,
+      text: args.searchText ?? args.text,
+    });
+
+    await ctx.runMutation(internal.internal.community.markCommunitiesStale, {
+      namespace: args.namespace,
+    });
+
+    await ctx.runMutation(
+      internal.internal.similarity.scheduleSimilarityEdges,
+      {
+        memoryId,
+        namespace: args.namespace,
+        embedding: args.embedding,
+        apiKey: args.apiKey,
+        similarityK: args.similarityK,
+        similarityThreshold: args.similarityThreshold,
+      },
+    );
+
+    return { memoryId };
+  },
 });
 
 export const upsertMemory = action({
@@ -271,8 +436,6 @@ export const getMemory = query({
       namespace: row.namespace,
       memoryId: row.memoryId,
       key: row.key,
-      title: row.title,
-      textPreview: row.textPreview,
       fullText: chunks.page.map((c) => c.text).join("\n"),
       updatedAt: row.updatedAt,
     };
@@ -296,8 +459,6 @@ export const listMemoryPage = query({
       page: result.page.map((row) => ({
         memoryId: row.memoryId,
         key: row.key,
-        title: row.title,
-        textPreview: row.textPreview,
         updatedAt: row.updatedAt,
       })),
     };

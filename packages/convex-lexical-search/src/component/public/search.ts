@@ -1,7 +1,6 @@
 import { v } from "convex/values";
 import type { Id } from "../_generated/dataModel.js";
 import { query } from "../_generated/server.js";
-import { sourceRefValidator } from "../schema.js";
 
 /** Lexical hit: canonical row plus which text slice matched (for RRF / display). */
 const lexicalSearchHitValidator = v.object({
@@ -10,8 +9,7 @@ const lexicalSearchHitValidator = v.object({
   namespace: v.string(),
   featureId: v.string(),
   sourceSystem: v.string(),
-  sourceRef: sourceRefValidator,
-  title: v.optional(v.string()),
+  sourceRef: v.string(),
   updatedAt: v.number(),
   bucketId: v.optional(v.string()),
   bucketType: v.optional(v.string()),
@@ -71,7 +69,6 @@ export const lexicalSearch = query({
       featureId: string;
       sourceSystem: string;
       sourceRef: string;
-      title?: string;
       updatedAt: number;
       bucketId?: string;
       bucketType?: string;
@@ -98,7 +95,6 @@ export const lexicalSearch = query({
         featureId: canonical.featureId,
         sourceSystem: canonical.sourceSystem,
         sourceRef: canonical.sourceRef,
-        title: canonical.title,
         updatedAt: canonical.updatedAt,
         bucketId: canonical.bucketId,
         bucketType: canonical.bucketType,

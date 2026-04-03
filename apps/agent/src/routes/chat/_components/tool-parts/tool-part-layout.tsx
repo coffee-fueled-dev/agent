@@ -6,22 +6,16 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import {
-  ItemContent,
-  ItemDescription,
-  ItemMedia,
-} from "@/components/ui/item.js";
+import { ItemContent } from "@/components/ui/item.js";
 import { cn } from "@/lib/utils";
 
 export function ToolPartLayout({
   toolName,
-  toolIcon,
   stateIcon,
   statusLabel,
   children,
 }: {
   toolName: string;
-  toolIcon: React.ReactNode;
   stateIcon: React.ReactNode;
   statusLabel: string;
   children: React.ReactNode;
@@ -40,7 +34,6 @@ export function ToolPartLayout({
             "hover:bg-muted/50 [&[data-state=open]_.chevron]:rotate-90",
           )}
         >
-          <ItemMedia variant="icon">{toolIcon}</ItemMedia>
           <ItemContent className="min-w-0 flex-1 gap-1">
             <span className="flex flex-wrap items-center gap-2">
               <Badge variant="secondary" className="font-mono text-[10px]">
@@ -58,9 +51,9 @@ export function ToolPartLayout({
         </CollapsibleTrigger>
         <CollapsibleContent>
           <div className="border-border border-t px-4 pb-3 pt-2">
-            <ItemDescription className="text-foreground break-all font-mono text-[11px] leading-relaxed whitespace-pre-wrap">
+            <pre className="p-3 bg-muted/50 text-muted-foreground break-all font-mono text-xs leading-relaxed whitespace-pre-wrap rounded-md">
               {children}
-            </ItemDescription>
+            </pre>
           </div>
         </CollapsibleContent>
       </div>

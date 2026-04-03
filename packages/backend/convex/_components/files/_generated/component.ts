@@ -40,6 +40,13 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           string,
           Name
         >;
+        deleteFileEmbeddingChunkBatchesForProcess: FunctionReference<
+          "mutation",
+          "internal",
+          { processId: string },
+          null,
+          Name
+        >;
         getCachedFileResult: FunctionReference<
           "query",
           "internal",
@@ -92,6 +99,27 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             title?: string;
             updatedAt: number;
           },
+          Name
+        >;
+        insertFileEmbeddingChunkBatch: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            batchIndex: number;
+            chunks: Array<{ embedding: Array<number>; text?: string }>;
+            processId: string;
+          },
+          null,
+          Name
+        >;
+        listFileEmbeddingChunkBatchesForProcess: FunctionReference<
+          "query",
+          "internal",
+          { processId: string },
+          Array<{
+            batchIndex: number;
+            chunks: Array<{ embedding: Array<number>; text?: string }>;
+          }>,
           Name
         >;
         listFileProcessesPage: FunctionReference<

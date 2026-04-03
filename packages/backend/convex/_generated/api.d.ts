@@ -117,10 +117,14 @@ export declare const components: {
             key: string;
             memoryId: string;
             namespace: string;
-            textPreview: string;
-            title?: string;
             updatedAt: number;
           }
+        >;
+        getUpsertMemoryContext: FunctionReference<
+          "query",
+          "internal",
+          { key: string; namespace: string; sourceRef?: string },
+          { ragKey: string; resolvedMemoryId: string | null }
         >;
         listMemoryPage: FunctionReference<
           "query",
@@ -139,13 +143,7 @@ export declare const components: {
           {
             continueCursor: string;
             isDone: boolean;
-            page: Array<{
-              key: string;
-              memoryId: string;
-              textPreview: string;
-              title?: string;
-              updatedAt: number;
-            }>;
+            page: Array<{ key: string; memoryId: string; updatedAt: number }>;
             pageStatus?: "SplitRecommended" | "SplitRequired" | null;
             splitCursor?: string | null;
           }
@@ -192,6 +190,27 @@ export declare const components: {
             textSnapshot: string;
             title?: string;
           }
+        >;
+        recordMemoryAfterRagAdd: FunctionReference<
+          "action",
+          "internal",
+          {
+            actor?: { byId: string; byType: string };
+            apiKey?: string;
+            embedding: Array<number>;
+            key: string;
+            memoryId: string;
+            namespace: string;
+            ragKey: string;
+            resolvedMemoryId: string | null;
+            searchText?: string;
+            similarityK?: number;
+            similarityThreshold?: number;
+            sourceRef?: string;
+            text: string;
+            title?: string;
+          },
+          { memoryId: string }
         >;
         removeMemory: FunctionReference<
           "action",
@@ -315,6 +334,12 @@ export declare const components: {
           },
           string
         >;
+        deleteFileEmbeddingChunkBatchesForProcess: FunctionReference<
+          "mutation",
+          "internal",
+          { processId: string },
+          null
+        >;
         getCachedFileResult: FunctionReference<
           "query",
           "internal",
@@ -365,6 +390,25 @@ export declare const components: {
             title?: string;
             updatedAt: number;
           }
+        >;
+        insertFileEmbeddingChunkBatch: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            batchIndex: number;
+            chunks: Array<{ embedding: Array<number>; text?: string }>;
+            processId: string;
+          },
+          null
+        >;
+        listFileEmbeddingChunkBatchesForProcess: FunctionReference<
+          "query",
+          "internal",
+          { processId: string },
+          Array<{
+            batchIndex: number;
+            chunks: Array<{ embedding: Array<number>; text?: string }>;
+          }>
         >;
         listFileProcessesPage: FunctionReference<
           "query",

@@ -34,10 +34,15 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             key: string;
             memoryId: string;
             namespace: string;
-            textPreview: string;
-            title?: string;
             updatedAt: number;
           },
+          Name
+        >;
+        getUpsertMemoryContext: FunctionReference<
+          "query",
+          "internal",
+          { key: string; namespace: string; sourceRef?: string },
+          { ragKey: string; resolvedMemoryId: string | null },
           Name
         >;
         listMemoryPage: FunctionReference<
@@ -57,13 +62,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           {
             continueCursor: string;
             isDone: boolean;
-            page: Array<{
-              key: string;
-              memoryId: string;
-              textPreview: string;
-              title?: string;
-              updatedAt: number;
-            }>;
+            page: Array<{ key: string; memoryId: string; updatedAt: number }>;
             pageStatus?: "SplitRecommended" | "SplitRequired" | null;
             splitCursor?: string | null;
           },
@@ -112,6 +111,28 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             textSnapshot: string;
             title?: string;
           },
+          Name
+        >;
+        recordMemoryAfterRagAdd: FunctionReference<
+          "action",
+          "internal",
+          {
+            actor?: { byId: string; byType: string };
+            apiKey?: string;
+            embedding: Array<number>;
+            key: string;
+            memoryId: string;
+            namespace: string;
+            ragKey: string;
+            resolvedMemoryId: string | null;
+            searchText?: string;
+            similarityK?: number;
+            similarityThreshold?: number;
+            sourceRef?: string;
+            text: string;
+            title?: string;
+          },
+          { memoryId: string },
           Name
         >;
         removeMemory: FunctionReference<

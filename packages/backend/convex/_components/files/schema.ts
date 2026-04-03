@@ -36,4 +36,11 @@ export default defineSchema({
     chunks: v.array(fileChunkValidator),
     updatedAt: v.number(),
   }).index("by_contentHash", ["contentHash"]),
+
+  /** Staging for batched file-embedding completion (HTTP payload size limits). */
+  fileEmbeddingChunkBatches: defineTable({
+    processId: v.id("fileProcesses"),
+    batchIndex: v.number(),
+    chunks: v.array(fileChunkValidator),
+  }).index("by_process_batch", ["processId", "batchIndex"]),
 });

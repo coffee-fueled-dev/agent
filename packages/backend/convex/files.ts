@@ -5,6 +5,7 @@ import {
 import { v } from "convex/values";
 import { filesClient } from "./_clients/files.js";
 import { memoryClient } from "./_clients/memory.js";
+import { createMemoryRag } from "./_components/memory/rag.js";
 import type { Id } from "./_generated/dataModel.js";
 import {
   type ActionCtx,
@@ -13,6 +14,9 @@ import {
   query,
 } from "./_generated/server.js";
 import { getFileEmbeddingApiUrl, getFileEmbeddingSecret } from "./filesEnv.js";
+
+/** Convex document / mutation size limits — skip cross-request cache for huge embeddings. */
+const MAX_CACHED_FILE_CHUNKS = 120;
 
 const fileChunkValidator = v.object({
   text: v.optional(v.string()),
@@ -48,7 +52,11 @@ function normalizeChunks(
   }));
 }
 
-async function completeProcessWithPayload(
+/**
+ * Runs `rag.add` and memory side effects in this action so chunk arrays are not
+ * re-serialized through a nested `upsertMemory` call (Convex argument size limits).
+ */
+async function finalizeFileEmbeddingCore(
   ctx: Pick<ActionCtx, "runQuery" | "runMutation" | "runAction">,
   args: {
     processId: Id<"fileProcesses">;
@@ -75,22 +83,55 @@ async function completeProcessWithPayload(
     throw new Error("At least one embedding chunk is required");
   }
 
-  const memory = await memoryClient.upsertMemory(ctx, {
+  const sourceRef = `file:${process._id}`;
+  const upsertCtx = await memoryClient.getUpsertMemoryContext(ctx, {
+    namespace: process.namespace,
+    key: process.key,
+    sourceRef,
+  });
+
+  const normalized = normalizeChunks(args.retrievalText, args.chunks);
+  const rag = createMemoryRag();
+  const ragResult = await rag.add(ctx, {
+    namespace: process.namespace,
+    key: upsertCtx.ragKey,
+    title: process.title,
+    chunks: normalized.map((c) => ({
+      text: c.text,
+      embedding: c.embedding,
+    })),
+    filterValues: [{ name: "status", value: "current" }],
+  });
+
+  const memoryId = ragResult.entryId as string;
+
+  const firstChunk = normalized[0];
+  if (!firstChunk) {
+    throw new Error("Normalized chunks were empty");
+  }
+
+  await memoryClient.recordMemoryAfterRagAdd(ctx, {
     namespace: process.namespace,
     key: process.key,
     title: process.title,
     text: args.retrievalText,
     searchText: args.lexicalText ?? args.retrievalText,
-    chunks: normalizeChunks(args.retrievalText, args.chunks),
-    sourceRef: `file:${process._id}`,
+    sourceRef,
+    memoryId,
+    ragKey: upsertCtx.ragKey,
+    resolvedMemoryId: upsertCtx.resolvedMemoryId,
+    embedding: firstChunk.embedding,
   });
 
   await filesClient.markFileProcessCompleted(ctx, {
     processId: args.processId,
-    memoryId: memory.memoryId,
+    memoryId,
   });
 
-  if (process.contentHash) {
+  if (
+    process.contentHash &&
+    args.chunks.length <= MAX_CACHED_FILE_CHUNKS
+  ) {
     await filesClient.upsertCachedFileResult(ctx, {
       contentHash: process.contentHash,
       mimeType: process.mimeType,
@@ -103,8 +144,20 @@ async function completeProcessWithPayload(
   return {
     processId: args.processId,
     status: "completed" as const,
-    memoryId: memory.memoryId,
+    memoryId,
   };
+}
+
+async function completeProcessWithPayload(
+  ctx: Pick<ActionCtx, "runQuery" | "runMutation" | "runAction">,
+  args: {
+    processId: Id<"fileProcesses">;
+    retrievalText: string;
+    lexicalText?: string;
+    chunks: Array<{ text?: string; embedding: number[] }>;
+  },
+) {
+  return await finalizeFileEmbeddingCore(ctx, args);
 }
 
 export const generateFileUploadUrl = mutation({
@@ -194,25 +247,63 @@ export const processFile = action({
   },
 });
 
-export const completeFileProcess = action({
+/** Upload one batch of embedding chunks (see `finalizeFileProcessEmbedding`). */
+export const appendFileProcessChunkBatch = mutation({
+  args: {
+    secret: v.string(),
+    jobId: v.string(),
+    batchIndex: v.number(),
+    chunks: v.array(fileChunkValidator),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    if (args.secret !== getFileEmbeddingSecret()) {
+      throw new Error("Unauthorized");
+    }
+    await filesClient.insertFileEmbeddingChunkBatch(ctx, {
+      processId: args.jobId as Id<"fileProcesses">,
+      batchIndex: args.batchIndex,
+      chunks: args.chunks,
+    });
+    return null;
+  },
+});
+
+/**
+ * Loads staged batches from the files component, runs RAG + memory updates inline,
+ * then clears staging. Call after all `appendFileProcessChunkBatch` calls.
+ */
+export const finalizeFileProcessEmbedding = action({
   args: {
     secret: v.string(),
     jobId: v.string(),
     retrievalText: v.string(),
     lexicalText: v.optional(v.string()),
-    chunks: v.array(fileChunkValidator),
   },
   returns: processResultValidator,
   handler: async (ctx, args) => {
     if (args.secret !== getFileEmbeddingSecret()) {
       throw new Error("Unauthorized");
     }
-    return await completeProcessWithPayload(ctx, {
-      processId: args.jobId as Id<"fileProcesses">,
+    const processId = args.jobId as Id<"fileProcesses">;
+    const batches = await filesClient.listFileEmbeddingChunkBatchesForProcess(
+      ctx,
+      { processId },
+    );
+    if (batches.length === 0) {
+      throw new Error("No embedding batches staged for this job");
+    }
+    const chunks = batches.flatMap((b) => b.chunks);
+    const result = await finalizeFileEmbeddingCore(ctx, {
+      processId,
       retrievalText: args.retrievalText,
       lexicalText: args.lexicalText,
-      chunks: args.chunks,
+      chunks,
     });
+    await filesClient.deleteFileEmbeddingChunkBatchesForProcess(ctx, {
+      processId,
+    });
+    return result;
   },
 });
 

@@ -7,7 +7,7 @@ export const search = new SearchClient<DataModel, "memory">(components.search, {
     {
       sourceSystem: "memory",
       document: "memoryRecords",
-      fields: ["memoryId", "key", "title", "textPreview"],
+      fields: ["memoryId", "key"],
     },
   ],
 });
