@@ -27,6 +27,8 @@ import type * as agents_lib_models from "../agents/lib/models.js";
 import type * as agents_lib_toolSpecAdapter from "../agents/lib/toolSpecAdapter.js";
 import type * as agents_lib_toolkit from "../agents/lib/toolkit.js";
 import type * as chat_thread from "../chat/thread.js";
+import type * as files from "../files.js";
+import type * as files_store from "../files/store.js";
 import type * as filesEnv from "../filesEnv.js";
 import type * as types from "../types.js";
 import type * as workpool from "../workpool.js";
@@ -57,6 +59,8 @@ declare const fullApi: ApiFromModules<{
   "agents/lib/toolSpecAdapter": typeof agents_lib_toolSpecAdapter;
   "agents/lib/toolkit": typeof agents_lib_toolkit;
   "chat/thread": typeof chat_thread;
+  files: typeof files;
+  "files/store": typeof files_store;
   filesEnv: typeof filesEnv;
   types: typeof types;
   workpool: typeof workpool;

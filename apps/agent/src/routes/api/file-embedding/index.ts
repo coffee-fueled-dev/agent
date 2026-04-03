@@ -79,7 +79,7 @@ function createGenAIClient() {
 }
 
 async function reportCompletion(job: EmbedJob, result: ProcessedFileResult) {
-  const { chunks, retrievalText, lexicalText } = result;
+  const { chunks, retrievalText } = result;
   if (chunks.length === 0) {
     throw new Error("No embedding chunks to report");
   }
@@ -109,9 +109,6 @@ async function reportCompletion(job: EmbedJob, result: ProcessedFileResult) {
     await convex.mutation(api.files.cacheFileEmbeddingResult, {
       secret: sharedSecret,
       jobId: job.processId,
-      retrievalText,
-      lexicalText,
-      chunks,
     });
   }
 }
