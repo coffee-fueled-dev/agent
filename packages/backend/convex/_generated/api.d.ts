@@ -104,7 +104,7 @@ export declare const components: {
           "query",
           "internal",
           { memoryRecordId: string; namespace: string },
-          null | { key: string; text?: string }
+          null | { key: string; text?: string; title?: string }
         >;
       };
       search: {
@@ -207,6 +207,7 @@ export declare const components: {
             mode?: null | "append";
             namespace: string;
             skipCanonicalText?: boolean;
+            title?: string;
           },
           { memoryRecordId: string; workId: string }
         >;

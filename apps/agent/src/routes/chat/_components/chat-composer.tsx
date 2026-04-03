@@ -12,7 +12,10 @@ import {
 import { FileDropzone, useFiles } from "@/files";
 import { optimisticallySendChatMessage } from "../_hooks/optimistically-send-chat-message.js";
 import { useChatThread } from "../_hooks/use-chat-thread.js";
-import { useChatComposerMemory } from "./chat-composer-memory-provider.js";
+import {
+  memoryBadgeLabel,
+  useChatComposerMemory,
+} from "./chat-composer-memory-provider.js";
 import {
   ChatComposerFileProvider,
   ChatComposerFileRow,
@@ -36,6 +39,7 @@ function ChatComposerInner() {
   const { files, addFiles, clearFiles } = useFiles();
   const { allAttachmentsReady, fileEmbedStates } = useChatComposerFile();
   const {
+    memoryEntries,
     memoryRecordIds,
     removeMemoryRecordId,
     clearMemoryRecordIds,
@@ -119,20 +123,20 @@ function ChatComposerInner() {
           namespace={userId}
         />
       ) : null}
-      {memoryRecordIds.length > 0 ? (
+      {memoryEntries.length > 0 ? (
         <div className="flex flex-wrap gap-1.5">
-          {memoryRecordIds.map((id) => (
+          {memoryEntries.map((entry) => (
             <span
-              key={id}
+              key={entry.id}
               className="inline-flex items-center gap-1 rounded-md border bg-muted/40 px-2 py-0.5 text-xs"
             >
-              <span className="max-w-[140px] truncate font-mono text-[10px]">
-                {id.slice(0, 10)}…
+              <span className="max-w-[180px] truncate" title={entry.id}>
+                {memoryBadgeLabel(entry)}
               </span>
               <button
                 type="button"
                 className="text-muted-foreground hover:text-foreground"
-                onClick={() => removeMemoryRecordId(id)}
+                onClick={() => removeMemoryRecordId(entry.id)}
                 aria-label="Remove memory"
               >
                 ×

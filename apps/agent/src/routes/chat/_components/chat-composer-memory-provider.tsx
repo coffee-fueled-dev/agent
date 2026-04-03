@@ -9,9 +9,31 @@ import {
   useState,
 } from "react";
 
+export type ComposerMemoryEntry = {
+  id: string;
+  title?: string | null;
+  fileName?: string | null;
+};
+
+/** Label for composer chips: title → file name → record id. */
+export function memoryBadgeLabel(e: ComposerMemoryEntry): string {
+  const t = e.title?.trim();
+  if (t) return t;
+  const f = e.fileName?.trim();
+  if (f) return f;
+  return e.id;
+}
+
+type MemoryAttachmentMeta = {
+  title?: string | null;
+  fileName?: string | null;
+};
+
 type ChatComposerMemoryContextValue = {
+  memoryEntries: readonly ComposerMemoryEntry[];
+  /** Stable id list for mutations and optimistic updates. */
   memoryRecordIds: readonly string[];
-  toggleMemoryRecordId: (id: string) => void;
+  toggleMemoryRecordId: (id: string, meta?: MemoryAttachmentMeta) => void;
   removeMemoryRecordId: (id: string) => void;
   clearMemoryRecordIds: () => void;
   memorySearchOpen: boolean;
@@ -36,25 +58,45 @@ export function ChatComposerMemoryProvider({
 }: {
   children: ReactNode;
 }) {
-  const [memoryRecordIds, setMemoryRecordIds] = useState<string[]>([]);
+  const [memoryEntries, setMemoryEntries] = useState<ComposerMemoryEntry[]>(
+    [],
+  );
   const [memorySearchOpen, setMemorySearchOpen] = useState(false);
 
-  const toggleMemoryRecordId = useCallback((id: string) => {
-    setMemoryRecordIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-    );
-  }, []);
+  const memoryRecordIds = useMemo(
+    () => memoryEntries.map((e) => e.id),
+    [memoryEntries],
+  );
+
+  const toggleMemoryRecordId = useCallback(
+    (id: string, meta?: MemoryAttachmentMeta) => {
+      setMemoryEntries((prev) => {
+        const exists = prev.some((e) => e.id === id);
+        if (exists) return prev.filter((e) => e.id !== id);
+        return [
+          ...prev,
+          {
+            id,
+            title: meta?.title ?? null,
+            fileName: meta?.fileName ?? null,
+          },
+        ];
+      });
+    },
+    [],
+  );
 
   const removeMemoryRecordId = useCallback((id: string) => {
-    setMemoryRecordIds((prev) => prev.filter((x) => x !== id));
+    setMemoryEntries((prev) => prev.filter((e) => e.id !== id));
   }, []);
 
   const clearMemoryRecordIds = useCallback(() => {
-    setMemoryRecordIds([]);
+    setMemoryEntries([]);
   }, []);
 
   const value = useMemo(
     (): ChatComposerMemoryContextValue => ({
+      memoryEntries,
       memoryRecordIds,
       toggleMemoryRecordId,
       removeMemoryRecordId,
@@ -63,6 +105,7 @@ export function ChatComposerMemoryProvider({
       setMemorySearchOpen,
     }),
     [
+      memoryEntries,
       memoryRecordIds,
       toggleMemoryRecordId,
       removeMemoryRecordId,

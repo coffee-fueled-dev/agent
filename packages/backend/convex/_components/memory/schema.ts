@@ -19,6 +19,8 @@ export default defineSchema({
   memoryRecords: defineTable({
     namespace: v.string(),
     key: v.string(),
+    /** Optional display title (e.g. plaintext memories from tools). */
+    title: v.optional(v.string()),
     /** Next chunk sequence for this stream; OCC with applyMergeMemoryBatch. */
     nextChunkSeq: v.optional(v.number()),
     /** Rollup for merges without `skipCanonicalText`; file ingest skips this field. */

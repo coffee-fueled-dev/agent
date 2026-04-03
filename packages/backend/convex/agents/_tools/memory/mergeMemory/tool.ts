@@ -45,6 +45,12 @@ export function mergeMemoryTool() {
             "Existing memory document id (required when mode is append).",
           ),
         content: contentField,
+        title: z
+          .string()
+          .optional()
+          .describe(
+            "Short human-readable title for this memory (shown in chat UI). Provide for new plaintext memories.",
+          ),
       })
       .refine(
         (a) =>
@@ -62,7 +68,9 @@ export function mergeMemoryTool() {
       if (args.mode === "append") {
         const memoryRecordId = args.memoryRecordId;
         if (!memoryRecordId) {
-          throw new Error("mergeMemory: memoryRecordId is required when appending");
+          throw new Error(
+            "mergeMemory: memoryRecordId is required when appending",
+          );
         }
         return await withFormattedResults(
           ctx.env.runMutation(components.memory.public.store.mergeMemory, {
@@ -71,6 +79,7 @@ export function mergeMemoryTool() {
             memoryRecordId,
             content,
             googleApiKey,
+            ...(args.title !== undefined ? { title: args.title } : {}),
           }),
         );
       }
@@ -84,6 +93,7 @@ export function mergeMemoryTool() {
           key,
           content,
           googleApiKey,
+          ...(args.title !== undefined ? { title: args.title } : {}),
         }),
       );
     },

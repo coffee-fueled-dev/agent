@@ -130,7 +130,11 @@ async function appendMemoryRecordParts(
         `Memory ${rawId} has no storage source map and no canonical text on the record`,
       );
     }
-    content.push({ type: "text", text: rec.text.trim() });
+    content.push({
+      type: "text",
+      text: rec.text.trim(),
+      providerOptions: { ui: { visible: false } },
+    });
   }
 }
 

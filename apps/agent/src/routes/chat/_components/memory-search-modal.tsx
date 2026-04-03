@@ -32,7 +32,10 @@ import {
   buildLexicalContextQuery,
   lexicalSnippetFromFileText,
 } from "@/routes/_hooks/context-search-query.js";
-import { useChatComposerMemory } from "./chat-composer-memory-provider.js";
+import {
+  memoryBadgeLabel,
+  useChatComposerMemory,
+} from "./chat-composer-memory-provider.js";
 
 type SearchHit = {
   sourceRef: string;
@@ -44,6 +47,7 @@ type SearchHit = {
   vector: unknown;
   mimeType: string | null;
   fileName: string | null;
+  title: string | null;
 };
 
 function isTextLikeFile(file: File) {
@@ -245,7 +249,12 @@ export function MemorySearchModal({
                     <CommandItem
                       key={hit.sourceRef}
                       value={hit.sourceRef}
-                      onSelect={() => toggleMemoryRecordId(hit.sourceRef)}
+                      onSelect={() =>
+                        toggleMemoryRecordId(hit.sourceRef, {
+                          title: hit.title,
+                          fileName: hit.fileName,
+                        })
+                      }
                       className="cursor-pointer flex-col items-stretch gap-1 py-2"
                     >
                       <Item>
@@ -255,8 +264,11 @@ export function MemorySearchModal({
                         <ItemContent>
                           <ItemTitle className="flex justify-between items-center w-full">
                             <span className="truncate text-xs font-medium">
-                              {hit.fileName ??
-                                (hit.mimeType ? "File memory" : "Memory")}
+                              {memoryBadgeLabel({
+                                id: hit.sourceRef,
+                                title: hit.title,
+                                fileName: hit.fileName,
+                              })}
                             </span>
                             {isHitSelected && (
                               <CheckIcon

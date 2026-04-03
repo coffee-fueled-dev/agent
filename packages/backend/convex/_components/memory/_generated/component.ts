@@ -29,7 +29,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           "query",
           "internal",
           { memoryRecordId: string; namespace: string },
-          null | { key: string; text?: string },
+          null | { key: string; text?: string; title?: string },
           Name
         >;
       };
@@ -136,6 +136,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             mode?: null | "append";
             namespace: string;
             skipCanonicalText?: boolean;
+            title?: string;
           },
           { memoryRecordId: string; workId: string },
           Name

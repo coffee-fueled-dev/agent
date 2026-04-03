@@ -40,6 +40,8 @@ export const mergeMemory = mutation({
     mimeType: v.optional(v.string()),
     /** From host app; required when merges include text-only chunks that need embedding. */
     googleApiKey: v.optional(v.string()),
+    /** Short label for UI (plaintext memories); optional on file-backed ingest. */
+    title: v.optional(v.string()),
   },
   returns: v.object({
     memoryRecordId: v.id("memoryRecords"),
@@ -59,6 +61,10 @@ export const mergeMemory = mutation({
         throw new Error("mergeMemory: memoryRecordId is required when mode is append");
       }
       memoryRecordId = id;
+      const titleTrim = args.title?.trim();
+      if (titleTrim) {
+        await ctx.db.patch(id, { title: titleTrim });
+      }
       const contentSource =
         args.contentSource ?? ({ type: "memoryInline", id: String(id) } as const);
       await executeMergeMemoryBatch(ctx, {
@@ -85,13 +91,20 @@ export const mergeMemory = mutation({
       )
       .unique();
 
-    memoryRecordId =
-      existing?._id ??
-      (await ctx.db.insert("memoryRecords", {
+    const titleTrim = args.title?.trim();
+    if (existing) {
+      memoryRecordId = existing._id;
+      if (titleTrim) {
+        await ctx.db.patch(existing._id, { title: titleTrim });
+      }
+    } else {
+      memoryRecordId = await ctx.db.insert("memoryRecords", {
         namespace: args.namespace,
         key,
         nextChunkSeq: 0,
-      }));
+        ...(titleTrim ? { title: titleTrim } : {}),
+      });
+    }
 
     const contentSource =
       args.contentSource ??

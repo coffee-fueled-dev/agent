@@ -41,6 +41,7 @@ export const searchMemoriesForComposer = action({
       vector: v.any(),
       mimeType: v.union(v.string(), v.null()),
       fileName: v.union(v.string(), v.null()),
+      title: v.union(v.string(), v.null()),
     }),
   ),
   handler: async (ctx, args) => {
@@ -79,6 +80,7 @@ export const searchMemoriesForComposer = action({
       vector: (typeof hits)[number]["vector"];
       mimeType: string | null;
       fileName: string | null;
+      title: string | null;
     }> = [];
     for (const h of hits) {
       const maps = await ctx.runQuery(
@@ -89,10 +91,18 @@ export const searchMemoriesForComposer = action({
         },
       );
       const storageRow = maps.find((m) => m.contentSource.type === "storage");
+      const record = await ctx.runQuery(
+        components.memory.public.records.getMemoryRecord,
+        {
+          namespace: args.namespace,
+          memoryRecordId: h.sourceRef as MemoryComponentId<"memoryRecords">,
+        },
+      );
       out.push({
         ...h,
         mimeType: storageRow?.mimeType ?? null,
         fileName: storageRow?.fileName ?? null,
+        title: record?.title ?? null,
       });
     }
     return out;

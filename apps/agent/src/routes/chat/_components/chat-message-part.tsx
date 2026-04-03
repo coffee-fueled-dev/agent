@@ -30,6 +30,9 @@ export function ChatMessagePart({
           />
         );
       }
+      if (part.providerMetadata?.ui?.visible === false) {
+        return null;
+      }
       return <ChatMessagePartUserText text={part.text} />;
     case "reasoning":
       return part.text ? <ChatMessagePartReasoning text={part.text} /> : null;

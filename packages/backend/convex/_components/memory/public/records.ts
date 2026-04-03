@@ -11,11 +11,12 @@ export const getMemoryRecord = query({
     v.object({
       key: v.string(),
       text: v.optional(v.string()),
+      title: v.optional(v.string()),
     }),
   ),
   handler: async (ctx, args) => {
     const doc = await ctx.db.get(args.memoryRecordId);
     if (!doc || doc.namespace !== args.namespace) return null;
-    return { key: doc.key, text: doc.text };
+    return { key: doc.key, text: doc.text, title: doc.title };
   },
 });
