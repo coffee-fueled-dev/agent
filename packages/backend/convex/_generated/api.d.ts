@@ -26,7 +26,9 @@ import type * as agents_lib_customFunctions from "../agents/lib/customFunctions.
 import type * as agents_lib_models from "../agents/lib/models.js";
 import type * as agents_lib_toolSpecAdapter from "../agents/lib/toolSpecAdapter.js";
 import type * as agents_lib_toolkit from "../agents/lib/toolkit.js";
+import type * as chat_memorySearch from "../chat/memorySearch.js";
 import type * as chat_thread from "../chat/thread.js";
+import type * as env from "../env.js";
 import type * as files from "../files.js";
 import type * as files_store from "../files/store.js";
 import type * as filesEnv from "../filesEnv.js";
@@ -58,7 +60,9 @@ declare const fullApi: ApiFromModules<{
   "agents/lib/models": typeof agents_lib_models;
   "agents/lib/toolSpecAdapter": typeof agents_lib_toolSpecAdapter;
   "agents/lib/toolkit": typeof agents_lib_toolkit;
+  "chat/memorySearch": typeof chat_memorySearch;
   "chat/thread": typeof chat_thread;
+  env: typeof env;
   files: typeof files;
   "files/store": typeof files_store;
   filesEnv: typeof filesEnv;
@@ -95,12 +99,23 @@ export declare const internal: FilterApi<
 export declare const components: {
   memory: {
     public: {
+      records: {
+        getMemoryRecord: FunctionReference<
+          "query",
+          "internal",
+          { memoryRecordId: string; namespace: string },
+          null | { key: string; text?: string }
+        >;
+      };
       search: {
         searchMemory: FunctionReference<
           "action",
           "internal",
           {
+            embedding?: Array<number>;
+            googleApiKey?: string;
             k?: number;
+            lexicalQuery?: string;
             limit?: number;
             namespace: string;
             perArmLimit?: number;
@@ -147,6 +162,32 @@ export declare const components: {
           }>
         >;
       };
+      sourceMaps: {
+        listSourceMapsForMemory: FunctionReference<
+          "query",
+          "internal",
+          { memoryRecordId: string; namespace: string },
+          Array<{
+            contentSource: { id: string; type: string };
+            fileName?: string;
+            mimeType?: string;
+            searchBackend: "lexical" | "vector";
+            searchItemId: string;
+          }>
+        >;
+        registerStorageSourceMetadata: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            contentSource: { id: string; type: string };
+            fileName?: string;
+            memoryRecordId: string;
+            mimeType: string;
+            namespace: string;
+          },
+          null
+        >;
+      };
       store: {
         mergeMemory: FunctionReference<
           "mutation",
@@ -157,10 +198,15 @@ export declare const components: {
               | { embedding: Array<number> }
               | { embedding: Array<number>; text: string }
             >;
+            contentSource?: { id: string; type: string };
+            fileName?: string;
+            googleApiKey?: string;
             key?: string;
             memoryRecordId?: string;
+            mimeType?: string;
             mode?: null | "append";
             namespace: string;
+            skipCanonicalText?: boolean;
           },
           { memoryRecordId: string; workId: string }
         >;

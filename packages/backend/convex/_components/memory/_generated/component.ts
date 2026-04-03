@@ -24,12 +24,24 @@ import type { FunctionReference } from "convex/server";
 export type ComponentApi<Name extends string | undefined = string | undefined> =
   {
     public: {
+      records: {
+        getMemoryRecord: FunctionReference<
+          "query",
+          "internal",
+          { memoryRecordId: string; namespace: string },
+          null | { key: string; text?: string },
+          Name
+        >;
+      };
       search: {
         searchMemory: FunctionReference<
           "action",
           "internal",
           {
+            embedding?: Array<number>;
+            googleApiKey?: string;
             k?: number;
+            lexicalQuery?: string;
             limit?: number;
             namespace: string;
             perArmLimit?: number;
@@ -77,6 +89,34 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           Name
         >;
       };
+      sourceMaps: {
+        listSourceMapsForMemory: FunctionReference<
+          "query",
+          "internal",
+          { memoryRecordId: string; namespace: string },
+          Array<{
+            contentSource: { id: string; type: string };
+            fileName?: string;
+            mimeType?: string;
+            searchBackend: "lexical" | "vector";
+            searchItemId: string;
+          }>,
+          Name
+        >;
+        registerStorageSourceMetadata: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            contentSource: { id: string; type: string };
+            fileName?: string;
+            memoryRecordId: string;
+            mimeType: string;
+            namespace: string;
+          },
+          null,
+          Name
+        >;
+      };
       store: {
         mergeMemory: FunctionReference<
           "mutation",
@@ -87,10 +127,15 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
               | { embedding: Array<number> }
               | { embedding: Array<number>; text: string }
             >;
+            contentSource?: { id: string; type: string };
+            fileName?: string;
+            googleApiKey?: string;
             key?: string;
             memoryRecordId?: string;
+            mimeType?: string;
             mode?: null | "append";
             namespace: string;
+            skipCanonicalText?: boolean;
           },
           { memoryRecordId: string; workId: string },
           Name

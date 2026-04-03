@@ -1,5 +1,4 @@
 import { ActivityIcon } from "lucide-react";
-import { FileDropzone, FileDropzoneProvider } from "@/files";
 import { PageSection } from "@/components/layout/page-section";
 import { SidebarInsetFill } from "@/components/layout/sidebar.js";
 import { Button } from "@/components/ui/button";
@@ -9,13 +8,18 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { FileDropzoneProvider } from "@/files";
 import { renderApp } from "../../render-root.js";
 import { AppLayout } from "../_components/app-layout.js";
 import {
   AppLayoutSidebarProvider,
   useAppLayoutSidebar,
 } from "../_components/app-layout-sidebar-context.js";
-import { ChatComposer } from "./_components/chat-composer.js";
+import { ChatComposerMemoryProvider } from "./_components/chat-composer-memory-provider.js";
+import {
+  ChatComposer,
+  ChatComposerDropzone,
+} from "./_components/chat-composer.js";
 import { ChatMessageList } from "./_components/chat-message-list.js";
 import { ChatThreadProvider, useChatThread } from "./_hooks/use-chat-thread.js";
 
@@ -87,7 +91,7 @@ function ChatRouteInner() {
         <PageSection>
           <PageSection.Content className="px-8">
             <FileDropzoneProvider limit={10}>
-              <FileDropzone className="flex flex-col gap-4 rounded-lg">
+              <ChatComposerMemoryProvider>
                 <SidebarInsetFill>
                   <PageSection.Body className="flex h-full min-h-0 flex-col gap-2">
                     <div className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-4">
@@ -106,12 +110,14 @@ function ChatRouteInner() {
                         )}
                       </div>
                       <div className="flex-shrink-0 pb-8">
-                        <ChatComposer />
+                        <ChatComposerDropzone className="flex flex-col gap-4 rounded-lg">
+                          <ChatComposer />
+                        </ChatComposerDropzone>
                       </div>
                     </div>
                   </PageSection.Body>
                 </SidebarInsetFill>
-              </FileDropzone>
+              </ChatComposerMemoryProvider>
             </FileDropzoneProvider>
           </PageSection.Content>
         </PageSection>

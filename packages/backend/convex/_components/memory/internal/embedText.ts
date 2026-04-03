@@ -9,10 +9,19 @@ export const embedTextChunk = internalAction({
     memoryRecordId: v.id("memoryRecords"),
     sliceSeq: v.number(),
     text: v.string(),
+    skipCanonicalText: v.optional(v.boolean()),
+    contentSource: v.object({
+      type: v.string(),
+      id: v.string(),
+    }),
+    fileName: v.optional(v.string()),
+    mimeType: v.optional(v.string()),
+    /** Passed from host mergeMemory; component env may not include the key. */
+    googleApiKey: v.string(),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const result = await createEmbeddingModel().doEmbed({
+    const result = await createEmbeddingModel(args.googleApiKey).doEmbed({
       values: [args.text],
     });
 
@@ -23,6 +32,10 @@ export const embedTextChunk = internalAction({
         sliceSeq: args.sliceSeq,
         text: args.text,
         embedding,
+        skipCanonicalText: args.skipCanonicalText,
+        contentSource: args.contentSource,
+        fileName: args.fileName,
+        mimeType: args.mimeType,
       });
     }
     return null;

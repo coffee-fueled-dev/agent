@@ -9,6 +9,7 @@ import type { StreamArgs } from "@convex-dev/agent/validators";
 import type { ModelMessage, UserContent, UserModelMessage } from "ai";
 import { type PaginationResult, paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
+import type { Id as MemoryComponentId } from "../_components/memory/_generated/dataModel.js";
 import { components, internal } from "../_generated/api.js";
 import type { Id } from "../_generated/dataModel.js";
 import {
@@ -43,7 +44,95 @@ function getFileParts(url: string, mediaType: string, filename?: string) {
   return { filePart, imagePart };
 }
 
-type MessageBuildCtx = Pick<MutationCtx, "runMutation" | "storage">;
+type MessageBuildCtx = Pick<
+  MutationCtx,
+  "runMutation" | "storage" | "db" | "runQuery"
+>;
+
+type UserMessageParts = Exclude<UserModelMessage["content"], string>;
+
+async function appendFileAttachmentParts(
+  ctx: MessageBuildCtx,
+  attachment: {
+    storageId: string;
+    fileName: string;
+    mimeType: string;
+    contentHash: string;
+  },
+  fileIds: string[],
+  content: UserMessageParts,
+) {
+  const hash =
+    attachment.contentHash.trim().length > 0
+      ? attachment.contentHash
+      : "memory-attachment";
+  const { fileId } = await ctx.runMutation(components.agent.files.addFile, {
+    storageId: attachment.storageId,
+    hash,
+    filename: attachment.fileName,
+    mimeType: attachment.mimeType,
+  });
+  fileIds.push(fileId);
+
+  const rawUrl = await ctx.storage.getUrl(
+    attachment.storageId as Id<"_storage">,
+  );
+  if (!rawUrl) {
+    throw new Error(`Missing file in storage: ${attachment.fileName}`);
+  }
+  const { filePart, imagePart } = getFileParts(
+    rawUrl,
+    attachment.mimeType || "application/octet-stream",
+    attachment.fileName,
+  );
+  content.push(imagePart ?? filePart);
+}
+
+async function appendMemoryRecordParts(
+  ctx: MessageBuildCtx,
+  namespace: string,
+  memoryRecordIds: string[],
+  fileIds: string[],
+  content: UserMessageParts,
+) {
+  for (const rawId of memoryRecordIds) {
+    const maps = await ctx.runQuery(
+      components.memory.public.sourceMaps.listSourceMapsForMemory,
+      {
+        namespace,
+        memoryRecordId: rawId as MemoryComponentId<"memoryRecords">,
+      },
+    );
+    const storageRow = maps.find((m) => m.contentSource.type === "storage");
+    if (storageRow) {
+      await appendFileAttachmentParts(
+        ctx,
+        {
+          storageId: storageRow.contentSource.id,
+          fileName: storageRow.fileName ?? "file",
+          mimeType: storageRow.mimeType ?? "application/octet-stream",
+          contentHash: "",
+        },
+        fileIds,
+        content,
+      );
+      continue;
+    }
+    const rec = await ctx.runQuery(
+      components.memory.public.records.getMemoryRecord,
+      {
+        namespace,
+        memoryRecordId: rawId as MemoryComponentId<"memoryRecords">,
+      },
+    );
+    if (!rec?.text?.trim()) {
+      throw new Error(
+        `Memory ${rawId} has no storage source map and no canonical text on the record`,
+      );
+    }
+    content.push({ type: "text", text: rec.text.trim() });
+  }
+}
 
 async function buildUserMessageWithFiles(
   ctx: MessageBuildCtx,
@@ -56,33 +145,25 @@ async function buildUserMessageWithFiles(
         contentHash: string;
       }>
     | undefined,
+  namespace: string,
+  memoryRecordIds: string[] | undefined,
 ): Promise<{ message: UserModelMessage; fileIds: string[] }> {
   const fileIds: string[] = [];
-  const content: UserContent = [];
+  const content: UserMessageParts = [];
   if (prompt.trim()) {
     content.push({ type: "text", text: prompt.trim() });
   }
   for (const attachment of attachments ?? []) {
-    const { fileId } = await ctx.runMutation(components.agent.files.addFile, {
-      storageId: attachment.storageId,
-      hash: attachment.contentHash,
-      filename: attachment.fileName,
-      mimeType: attachment.mimeType,
-    });
-    fileIds.push(fileId);
-
-    const rawUrl = await ctx.storage.getUrl(
-      attachment.storageId as Id<"_storage">,
+    await appendFileAttachmentParts(ctx, attachment, fileIds, content);
+  }
+  if (memoryRecordIds?.length) {
+    await appendMemoryRecordParts(
+      ctx,
+      namespace,
+      memoryRecordIds,
+      fileIds,
+      content,
     );
-    if (!rawUrl) {
-      throw new Error(`Missing file in storage: ${attachment.fileName}`);
-    }
-    const { filePart, imagePart } = getFileParts(
-      rawUrl,
-      attachment.mimeType || "application/octet-stream",
-      attachment.fileName,
-    );
-    content.push(imagePart ?? filePart);
   }
   return { message: { role: "user", content }, fileIds };
 }
@@ -137,6 +218,7 @@ export const sendMessage = mutation({
         }),
       ),
     ),
+    memoryRecordIds: v.optional(v.array(v.string())),
   },
   returns: v.object({
     promptMessageId: v.string(),
@@ -144,14 +226,19 @@ export const sendMessage = mutation({
   }),
   handler: async (ctx, args) => {
     const hasAttachments = Boolean(args.attachments?.length);
-    if (!args.prompt.trim() && !hasAttachments) {
-      throw new Error("Message must include text or at least one attachment.");
+    const hasMemories = Boolean(args.memoryRecordIds?.length);
+    if (!args.prompt.trim() && !hasAttachments && !hasMemories) {
+      throw new Error(
+        "Message must include text, attachments, or memory selections.",
+      );
     }
 
     const { message: userMessage, fileIds } = await buildUserMessageWithFiles(
       ctx,
       args.prompt,
       args.attachments,
+      args.namespace,
+      args.memoryRecordIds,
     );
 
     const messagesToSave: ModelMessage[] = [userMessage];

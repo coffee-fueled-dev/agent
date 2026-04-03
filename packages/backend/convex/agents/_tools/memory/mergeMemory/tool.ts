@@ -2,6 +2,7 @@ import { tool } from "@very-coffee/agent-identity";
 import type { InferUITool, Tool } from "ai";
 import { z } from "zod/v4";
 import { components } from "../../../../_generated/api.js";
+import { requireGoogleApiKey } from "../../../../env.js";
 import type { ConvexAgentEnv } from "../../../lib/customFunctions.js";
 import type { ToolRuntimeContext } from "../../../lib/toolkit.js";
 import { withFormattedResults } from "../../../lib/toolkit.js";
@@ -56,6 +57,7 @@ export function mergeMemoryTool() {
         },
       ),
     handler: async (ctx: ToolRuntimeContext<ConvexAgentEnv>, args) => {
+      const googleApiKey = requireGoogleApiKey();
       const content = args.content.map((text) => ({ text }));
       if (args.mode === "append") {
         const memoryRecordId = args.memoryRecordId;
@@ -68,6 +70,7 @@ export function mergeMemoryTool() {
             mode: "append",
             memoryRecordId,
             content,
+            googleApiKey,
           }),
         );
       }
@@ -80,6 +83,7 @@ export function mergeMemoryTool() {
           namespace: ctx.env.namespace,
           key,
           content,
+          googleApiKey,
         }),
       );
     },

@@ -16,6 +16,11 @@ const contentValidator = v.array(
   ),
 );
 
+const contentSourceValidator = v.object({
+  type: v.string(),
+  id: v.string(),
+});
+
 export const mergeMemory = mutation({
   args: {
     namespace: v.string(),
@@ -23,6 +28,18 @@ export const mergeMemory = mutation({
     key: v.optional(v.string()),
     memoryRecordId: v.optional(v.id("memoryRecords")),
     content: contentValidator,
+    /** When true, index chunks but do not append to `memoryRecords.text` (e.g. file-backed ingest). */
+    skipCanonicalText: v.optional(v.boolean()),
+    /**
+     * Provenance for source map rows. Defaults to `memoryInline` for this record id.
+     * Use `storage` + storage id for file-backed memories.
+     */
+    contentSource: v.optional(contentSourceValidator),
+    /** Denormalized on source map rows when `contentSource.type === "storage"`. */
+    fileName: v.optional(v.string()),
+    mimeType: v.optional(v.string()),
+    /** From host app; required when merges include text-only chunks that need embedding. */
+    googleApiKey: v.optional(v.string()),
   },
   returns: v.object({
     memoryRecordId: v.id("memoryRecords"),
@@ -42,11 +59,17 @@ export const mergeMemory = mutation({
         throw new Error("mergeMemory: memoryRecordId is required when mode is append");
       }
       memoryRecordId = id;
-      /** Inline batch so sequential appends do not race workpool vs `mergeMemory`'s read of `memoryRecords` (OCC). */
+      const contentSource =
+        args.contentSource ?? ({ type: "memoryInline", id: String(id) } as const);
       await executeMergeMemoryBatch(ctx, {
         namespace: args.namespace,
         memoryRecordId: id,
         content: args.content,
+        skipCanonicalText: args.skipCanonicalText,
+        contentSource,
+        fileName: args.fileName,
+        mimeType: args.mimeType,
+        googleApiKey: args.googleApiKey,
       });
       return { memoryRecordId: id, workId: "inline" };
     }
@@ -70,6 +93,10 @@ export const mergeMemory = mutation({
         nextChunkSeq: 0,
       }));
 
+    const contentSource =
+      args.contentSource ??
+      ({ type: "memoryInline", id: String(memoryRecordId) } as const);
+
     const workId = await mergeMemoryPool.enqueueMutation(
       ctx,
       internal.internal.mergeBatch.applyMergeMemoryBatch,
@@ -77,6 +104,11 @@ export const mergeMemory = mutation({
         namespace: args.namespace,
         memoryRecordId,
         content: args.content,
+        skipCanonicalText: args.skipCanonicalText,
+        contentSource,
+        fileName: args.fileName,
+        mimeType: args.mimeType,
+        googleApiKey: args.googleApiKey,
       },
     );
 

@@ -1,21 +1,18 @@
 import { v } from "convex/values";
+import { memoryClient } from "../_clients/memory.js";
+import type { Id as MemoryRecordId } from "../_components/memory/_generated/dataModel.js";
 import { internal } from "../_generated/api.js";
 import type { Id } from "../_generated/dataModel.js";
-import type { Id as MemoryRecordId } from "../_components/memory/_generated/dataModel.js";
 import type { MutationCtx } from "../_generated/server.js";
 import {
   action,
   internalAction,
-  internalQuery,
   internalMutation,
+  internalQuery,
   mutation,
   query,
 } from "../_generated/server.js";
-import { memoryClient } from "../_clients/memory.js";
-import {
-  getFileEmbeddingApiUrl,
-  getFileEmbeddingSecret,
-} from "../filesEnv.js";
+import { getFileEmbeddingApiUrl, getFileEmbeddingSecret } from "../filesEnv.js";
 
 function requireSecret(secret: string) {
   if (secret !== getFileEmbeddingSecret()) {
@@ -234,6 +231,24 @@ export const startFileProcess = internalMutation({
       namespace: args.namespace,
       key: args.key,
       content: [],
+      skipCanonicalText: true,
+      contentSource: {
+        type: "storage",
+        id: args.storageId as string,
+      },
+      fileName: args.fileName,
+      mimeType: args.mimeType,
+    });
+
+    await memoryClient.registerStorageSourceMetadata(ctx, {
+      namespace: args.namespace,
+      memoryRecordId: memoryRecordId as MemoryRecordId<"memoryRecords">,
+      contentSource: {
+        type: "storage",
+        id: args.storageId as string,
+      },
+      fileName: args.fileName,
+      mimeType: args.mimeType,
     });
 
     const processId = await ctx.db.insert("fileProcesses", {
@@ -379,9 +394,12 @@ export const ingestFileEmbeddingChunk = action({
   returns: v.null(),
   handler: async (ctx, args) => {
     requireSecret(args.secret);
-    const process = await ctx.runQuery(internal.files.store.getProcessForIngest, {
-      jobId: args.jobId,
-    });
+    const process = await ctx.runQuery(
+      internal.files.store.getProcessForIngest,
+      {
+        jobId: args.jobId,
+      },
+    );
     if (!process) {
       throw new Error("ingestFileEmbeddingChunk: process not found");
     }
@@ -395,6 +413,13 @@ export const ingestFileEmbeddingChunk = action({
       mode: "append",
       memoryRecordId: process.memoryRecordId as MemoryRecordId<"memoryRecords">,
       content: [item],
+      skipCanonicalText: true,
+      contentSource: {
+        type: "storage",
+        id: process.storageId as string,
+      },
+      fileName: process.fileName,
+      mimeType: process.mimeType,
     });
 
     await ctx.runMutation(internal.files.store.patchIngestProgress, {
@@ -424,9 +449,12 @@ export const ingestFileEmbeddingChunks = action({
     if (args.chunks.length === 0) {
       throw new Error("ingestFileEmbeddingChunks: chunks must be non-empty");
     }
-    const process = await ctx.runQuery(internal.files.store.getProcessForIngest, {
-      jobId: args.jobId,
-    });
+    const process = await ctx.runQuery(
+      internal.files.store.getProcessForIngest,
+      {
+        jobId: args.jobId,
+      },
+    );
     if (!process) {
       throw new Error("ingestFileEmbeddingChunks: process not found");
     }
@@ -434,12 +462,21 @@ export const ingestFileEmbeddingChunks = action({
       return null;
     }
 
-    const content = args.chunks.map((c) => buildIngestContentItem(c, undefined));
+    const content = args.chunks.map((c) =>
+      buildIngestContentItem(c, undefined),
+    );
     await memoryClient.mergeMemory(ctx, {
       namespace: process.namespace,
       mode: "append",
       memoryRecordId: process.memoryRecordId as MemoryRecordId<"memoryRecords">,
       content,
+      skipCanonicalText: true,
+      contentSource: {
+        type: "storage",
+        id: process.storageId as string,
+      },
+      fileName: process.fileName,
+      mimeType: process.mimeType,
     });
 
     await ctx.runMutation(internal.files.store.patchIngestProgress, {
@@ -459,6 +496,9 @@ export const getProcessForIngest = internalQuery({
       _id: v.id("fileProcesses"),
       namespace: v.string(),
       memoryRecordId: v.string(),
+      storageId: v.id("_storage"),
+      fileName: v.optional(v.string()),
+      mimeType: v.string(),
       status: v.union(
         v.literal("pending"),
         v.literal("processing"),
@@ -474,6 +514,9 @@ export const getProcessForIngest = internalQuery({
       _id: doc._id,
       namespace: doc.namespace,
       memoryRecordId: doc.memoryRecordId,
+      storageId: doc.storageId,
+      fileName: doc.fileName,
+      mimeType: doc.mimeType,
       status: doc.status,
     };
   },

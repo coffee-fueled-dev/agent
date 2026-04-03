@@ -13,6 +13,11 @@ export const lexicalSearch = new LexicalSearchClient<DataModel, "memory">(
         sourceSystem: MEMORY_SOURCE_SYSTEM,
         document: "memoryRecords",
       },
+      {
+        sourceSystem: MEMORY_SOURCE_SYSTEM,
+        document: "memoryRecords",
+        fields: ["text"],
+      },
     ],
   },
 );
@@ -24,6 +29,11 @@ export const vectorSearch = new VectorSearchClient<DataModel, "memory">(
       {
         sourceSystem: MEMORY_SOURCE_SYSTEM,
         document: "memoryRecords",
+      },
+      {
+        sourceSystem: MEMORY_SOURCE_SYSTEM,
+        document: "memoryRecords",
+        fields: ["text"],
       },
     ],
   },

@@ -67,13 +67,18 @@ export function useFiles() {
 export function FileDropzone({
   children,
   className,
+  disabled = false,
   ...props
-}: React.ComponentProps<"div">) {
+}: React.ComponentProps<"div"> & {
+  /** When true, drag-and-drop is ignored (e.g. another drop zone should take precedence). */
+  disabled?: boolean;
+}) {
   const { addFiles, limit } = useFiles();
   const { getInputProps, getRootProps, isDragActive } = useDropzone({
     multiple: limit > 1,
     maxFiles: limit,
     noClick: true,
+    disabled,
     onDrop: addFiles,
   });
 

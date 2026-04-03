@@ -2,6 +2,7 @@ import { tool } from "@very-coffee/agent-identity";
 import type { InferUITool, Tool } from "ai";
 import { z } from "zod/v4";
 import { components } from "../../../../_generated/api.js";
+import { requireGoogleApiKey } from "../../../../env.js";
 import type { ConvexAgentEnv } from "../../../lib/customFunctions.js";
 import type { ToolRuntimeContext } from "../../../lib/toolkit.js";
 import { withFormattedResults } from "../../../lib/toolkit.js";
@@ -37,6 +38,7 @@ export function searchMemoriesTool() {
         .describe("RRF rank constant (default 60)."),
     }),
     handler: async (ctx: ToolRuntimeContext<ConvexAgentEnv>, args) => {
+      const googleApiKey = requireGoogleApiKey();
       return await withFormattedResults(
         ctx.env.runAction(components.memory.public.search.searchMemory, {
           namespace: ctx.env.namespace,
@@ -44,6 +46,7 @@ export function searchMemoriesTool() {
           limit: args.limit,
           perArmLimit: args.perArmLimit,
           k: args.k,
+          googleApiKey,
         }),
       );
     },

@@ -23,7 +23,8 @@ export default defineSchema({
   })
     .index("by_namespace_key", ["namespace", "key"])
     .index("by_namespace_content_hash", ["namespace", "contentHash"])
-    .index("by_namespace_storage", ["namespace", "storageId"]),
+    .index("by_namespace_storage", ["namespace", "storageId"])
+    .index("by_namespace_memory_record", ["namespace", "memoryRecordId"]),
 
   /** Marker that this content hash was embedded at least once (optional bookkeeping). */
   fileEmbeddingCache: defineTable({
