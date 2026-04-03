@@ -8,21 +8,14 @@
  * @module
  */
 
-import type * as _clients_files from "../_clients/files.js";
 import type * as _clients_identity from "../_clients/identity.js";
 import type * as _clients_memory from "../_clients/memory.js";
 import type * as agents__policies_convexPolicy from "../agents/_policies/convexPolicy.js";
 import type * as agents__tools_filesystem_runShell_internal from "../agents/_tools/filesystem/runShell/internal.js";
 import type * as agents__tools_filesystem_runShell_tool from "../agents/_tools/filesystem/runShell/tool.js";
 import type * as agents__tools_filesystem_toolkit from "../agents/_tools/filesystem/toolkit.js";
-import type * as agents__tools_memory_addMemory_internal from "../agents/_tools/memory/addMemory/internal.js";
-import type * as agents__tools_memory_addMemory_tool from "../agents/_tools/memory/addMemory/tool.js";
-import type * as agents__tools_memory_deleteMemory_internal from "../agents/_tools/memory/deleteMemory/internal.js";
-import type * as agents__tools_memory_deleteMemory_tool from "../agents/_tools/memory/deleteMemory/tool.js";
-import type * as agents__tools_memory_editMemory_internal from "../agents/_tools/memory/editMemory/internal.js";
-import type * as agents__tools_memory_editMemory_tool from "../agents/_tools/memory/editMemory/tool.js";
-import type * as agents__tools_memory_searchMemory_internal from "../agents/_tools/memory/searchMemory/internal.js";
-import type * as agents__tools_memory_searchMemory_tool from "../agents/_tools/memory/searchMemory/tool.js";
+import type * as agents__tools_memory_mergeMemory_tool from "../agents/_tools/memory/mergeMemory/tool.js";
+import type * as agents__tools_memory_searchMemories_tool from "../agents/_tools/memory/searchMemories/tool.js";
 import type * as agents__tools_memory_toolkit from "../agents/_tools/memory/toolkit.js";
 import type * as agents__tools_registeredToolAugments from "../agents/_tools/registeredToolAugments.js";
 import type * as agents__tools_registeredToolMap from "../agents/_tools/registeredToolMap.js";
@@ -34,7 +27,6 @@ import type * as agents_lib_models from "../agents/lib/models.js";
 import type * as agents_lib_toolSpecAdapter from "../agents/lib/toolSpecAdapter.js";
 import type * as agents_lib_toolkit from "../agents/lib/toolkit.js";
 import type * as chat_thread from "../chat/thread.js";
-import type * as files from "../files.js";
 import type * as filesEnv from "../filesEnv.js";
 import type * as types from "../types.js";
 import type * as workpool from "../workpool.js";
@@ -46,21 +38,14 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  "_clients/files": typeof _clients_files;
   "_clients/identity": typeof _clients_identity;
   "_clients/memory": typeof _clients_memory;
   "agents/_policies/convexPolicy": typeof agents__policies_convexPolicy;
   "agents/_tools/filesystem/runShell/internal": typeof agents__tools_filesystem_runShell_internal;
   "agents/_tools/filesystem/runShell/tool": typeof agents__tools_filesystem_runShell_tool;
   "agents/_tools/filesystem/toolkit": typeof agents__tools_filesystem_toolkit;
-  "agents/_tools/memory/addMemory/internal": typeof agents__tools_memory_addMemory_internal;
-  "agents/_tools/memory/addMemory/tool": typeof agents__tools_memory_addMemory_tool;
-  "agents/_tools/memory/deleteMemory/internal": typeof agents__tools_memory_deleteMemory_internal;
-  "agents/_tools/memory/deleteMemory/tool": typeof agents__tools_memory_deleteMemory_tool;
-  "agents/_tools/memory/editMemory/internal": typeof agents__tools_memory_editMemory_internal;
-  "agents/_tools/memory/editMemory/tool": typeof agents__tools_memory_editMemory_tool;
-  "agents/_tools/memory/searchMemory/internal": typeof agents__tools_memory_searchMemory_internal;
-  "agents/_tools/memory/searchMemory/tool": typeof agents__tools_memory_searchMemory_tool;
+  "agents/_tools/memory/mergeMemory/tool": typeof agents__tools_memory_mergeMemory_tool;
+  "agents/_tools/memory/searchMemories/tool": typeof agents__tools_memory_searchMemories_tool;
   "agents/_tools/memory/toolkit": typeof agents__tools_memory_toolkit;
   "agents/_tools/registeredToolAugments": typeof agents__tools_registeredToolAugments;
   "agents/_tools/registeredToolMap": typeof agents__tools_registeredToolMap;
@@ -72,7 +57,6 @@ declare const fullApi: ApiFromModules<{
   "agents/lib/toolSpecAdapter": typeof agents_lib_toolSpecAdapter;
   "agents/lib/toolkit": typeof agents_lib_toolkit;
   "chat/thread": typeof chat_thread;
-  files: typeof files;
   filesEnv: typeof filesEnv;
   types: typeof types;
   workpool: typeof workpool;
@@ -107,370 +91,74 @@ export declare const internal: FilterApi<
 export declare const components: {
   memory: {
     public: {
-      core: {
-        getMemory: FunctionReference<
-          "query",
-          "internal",
-          { memoryId: string; namespace: string },
-          null | {
-            fullText: string;
-            key: string;
-            memoryId: string;
-            namespace: string;
-            updatedAt: number;
-          }
-        >;
-        getUpsertMemoryContext: FunctionReference<
-          "query",
-          "internal",
-          { key: string; namespace: string; sourceRef?: string },
-          { ragKey: string; resolvedMemoryId: string | null }
-        >;
-        listMemoryPage: FunctionReference<
-          "query",
-          "internal",
-          {
-            namespace: string;
-            paginationOpts: {
-              cursor: string | null;
-              endCursor?: string | null;
-              id?: number;
-              maximumBytesRead?: number;
-              maximumRowsRead?: number;
-              numItems: number;
-            };
-          },
-          {
-            continueCursor: string;
-            isDone: boolean;
-            page: Array<{ key: string; memoryId: string; updatedAt: number }>;
-            pageStatus?: "SplitRecommended" | "SplitRequired" | null;
-            splitCursor?: string | null;
-          }
-        >;
-        listVersionsPage: FunctionReference<
-          "query",
-          "internal",
-          {
-            memoryId: string;
-            namespace: string;
-            paginationOpts: {
-              cursor: string | null;
-              endCursor?: string | null;
-              id?: number;
-              maximumBytesRead?: number;
-              maximumRowsRead?: number;
-              numItems: number;
-            };
-          },
-          {
-            continueCursor: string;
-            isDone: boolean;
-            page: Array<{
-              createdAt: number;
-              entryId: string;
-              key: string;
-              memoryId: string;
-              textSnapshot: string;
-              title?: string;
-            }>;
-            pageStatus?: "SplitRecommended" | "SplitRequired" | null;
-            splitCursor?: string | null;
-          }
-        >;
-        recallVersion: FunctionReference<
-          "query",
-          "internal",
-          { entryId: string; memoryId: string; namespace: string },
-          null | {
-            createdAt: number;
-            entryId: string;
-            key: string;
-            memoryId: string;
-            textSnapshot: string;
-            title?: string;
-          }
-        >;
-        recordMemoryAfterRagAdd: FunctionReference<
-          "action",
-          "internal",
-          {
-            actor?: { byId: string; byType: string };
-            apiKey?: string;
-            embedding: Array<number>;
-            key: string;
-            memoryId: string;
-            namespace: string;
-            ragKey: string;
-            resolvedMemoryId: string | null;
-            searchText?: string;
-            similarityK?: number;
-            similarityThreshold?: number;
-            sourceRef?: string;
-            text: string;
-            title?: string;
-          },
-          { memoryId: string }
-        >;
-        removeMemory: FunctionReference<
-          "action",
-          "internal",
-          { apiKey?: string; memoryId: string; namespace: string },
-          null
-        >;
-        upsertMemory: FunctionReference<
-          "action",
-          "internal",
-          {
-            actor?: { byId: string; byType: string };
-            apiKey?: string;
-            chunks?: Array<{ embedding: Array<number>; text: string }>;
-            key: string;
-            namespace: string;
-            searchText?: string;
-            similarityK?: number;
-            similarityThreshold?: number;
-            sourceRef?: string;
-            text: string;
-            title?: string;
-          },
-          { memoryId: string }
-        >;
-      };
-      graph: {
-        createCommunityJob: FunctionReference<
-          "mutation",
-          "internal",
-          { namespace: string; params: { k: number; resolution: number } },
-          string
-        >;
-        expandNeighbors: FunctionReference<
-          "query",
-          "internal",
-          { limit?: number; memoryId: string },
-          Array<string>
-        >;
-        getCommunityForMemory: FunctionReference<
-          "query",
-          "internal",
-          { memoryId: string; namespace: string },
-          null | { communityId: number }
-        >;
-        getLatestCommunities: FunctionReference<
-          "query",
-          "internal",
-          { namespace: string },
-          | null
-          | {
-              communities: Array<{
-                id: number;
-                memberCount: number;
-                sampleMemoryIds: Array<string>;
-              }>;
-              completionTime: number;
-              edgeCount: number;
-              jobId: string;
-              memoryCount: number;
-              stale: boolean;
-              status: "completed";
-            }
-          | any
-        >;
-        getNeighborEdges: FunctionReference<
-          "query",
-          "internal",
-          { memoryId: string },
-          Array<{ neighbor: string; score: number }>
-        >;
-        scheduleCommunityRebuild: FunctionReference<
-          "mutation",
-          "internal",
-          { jobId: string; namespace: string },
-          null
-        >;
-      };
-      retrieval: {
+      search: {
         searchMemory: FunctionReference<
           "action",
           "internal",
           {
-            apiKey?: string;
-            fileEmbeddings?: Array<Array<number>>;
-            graphWeight?: number;
-            lexicalWeight?: number;
+            k?: number;
             limit?: number;
-            minScore?: number;
             namespace: string;
-            query: string | Array<number>;
-            retrievalMode?: "vector" | "lexical" | "hybrid";
-            rrfK?: number;
-            vectorWeight?: number;
+            perArmLimit?: number;
+            query: string;
           },
           Array<{
-            key: string;
-            memoryId: string;
-            score: number;
-            text: string;
-            title?: string;
+            contributions: Array<{
+              armId: string;
+              rank: number;
+              score: number;
+            }>;
+            lexical: null | {
+              _creationTime: number;
+              _id: string;
+              bucketId?: string;
+              bucketType?: string;
+              namespace: string;
+              propertyHits: Array<{ propKey: string; text: string }>;
+              sourceRef: string;
+              sourceSystem: string;
+              sourceVersion?: number;
+              supersededAt?: number;
+              updatedAt: number;
+            };
+            rrfScore: number;
+            sourceRef: string;
+            vector: null | {
+              _creationTime: number;
+              _id: string;
+              bucketId?: string;
+              bucketType?: string;
+              namespace: string;
+              propertyHits: Array<{
+                _score: number;
+                propKey: string;
+                sliceId: string;
+              }>;
+              sourceRef: string;
+              sourceSystem: string;
+              sourceVersion?: number;
+              supersededAt?: number;
+              updatedAt: number;
+            };
           }>
         >;
       };
-    };
-  };
-  files: {
-    public: {
-      core: {
-        createFileProcess: FunctionReference<
+      store: {
+        mergeMemory: FunctionReference<
           "mutation",
           "internal",
           {
-            contentHash?: string;
-            fileName?: string;
-            key: string;
-            mimeType: string;
+            content: Array<
+              | { text: string }
+              | { embedding: Array<number> }
+              | { embedding: Array<number>; text: string }
+            >;
+            key?: string;
+            memoryRecordId?: string;
+            mode?: null | "append";
             namespace: string;
-            storageId: string;
-            title?: string;
           },
-          string
-        >;
-        deleteFileEmbeddingChunkBatchesForProcess: FunctionReference<
-          "mutation",
-          "internal",
-          { processId: string },
-          null
-        >;
-        getCachedFileResult: FunctionReference<
-          "query",
-          "internal",
-          { contentHash: string },
-          null | {
-            chunks: Array<{ embedding: Array<number>; text?: string }>;
-            contentHash: string;
-            lexicalText?: string;
-            mimeType: string;
-            retrievalText: string;
-            updatedAt: number;
-          }
-        >;
-        getFileProcess: FunctionReference<
-          "query",
-          "internal",
-          { processId: string },
-          null | {
-            _id: string;
-            contentHash?: string;
-            error?: string;
-            fileName?: string;
-            key: string;
-            memoryId?: string;
-            mimeType: string;
-            namespace: string;
-            status: "pending" | "dispatched" | "completed" | "failed";
-            storageId: string;
-            title?: string;
-            updatedAt: number;
-          }
-        >;
-        getLatestFileForMemory: FunctionReference<
-          "query",
-          "internal",
-          { memoryId: string; namespace: string },
-          null | {
-            _id: string;
-            contentHash?: string;
-            error?: string;
-            fileName?: string;
-            key: string;
-            memoryId?: string;
-            mimeType: string;
-            namespace: string;
-            status: "pending" | "dispatched" | "completed" | "failed";
-            storageId: string;
-            title?: string;
-            updatedAt: number;
-          }
-        >;
-        insertFileEmbeddingChunkBatch: FunctionReference<
-          "mutation",
-          "internal",
-          {
-            batchIndex: number;
-            chunks: Array<{ embedding: Array<number>; text?: string }>;
-            processId: string;
-          },
-          null
-        >;
-        listFileEmbeddingChunkBatchesForProcess: FunctionReference<
-          "query",
-          "internal",
-          { processId: string },
-          Array<{
-            batchIndex: number;
-            chunks: Array<{ embedding: Array<number>; text?: string }>;
-          }>
-        >;
-        listFileProcessesPage: FunctionReference<
-          "query",
-          "internal",
-          {
-            namespace: string;
-            paginationOpts: {
-              cursor: string | null;
-              endCursor?: string | null;
-              id?: number;
-              maximumBytesRead?: number;
-              maximumRowsRead?: number;
-              numItems: number;
-            };
-          },
-          {
-            continueCursor: string;
-            isDone: boolean;
-            page: Array<{
-              error?: string;
-              fileName?: string;
-              key: string;
-              memoryId?: string;
-              mimeType: string;
-              processId: string;
-              status: "pending" | "dispatched" | "completed" | "failed";
-              title?: string;
-              updatedAt: number;
-            }>;
-            pageStatus?: "SplitRecommended" | "SplitRequired" | null;
-            splitCursor?: string | null;
-          }
-        >;
-        markFileProcessCompleted: FunctionReference<
-          "mutation",
-          "internal",
-          { memoryId: string; processId: string },
-          null
-        >;
-        markFileProcessDispatched: FunctionReference<
-          "mutation",
-          "internal",
-          { processId: string },
-          null
-        >;
-        markFileProcessFailed: FunctionReference<
-          "mutation",
-          "internal",
-          { error: string; processId: string },
-          null
-        >;
-        upsertCachedFileResult: FunctionReference<
-          "mutation",
-          "internal",
-          {
-            chunks: Array<{ embedding: Array<number>; text?: string }>;
-            contentHash: string;
-            lexicalText?: string;
-            mimeType: string;
-            retrievalText: string;
-          },
-          null
+          { memoryRecordId: string; workId: string }
         >;
       };
     };

@@ -8,19 +8,17 @@
  * @module
  */
 
+import type * as _lib from "../_lib.js";
 import type * as client_index from "../client/index.js";
 import type * as env from "../env.js";
 import type * as graph from "../graph.js";
 import type * as history from "../history.js";
-import type * as internal_community from "../internal/community.js";
-import type * as internal_embedding from "../internal/embedding.js";
-import type * as internal_embeddingStore from "../internal/embeddingStore.js";
-import type * as internal_memoryStore from "../internal/memoryStore.js";
-import type * as internal_similarity from "../internal/similarity.js";
-import type * as public_core from "../public/core.js";
-import type * as public_graph from "../public/graph.js";
-import type * as public_retrieval from "../public/retrieval.js";
-import type * as rag from "../rag.js";
+import type * as internal_embedText from "../internal/embedText.js";
+import type * as internal_mergeBatch from "../internal/mergeBatch.js";
+import type * as internal_mergeWorkpool from "../internal/mergeWorkpool.js";
+import type * as internal_store from "../internal/store.js";
+import type * as public_search from "../public/search.js";
+import type * as public_store from "../public/store.js";
 import type * as search from "../search.js";
 
 import type {
@@ -31,19 +29,17 @@ import type {
 import { anyApi, componentsGeneric } from "convex/server";
 
 const fullApi: ApiFromModules<{
+  _lib: typeof _lib;
   "client/index": typeof client_index;
   env: typeof env;
   graph: typeof graph;
   history: typeof history;
-  "internal/community": typeof internal_community;
-  "internal/embedding": typeof internal_embedding;
-  "internal/embeddingStore": typeof internal_embeddingStore;
-  "internal/memoryStore": typeof internal_memoryStore;
-  "internal/similarity": typeof internal_similarity;
-  "public/core": typeof public_core;
-  "public/graph": typeof public_graph;
-  "public/retrieval": typeof public_retrieval;
-  rag: typeof rag;
+  "internal/embedText": typeof internal_embedText;
+  "internal/mergeBatch": typeof internal_mergeBatch;
+  "internal/mergeWorkpool": typeof internal_mergeWorkpool;
+  "internal/store": typeof internal_store;
+  "public/search": typeof public_search;
+  "public/store": typeof public_store;
   search: typeof search;
 }> = anyApi as any;
 
@@ -628,22 +624,34 @@ export const components = componentsGeneric() as unknown as {
       };
     };
   };
-  search: {
+  lexicalSearch: {
     public: {
       add: {
-        deleteFeature: FunctionReference<
+        appendTextSlice: FunctionReference<
           "mutation",
           "internal",
-          { featureId: string; namespace: string },
+          {
+            namespace: string;
+            propKey: string;
+            sourceRef: string;
+            sourceSystem: string;
+            text: string;
+            updatedAt?: number;
+          },
+          string
+        >;
+        deleteItem: FunctionReference<
+          "mutation",
+          "internal",
+          { namespace: string; sourceRef: string; sourceSystem: string },
           null
         >;
-        upsertFeature: FunctionReference<
+        upsertItem: FunctionReference<
           "mutation",
           "internal",
           {
             bucketId?: string;
             bucketType?: string;
-            featureId: string;
             namespace: string;
             sourceRef: string;
             sourceSystem: string;
@@ -651,7 +659,6 @@ export const components = componentsGeneric() as unknown as {
             supersededAt?: number;
             text?: string;
             textSlices?: Array<{ propKey: string; text: string }>;
-            title?: string;
             updatedAt?: number;
           },
           string
@@ -672,15 +679,88 @@ export const components = componentsGeneric() as unknown as {
             _id: string;
             bucketId?: string;
             bucketType?: string;
-            featureId: string;
-            matchedPropKey: string;
+            namespace: string;
+            propertyHits: Array<{ propKey: string; text: string }>;
+            sourceRef: string;
+            sourceSystem: string;
+            sourceVersion?: number;
+            supersededAt?: number;
+            updatedAt: number;
+          }>
+        >;
+      };
+    };
+  };
+  vectorSearch: {
+    public: {
+      add: {
+        appendEmbeddingSlice: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            embedding: Array<number>;
+            namespace: string;
+            propKey: string;
+            sliceId?: string;
+            sourceRef: string;
+            sourceSystem: string;
+            updatedAt?: number;
+          },
+          string
+        >;
+        deleteItem: FunctionReference<
+          "mutation",
+          "internal",
+          { namespace: string; sourceRef: string; sourceSystem: string },
+          null
+        >;
+        upsertItem: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            bucketId?: string;
+            bucketType?: string;
+            embedding?: Array<number>;
+            embeddingSlices?: Array<{
+              embedding: Array<number>;
+              propKey: string;
+              sliceId?: string;
+            }>;
             namespace: string;
             sourceRef: string;
             sourceSystem: string;
             sourceVersion?: number;
             supersededAt?: number;
-            text: string;
-            title?: string;
+            updatedAt?: number;
+          },
+          string
+        >;
+      };
+      search: {
+        vectorSearch: FunctionReference<
+          "action",
+          "internal",
+          {
+            limit?: number;
+            namespace: string;
+            sourceSystem?: string;
+            vector: Array<number>;
+          },
+          Array<{
+            _creationTime: number;
+            _id: string;
+            bucketId?: string;
+            bucketType?: string;
+            namespace: string;
+            propertyHits: Array<{
+              _score: number;
+              propKey: string;
+              sliceId: string;
+            }>;
+            sourceRef: string;
+            sourceSystem: string;
+            sourceVersion?: number;
+            supersededAt?: number;
             updatedAt: number;
           }>
         >;
@@ -900,6 +980,104 @@ export const components = componentsGeneric() as unknown as {
           null | { inDegree: number; outDegree: number; totalDegree: number }
         >;
       };
+    };
+  };
+  mergeMemoryWorkpool: {
+    config: {
+      update: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          logLevel?: "DEBUG" | "TRACE" | "INFO" | "REPORT" | "WARN" | "ERROR";
+          maxParallelism?: number;
+        },
+        any
+      >;
+    };
+    lib: {
+      cancel: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          id: string;
+          logLevel?: "DEBUG" | "TRACE" | "INFO" | "REPORT" | "WARN" | "ERROR";
+        },
+        any
+      >;
+      cancelAll: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          before?: number;
+          limit?: number;
+          logLevel?: "DEBUG" | "TRACE" | "INFO" | "REPORT" | "WARN" | "ERROR";
+        },
+        any
+      >;
+      enqueue: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          config: {
+            logLevel?: "DEBUG" | "TRACE" | "INFO" | "REPORT" | "WARN" | "ERROR";
+            maxParallelism?: number;
+          };
+          fnArgs: any;
+          fnHandle: string;
+          fnName: string;
+          fnType: "action" | "mutation" | "query";
+          onComplete?: { context?: any; fnHandle: string };
+          retryBehavior?: {
+            base: number;
+            initialBackoffMs: number;
+            maxAttempts: number;
+          };
+          runAt: number;
+        },
+        string
+      >;
+      enqueueBatch: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          config: {
+            logLevel?: "DEBUG" | "TRACE" | "INFO" | "REPORT" | "WARN" | "ERROR";
+            maxParallelism?: number;
+          };
+          items: Array<{
+            fnArgs: any;
+            fnHandle: string;
+            fnName: string;
+            fnType: "action" | "mutation" | "query";
+            onComplete?: { context?: any; fnHandle: string };
+            retryBehavior?: {
+              base: number;
+              initialBackoffMs: number;
+              maxAttempts: number;
+            };
+            runAt: number;
+          }>;
+        },
+        Array<string>
+      >;
+      status: FunctionReference<
+        "query",
+        "internal",
+        { id: string },
+        | { previousAttempts: number; state: "pending" }
+        | { previousAttempts: number; state: "running" }
+        | { state: "finished" }
+      >;
+      statusBatch: FunctionReference<
+        "query",
+        "internal",
+        { ids: Array<string> },
+        Array<
+          | { previousAttempts: number; state: "pending" }
+          | { previousAttempts: number; state: "running" }
+          | { state: "finished" }
+        >
+      >;
     };
   };
 };

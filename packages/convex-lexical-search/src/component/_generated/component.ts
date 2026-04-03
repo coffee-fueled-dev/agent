@@ -25,20 +25,33 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
   {
     public: {
       add: {
-        deleteFeature: FunctionReference<
+        appendTextSlice: FunctionReference<
           "mutation",
           "internal",
-          { featureId: string; namespace: string },
+          {
+            namespace: string;
+            propKey: string;
+            sourceRef: string;
+            sourceSystem: string;
+            text: string;
+            updatedAt?: number;
+          },
+          string,
+          Name
+        >;
+        deleteItem: FunctionReference<
+          "mutation",
+          "internal",
+          { namespace: string; sourceRef: string; sourceSystem: string },
           null,
           Name
         >;
-        upsertFeature: FunctionReference<
+        upsertItem: FunctionReference<
           "mutation",
           "internal",
           {
             bucketId?: string;
             bucketType?: string;
-            featureId: string;
             namespace: string;
             sourceRef: string;
             sourceSystem: string;
@@ -46,7 +59,6 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             supersededAt?: number;
             text?: string;
             textSlices?: Array<{ propKey: string; text: string }>;
-            title?: string;
             updatedAt?: number;
           },
           string,
@@ -68,15 +80,12 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             _id: string;
             bucketId?: string;
             bucketType?: string;
-            featureId: string;
-            matchedPropKey: string;
             namespace: string;
+            propertyHits: Array<{ propKey: string; text: string }>;
             sourceRef: string;
             sourceSystem: string;
             sourceVersion?: number;
             supersededAt?: number;
-            text: string;
-            title?: string;
             updatedAt: number;
           }>,
           Name

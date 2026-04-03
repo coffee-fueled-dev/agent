@@ -22,7 +22,7 @@ import { languageModels } from "../lib/models.js";
 import { toolkit } from "../lib/toolkit.js";
 import { toolSpecsToAgentTools } from "../lib/toolSpecAdapter.js";
 
-const assistantTools = toolkit([toolLibrary.memory, toolLibrary.filesystem], {
+const assistantTools = toolkit([toolLibrary.filesystem, toolLibrary.memory], {
   name: "assistant-tools",
 });
 

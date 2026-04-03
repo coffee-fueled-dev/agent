@@ -1,23 +1,7 @@
 import { v } from "convex/values";
 import type { Id } from "../_generated/dataModel.js";
 import { query } from "../_generated/server.js";
-
-/** Lexical hit: canonical row plus which text slice matched (for RRF / display). */
-const lexicalSearchHitValidator = v.object({
-  _id: v.id("searchFeatureItems"),
-  _creationTime: v.number(),
-  namespace: v.string(),
-  featureId: v.string(),
-  sourceSystem: v.string(),
-  sourceRef: v.string(),
-  updatedAt: v.number(),
-  bucketId: v.optional(v.string()),
-  bucketType: v.optional(v.string()),
-  supersededAt: v.optional(v.number()),
-  sourceVersion: v.optional(v.number()),
-  text: v.string(),
-  matchedPropKey: v.string(),
-});
+import { lexicalSearchHitValidator } from "../searchHitValidators.js";
 
 export const lexicalSearch = query({
   args: {
@@ -32,7 +16,7 @@ export const lexicalSearch = query({
     const candidateCap = Math.max(limit * 4, 40);
 
     const textHits = await ctx.db
-      .query("searchFeatureTextSlices")
+      .query("searchTexts")
       .withSearchIndex("search_text", (q) => {
         let chain = q
           .search("text", args.query)
@@ -44,64 +28,36 @@ export const lexicalSearch = query({
       })
       .take(candidateCap);
 
-    const seen = new Set<string>();
-    const orderedFeatureIds: string[] = [];
-    const sliceByFeature = new Map<
-      string,
-      { text: string; matchedPropKey: string }
-    >();
-
+    const orderedItemIds: Id<"searchItems">[] = [];
+    const selectedItems = new Set<Id<"searchItems">>();
     for (const row of textHits) {
-      if (seen.has(row.featureId)) continue;
-      seen.add(row.featureId);
-      orderedFeatureIds.push(row.featureId);
-      sliceByFeature.set(row.featureId, {
-        text: row.text,
-        matchedPropKey: row.propKey,
-      });
-      if (orderedFeatureIds.length >= limit) break;
+      if (selectedItems.has(row.searchItem)) continue;
+      selectedItems.add(row.searchItem);
+      orderedItemIds.push(row.searchItem);
+      if (orderedItemIds.length >= limit) break;
     }
 
-    const out: Array<{
-      _id: Id<"searchFeatureItems">;
-      _creationTime: number;
-      namespace: string;
-      featureId: string;
-      sourceSystem: string;
-      sourceRef: string;
-      updatedAt: number;
-      bucketId?: string;
-      bucketType?: string;
-      supersededAt?: number;
-      sourceVersion?: number;
-      text: string;
-      matchedPropKey: string;
-    }> = [];
+    const propertyHitsByItem = new Map<
+      Id<"searchItems">,
+      Array<{ propKey: string; text: string }>
+    >();
+    for (const row of textHits) {
+      if (!selectedItems.has(row.searchItem)) continue;
+      const list = propertyHitsByItem.get(row.searchItem) ?? [];
+      list.push({ propKey: row.propKey, text: row.text });
+      propertyHitsByItem.set(row.searchItem, list);
+    }
 
-    for (const featureId of orderedFeatureIds) {
-      const canonical = await ctx.db
-        .query("searchFeatureItems")
-        .withIndex("by_namespace_featureId", (q) =>
-          q.eq("namespace", args.namespace).eq("featureId", featureId),
-        )
-        .first();
-      const slice = sliceByFeature.get(featureId);
-      if (!canonical || !slice) continue;
+    const out = [];
+
+    for (const itemId of orderedItemIds) {
+      const canonical = await ctx.db.get(itemId);
+      const propertyHits = propertyHitsByItem.get(itemId);
+      if (!canonical || !propertyHits) continue;
 
       out.push({
-        _id: canonical._id,
-        _creationTime: canonical._creationTime,
-        namespace: canonical.namespace,
-        featureId: canonical.featureId,
-        sourceSystem: canonical.sourceSystem,
-        sourceRef: canonical.sourceRef,
-        updatedAt: canonical.updatedAt,
-        bucketId: canonical.bucketId,
-        bucketType: canonical.bucketType,
-        supersededAt: canonical.supersededAt,
-        sourceVersion: canonical.sourceVersion,
-        text: slice.text,
-        matchedPropKey: slice.matchedPropKey,
+        ...canonical,
+        propertyHits,
       });
     }
 

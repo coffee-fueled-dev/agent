@@ -6,11 +6,9 @@ export function AddMemoryToolPart({ part, toolName }: ToolPartProps) {
   const input = "input" in part ? part.input : undefined;
   let headline = "";
   if (input && typeof input === "object" && input !== null) {
-    const title =
-      "title" in input && input.title != null ? String(input.title).trim() : "";
     const text =
       "text" in input && input.text != null ? String(input.text).trim() : "";
-    headline = [title, text.slice(0, 100)].filter(Boolean).join(" — ");
+    headline = text.slice(0, 100);
   }
 
   return (

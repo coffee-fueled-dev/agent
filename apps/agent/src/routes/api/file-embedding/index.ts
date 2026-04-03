@@ -18,8 +18,7 @@ import {
 } from "./env.js";
 
 const embeddingModel = "gemini-embedding-2-preview";
-/** Keep each Convex HTTP request small (embedding vectors are large). */
-const CHUNKS_PER_HTTP_BATCH = 12;
+const MAX_CACHED_FILE_CHUNKS = 120;
 const sharedSecret = getFileEmbeddingSecret();
 const convex = new ConvexHttpClient(getConvexUrl());
 const cacheDbPath = getEmbeddingCacheDbPath();
@@ -84,22 +83,37 @@ async function reportCompletion(job: EmbedJob, result: ProcessedFileResult) {
   if (chunks.length === 0) {
     throw new Error("No embedding chunks to report");
   }
-  for (let i = 0; i < chunks.length; i += CHUNKS_PER_HTTP_BATCH) {
-    const slice = chunks.slice(i, i + CHUNKS_PER_HTTP_BATCH);
-    const batchIndex = Math.floor(i / CHUNKS_PER_HTTP_BATCH);
-    await convex.mutation(api.files.appendFileProcessChunkBatch, {
+  const textLike = isTextLikeMime(job.mimeType);
+  if (textLike) {
+    for (let i = 0; i < chunks.length; i++) {
+      const isLast = i === chunks.length - 1;
+      await convex.action(api.files.ingestFileEmbeddingChunk, {
+        secret: sharedSecret,
+        jobId: job.processId,
+        chunkOrder: i,
+        chunk: chunks[i]!,
+        isLast,
+      });
+    }
+  } else {
+    await convex.action(api.files.ingestFileEmbeddingChunk, {
       secret: sharedSecret,
       jobId: job.processId,
-      batchIndex,
-      chunks: slice,
+      chunkOrder: 0,
+      chunk: chunks[0]!,
+      isLast: true,
+      retrievalText,
     });
   }
-  await convex.action(api.files.finalizeFileProcessEmbedding, {
-    secret: sharedSecret,
-    jobId: job.processId,
-    retrievalText,
-    lexicalText,
-  });
+  if (job.contentHash && chunks.length <= MAX_CACHED_FILE_CHUNKS) {
+    await convex.mutation(api.files.cacheFileEmbeddingResult, {
+      secret: sharedSecret,
+      jobId: job.processId,
+      retrievalText,
+      lexicalText,
+      chunks,
+    });
+  }
 }
 
 async function reportFailure(job: EmbedJob, error: unknown) {

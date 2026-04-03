@@ -28,7 +28,8 @@ export type SearchSourceConfig<
 > = {
   sourceSystem: SOURCE_SYSTEM;
   document: TABLE_NAME;
-  fields: readonly FieldKeysFor<DATA_MODEL, TABLE_NAME>[];
+  /** When set, documents which host table columns are mirrored; omit when search rows are slice-backed only. */
+  fields?: readonly FieldKeysFor<DATA_MODEL, TABLE_NAME>[];
 };
 
 /** Union of per-table configs so `fields` is validated against the chosen `document`, not the intersection of all tables' keys. */
@@ -52,17 +53,20 @@ export type SearchClientConfig<
 
 type Name = string | undefined;
 
-type UpsertFeature<NAME extends Name = Name> =
-  ComponentApi<NAME>["public"]["add"]["upsertFeature"];
+type UpsertItem<NAME extends Name = Name> =
+  ComponentApi<NAME>["public"]["add"]["upsertItem"];
 
-type DeleteFeature<NAME extends Name = Name> =
-  ComponentApi<NAME>["public"]["add"]["deleteFeature"];
+type DeleteItem<NAME extends Name = Name> =
+  ComponentApi<NAME>["public"]["add"]["deleteItem"];
 
 type LexicalSearch<NAME extends Name = Name> =
   ComponentApi<NAME>["public"]["search"]["lexicalSearch"];
 
+type AppendTextSlice<NAME extends Name = Name> =
+  ComponentApi<NAME>["public"]["add"]["appendTextSlice"];
+
 /** Canonical row in the component (identity + opaque `sourceRef`). */
-export type LexicalSearchItemDoc = Doc<"searchFeatureItems">;
+export type LexicalSearchItemDoc = Doc<"searchItems">;
 
 export class SearchClient<
   DATA_MODEL extends GenericDataModel,
@@ -74,16 +78,21 @@ export class SearchClient<
     public config: SearchClientConfig<DATA_MODEL, SOURCE_SYSTEM>,
   ) {}
 
-  upsertFeature = (
+  upsertItem = (
     ctx: RunMutationCtx,
-    args: FunctionArgs<UpsertFeature<NAME>>,
-  ) => ctx.runMutation(this.component.public.add.upsertFeature, args);
+    args: FunctionArgs<UpsertItem<NAME>>,
+  ) => ctx.runMutation(this.component.public.add.upsertItem, args);
 
-  deleteFeature = (
+  deleteItem = (
     ctx: RunMutationCtx,
-    args: FunctionArgs<DeleteFeature<NAME>>,
-  ) => ctx.runMutation(this.component.public.add.deleteFeature, args);
+    args: FunctionArgs<DeleteItem<NAME>>,
+  ) => ctx.runMutation(this.component.public.add.deleteItem, args);
 
   search = (ctx: RunQueryCtx, args: FunctionArgs<LexicalSearch<NAME>>) =>
     ctx.runQuery(this.component.public.search.lexicalSearch, args);
+
+  appendTextSlice = (
+    ctx: RunMutationCtx,
+    args: FunctionArgs<AppendTextSlice<NAME>>,
+  ) => ctx.runMutation(this.component.public.add.appendTextSlice, args);
 }

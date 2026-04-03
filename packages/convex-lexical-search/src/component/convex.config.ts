@@ -1,5 +1,5 @@
 import { defineComponent } from "convex/server";
 
-const component = defineComponent("search");
+const component = defineComponent("lexicalSearch");
 
 export default component;

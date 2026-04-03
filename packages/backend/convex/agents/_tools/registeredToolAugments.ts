@@ -1,5 +1,3 @@
-import "./memory/addMemory/tool.js";
-import "./memory/deleteMemory/tool.js";
-import "./memory/editMemory/tool.js";
-import "./memory/searchMemory/tool.js";
 import "./filesystem/runShell/tool.js";
+import "./memory/mergeMemory/tool.js";
+import "./memory/searchMemories/tool.js";

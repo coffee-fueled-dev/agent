@@ -28,7 +28,7 @@ export type ToolBuilderContext = Pick<
   AgentIdentityCtx;
 
 export type ConvexAgentEnv = AgentIdentityCtx &
-  Pick<ToolBuilderContext, "runAction"> & {
+  Pick<ToolBuilderContext, "runAction" | "runMutation"> & {
     runPolicyQuery: (
       query: FunctionReference<"query", "internal", ToolPolicyArgs, boolean>,
     ) => Promise<boolean>;
@@ -55,6 +55,7 @@ export function createConvexAgentEnv(ctx: ToolBuilderContext): ConvexAgentEnv {
     agentId: ctx.agentId,
     agentName: ctx.agentName,
     runAction: ctx.runAction,
+    runMutation: ctx.runMutation,
     runPolicyQuery: (query) => ctx.runQuery(query, args),
     runDependencyQuery: (query) => ctx.runQuery(query, args),
   };

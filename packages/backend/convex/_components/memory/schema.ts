@@ -5,84 +5,27 @@ import { v } from "convex/values";
 export const sourceRefValidator = v.string();
 
 export default defineSchema({
-  /** Canonical stable memory row; `memoryId` matches RAG entry id string. */
+  /** Canonical memory row; `_id` is the stable id; `ragEntryId` links to the RAG component. */
   memoryRecords: defineTable({
     namespace: v.string(),
-    memoryId: v.string(),
     key: v.string(),
-    updatedAt: v.number(),
-  })
-    .index("by_memoryId", ["memoryId"])
-    .index("by_namespace", ["namespace"])
-    .index("by_namespace_and_key", ["namespace", "key"]),
+    /** Next chunk sequence for this stream; OCC with applyMergeMemoryBatch. */
+    nextChunkSeq: v.optional(v.number()),
+  }).index("by_namespace_key", ["namespace", "key"]),
 
-  /** Maps opaque source refs to a stable memory id. */
+  /** Maps opaque source refs to a memory record id. */
   memorySourceMap: defineTable({
     namespace: v.string(),
-    sourceRef: sourceRefValidator,
-    memoryId: v.string(),
-  })
-    .index("by_namespace_and_sourceRef", ["namespace", "sourceRef"])
-    .index("by_memoryId", ["memoryId"]),
-
-  /** One embedding vector per memory for similarity / batch graph (mirrors context pattern). */
-  memoryEmbeddings: defineTable({
-    memoryId: v.string(),
-    namespace: v.string(),
-    embedding: v.array(v.number()),
-  })
-    .index("by_memoryId", ["memoryId"])
-    .index("by_namespace", ["namespace"]),
-
-  memoryCommunityJobs: defineTable({
-    namespace: v.string(),
-    stale: v.boolean(),
-    updateTime: v.number(),
-    params: v.object({
-      k: v.number(),
-      resolution: v.number(),
+    sourceRef: v.object({
+      type: v.string(),
+      id: v.string(),
     }),
-    data: v.union(
-      v.object({ status: v.literal("pending") }),
-      v.object({
-        status: v.literal("running"),
-        phase: v.union(
-          v.literal("loading"),
-          v.literal("building"),
-          v.literal("detecting"),
-          v.literal("writing"),
-        ),
-        loadedCount: v.number(),
-      }),
-      v.object({
-        status: v.literal("completed"),
-        completionTime: v.number(),
-        communities: v.array(
-          v.object({
-            id: v.number(),
-            memberCount: v.number(),
-            sampleMemoryIds: v.array(v.string()),
-          }),
-        ),
-        memoryCount: v.number(),
-        edgeCount: v.number(),
-      }),
-      v.object({
-        status: v.literal("failed"),
-        error: v.string(),
-        failureTime: v.number(),
-      }),
-    ),
-  }).index("by_namespace", ["namespace"]),
-
-  memoryCommunityAssignments: defineTable({
-    namespace: v.string(),
-    memoryId: v.string(),
-    communityId: v.number(),
-    jobId: v.id("memoryCommunityJobs"),
+    memoryRecord: v.id("memoryRecords"),
   })
-    .index("by_namespace", ["namespace"])
-    .index("by_namespace_memoryId", ["namespace", "memoryId"])
-    .index("by_namespace_communityId", ["namespace", "communityId"])
-    .index("by_jobId", ["jobId"]),
+    .index("by_namespace_sourceRef", [
+      "namespace",
+      "sourceRef.type",
+      "sourceRef.id",
+    ])
+    .index("by_memoryRecord", ["memoryRecord"]),
 });

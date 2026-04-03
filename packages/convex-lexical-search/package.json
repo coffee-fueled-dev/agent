@@ -1,12 +1,12 @@
 {
-  "name": "@very-coffee/convex-search-features",
-  "description": "Focused lexical search component for Convex (canonical rows + fulltext slices).",
+  "name": "@very-coffee/convex-lexical-search",
+  "description": "Lexical search component for Convex.",
   "repository": "github:coffee-fueled-dev/agent",
-  "homepage": "https://github.com/coffee-fueled-dev/agent/packages/convex-search-features#readme",
+  "homepage": "https://github.com/coffee-fueled-dev/agent/packages/convex-lexical-search#readme",
   "bugs": {
     "url": "https://github.com/coffee-fueled-dev/agent/issues"
   },
-  "version": "0.3.0",
+  "version": "0.1.0",
   "license": "Apache-2.0",
   "keywords": [
     "convex",
@@ -63,6 +63,10 @@
     "./types": {
       "types": "./dist/types.d.ts",
       "default": "./dist/types.js"
+    },
+    "./searchHitValidators": {
+      "types": "./src/component/searchHitValidators.ts",
+      "default": "./src/component/searchHitValidators.ts"
     }
   },
   "dependencies": {

@@ -1,0 +1,93 @@
+{
+  "name": "@very-coffee/convex-vector-search",
+  "description": "Vector search component for Convex.",
+  "repository": "github:coffee-fueled-dev/agent",
+  "homepage": "https://github.com/coffee-fueled-dev/agent/packages/convex-vector-search#readme",
+  "bugs": {
+    "url": "https://github.com/coffee-fueled-dev/agent/issues"
+  },
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "keywords": [
+    "convex",
+    "component"
+  ],
+  "type": "module",
+  "scripts": {
+    "dev": "bun ./scripts/dev.ts",
+    "dev:convex": "bunx convex dev --typecheck-components",
+    "build": "tsc --project ./tsconfig.build.json",
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "build:codegen": "bunx convex codegen --component-dir ./src/component && bun run build",
+    "build:clean": "bun run clean && bun run build:codegen",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "test:watch": "bun test --watch",
+    "test:debug": "bun test --inspect-brk",
+    "test:coverage": "bun test --coverage",
+    "preversion": "bun install && bun run build:clean && bun run test && bun run typecheck",
+    "prepublishOnly": "bun pm whoami || npm login",
+    "alpha": "bun version prerelease --preid alpha && bun publish --tag alpha && git push --follow-tags",
+    "release": "bun version patch && bun publish && git push --follow-tags",
+    "version": "vim -c 'normal o' -c 'normal o## '$npm_package_version CHANGELOG.md && prettier -w CHANGELOG.md && git add CHANGELOG.md"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/client/index.d.ts",
+      "default": "./dist/client/index.js"
+    },
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "default": "./dist/react/index.js"
+    },
+    "./test": "./src/test.ts",
+    "./_generated/component.js": {
+      "types": "./dist/component/_generated/component.d.ts"
+    },
+    "./_generated/component": {
+      "types": "./dist/component/_generated/component.d.ts"
+    },
+    "./convex.config.js": {
+      "types": "./dist/component/convex.config.d.ts",
+      "default": "./dist/component/convex.config.js"
+    },
+    "./convex.config": {
+      "types": "./dist/component/convex.config.d.ts",
+      "default": "./dist/component/convex.config.js"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "default": "./dist/types.js"
+    },
+    "./searchHitValidators": {
+      "types": "./src/component/searchHitValidators.ts",
+      "default": "./src/component/searchHitValidators.ts"
+    }
+  },
+  "dependencies": {
+    "convex-helpers": "^0.1.114"
+  },
+  "peerDependencies": {
+    "convex": "^1.34.0",
+    "react": "^18.3.1 || ^19.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.2.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "convex": "1.34.0",
+    "convex-test": "0.0.41",
+    "knip": "^6.1.0",
+    "prettier": "3.8.1",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "typescript": "5.9.3"
+  },
+  "types": "./dist/client/index.d.ts",
+  "module": "./dist/client/index.js"
+}

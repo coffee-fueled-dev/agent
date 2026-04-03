@@ -2,13 +2,12 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 /**
- * Canonical feature: identity + source link + optional grouping hooks.
- * Searchable strings live in `searchFeatureTextSlices`.
+ * Canonical item: identity + source link + optional grouping hooks.
+ * Searchable strings live in `searchTexts`.
  */
 export default defineSchema({
-  searchFeatureItems: defineTable({
+  searchItems: defineTable({
     namespace: v.string(),
-    featureId: v.string(),
     sourceSystem: v.string(),
     sourceRef: v.string(),
     updatedAt: v.number(),
@@ -18,27 +17,32 @@ export default defineSchema({
     supersededAt: v.optional(v.number()),
     sourceVersion: v.optional(v.number()),
   })
-    .index("by_namespace_featureId", ["namespace", "featureId"])
-    .index("by_sourceSystem_namespace", ["sourceSystem", "namespace"]),
+    .index("by_namespace", ["namespace"])
+    .index("by_sourceSystem_namespace", ["sourceSystem", "namespace"])
+    .index("by_namespace_sourceSystem_sourceRef", [
+      "namespace",
+      "sourceSystem",
+      "sourceRef",
+    ]),
 
   /**
    * One row per searchable string slice; only this table carries the fulltext index.
    */
-  searchFeatureTextSlices: defineTable({
+  searchTexts: defineTable({
     namespace: v.string(),
-    featureId: v.string(),
-    /** e.g. `"text"`, `"title"`, `"snippet"` — unique per feature. */
+    searchItem: v.id("searchItems"),
+    /** e.g. `"text"`, `"title"`, `"snippet"` — unique per item. */
     propKey: v.string(),
     sourceSystem: v.string(),
     text: v.string(),
     updatedAt: v.number(),
   })
-    .index("by_namespace_featureId_propKey", [
+    .index("by_namespace_searchItem_propKey", [
       "namespace",
-      "featureId",
+      "searchItem",
       "propKey",
     ])
-    .index("by_namespace_featureId", ["namespace", "featureId"])
+    .index("by_namespace_searchItem", ["namespace", "searchItem"])
     .searchIndex("search_text", {
       searchField: "text",
       filterFields: ["namespace", "sourceSystem"],

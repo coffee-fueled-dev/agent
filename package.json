@@ -50,7 +50,7 @@
     "@very-coffee/convex-facts": "workspace:*",
     "@very-coffee/convex-graph": "workspace:*",
     "@very-coffee/convex-history": "workspace:*",
-    "@very-coffee/convex-search-features": "workspace:*",
+    "@very-coffee/convex-lexical-search": "workspace:*",
     "@very-coffee/k-nearest-neighbors": "workspace:*",
     "@very-coffee/leiden": "workspace:*",
     "@very-coffee/reciprocal-rank-fusion": "workspace:*",
