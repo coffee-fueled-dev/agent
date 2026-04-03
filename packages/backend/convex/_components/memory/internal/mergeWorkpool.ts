@@ -1,7 +1,7 @@
 import { Workpool } from "@convex-dev/workpool";
 import { components } from "../_generated/api.js";
 
-/** Parallel merge batches across streams; same-stream ordering via OCC on memoryRecords.nextChunkSeq. */
+/** Parallel merge batches for new-memory merges; append mode runs inline in `mergeMemory`. */
 export const mergeMemoryPool = new Workpool(components.mergeMemoryWorkpool, {
   maxParallelism: 24,
 });

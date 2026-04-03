@@ -74,6 +74,8 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  /* Fixed-depth edge fade for mask utilities (not % of box size). */
+  --fade-mask-bleed: 0.75rem;
 }
 
 .dark {
@@ -119,67 +121,123 @@
   }
 }
 
-.fade-mask-y {
+@utility fade-mask-y {
   -webkit-mask-image: linear-gradient(
     to bottom,
-    transparent,
-    black 5%,
-    black 95%,
-    transparent
+    transparent 0,
+    black var(--fade-mask-bleed),
+    black calc(100% - var(--fade-mask-bleed)),
+    transparent 100%
   );
   mask-image: linear-gradient(
     to bottom,
-    transparent,
-    black 5%,
-    black 95%,
-    transparent
+    transparent 0,
+    black var(--fade-mask-bleed),
+    black calc(100% - var(--fade-mask-bleed)),
+    transparent 100%
   );
 }
 
-.fade-mask-t {
-  -webkit-mask-image: linear-gradient(to top, black 95%, transparent);
-  mask-image: linear-gradient(to top, black 95%, transparent);
+@utility fade-mask-t {
+  -webkit-mask-image: linear-gradient(
+    to top,
+    black calc(100% - var(--fade-mask-bleed)),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to top,
+    black calc(100% - var(--fade-mask-bleed)),
+    transparent 100%
+  );
 }
 
-.fade-mask-b {
-  -webkit-mask-image: linear-gradient(to bottom, black 95%, transparent);
-  mask-image: linear-gradient(to bottom, black 95%, transparent);
+@utility fade-mask-b {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    black calc(100% - var(--fade-mask-bleed)),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    black calc(100% - var(--fade-mask-bleed)),
+    transparent 100%
+  );
 }
 
-.fade-mask-x {
+@utility fade-mask-x {
   -webkit-mask-image: linear-gradient(
     to right,
-    transparent,
-    black 5%,
-    black 95%,
-    transparent
+    transparent 0,
+    black var(--fade-mask-bleed),
+    black calc(100% - var(--fade-mask-bleed)),
+    transparent 100%
   );
   mask-image: linear-gradient(
     to right,
-    transparent,
-    black 5%,
-    black 95%,
-    transparent
+    transparent 0,
+    black var(--fade-mask-bleed),
+    black calc(100% - var(--fade-mask-bleed)),
+    transparent 100%
   );
 }
 
-.fade-mask {
+@utility fade-mask {
   -webkit-mask-image:
-    linear-gradient(to bottom, transparent, black 5%, black 95%, transparent),
-    linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+    linear-gradient(
+      to bottom,
+      transparent 0,
+      black var(--fade-mask-bleed),
+      black calc(100% - var(--fade-mask-bleed)),
+      transparent 100%
+    ),
+    linear-gradient(
+      to right,
+      transparent 0,
+      black var(--fade-mask-bleed),
+      black calc(100% - var(--fade-mask-bleed)),
+      transparent 100%
+    );
   -webkit-mask-composite: source-in;
   mask-image:
-    linear-gradient(to bottom, transparent, black 5%, black 95%, transparent),
-    linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+    linear-gradient(
+      to bottom,
+      transparent 0,
+      black var(--fade-mask-bleed),
+      black calc(100% - var(--fade-mask-bleed)),
+      transparent 100%
+    ),
+    linear-gradient(
+      to right,
+      transparent 0,
+      black var(--fade-mask-bleed),
+      black calc(100% - var(--fade-mask-bleed)),
+      transparent 100%
+    );
   mask-composite: intersect;
 }
 
-.fade-mask-l {
-  -webkit-mask-image: linear-gradient(to left, black 95%, transparent);
-  mask-image: linear-gradient(to left, black 95%, transparent);
+@utility fade-mask-l {
+  -webkit-mask-image: linear-gradient(
+    to left,
+    black calc(100% - var(--fade-mask-bleed)),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to left,
+    black calc(100% - var(--fade-mask-bleed)),
+    transparent 100%
+  );
 }
 
-.fade-mask-r {
-  -webkit-mask-image: linear-gradient(to right, black 95%, transparent);
-  mask-image: linear-gradient(to right, black 95%, transparent);
+@utility fade-mask-r {
+  -webkit-mask-image: linear-gradient(
+    to right,
+    black calc(100% - var(--fade-mask-bleed)),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    black calc(100% - var(--fade-mask-bleed)),
+    transparent 100%
+  );
 }

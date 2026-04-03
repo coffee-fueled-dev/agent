@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api.js";
 import type { Id } from "../_generated/dataModel.js";
 import type { Id as MemoryRecordId } from "../_components/memory/_generated/dataModel.js";
+import type { MutationCtx } from "../_generated/server.js";
 import {
   action,
   internalAction,
@@ -150,6 +151,112 @@ export const getProcessForDispatch = internalQuery({
   },
 });
 
+async function findExistingFileProcessForIdempotency(
+  ctx: Pick<MutationCtx, "db">,
+  args: {
+    namespace: string;
+    storageId: Id<"_storage">;
+    contentHash?: string;
+  },
+): Promise<{
+  _id: Id<"fileProcesses">;
+  memoryRecordId: string;
+  status: "pending" | "processing" | "completed" | "failed";
+} | null> {
+  if (args.contentHash !== undefined && args.contentHash.length > 0) {
+    const byHash = await ctx.db
+      .query("fileProcesses")
+      .withIndex("by_namespace_content_hash", (q) =>
+        q.eq("namespace", args.namespace).eq("contentHash", args.contentHash),
+      )
+      .first();
+    if (byHash) {
+      return {
+        _id: byHash._id,
+        memoryRecordId: byHash.memoryRecordId,
+        status: byHash.status,
+      };
+    }
+    return null;
+  }
+
+  const byStorage = await ctx.db
+    .query("fileProcesses")
+    .withIndex("by_namespace_storage", (q) =>
+      q.eq("namespace", args.namespace).eq("storageId", args.storageId),
+    )
+    .first();
+  if (!byStorage) return null;
+  return {
+    _id: byStorage._id,
+    memoryRecordId: byStorage.memoryRecordId,
+    status: byStorage.status,
+  };
+}
+
+export const startFileProcess = internalMutation({
+  args: {
+    namespace: v.string(),
+    key: v.string(),
+    title: v.optional(v.string()),
+    storageId: v.id("_storage"),
+    mimeType: v.string(),
+    fileName: v.optional(v.string()),
+    contentHash: v.optional(v.string()),
+  },
+  returns: v.object({
+    processId: v.id("fileProcesses"),
+    memoryRecordId: v.string(),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("processing"),
+      v.literal("completed"),
+      v.literal("failed"),
+    ),
+    scheduledDispatch: v.boolean(),
+  }),
+  handler: async (ctx, args) => {
+    const existing = await findExistingFileProcessForIdempotency(ctx, {
+      namespace: args.namespace,
+      storageId: args.storageId,
+      contentHash: args.contentHash,
+    });
+    if (existing) {
+      return {
+        processId: existing._id,
+        memoryRecordId: existing.memoryRecordId,
+        status: existing.status,
+        scheduledDispatch: false,
+      };
+    }
+
+    const { memoryRecordId } = await memoryClient.mergeMemory(ctx, {
+      namespace: args.namespace,
+      key: args.key,
+      content: [],
+    });
+
+    const processId = await ctx.db.insert("fileProcesses", {
+      namespace: args.namespace,
+      key: args.key,
+      storageId: args.storageId,
+      mimeType: args.mimeType,
+      fileName: args.fileName,
+      title: args.title,
+      contentHash: args.contentHash,
+      memoryRecordId: memoryRecordId as string,
+      status: "processing",
+    });
+
+    return {
+      processId,
+      memoryRecordId: memoryRecordId as string,
+      status: "processing" as const,
+      scheduledDispatch: true,
+    };
+  },
+});
+
 export const dispatchEmbeddingJob = internalAction({
   args: { processId: v.id("fileProcesses") },
   returns: v.null(),
@@ -214,7 +321,12 @@ export const processFile = action({
   },
   returns: v.object({
     processId: v.id("fileProcesses"),
-    status: v.literal("processing"),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("processing"),
+      v.literal("completed"),
+      v.literal("failed"),
+    ),
     memoryId: v.string(),
   }),
   handler: async (
@@ -222,69 +334,27 @@ export const processFile = action({
     args,
   ): Promise<{
     processId: Id<"fileProcesses">;
-    status: "processing";
+    status: "pending" | "processing" | "completed" | "failed";
     memoryId: string;
   }> => {
-    const { memoryRecordId } = await memoryClient.mergeMemory(ctx, {
-      namespace: args.namespace,
-      key: args.key,
-      content: [],
-    });
-
-    const processId = await ctx.runMutation(
-      internal.files.store.insertFileProcess,
-      {
-        namespace: args.namespace,
-        key: args.key,
-        storageId: args.storageId,
-        mimeType: args.mimeType,
-        fileName: args.fileName,
-        title: args.title,
-        contentHash: args.contentHash,
-        memoryRecordId: memoryRecordId as string,
-        status: "processing",
-      },
-    );
-
-    await ctx.scheduler.runAfter(
-      0,
-      internal.files.store.dispatchEmbeddingJob,
-      { processId },
-    );
-
+    const result: {
+      processId: Id<"fileProcesses">;
+      memoryRecordId: string;
+      status: "pending" | "processing" | "completed" | "failed";
+      scheduledDispatch: boolean;
+    } = await ctx.runMutation(internal.files.store.startFileProcess, args);
+    if (result.scheduledDispatch) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.files.store.dispatchEmbeddingJob,
+        { processId: result.processId },
+      );
+    }
     return {
-      processId,
-      status: "processing" as const,
-      memoryId: memoryRecordId as string,
+      processId: result.processId,
+      status: result.status,
+      memoryId: result.memoryRecordId,
     };
-  },
-});
-
-export const insertFileProcess = internalMutation({
-  args: {
-    namespace: v.string(),
-    key: v.string(),
-    storageId: v.id("_storage"),
-    mimeType: v.string(),
-    fileName: v.optional(v.string()),
-    title: v.optional(v.string()),
-    contentHash: v.optional(v.string()),
-    memoryRecordId: v.string(),
-    status: v.union(v.literal("processing"), v.literal("completed")),
-  },
-  returns: v.id("fileProcesses"),
-  handler: async (ctx, args) => {
-    return await ctx.db.insert("fileProcesses", {
-      namespace: args.namespace,
-      key: args.key,
-      storageId: args.storageId,
-      mimeType: args.mimeType,
-      fileName: args.fileName,
-      title: args.title,
-      contentHash: args.contentHash,
-      memoryRecordId: args.memoryRecordId,
-      status: args.status,
-    });
   },
 });
 
@@ -330,6 +400,51 @@ export const ingestFileEmbeddingChunk = action({
     await ctx.runMutation(internal.files.store.patchIngestProgress, {
       processId: process._id,
       chunkOrder: args.chunkOrder,
+      isLast: args.isLast,
+    });
+    return null;
+  },
+});
+
+/**
+ * Append many chunks in one round trip. Slice keys stay deterministic (`nextChunkSeq` + index within batch).
+ */
+export const ingestFileEmbeddingChunks = action({
+  args: {
+    secret: v.string(),
+    jobId: v.string(),
+    chunks: v.array(chunkValidator),
+    /** Global index of the last chunk in this batch (for progress UI). */
+    lastChunkOrder: v.number(),
+    isLast: v.boolean(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    requireSecret(args.secret);
+    if (args.chunks.length === 0) {
+      throw new Error("ingestFileEmbeddingChunks: chunks must be non-empty");
+    }
+    const process = await ctx.runQuery(internal.files.store.getProcessForIngest, {
+      jobId: args.jobId,
+    });
+    if (!process) {
+      throw new Error("ingestFileEmbeddingChunks: process not found");
+    }
+    if (process.status === "failed" || process.status === "completed") {
+      return null;
+    }
+
+    const content = args.chunks.map((c) => buildIngestContentItem(c, undefined));
+    await memoryClient.mergeMemory(ctx, {
+      namespace: process.namespace,
+      mode: "append",
+      memoryRecordId: process.memoryRecordId as MemoryRecordId<"memoryRecords">,
+      content,
+    });
+
+    await ctx.runMutation(internal.files.store.patchIngestProgress, {
+      processId: process._id,
+      chunkOrder: args.lastChunkOrder,
       isLast: args.isLast,
     });
     return null;

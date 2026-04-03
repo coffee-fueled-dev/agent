@@ -2,9 +2,9 @@ import { api } from "@very-coffee/backend/api";
 import type { Id } from "@very-coffee/backend/dataModel";
 import { useQuery } from "convex/react";
 import { useEffect, useState } from "react";
-import { useContextFileUpload } from "./use-context-file-upload.js";
+import { useConvexFileUpload } from "./use-convex-file-upload.js";
 
-export type AttachedFileEmbeddingState = {
+export type FileMemoryEmbeddingState = {
   contentHash: string | null;
   storageId: Id<"_storage"> | null;
   processId: Id<"fileProcesses"> | null;
@@ -15,7 +15,11 @@ export type AttachedFileEmbeddingState = {
   error: string | null;
 };
 
-export function useAttachedFileEmbedForSearch(file: File, userId: string) {
+/**
+ * Uploads a file, starts {@link api.files.processFile}, and polls {@link api.files.getFileProcess}
+ * until the memory record is ready for search.
+ */
+export function useFileMemoryEmbedding(file: File, namespace: string) {
   const [contentHash, setContentHash] = useState<string | null>(null);
   const [storageId, setStorageId] = useState<Id<"_storage"> | null>(null);
   const [processId, setProcessId] = useState<Id<"fileProcesses"> | null>(null);
@@ -26,14 +30,14 @@ export function useAttachedFileEmbedForSearch(file: File, userId: string) {
     "idle" | "uploading" | "processing" | "completed" | "failed"
   >("idle");
   const [error, setError] = useState<string | null>(null);
-  const { prepareAttachment, startFileProcessing } = useContextFileUpload();
+  const { prepareFile, submitForEmbedding } = useConvexFileUpload();
   const process = useQuery(
     api.files.getFileProcess,
     processId ? { processId } : "skip",
   );
 
   useEffect(() => {
-    let cancelled = false;
+    const abort = new AbortController();
     setContentHash(null);
     setStorageId(null);
     setProcessId(null);
@@ -47,33 +51,44 @@ export function useAttachedFileEmbedForSearch(file: File, userId: string) {
       try {
         setStatus("uploading");
         setEmbeddingPending(true);
-        const prepared = await prepareAttachment(file);
-        if (cancelled) return;
+        const prepared = await prepareFile(file, abort.signal);
+        if (abort.signal.aborted) return;
         setContentHash(prepared.contentHash);
         setStorageId(prepared.storageId);
         setFileContentResolved(true);
 
-        const processResult = await startFileProcessing({
-          userId,
-          namespace: userId,
-          key: prepared.key,
-          title: prepared.fileName,
-          storageId: prepared.storageId,
-          mimeType: prepared.mimeType,
-          fileName: prepared.fileName,
-          contentHash: prepared.contentHash,
-        });
-        if (cancelled) return;
+        const processResult = await submitForEmbedding(
+          {
+            namespace,
+            key: prepared.key,
+            title: prepared.fileName,
+            storageId: prepared.storageId,
+            mimeType: prepared.mimeType,
+            fileName: prepared.fileName,
+            contentHash: prepared.contentHash,
+          },
+          abort.signal,
+        );
+        if (abort.signal.aborted) return;
         setProcessId(processResult.processId);
+        setMemoryId(processResult.memoryId);
         if (processResult.status === "completed") {
-          setMemoryId(processResult.memoryId);
           setEmbeddingPending(false);
           setStatus("completed");
+        } else if (processResult.status === "failed") {
+          setEmbeddingPending(false);
+          setStatus("failed");
         } else {
           setStatus("processing");
         }
       } catch (cause) {
-        if (!cancelled) {
+        if (
+          cause instanceof DOMException &&
+          cause.name === "AbortError"
+        ) {
+          return;
+        }
+        if (!abort.signal.aborted) {
           setEmbeddingPending(false);
           setStatus("failed");
           setError(
@@ -85,9 +100,9 @@ export function useAttachedFileEmbedForSearch(file: File, userId: string) {
     })();
 
     return () => {
-      cancelled = true;
+      abort.abort();
     };
-  }, [file, prepareAttachment, startFileProcessing, userId]);
+  }, [file, prepareFile, submitForEmbedding, namespace]);
 
   useEffect(() => {
     if (!processId || !process) return;

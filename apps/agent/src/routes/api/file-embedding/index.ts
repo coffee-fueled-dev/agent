@@ -7,18 +7,26 @@ import {
   GoogleGenAI,
 } from "@google/genai";
 import { api } from "@very-coffee/backend/api";
-import { $ } from "bun";
 import { ConvexHttpClient } from "convex/browser";
 import {
   getConvexUrl,
   getEmbeddingCacheDbPath,
   getFileEmbeddingSecret,
   getGoogleApiKey,
-  getTempDir,
 } from "./env.js";
 
 const embeddingModel = "gemini-embedding-2-preview";
 const MAX_CACHED_FILE_CHUNKS = 120;
+/** Convex actions per file; slice inside {@link mergeMemory} stays deterministic. */
+const CONVEX_INGEST_BATCH_SIZE = 48;
+/** Strings per `embedContent` call (Gemini returns one embedding per entry, same order). */
+const GOOGLE_EMBED_BATCH_SIZE = 100;
+/**
+ * Max characters per text slice after paragraph splitting. `gemini-embedding-2-preview`
+ * allows ~8k tokens; stay under that for code/dense text. Larger slices → fewer Convex
+ * lexical/vector appends per file (see `executeMergeMemoryBatch`).
+ */
+const MAX_TEXT_CHUNK_CHARS = 2_000;
 const sharedSecret = getFileEmbeddingSecret();
 const convex = new ConvexHttpClient(getConvexUrl());
 const cacheDbPath = getEmbeddingCacheDbPath();
@@ -85,22 +93,35 @@ async function reportCompletion(job: EmbedJob, result: ProcessedFileResult) {
   }
   const textLike = isTextLikeMime(job.mimeType);
   if (textLike) {
-    for (let i = 0; i < chunks.length; i++) {
-      const isLast = i === chunks.length - 1;
-      await convex.action(api.files.ingestFileEmbeddingChunk, {
+    for (
+      let batchStart = 0;
+      batchStart < chunks.length;
+      batchStart += CONVEX_INGEST_BATCH_SIZE
+    ) {
+      const slice = chunks.slice(
+        batchStart,
+        batchStart + CONVEX_INGEST_BATCH_SIZE,
+      );
+      const lastGlobal = batchStart + slice.length - 1;
+      const isLastBatch = lastGlobal === chunks.length - 1;
+      await convex.action(api.files.ingestFileEmbeddingChunks, {
         secret: sharedSecret,
         jobId: job.processId,
-        chunkOrder: i,
-        chunk: chunks[i]!,
-        isLast,
+        chunks: slice,
+        lastChunkOrder: lastGlobal,
+        isLast: isLastBatch,
       });
     }
   } else {
+    const first = chunks[0];
+    if (!first) {
+      throw new Error("No chunk for binary ingest");
+    }
     await convex.action(api.files.ingestFileEmbeddingChunk, {
       secret: sharedSecret,
       jobId: job.processId,
       chunkOrder: 0,
-      chunk: chunks[0]!,
+      chunk: first,
       isLast: true,
       retrievalText,
     });
@@ -127,8 +148,22 @@ async function reportFailure(job: EmbedJob, error: unknown) {
   }
 }
 
-function tempDownloadPath(job: EmbedJob) {
-  return `${getTempDir()}/file-embedding-${job.processId}-${Date.now()}`;
+async function fetchStoragePayload(
+  job: EmbedJob,
+): Promise<
+  { kind: "text"; text: string } | { kind: "binary"; arrayBuffer: ArrayBuffer }
+> {
+  const res = await fetch(job.fileUrl);
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `File download failed: HTTP ${res.status}${body ? ` ${body.slice(0, 200)}` : ""}`,
+    );
+  }
+  if (isTextLikeMime(job.mimeType)) {
+    return { kind: "text", text: (await res.text()).trim() };
+  }
+  return { kind: "binary", arrayBuffer: await res.arrayBuffer() };
 }
 
 function isTextLikeMime(mimeType: string) {
@@ -150,44 +185,46 @@ function splitTextContent(text: string) {
     .filter(Boolean);
   const chunks = paragraphs.length > 0 ? paragraphs : [text.trim()];
   return chunks.flatMap((chunk) => {
-    if (chunk.length <= 4000) return [chunk];
+    if (chunk.length <= MAX_TEXT_CHUNK_CHARS) return [chunk];
     const out: string[] = [];
-    for (let start = 0; start < chunk.length; start += 4000) {
-      out.push(chunk.slice(start, start + 4000));
+    for (let start = 0; start < chunk.length; start += MAX_TEXT_CHUNK_CHARS) {
+      out.push(chunk.slice(start, start + MAX_TEXT_CHUNK_CHARS));
     }
     return out;
   });
 }
 
-async function embedTextChunk(client: GoogleGenAI, text: string) {
-  const response = await client.models.embedContent({
-    model: embeddingModel,
-    contents: [createPartFromText(text)],
-  });
-  const values = response.embeddings?.[0]?.values;
-  if (!values?.length) {
-    throw new Error("Google did not return any text embeddings");
+/** One request per batch of strings; fewer round trips and better rate-limit behavior. */
+async function embedTextChunksBatched(
+  client: GoogleGenAI,
+  texts: string[],
+): Promise<number[][]> {
+  if (texts.length === 0) return [];
+  const out: number[][] = [];
+  for (let i = 0; i < texts.length; i += GOOGLE_EMBED_BATCH_SIZE) {
+    const batch = texts.slice(i, i + GOOGLE_EMBED_BATCH_SIZE);
+    const response = await client.models.embedContent({
+      model: embeddingModel,
+      contents: batch,
+    });
+    const embeddings = response.embeddings;
+    if (!embeddings || embeddings.length !== batch.length) {
+      throw new Error(
+        `Google embedContent: expected ${batch.length} embeddings, got ${embeddings?.length ?? 0}`,
+      );
+    }
+    for (const emb of embeddings) {
+      const values = emb.values;
+      if (!values?.length) {
+        throw new Error("Google returned an empty embedding in batch");
+      }
+      out.push(values);
+    }
   }
-  return values;
-}
-
-async function downloadFile(job: EmbedJob) {
-  const path = tempDownloadPath(job);
-  const result =
-    await $`curl -fsSL --retry 3 --retry-connrefused ${job.fileUrl} > ${Bun.file(path)}`
-      .nothrow()
-      .quiet();
-  if (result.exitCode !== 0) {
-    const errorText =
-      new TextDecoder().decode(result.stderr).trim() ||
-      `curl exited with code ${result.exitCode}`;
-    throw new Error(`File download failed: ${errorText}`);
-  }
-  return path;
+  return out;
 }
 
 async function processEmbeddingJob(job: EmbedJob) {
-  let tempFilePath: string | undefined;
   try {
     if (job.contentHash) {
       const cached = cacheGet.get({ $hash: job.contentHash });
@@ -200,46 +237,53 @@ async function processEmbeddingJob(job: EmbedJob) {
       }
     }
 
-    tempFilePath = await downloadFile(job);
+    const payload = await fetchStoragePayload(job);
     const client = createGenAIClient();
-    const result = isTextLikeMime(job.mimeType)
-      ? await (async (): Promise<ProcessedFileResult> => {
-          const text = (await Bun.file(tempFilePath).text()).trim();
-          const retrievalText = text || buildRetrievalText(job);
-          const chunkTexts = splitTextContent(retrievalText);
-          if (chunkTexts.length === 0) {
-            throw new Error("No text chunks were produced");
-          }
-          const chunks = await Promise.all(
-            chunkTexts.map(async (chunkText) => ({
-              text: chunkText,
-              embedding: await embedTextChunk(client, chunkText),
-            })),
-          );
-          return { retrievalText, lexicalText: retrievalText, chunks };
-        })()
-      : await (async (): Promise<ProcessedFileResult> => {
-          const retrievalText = buildRetrievalText(job);
-          const fileBytes = await Bun.file(tempFilePath).arrayBuffer();
-          const fileBase64 = Buffer.from(fileBytes).toString("base64");
-          const embeddingResponse = await client.models.embedContent({
-            model: embeddingModel,
-            contents: [
-              createPartFromBase64(fileBase64, job.mimeType),
-              createPartFromText(retrievalText),
-            ],
-          });
-          const chunks = (embeddingResponse.embeddings ?? []).flatMap(
-            (embedding) =>
-              embedding?.values?.length
-                ? [{ embedding: embedding.values }]
-                : [],
-          );
-          if (chunks.length === 0) {
-            throw new Error("Google did not return any embeddings");
-          }
-          return { retrievalText, chunks };
-        })();
+    const result =
+      payload.kind === "text"
+        ? await (async (): Promise<ProcessedFileResult> => {
+            const text = payload.text;
+            const retrievalText = text || buildRetrievalText(job);
+            const chunkTexts = splitTextContent(retrievalText);
+            if (chunkTexts.length === 0) {
+              throw new Error("No text chunks were produced");
+            }
+            const embeddingVectors = await embedTextChunksBatched(
+              client,
+              chunkTexts,
+            );
+            const chunks = chunkTexts.map((chunkText, i) => {
+              const embedding = embeddingVectors[i];
+              if (!embedding) {
+                throw new Error(`Missing embedding at index ${i}`);
+              }
+              return { text: chunkText, embedding };
+            });
+            return { retrievalText, lexicalText: retrievalText, chunks };
+          })()
+        : await (async (): Promise<ProcessedFileResult> => {
+            const retrievalText = buildRetrievalText(job);
+            const fileBase64 = Buffer.from(payload.arrayBuffer).toString(
+              "base64",
+            );
+            const embeddingResponse = await client.models.embedContent({
+              model: embeddingModel,
+              contents: [
+                createPartFromBase64(fileBase64, job.mimeType),
+                createPartFromText(retrievalText),
+              ],
+            });
+            const chunks = (embeddingResponse.embeddings ?? []).flatMap(
+              (embedding) =>
+                embedding?.values?.length
+                  ? [{ embedding: embedding.values }]
+                  : [],
+            );
+            if (chunks.length === 0) {
+              throw new Error("Google did not return any embeddings");
+            }
+            return { retrievalText, chunks };
+          })();
 
     if (job.contentHash) {
       cacheSet.run({
@@ -253,10 +297,6 @@ async function processEmbeddingJob(job: EmbedJob) {
   } catch (error) {
     console.error("Embedding job failed", error);
     await reportFailure(job, error);
-  } finally {
-    if (tempFilePath) {
-      await $`rm -f ${tempFilePath}`.nothrow().quiet();
-    }
   }
 }
 

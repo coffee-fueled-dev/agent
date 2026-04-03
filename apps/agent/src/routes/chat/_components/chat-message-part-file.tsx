@@ -1,4 +1,4 @@
-import { MimeTypeIcon } from "@/components/files/mime-type-icon.js";
+import { MimeTypeIcon } from "@/files/mime-type-icon.js";
 import { Item, ItemContent, ItemTitle } from "@/components/ui/item.js";
 
 export function ChatMessagePartFile({

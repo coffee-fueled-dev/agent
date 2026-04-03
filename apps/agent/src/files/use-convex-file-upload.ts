@@ -3,9 +3,9 @@ import { api } from "@very-coffee/backend/api";
 import type { Id } from "@very-coffee/backend/dataModel";
 import { useAction, useMutation } from "convex/react";
 import { useCallback } from "react";
-import { buildContextFileKey } from "./context-file.js";
+import { buildFileMemoryKey } from "./file-keys.js";
 
-export type PreparedAttachment = {
+export type PreparedConvexFile = {
   storageId: Id<"_storage">;
   contentHash: string;
   mimeType: string;
@@ -13,19 +13,26 @@ export type PreparedAttachment = {
   key: string;
 };
 
-export function useContextFileUpload() {
+/**
+ * Uploads to Convex file storage and calls {@link api.files.processFile} for embedding + memory indexing.
+ */
+export function useConvexFileUpload() {
   const generateUploadUrl = useMutation(api.files.generateFileUploadUrl);
   const processFile = useAction(api.files.processFile);
 
   const uploadFileToStorage = useCallback(
-    async (file: File): Promise<Id<"_storage">> => {
+    async (file: File, signal?: AbortSignal): Promise<Id<"_storage">> => {
       const uploadUrl = await generateUploadUrl({});
+      if (signal?.aborted) {
+        throw new DOMException("Upload aborted", "AbortError");
+      }
       const response = await fetch(uploadUrl, {
         method: "POST",
         headers: {
           "Content-Type": file.type || "application/octet-stream",
         },
         body: file,
+        signal,
       });
       if (!response.ok) throw new Error("Failed to upload file.");
       const payload = (await response.json()) as { storageId?: string };
@@ -37,18 +44,21 @@ export function useContextFileUpload() {
     [generateUploadUrl],
   );
 
-  const prepareAttachment = useCallback(
-    async (file: File): Promise<PreparedAttachment> => {
+  const prepareFile = useCallback(
+    async (file: File, signal?: AbortSignal): Promise<PreparedConvexFile> => {
       const [storageId, contentHash] = await Promise.all([
-        uploadFileToStorage(file),
+        uploadFileToStorage(file, signal),
         contentHashFromArrayBuffer(await file.arrayBuffer()),
       ]);
+      if (signal?.aborted) {
+        throw new DOMException("Upload aborted", "AbortError");
+      }
       return {
         storageId,
         contentHash,
         mimeType: file.type || "application/octet-stream",
         fileName: file.name,
-        key: buildContextFileKey({
+        key: buildFileMemoryKey({
           fileName: file.name,
           prefix: "chat",
           fallback: "file",
@@ -58,17 +68,22 @@ export function useContextFileUpload() {
     [uploadFileToStorage],
   );
 
-  const startFileProcessing = useCallback(
-    async (args: {
-      userId: string;
-      namespace: string;
-      key: string;
-      title?: string;
-      storageId: Id<"_storage">;
-      mimeType: string;
-      fileName?: string;
-      contentHash?: string;
-    }) => {
+  const submitForEmbedding = useCallback(
+    async (
+      args: {
+        namespace: string;
+        key: string;
+        title?: string;
+        storageId: Id<"_storage">;
+        mimeType: string;
+        fileName?: string;
+        contentHash?: string;
+      },
+      signal?: AbortSignal,
+    ) => {
+      if (signal?.aborted) {
+        throw new DOMException("Upload aborted", "AbortError");
+      }
       return await processFile({
         namespace: args.namespace,
         key: args.key,
@@ -84,7 +99,7 @@ export function useContextFileUpload() {
 
   return {
     uploadFileToStorage,
-    prepareAttachment,
-    startFileProcessing,
+    prepareFile,
+    submitForEmbedding,
   };
 }

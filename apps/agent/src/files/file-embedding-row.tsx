@@ -7,23 +7,24 @@ import {
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
-  type AttachedFileEmbeddingState,
-  useAttachedFileEmbedForSearch,
-} from "@/routes/_hooks/use-attached-file-embed-for-search";
-import { MimeTypeIcon } from "./mime-type-icon";
+  type FileMemoryEmbeddingState,
+  useFileMemoryEmbedding,
+} from "./use-file-memory-embedding.js";
+import { MimeTypeIcon } from "./mime-type-icon.js";
 
-export type { AttachedFileEmbeddingState };
+export type { FileMemoryEmbeddingState };
 
-export function AttachedFileEmbedRow({
+export function FileEmbeddingRow({
   file,
-  userId,
+  namespace,
   onRemove,
   onEmbeddingStateChange,
 }: {
   file: File;
-  userId: string;
+  /** Convex memory namespace (e.g. user or session id). */
+  namespace: string;
   onRemove: () => void;
-  onEmbeddingStateChange?: (state: AttachedFileEmbeddingState) => void;
+  onEmbeddingStateChange?: (state: FileMemoryEmbeddingState) => void;
 }) {
   const {
     contentHash,
@@ -34,7 +35,7 @@ export function AttachedFileEmbedRow({
     fileContentResolved,
     status,
     error,
-  } = useAttachedFileEmbedForSearch(file, userId);
+  } = useFileMemoryEmbedding(file, namespace);
 
   useEffect(() => {
     onEmbeddingStateChange?.({

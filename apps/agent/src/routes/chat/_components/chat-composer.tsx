@@ -3,7 +3,7 @@ import { api } from "@very-coffee/backend/api";
 import { useMutation } from "convex/react";
 import { PaperclipIcon } from "lucide-react";
 import { useState } from "react";
-import { useFiles } from "@/components/files";
+import { useFiles } from "@/files";
 import {
   InputGroup,
   InputGroupAddon,

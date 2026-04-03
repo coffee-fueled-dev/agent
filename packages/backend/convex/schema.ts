@@ -20,7 +20,10 @@ export default defineSchema({
     ),
     error: v.optional(v.string()),
     lastChunkOrder: v.optional(v.number()),
-  }).index("by_namespace_key", ["namespace", "key"]),
+  })
+    .index("by_namespace_key", ["namespace", "key"])
+    .index("by_namespace_content_hash", ["namespace", "contentHash"])
+    .index("by_namespace_storage", ["namespace", "storageId"]),
 
   /** Marker that this content hash was embedded at least once (optional bookkeeping). */
   fileEmbeddingCache: defineTable({

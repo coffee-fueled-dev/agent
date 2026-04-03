@@ -10,20 +10,20 @@ import {
   useState,
 } from "react";
 import {
-  type AttachedFileEmbeddingState,
-  AttachedFileEmbedRow,
+  type FileMemoryEmbeddingState,
+  FileEmbeddingRow,
   useFiles,
-} from "@/components/files";
+} from "@/files";
 
 export function fileKeyFor(f: File) {
   return `${f.name}-${f.size}-${f.lastModified}`;
 }
 
 type ChatComposerFileContextValue = {
-  fileEmbedStates: Record<string, AttachedFileEmbeddingState>;
+  fileEmbedStates: Record<string, FileMemoryEmbeddingState>;
   reportEmbedState: (
     fileKey: string,
-    state: AttachedFileEmbeddingState,
+    state: FileMemoryEmbeddingState,
   ) => void;
   allAttachmentsReady: boolean;
 };
@@ -48,11 +48,11 @@ export function ChatComposerFileProvider({
 }) {
   const { files } = useFiles();
   const [fileEmbedStates, setFileEmbedStates] = useState<
-    Record<string, AttachedFileEmbeddingState>
+    Record<string, FileMemoryEmbeddingState>
   >({});
 
   const reportEmbedState = useCallback(
-    (fileKey: string, state: AttachedFileEmbeddingState) => {
+    (fileKey: string, state: FileMemoryEmbeddingState) => {
       setFileEmbedStates((prev) => ({ ...prev, [fileKey]: state }));
     },
     [],
@@ -120,7 +120,7 @@ export function ChatComposerFileRow({
   const { removeFile } = useFiles();
 
   const report = useCallback(
-    (state: AttachedFileEmbeddingState) => {
+    (state: FileMemoryEmbeddingState) => {
       reportEmbedState(fileKey, state);
     },
     [fileKey, reportEmbedState],
@@ -131,9 +131,9 @@ export function ChatComposerFileRow({
   }, [file.name, removeFile]);
 
   return (
-    <AttachedFileEmbedRow
+    <FileEmbeddingRow
       file={file}
-      userId={userId}
+      namespace={userId}
       onRemove={handleRemove}
       onEmbeddingStateChange={report}
     />

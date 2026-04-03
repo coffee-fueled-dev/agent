@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { mutation } from "../_generated/server";
+import { executeMergeMemoryBatch } from "../internal/mergeBatch.js";
 import { mergeMemoryPool } from "../internal/mergeWorkpool";
 
 const contentValidator = v.array(
@@ -40,34 +41,34 @@ export const mergeMemory = mutation({
       if (!id) {
         throw new Error("mergeMemory: memoryRecordId is required when mode is append");
       }
-      const doc = await ctx.db.get(id);
-      if (!doc) {
-        throw new Error("mergeMemory: memory record not found");
-      }
-      if (doc.namespace !== args.namespace) {
-        throw new Error("mergeMemory: memory record namespace mismatch");
-      }
       memoryRecordId = id;
-    } else {
-      const key = args.key;
-      if (key === undefined || key.length === 0) {
-        throw new Error("mergeMemory: key is required when not appending");
-      }
-      const existing = await ctx.db
-        .query("memoryRecords")
-        .withIndex("by_namespace_key", (q) =>
-          q.eq("namespace", args.namespace).eq("key", key),
-        )
-        .unique();
-
-      memoryRecordId =
-        existing?._id ??
-        (await ctx.db.insert("memoryRecords", {
-          namespace: args.namespace,
-          key,
-          nextChunkSeq: 0,
-        }));
+      /** Inline batch so sequential appends do not race workpool vs `mergeMemory`'s read of `memoryRecords` (OCC). */
+      await executeMergeMemoryBatch(ctx, {
+        namespace: args.namespace,
+        memoryRecordId: id,
+        content: args.content,
+      });
+      return { memoryRecordId: id, workId: "inline" };
     }
+
+    const key = args.key;
+    if (key === undefined || key.length === 0) {
+      throw new Error("mergeMemory: key is required when not appending");
+    }
+    const existing = await ctx.db
+      .query("memoryRecords")
+      .withIndex("by_namespace_key", (q) =>
+        q.eq("namespace", args.namespace).eq("key", key),
+      )
+      .unique();
+
+    memoryRecordId =
+      existing?._id ??
+      (await ctx.db.insert("memoryRecords", {
+        namespace: args.namespace,
+        key,
+        nextChunkSeq: 0,
+      }));
 
     const workId = await mergeMemoryPool.enqueueMutation(
       ctx,

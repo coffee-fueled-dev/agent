@@ -2,7 +2,7 @@ export function isTextLikeFile(file: File) {
   return isTextLikeMimeType(file.type);
 }
 
-/** Matches server `isTextLikeMime` / embed-for-search text branch. */
+/** Aligns with server `isTextLikeMime` / embedding text branch. */
 export function isTextLikeMimeType(mimeType: string): boolean {
   return (
     mimeType.startsWith("text/") ||
@@ -20,8 +20,10 @@ export function readFileText(file: File): Promise<string> {
   });
 }
 
-/** Stable entry key: slug plus random suffix (replaces per-feature key builders). */
-export function buildContextFileKey(options: {
+/**
+ * Stable memory key: slug plus random suffix (namespaced for Convex `mergeMemory` `key`).
+ */
+export function buildFileMemoryKey(options: {
   title?: string;
   fileName?: string;
   /** e.g. "chat" — prefixed to the slug */
@@ -29,12 +31,12 @@ export function buildContextFileKey(options: {
   fallback?: string;
 }): string {
   const segment =
-    options.title?.trim() || options.fileName || options.fallback || "context";
+    options.title?.trim() || options.fileName || options.fallback || "file";
   const slug = segment
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
-  const core = slug || options.fallback || "context";
+  const core = slug || options.fallback || "file";
   const base = options.prefix ? `${options.prefix}-${core}` : core;
   return `${base}:${crypto.randomUUID()}`;
 }

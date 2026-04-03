@@ -1,5 +1,5 @@
 import { ActivityIcon } from "lucide-react";
-import { FileDropzone, FileDropzoneProvider } from "@/components/files";
+import { FileDropzone, FileDropzoneProvider } from "@/files";
 import { PageSection } from "@/components/layout/page-section";
 import { SidebarInsetFill } from "@/components/layout/sidebar.js";
 import { Button } from "@/components/ui/button";
