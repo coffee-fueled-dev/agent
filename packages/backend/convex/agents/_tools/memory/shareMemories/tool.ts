@@ -28,10 +28,13 @@ export function shareMemoriesTool() {
     inputSchema: shareMemoriesInputSchema,
     handler: async (ctx: ToolRuntimeContext<ConvexAgentEnv>, args) => {
       return await withFormattedResults(
-        ctx.env.runAction(internal.chat.resolveMemories.resolveMemoriesAction, {
-          namespace: ctx.env.namespace,
-          memoryRecordIds: args.selectedMemoryRecordIds,
-        }),
+        ctx.env.runAction(
+          internal.memories.resolveMemories.resolveMemoriesAction,
+          {
+            namespace: ctx.env.namespace,
+            memoryRecordIds: args.selectedMemoryRecordIds,
+          },
+        ),
       );
     },
   });

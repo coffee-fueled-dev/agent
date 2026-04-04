@@ -9,7 +9,7 @@ import type {
   ResolvedMemorySource,
   ResolvedOtherMemorySource,
   ResolvedStorageMemorySource,
-} from "../chat/resolveMemories.js";
+} from "../memories/resolveMemories.js";
 
 /** Element type per `sourceMaps[].name` — narrows {@link MemoryClient.resolveSourceMapsByName}. */
 export type MemoryClientSourceMapByName = {

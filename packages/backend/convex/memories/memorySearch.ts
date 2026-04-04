@@ -14,7 +14,7 @@ async function embedTextForFileArm(
   return raw ? [...raw] : undefined;
 }
 
-export const searchMemoriesForComposer = action({
+export const searchMemories = action({
   args: {
     namespace: v.string(),
     query: v.string(),
@@ -46,7 +46,7 @@ export const searchMemoriesForComposer = action({
     const googleApiKey = getGoogleApiKey();
     if (!googleApiKey) {
       throw new Error(
-        "searchMemoriesForComposer: set GOOGLE_GENERATIVE_AI_API_KEY (or GOOGLE_API_KEY) on this Convex deployment.",
+        "searchMemories: set GOOGLE_GENERATIVE_AI_API_KEY (or GOOGLE_API_KEY) on this Convex deployment.",
       );
     }
 

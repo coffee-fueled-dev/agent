@@ -40,8 +40,6 @@ import type * as chat_humanAgent_executeHumanToolCallsForTurn from "../chat/huma
 import type * as chat_humanAgent_humanToolCallWire from "../chat/humanAgent/humanToolCallWire.js";
 import type * as chat_humanAgent_recordHumanTurn from "../chat/humanAgent/recordHumanTurn.js";
 import type * as chat_humanAgent_toolSpecJsonSchema from "../chat/humanAgent/toolSpecJsonSchema.js";
-import type * as chat_memorySearch from "../chat/memorySearch.js";
-import type * as chat_resolveMemories from "../chat/resolveMemories.js";
 import type * as chat_thread from "../chat/thread.js";
 import type * as chat_thread_buildUserMessage from "../chat/thread/buildUserMessage.js";
 import type * as chat_thread_cfdTurnMeta from "../chat/thread/cfdTurnMeta.js";
@@ -52,6 +50,8 @@ import type * as env from "../env.js";
 import type * as files from "../files.js";
 import type * as files_store from "../files/store.js";
 import type * as filesEnv from "../filesEnv.js";
+import type * as memories_memorySearch from "../memories/memorySearch.js";
+import type * as memories_resolveMemories from "../memories/resolveMemories.js";
 import type * as types from "../types.js";
 import type * as workpool from "../workpool.js";
 
@@ -94,8 +94,6 @@ declare const fullApi: ApiFromModules<{
   "chat/humanAgent/humanToolCallWire": typeof chat_humanAgent_humanToolCallWire;
   "chat/humanAgent/recordHumanTurn": typeof chat_humanAgent_recordHumanTurn;
   "chat/humanAgent/toolSpecJsonSchema": typeof chat_humanAgent_toolSpecJsonSchema;
-  "chat/memorySearch": typeof chat_memorySearch;
-  "chat/resolveMemories": typeof chat_resolveMemories;
   "chat/thread": typeof chat_thread;
   "chat/thread/buildUserMessage": typeof chat_thread_buildUserMessage;
   "chat/thread/cfdTurnMeta": typeof chat_thread_cfdTurnMeta;
@@ -106,6 +104,8 @@ declare const fullApi: ApiFromModules<{
   files: typeof files;
   "files/store": typeof files_store;
   filesEnv: typeof filesEnv;
+  "memories/memorySearch": typeof memories_memorySearch;
+  "memories/resolveMemories": typeof memories_resolveMemories;
   types: typeof types;
   workpool: typeof workpool;
 }>;
