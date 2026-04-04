@@ -2,15 +2,33 @@ import type {
   DocumentByName,
   FunctionArgs,
   GenericDataModel,
-  GenericMutationCtx,
-  GenericQueryCtx,
   TableNamesInDataModel,
 } from "convex/server";
 import type { ComponentApi } from "../component/_generated/component.js";
 import type { Doc } from "../component/_generated/dataModel.js";
+import {
+  notifyLexicalSearchSubscribers,
+  type LexicalSearchMutationCallCtx,
+  type LexicalSearchSearchCtx,
+  type LexicalSearchSubscriber,
+  type LexicalSearchSubscribable,
+} from "./events.js";
 
-type RunMutationCtx = Pick<GenericMutationCtx<GenericDataModel>, "runMutation">;
-type RunQueryCtx = Pick<GenericQueryCtx<GenericDataModel>, "runQuery">;
+export type * from "./events.js";
+
+type Name = string | undefined;
+
+type UpsertItem<NAME extends Name = Name> =
+  ComponentApi<NAME>["public"]["add"]["upsertItem"];
+
+type DeleteItem<NAME extends Name = Name> =
+  ComponentApi<NAME>["public"]["add"]["deleteItem"];
+
+type LexicalSearch<NAME extends Name = Name> =
+  ComponentApi<NAME>["public"]["search"]["lexicalSearch"];
+
+type AppendTextSlice<NAME extends Name = Name> =
+  ComponentApi<NAME>["public"]["add"]["appendTextSlice"];
 
 export type TableNameFor<DATA_MODEL extends GenericDataModel> =
   TableNamesInDataModel<DATA_MODEL>;
@@ -51,20 +69,6 @@ export type SearchClientConfig<
   sources: readonly SearchSourceConfigForAnyTable<DATA_MODEL, SOURCE_SYSTEM>[];
 };
 
-type Name = string | undefined;
-
-type UpsertItem<NAME extends Name = Name> =
-  ComponentApi<NAME>["public"]["add"]["upsertItem"];
-
-type DeleteItem<NAME extends Name = Name> =
-  ComponentApi<NAME>["public"]["add"]["deleteItem"];
-
-type LexicalSearch<NAME extends Name = Name> =
-  ComponentApi<NAME>["public"]["search"]["lexicalSearch"];
-
-type AppendTextSlice<NAME extends Name = Name> =
-  ComponentApi<NAME>["public"]["add"]["appendTextSlice"];
-
 /** Canonical row in the component (identity + opaque `sourceRef`). */
 export type LexicalSearchItemDoc = Doc<"searchItems">;
 
@@ -72,27 +76,80 @@ export class SearchClient<
   DATA_MODEL extends GenericDataModel,
   SOURCE_SYSTEM extends string = string,
   NAME extends Name = Name,
-> {
+> implements LexicalSearchSubscribable<NAME>
+{
+  private _subscribers = new Map<string, LexicalSearchSubscriber<NAME>>();
+
   constructor(
     public component: ComponentApi<NAME>,
     public config: SearchClientConfig<DATA_MODEL, SOURCE_SYSTEM>,
   ) {}
 
-  upsertItem = (
-    ctx: RunMutationCtx,
+  subscribe(id: string, callback: LexicalSearchSubscriber<NAME>): void {
+    this._subscribers.set(id, callback);
+  }
+
+  upsertItem = async (
+    ctx: LexicalSearchMutationCallCtx,
     args: FunctionArgs<UpsertItem<NAME>>,
-  ) => ctx.runMutation(this.component.public.add.upsertItem, args);
+  ) => {
+    const result = await ctx.runMutation(
+      this.component.public.add.upsertItem,
+      args,
+    );
+    await notifyLexicalSearchSubscribers(this._subscribers, ctx, {
+      event: "upsertItem",
+      args,
+      result,
+    });
+    return result;
+  };
 
-  deleteItem = (
-    ctx: RunMutationCtx,
+  deleteItem = async (
+    ctx: LexicalSearchMutationCallCtx,
     args: FunctionArgs<DeleteItem<NAME>>,
-  ) => ctx.runMutation(this.component.public.add.deleteItem, args);
+  ) => {
+    const result = await ctx.runMutation(
+      this.component.public.add.deleteItem,
+      args,
+    );
+    await notifyLexicalSearchSubscribers(this._subscribers, ctx, {
+      event: "deleteItem",
+      args,
+      result,
+    });
+    return result;
+  };
 
-  search = (ctx: RunQueryCtx, args: FunctionArgs<LexicalSearch<NAME>>) =>
-    ctx.runQuery(this.component.public.search.lexicalSearch, args);
+  search = async (
+    ctx: LexicalSearchSearchCtx,
+    args: FunctionArgs<LexicalSearch<NAME>>,
+  ) => {
+    const result = await ctx.runQuery(
+      this.component.public.search.lexicalSearch,
+      args,
+    );
+    await notifyLexicalSearchSubscribers(this._subscribers, ctx, {
+      event: "search",
+      args,
+      result,
+    });
+    return result;
+  };
 
-  appendTextSlice = (
-    ctx: RunMutationCtx,
+  appendTextSlice = async (
+    ctx: LexicalSearchMutationCallCtx,
     args: FunctionArgs<AppendTextSlice<NAME>>,
-  ) => ctx.runMutation(this.component.public.add.appendTextSlice, args);
+  ) => {
+    const result = await ctx.runMutation(
+      this.component.public.add.appendTextSlice,
+      args,
+    );
+    await notifyLexicalSearchSubscribers(this._subscribers, ctx, {
+      event: "appendTextSlice",
+      args,
+      result,
+    });
+    return result;
+  };
 }

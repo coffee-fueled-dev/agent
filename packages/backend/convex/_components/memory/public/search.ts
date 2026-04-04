@@ -73,8 +73,7 @@ export const searchMemory = action({
           })
         : [];
 
-    let vectorQueryHits: Awaited<ReturnType<typeof vectorSearch.vectorSearch>> =
-      [];
+    let vectorQueryHits: Awaited<ReturnType<typeof vectorSearch.search>> = [];
     if (embedText.length > 0) {
       if (!args.googleApiKey) {
         throw new Error(
@@ -90,7 +89,7 @@ export const searchMemory = action({
       if (!raw) {
         throw new Error("searchMemory: empty embedding");
       }
-      vectorQueryHits = await vectorSearch.vectorSearch(ctx, {
+      vectorQueryHits = await vectorSearch.search(ctx, {
         namespace: args.namespace,
         vector: [...raw],
         limit: perArm,
@@ -98,10 +97,9 @@ export const searchMemory = action({
       });
     }
 
-    let vectorFileHits: Awaited<ReturnType<typeof vectorSearch.vectorSearch>> =
-      [];
+    let vectorFileHits: Awaited<ReturnType<typeof vectorSearch.search>> = [];
     if (fileEmb?.length) {
-      vectorFileHits = await vectorSearch.vectorSearch(ctx, {
+      vectorFileHits = await vectorSearch.search(ctx, {
         namespace: args.namespace,
         vector: [...fileEmb],
         limit: perArm,

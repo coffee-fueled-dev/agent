@@ -1,16 +1,34 @@
 import type {
   DocumentByName,
   FunctionArgs,
-  GenericActionCtx,
   GenericDataModel,
-  GenericMutationCtx,
   TableNamesInDataModel,
 } from "convex/server";
 import type { ComponentApi } from "../component/_generated/component.js";
 import type { Doc } from "../component/_generated/dataModel.js";
+import {
+  notifyVectorSearchSubscribers,
+  type VectorSearchMutationCallCtx,
+  type VectorSearchSearchCtx,
+  type VectorSearchSubscriber,
+  type VectorSearchSubscribable,
+} from "./events.js";
 
-type RunMutationCtx = Pick<GenericMutationCtx<GenericDataModel>, "runMutation">;
-type RunActionCtx = Pick<GenericActionCtx<GenericDataModel>, "runAction">;
+export type * from "./events.js";
+
+type Name = string | undefined;
+
+type UpsertItem<NAME extends Name = Name> =
+  ComponentApi<NAME>["public"]["add"]["upsertItem"];
+
+type DeleteItem<NAME extends Name = Name> =
+  ComponentApi<NAME>["public"]["add"]["deleteItem"];
+
+type VectorSearch<NAME extends Name = Name> =
+  ComponentApi<NAME>["public"]["search"]["vectorSearch"];
+
+type AppendEmbeddingSlice<NAME extends Name = Name> =
+  ComponentApi<NAME>["public"]["add"]["appendEmbeddingSlice"];
 
 export type TableNameFor<DATA_MODEL extends GenericDataModel> =
   TableNamesInDataModel<DATA_MODEL>;
@@ -51,20 +69,6 @@ export type SearchClientConfig<
   sources: readonly SearchSourceConfigForAnyTable<DATA_MODEL, SOURCE_SYSTEM>[];
 };
 
-type Name = string | undefined;
-
-type UpsertItem<NAME extends Name = Name> =
-  ComponentApi<NAME>["public"]["add"]["upsertItem"];
-
-type DeleteItem<NAME extends Name = Name> =
-  ComponentApi<NAME>["public"]["add"]["deleteItem"];
-
-type VectorSearch<NAME extends Name = Name> =
-  ComponentApi<NAME>["public"]["search"]["vectorSearch"];
-
-type AppendEmbeddingSlice<NAME extends Name = Name> =
-  ComponentApi<NAME>["public"]["add"]["appendEmbeddingSlice"];
-
 /** Canonical row in the component (`searchItems`; identity + opaque `sourceRef`). */
 export type VectorSearchItemDoc = Doc<"searchItems">;
 
@@ -72,35 +76,84 @@ export class SearchClient<
   DATA_MODEL extends GenericDataModel,
   SOURCE_SYSTEM extends string = string,
   NAME extends Name = Name,
-> {
+> implements VectorSearchSubscribable<NAME>
+{
+  private _subscribers = new Map<string, VectorSearchSubscriber<NAME>>();
+
   constructor(
     public component: ComponentApi<NAME>,
     public config: SearchClientConfig<DATA_MODEL, SOURCE_SYSTEM>,
   ) {}
 
-  upsertItem = (
-    ctx: RunMutationCtx,
-    args: FunctionArgs<UpsertItem<NAME>>,
-  ) => ctx.runMutation(this.component.public.add.upsertItem, args);
+  subscribe(id: string, callback: VectorSearchSubscriber<NAME>): void {
+    this._subscribers.set(id, callback);
+  }
 
-  deleteItem = (
-    ctx: RunMutationCtx,
+  upsertItem = async (
+    ctx: VectorSearchMutationCallCtx,
+    args: FunctionArgs<UpsertItem<NAME>>,
+  ) => {
+    const result = await ctx.runMutation(
+      this.component.public.add.upsertItem,
+      args,
+    );
+    await notifyVectorSearchSubscribers(this._subscribers, ctx, {
+      event: "upsertItem",
+      args,
+      result,
+    });
+    return result;
+  };
+
+  deleteItem = async (
+    ctx: VectorSearchMutationCallCtx,
     args: FunctionArgs<DeleteItem<NAME>>,
-  ) => ctx.runMutation(this.component.public.add.deleteItem, args);
+  ) => {
+    const result = await ctx.runMutation(
+      this.component.public.add.deleteItem,
+      args,
+    );
+    await notifyVectorSearchSubscribers(this._subscribers, ctx, {
+      event: "deleteItem",
+      args,
+      result,
+    });
+    return result;
+  };
 
   /**
    * k-NN vector search over stored embeddings. Requires an action context
    * (`ctx.runAction`); Convex only supports `vectorSearch` from actions.
    */
-  search = (ctx: RunActionCtx, args: FunctionArgs<VectorSearch<NAME>>) =>
-    ctx.runAction(this.component.public.search.vectorSearch, args);
+  search = async (
+    ctx: VectorSearchSearchCtx,
+    args: FunctionArgs<VectorSearch<NAME>>,
+  ) => {
+    const result = await ctx.runAction(
+      this.component.public.search.vectorSearch,
+      args,
+    );
+    await notifyVectorSearchSubscribers(this._subscribers, ctx, {
+      event: "search",
+      args,
+      result,
+    });
+    return result;
+  };
 
-  /** Same as {@link search}. */
-  vectorSearch = (ctx: RunActionCtx, args: FunctionArgs<VectorSearch<NAME>>) =>
-    ctx.runAction(this.component.public.search.vectorSearch, args);
-
-  appendEmbeddingSlice = (
-    ctx: RunMutationCtx,
+  appendEmbeddingSlice = async (
+    ctx: VectorSearchMutationCallCtx,
     args: FunctionArgs<AppendEmbeddingSlice<NAME>>,
-  ) => ctx.runMutation(this.component.public.add.appendEmbeddingSlice, args);
+  ) => {
+    const result = await ctx.runMutation(
+      this.component.public.add.appendEmbeddingSlice,
+      args,
+    );
+    await notifyVectorSearchSubscribers(this._subscribers, ctx, {
+      event: "appendEmbeddingSlice",
+      args,
+      result,
+    });
+    return result;
+  };
 }

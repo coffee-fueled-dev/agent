@@ -10,6 +10,7 @@
 
 import type * as public_add from "../public/add.js";
 import type * as public_search from "../public/search.js";
+import type * as searchHitValidators from "../searchHitValidators.js";
 
 import type {
   ApiFromModules,
@@ -21,6 +22,7 @@ import { anyApi, componentsGeneric } from "convex/server";
 const fullApi: ApiFromModules<{
   "public/add": typeof public_add;
   "public/search": typeof public_search;
+  searchHitValidators: typeof searchHitValidators;
 }> = anyApi as any;
 
 /**
