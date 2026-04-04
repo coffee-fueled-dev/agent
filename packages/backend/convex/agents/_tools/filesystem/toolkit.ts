@@ -3,7 +3,7 @@ import type { ConvexAgentEnv } from "../../lib/customFunctions.js";
 import { toolkit } from "../../lib/toolkit.js";
 import { runShellTool } from "./runShell/tool.js";
 
-const fsUsage = `Filesystem tools run host commands when a shell executor is available.`;
+const fsUsage = `Filesystem tools run commands in a dedicated workspace.`;
 
 export function filesystemToolkit(): Composable<
   { kind: string; name: string },

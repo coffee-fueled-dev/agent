@@ -16,8 +16,7 @@ declare module "../../registeredToolMap.js" {
 export function runShellTool() {
   return tool({
     name: "runShell" as const,
-    description:
-      "Run a shell command on the local machine (when executor is configured).",
+    description: "Run a shell command in your dedicated workspace.",
     policies: [assistantActorPolicy],
     inputSchema: z.object({
       command: z
@@ -30,6 +29,7 @@ export function runShellTool() {
           internal.agents._tools.filesystem.runShell.internal.execute,
           {
             command: args.command,
+            namespace: ctx.env.namespace,
           },
         ),
       );

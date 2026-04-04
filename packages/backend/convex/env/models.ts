@@ -24,9 +24,9 @@ function trim(s: string | undefined): string | undefined {
 export function getGoogleApiKey(): string | undefined {
   const e = process.env;
   return (
-    trim(e["GOOGLE_GENERATIVE_AI_API_KEY"]) ??
-    trim(e["GOOGLE_API_KEY"]) ??
-    trim(e["GEMINI_API_KEY"])
+    trim(e.GOOGLE_GENERATIVE_AI_API_KEY) ??
+    trim(e.GOOGLE_API_KEY) ??
+    trim(e.GEMINI_API_KEY)
   );
 }
 
@@ -42,5 +42,5 @@ export function requireGoogleApiKey(): string {
 }
 
 export function getOpenaiApiKey(): string | undefined {
-  return trim(process.env["OPENAI_API_KEY"]);
+  return trim(process.env.OPENAI_API_KEY);
 }

@@ -12,7 +12,10 @@ import {
   mutation,
   query,
 } from "../_generated/server.js";
-import { getFileEmbeddingApiUrl, getFileEmbeddingSecret } from "../filesEnv.js";
+import {
+  getFileEmbeddingApiUrl,
+  getFileEmbeddingSecret,
+} from "../env/embedding.js";
 
 function requireSecret(secret: string) {
   if (secret !== getFileEmbeddingSecret()) {

@@ -1,7 +1,7 @@
 import { z } from "zod/v4";
 
 const backendFileEnvSchema = z.object({
-  AGENT_APP_URL: z.string().optional(),
+  EMBEDDING_SERVER_URL: z.string().optional(),
   BINARY_EMBEDDING_SECRET: z.string().optional(),
 });
 
@@ -13,7 +13,7 @@ function trim(s: string | undefined): string | undefined {
 }
 
 export function getFileEmbeddingApiUrl(): string {
-  const url = trim(env.AGENT_APP_URL) ?? "http://127.0.0.1:3000";
+  const url = trim(env.EMBEDDING_SERVER_URL) ?? "http://127.0.0.1:3000";
   return `${url.replace(/\/+$/, "")}/api/file-embedding`;
 }
 

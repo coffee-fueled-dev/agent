@@ -5,7 +5,7 @@ import type {
   GenericDataModel,
   GenericMutationCtx,
 } from "convex/server";
-import { getGoogleApiKey } from "../../../env.js";
+import { getGoogleApiKey } from "../../../env/models.js";
 import type { ComponentApi } from "../_generated/component.js";
 
 type RunMutationCtx = Pick<
@@ -40,15 +40,10 @@ type ListSourceMapsForMemory<NAME extends Name = Name> =
 type GetMemoryRecord<NAME extends Name = Name> =
   ComponentApi<NAME>["public"]["records"]["getMemoryRecord"];
 
-type ExtractQueryReturn<F> = F extends FunctionReference<
-  "query",
-  infer _V,
-  infer _A,
-  infer R,
-  infer _N
->
-  ? R
-  : never;
+type ExtractQueryReturn<F> =
+  F extends FunctionReference<"query", infer _V, infer _A, infer R, infer _N>
+    ? R
+    : never;
 
 /** One row from list source map queries (component). */
 export type SourceMapRowForMemory<NAME extends Name = Name> =
@@ -66,8 +61,9 @@ export type MemorySourceMapsResolveCtx = Pick<
   "runQuery" | "storage"
 >;
 
-type ListArgs<NAME extends Name = Name> =
-  FunctionArgs<ListSourceMapsForMemory<NAME>>;
+type ListArgs<NAME extends Name = Name> = FunctionArgs<
+  ListSourceMapsForMemory<NAME>
+>;
 
 export type SourceMapSourceConfig<
   NAME extends Name = Name,
@@ -171,18 +167,14 @@ export class MemoryClient<
     ctx.runMutation(this.component.public.store.mergeMemory, {
       ...args,
       googleApiKey:
-        args.googleApiKey ??
-        this.config.googleApiKey ??
-        getGoogleApiKey(),
+        args.googleApiKey ?? this.config.googleApiKey ?? getGoogleApiKey(),
     });
 
   searchMemory = (ctx: RunActionCtx, args: FunctionArgs<SearchMemory<NAME>>) =>
     ctx.runAction(this.component.public.search.searchMemory, {
       ...args,
       googleApiKey:
-        args.googleApiKey ??
-        this.config.googleApiKey ??
-        getGoogleApiKey(),
+        args.googleApiKey ?? this.config.googleApiKey ?? getGoogleApiKey(),
     });
 
   registerStorageSourceMetadata = (
@@ -198,7 +190,10 @@ export class MemoryClient<
     ctx: RunQueryCtx,
     args: FunctionArgs<ListSourceMapsForMemory<NAME>>,
   ) =>
-    ctx.runQuery(this.component.public.sourceMaps.listSourceMapsForMemory, args);
+    ctx.runQuery(
+      this.component.public.sourceMaps.listSourceMapsForMemory,
+      args,
+    );
 
   getMemoryRecord = (
     ctx: RunQueryCtx,

@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { memoryClient } from "../_clients/memory.js";
 import { createEmbeddingModel } from "../_components/memory/_lib.js";
 import { action } from "../_generated/server.js";
-import { getGoogleApiKey } from "../env.js";
+import { getGoogleApiKey } from "../env/models.js";
 
 async function embedTextForFileArm(
   text: string,

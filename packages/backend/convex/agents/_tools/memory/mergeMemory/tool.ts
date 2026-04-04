@@ -2,7 +2,7 @@ import { tool } from "@very-coffee/agent-identity";
 import type { InferUITool, Tool } from "ai";
 import { z } from "zod/v4";
 import { components } from "../../../../_generated/api.js";
-import { requireGoogleApiKey } from "../../../../env.js";
+import { requireGoogleApiKey } from "../../../../env/models.js";
 import type { ConvexAgentEnv } from "../../../lib/customFunctions.js";
 import type { ToolRuntimeContext } from "../../../lib/toolkit.js";
 import { withFormattedResults } from "../../../lib/toolkit.js";
