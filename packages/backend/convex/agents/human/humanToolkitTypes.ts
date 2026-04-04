@@ -15,10 +15,10 @@ export type HumanToolkitToolInputs = {
   shareMemories: z.infer<typeof shareMemoriesInputSchema>;
 };
 
-/** Invokable through {@link executeHumanTool} (same as {@link HumanToolkitToolName} for humans). */
+/** Executable tool names for the human role (same as {@link HumanToolkitToolName} today). */
 export type HumanToolkitExecutableToolName = HumanToolkitToolName;
 
-/** One row from {@link humanToolkitForChat}; `name` preserves the human-tool literal union. */
+/** One affordance row from the server-driven human toolkit UI; `name` matches {@link HumanToolkitToolName}. */
 export type HumanToolkitToolUi = {
   name: HumanToolkitToolName;
   description?: string;

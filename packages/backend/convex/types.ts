@@ -13,3 +13,4 @@ export type {
   HumanToolkitToolName,
   HumanToolkitToolUi,
 } from "./agents/human/humanToolkitTypes.js";
+export type { HumanToolCall } from "./chat/humanAgent/humanToolCallWire.js";

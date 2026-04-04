@@ -54,7 +54,7 @@ const HumanToolkitContext = createContext<HumanToolkitContextValue | null>(
 export function HumanToolkitProvider({ children }: { children: ReactNode }) {
   const { threadId, userId } = useChatThread();
   const ensureRegistration = useSessionMutation(
-    api.agents.human.ensureRegistration.ensureHumanAgentRegistration,
+    api.chat.humanAgent.ensureRegistration.ensureHumanAgentRegistration,
   );
   const chatCtx = useQuery(
     api.chat.chatContext.getChatContext,

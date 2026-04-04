@@ -1,14 +1,14 @@
 import type { ToolSpec } from "@very-coffee/agent-identity";
 import type { JSONValue, ModelMessage, ToolCallPart, ToolResultPart } from "ai";
-import type { ActionCtx } from "../_generated/server.js";
-import { humanTools } from "../agents/human/humanToolkit.js";
+import type { ActionCtx } from "../../_generated/server.js";
+import { humanTools } from "../../agents/human/humanToolkit.js";
 import {
   adaptToHumanToolBuilderContext,
   createConvexAgentEnv,
   createHumanToolkitContextFromQuery,
-} from "../agents/lib/customFunctions.js";
-import type { HumanToolCall } from "./humanToolCallValidator.js";
-import { resolveEffectiveThreadMessageIdForAction } from "./threadMessageAnchor.js";
+} from "../../agents/lib/customFunctions.js";
+import { resolveEffectiveThreadMessageIdForAction } from "../thread/threadMessageAnchor.js";
+import type { HumanToolCall } from "./humanToolCallWire.js";
 
 function toolOutputToJsonValue(output: unknown): JSONValue {
   return JSON.parse(JSON.stringify(output)) as JSONValue;
@@ -60,7 +60,7 @@ export async function executeHumanToolCallsForTurn(
 
   const pairs = await Promise.all(
     args.toolCalls.map(async (call) => {
-      const spec = tools[call.name] as ToolSpec | undefined;
+      const spec = tools[call.name];
       if (!spec) {
         throw new Error(`Tool not available or denied by policy: ${call.name}`);
       }

@@ -1,25 +1,24 @@
+/**
+ * Chat thread Convex API (`api.chat.thread.*`).
+ *
+ * Pipeline:
+ * 1. **sendMessage** — Persist user message, `upsertChatContextRow`, schedule `continueThreadStream` and `recordHumanTurnBackground`.
+ * 2. **continueThreadStream** — Append `humanMessageSent` to actor history; optionally `applyHumanToolCallsForTurn` (parallel with agent setup); `streamText`; schedule `finalizeAssistantStreamTurn`.
+ * 3. **finalizeAssistantStreamTurn** — Update chat context tip and `assistantResponseComplete` actor row (off the stream critical path).
+ * 4. **Reads** — `listRecentThreads`, `listThreadMessages`.
+ */
 import {
   createThread as createAgentThread,
   listMessages,
-  type SyncStreamsReturnValue,
   saveMessages,
   syncStreams,
 } from "@convex-dev/agent";
 import type { StreamArgs } from "@convex-dev/agent/validators";
-import type { UserContent, UserModelMessage } from "ai";
-import { type PaginationResult, paginationOptsValidator } from "convex/server";
+import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { SessionIdArg } from "convex-helpers/server/sessions";
 import { components, internal } from "../_generated/api.js";
-import type { Id } from "../_generated/dataModel.js";
-import {
-  type ActionCtx,
-  internalAction,
-  type MutationCtx,
-  mutation,
-  query,
-} from "../_generated/server.js";
-import type { UIMessage } from "../agents/_tools/uiMessage.js";
+import { internalAction, mutation, query } from "../_generated/server.js";
 import { createAssistantAgent } from "../agents/assistant/createAgent.js";
 import {
   ASSISTANT_ACTOR_KEY,
@@ -29,130 +28,21 @@ import {
   chatActorStreamId,
 } from "./actorHistory.js";
 import { upsertChatContextRow } from "./chatContext.js";
-import { executeHumanToolCallsForTurn } from "./executeHumanToolCallsForTurn.js";
+import { executeHumanToolCallsForTurn } from "./humanAgent/executeHumanToolCallsForTurn.js";
 import {
   filterEffectiveHumanToolCalls,
   humanToolCallValidator,
-} from "./humanToolCallValidator.js";
-import { CHAT_PROVIDER_METADATA_NS } from "./resolveMemories.js";
+} from "./humanAgent/humanToolCallWire.js";
 import {
-  type ThreadMessageMetadata,
-  toThreadUIMessages,
-} from "./threadUiMessages.js";
-
-/** Convex `Agent` expects `ActionCtx & Record<string, unknown>`. */
-function agentActionCtx(ctx: ActionCtx): ActionCtx & Record<string, unknown> {
-  return ctx as ActionCtx & Record<string, unknown>;
-}
-
-function getFileParts(url: string, mediaType: string, filename?: string) {
-  const filePart = {
-    type: "file" as const,
-    data: new URL(url),
-    mediaType,
-    filename,
-  };
-  const imagePart = mediaType.startsWith("image/")
-    ? ({
-        type: "image" as const,
-        image: new URL(url),
-        mediaType,
-      } satisfies UserContent[number])
-    : undefined;
-  return { filePart, imagePart };
-}
-
-type MessageBuildCtx = Pick<
-  MutationCtx,
-  "runMutation" | "storage" | "db" | "runQuery"
->;
-
-type UserMessageParts = Exclude<UserModelMessage["content"], string>;
-
-async function appendFileAttachmentParts(
-  ctx: MessageBuildCtx,
-  attachment: {
-    storageId: string;
-    fileName: string;
-    mimeType: string;
-    contentHash: string;
-  },
-  fileIds: string[],
-  content: UserMessageParts,
-) {
-  const hash =
-    attachment.contentHash.trim().length > 0
-      ? attachment.contentHash
-      : "memory-attachment";
-  const { fileId } = await ctx.runMutation(components.agent.files.addFile, {
-    storageId: attachment.storageId,
-    hash,
-    filename: attachment.fileName,
-    mimeType: attachment.mimeType,
-  });
-  fileIds.push(fileId);
-
-  const rawUrl = await ctx.storage.getUrl(
-    attachment.storageId as Id<"_storage">,
-  );
-  if (!rawUrl) {
-    throw new Error(`Missing file in storage: ${attachment.fileName}`);
-  }
-  const { filePart, imagePart } = getFileParts(
-    rawUrl,
-    attachment.mimeType || "application/octet-stream",
-    attachment.fileName,
-  );
-  content.push(imagePart ?? filePart);
-}
-
-async function buildUserMessageWithFiles(
-  ctx: MessageBuildCtx,
-  prompt: string,
-  attachments:
-    | Array<{
-        storageId: string;
-        fileName: string;
-        mimeType: string;
-        contentHash: string;
-      }>
-    | undefined,
-): Promise<{ message: UserModelMessage; fileIds: string[] }> {
-  const fileIds: string[] = [];
-  const content: UserMessageParts = [];
-  if (prompt.trim()) {
-    content.push({ type: "text", text: prompt.trim() });
-  }
-  for (const attachment of attachments ?? []) {
-    await appendFileAttachmentParts(ctx, attachment, fileIds, content);
-  }
-  if (content.length === 0) {
-    content.push({ type: "text", text: "" });
-  }
-  return { message: { role: "user", content }, fileIds };
-}
-
-const streamArgsValidator = v.union(
-  v.object({
-    kind: v.literal("list"),
-    startOrder: v.optional(v.number()),
-  }),
-  v.object({
-    kind: v.literal("deltas"),
-    cursors: v.array(
-      v.object({
-        streamId: v.string(),
-        cursor: v.number(),
-      }),
-    ),
-  }),
-);
-
-type ListThreadMessagesPage = PaginationResult<
-  UIMessage<ThreadMessageMetadata>
-> & {
-  streams: SyncStreamsReturnValue;
-};
+  agentActionCtx,
+  buildUserMessageWithFiles,
+} from "./thread/buildUserMessage.js";
+import { cfdTurnProviderMetadata } from "./thread/cfdTurnMeta.js";
+import {
+  type ListThreadMessagesPage,
+  streamArgsValidator,
+} from "./thread/streamArgs.js";
+import { toThreadUIMessages } from "./thread/threadUiMessages.js";
 
 export const createThread = mutation({
   args: {
@@ -206,12 +96,7 @@ export const sendMessage = mutation({
       args.attachments,
     );
 
-    const cfdMeta = {
-      [CHAT_PROVIDER_METADATA_NS]: {
-        turnId,
-        threadId: args.threadId,
-      },
-    };
+    const cfdMeta = cfdTurnProviderMetadata(turnId, args.threadId);
 
     const userMeta = {
       ...(fileIds.length > 0 ? { fileIds } : {}),
@@ -251,7 +136,7 @@ export const sendMessage = mutation({
 
     await ctx.scheduler.runAfter(
       0,
-      internal.agents.human.recordHumanTurn.recordHumanTurnBackground,
+      internal.chat.humanAgent.recordHumanTurn.recordHumanTurnBackground,
       {
         threadId: args.threadId,
         messageId: promptMessageId,
@@ -291,12 +176,7 @@ export const applyHumanToolCallsForTurn = internalAction({
         sessionId: args.sessionId,
         toolCalls,
       });
-    const cfdMeta = {
-      [CHAT_PROVIDER_METADATA_NS]: {
-        turnId: args.turnId,
-        threadId: args.threadId,
-      },
-    };
+    const cfdMeta = cfdTurnProviderMetadata(args.turnId, args.threadId);
     await saveMessages(ctx, components.agent, {
       threadId: args.threadId,
       userId: args.userId,

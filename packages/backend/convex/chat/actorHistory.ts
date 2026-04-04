@@ -8,9 +8,9 @@
  * DAG stored in history—only a sorted view computed at read time.
  */
 import type { MessageDoc } from "@convex-dev/agent/validators";
+import { HistoryClient } from "@very-coffee/convex-history";
 import type { PaginationResult } from "convex/server";
 import { v } from "convex/values";
-import { HistoryClient } from "@very-coffee/convex-history";
 import { components } from "../_generated/api.js";
 import { query } from "../_generated/server.js";
 
@@ -53,9 +53,8 @@ export type ChatActorTurnPayload = {
 type ListCtx = Parameters<typeof chatActorHistory.listEntries>[0];
 
 async function collectStreamEntries(ctx: ListCtx, streamId: string) {
-  const out: Awaited<
-    ReturnType<typeof chatActorHistory.listEntries>
-  >["page"] = [];
+  const out: Awaited<ReturnType<typeof chatActorHistory.listEntries>>["page"] =
+    [];
   let cursor: string | null = null;
   for (;;) {
     const page = await chatActorHistory.listEntries(ctx, {

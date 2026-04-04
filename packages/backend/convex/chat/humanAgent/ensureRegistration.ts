@@ -3,7 +3,10 @@ import { v } from "convex/values";
 import { SessionIdArg } from "convex-helpers/server/sessions";
 import { fingerprintClient } from "../../_clients/fingerprints.js";
 import { mutation } from "../../_generated/server.js";
-import { getHumanToolkitStaticHash, humanTools } from "./humanToolkit.js";
+import {
+  getHumanToolkitStaticHash,
+  humanTools,
+} from "../../agents/human/humanToolkit.js";
 
 /**
  * Idempotent: registers the human actor (`agentId` = namespace) and leaf tools in the fingerprints component.

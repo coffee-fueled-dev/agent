@@ -2,9 +2,13 @@ import { computeRuntimeIdentityFromEvaluation } from "@very-coffee/agent-identit
 import { v } from "convex/values";
 import { fingerprintClient } from "../../_clients/fingerprints.js";
 import { internalAction } from "../../_generated/server.js";
-import type { ToolBuilderContext } from "../lib/customFunctions.js";
-import { createToolkitContext } from "../lib/customFunctions.js";
-import { getHumanToolkitStaticHash, humanAgentIdentity, humanTools } from "./humanToolkit.js";
+import {
+  getHumanToolkitStaticHash,
+  humanAgentIdentity,
+  humanTools,
+} from "../../agents/human/humanToolkit.js";
+import type { ToolBuilderContext } from "../../agents/lib/customFunctions.js";
+import { createToolkitContext } from "../../agents/lib/customFunctions.js";
 
 type RecordHumanTurnEnqueueArgs = {
   threadId: string;
@@ -20,8 +24,10 @@ export async function computeHumanTurnIdentity(
   ctx: ToolBuilderContext,
 ): Promise<RecordHumanTurnEnqueueArgs> {
   const toolkitCtx = createToolkitContext(ctx);
-  const { runtimeHash, toolRefs } =
-    await computeRuntimeIdentityFromEvaluation(humanTools, toolkitCtx);
+  const { runtimeHash, toolRefs } = await computeRuntimeIdentityFromEvaluation(
+    humanTools,
+    toolkitCtx,
+  );
   const staticHash = await getHumanToolkitStaticHash();
   if (!ctx.threadId?.length) {
     throw new Error("Human turn identity requires threadId");
@@ -39,7 +45,6 @@ export async function computeHumanTurnIdentity(
     tools: toolRefs,
   };
 }
-
 
 /**
  * Records identity for the user's message turn. Call from a scheduled action with

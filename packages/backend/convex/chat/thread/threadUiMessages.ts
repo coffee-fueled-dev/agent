@@ -1,6 +1,7 @@
 import { toUIMessages } from "@convex-dev/agent";
 import type { MessageDoc } from "@convex-dev/agent/validators";
-import type { UIMessage } from "../agents/_tools/uiMessage.js";
+import type { UIMessage } from "../../agents/_tools/uiMessage.js";
+import { CHAT_PROVIDER_METADATA_NS } from "../resolveMemories.js";
 
 /** Merged into each UI message from `providerMetadata.cfd` and thread id. */
 export type ThreadMessageMetadata = {
@@ -8,10 +9,8 @@ export type ThreadMessageMetadata = {
   turnId?: string;
 };
 
-const CFD_NS = "cfd";
-
 function cfdMeta(doc: MessageDoc): { turnId?: string } | undefined {
-  const cfd = doc.providerMetadata?.[CFD_NS] as
+  const cfd = doc.providerMetadata?.[CHAT_PROVIDER_METADATA_NS] as
     | { turnId?: string }
     | undefined;
   if (!cfd || typeof cfd !== "object") return undefined;

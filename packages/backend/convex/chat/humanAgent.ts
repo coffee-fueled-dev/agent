@@ -1,7 +1,10 @@
-import type { ToolSpec } from "@very-coffee/agent-identity";
+/**
+ * Chat-layer integration for the human toolkit: thread message anchors, per-actor history, and
+ * Convex queries/actions at {@code api.chat.humanAgent.*}. Helpers and submodules live under
+ * {@code chat/humanAgent/}; toolkit definitions stay in {@code agents/human/}.
+ */
 import { v } from "convex/values";
 import { SessionIdArg } from "convex-helpers/server/sessions";
-import { toJSONSchema } from "zod/v4";
 import { components } from "../_generated/api.js";
 import { action, query } from "../_generated/server.js";
 import { humanTools } from "../agents/human/humanToolkit.js";
@@ -21,10 +24,11 @@ import {
   chatActorHistory,
   chatActorStreamId,
 } from "./actorHistory.js";
+import { serializeInputSchema } from "./humanAgent/toolSpecJsonSchema.js";
 import {
   resolveEffectiveThreadMessageIdForAction,
   resolveEffectiveThreadMessageIdForQuery,
-} from "./threadMessageAnchor.js";
+} from "./thread/threadMessageAnchor.js";
 
 const toolSpecValidator = v.object({
   name: v.string(),
@@ -33,41 +37,6 @@ const toolSpecValidator = v.object({
   policyIds: v.optional(v.array(v.string())),
   inputJsonSchema: v.optional(v.any()),
 });
-
-/** Convex values cannot include object keys starting with {@code $} (e.g. JSON Schema {@code $schema}, {@code $ref}). */
-function sanitizeJsonSchemaForConvex(value: unknown): unknown {
-  if (value === null || typeof value !== "object") {
-    return value;
-  }
-  if (Array.isArray(value)) {
-    return value.map(sanitizeJsonSchemaForConvex);
-  }
-  const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-    if (k.startsWith("$")) {
-      continue;
-    }
-    out[k] = sanitizeJsonSchemaForConvex(v);
-  }
-  return out;
-}
-
-function serializeInputSchema(spec: ToolSpec): unknown {
-  const schema = spec.inputSchema as unknown as {
-    toJSONSchema?: (params?: object) => unknown;
-  };
-  let raw: unknown;
-  if (typeof schema?.toJSONSchema === "function") {
-    raw = schema.toJSONSchema();
-  } else {
-    try {
-      raw = toJSONSchema(schema as never);
-    } catch {
-      return undefined;
-    }
-  }
-  return sanitizeJsonSchemaForConvex(raw);
-}
 
 /**
  * Server-driven human affordances: tools enabled after policy evaluation, with JSON Schema for inputs.

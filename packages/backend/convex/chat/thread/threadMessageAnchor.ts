@@ -1,6 +1,6 @@
 import { listMessages } from "@convex-dev/agent";
-import { api, components } from "../_generated/api.js";
-import type { ActionCtx, QueryCtx } from "../_generated/server.js";
+import { api, components } from "../../_generated/api.js";
+import type { ActionCtx, QueryCtx } from "../../_generated/server.js";
 
 type AnchorArgs = {
   namespace: string;
