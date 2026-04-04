@@ -1,15 +1,23 @@
-import type { RegisteredAgentIdentity } from "@very-coffee/agent-identity";
-import type {
-  GenericDataModel,
-  GenericMutationCtx,
-  GenericQueryCtx,
-} from "convex/server";
+import type { GenericDataModel, GenericQueryCtx } from "convex/server";
 import type { ComponentApi } from "../component/_generated/component.js";
+import {
+  type FingerprintCallCtx,
+  type FingerprintSubscribable,
+  type FingerprintSubscriber,
+  notifyFingerprintSubscribers,
+  type RecordEvaluationArgs,
+  type RecordEvaluationForRegisteredAgentArgs,
+  type RecordTurnIdentityMutationResult,
+  type RegisterAgentAndToolsArgs,
+  type RegisterAgentAndToolsResult,
+  type RegisterAgentArgs,
+  type RegisterAgentMutationResult,
+  type RegisterToolArgs,
+  type RegisterToolMutationResult,
+} from "./events.js";
 
-type RunMutationCtx = Pick<
-  GenericMutationCtx<GenericDataModel>,
-  "runMutation" | "runQuery"
->;
+export type * from "./events.js";
+
 type RunQueryCtx = Pick<GenericQueryCtx<GenericDataModel>, "runQuery">;
 
 /**
@@ -22,8 +30,14 @@ type RunQueryCtx = Pick<GenericQueryCtx<GenericDataModel>, "runQuery">;
  * Under the hood the component API still uses “identity” names (`recordTurnIdentity`, etc.);
  * this client uses **fingerprint** terminology in its public surface.
  */
-export class FingerprintClient {
+export class FingerprintClient implements FingerprintSubscribable {
+  private _subscribers = new Map<string, FingerprintSubscriber>();
+
   constructor(public component: ComponentApi) {}
+
+  subscribe(id: string, callback: FingerprintSubscriber): void {
+    this._subscribers.set(id, callback);
+  }
 
   private get registerAPI() {
     return this.component.public.register;
@@ -35,16 +49,10 @@ export class FingerprintClient {
     return this.component.public.queries;
   }
 
-  /** Register or update the **static fingerprint** row for an agent (toolkit definition hash). */
-  registerAgent = async (
-    ctx: RunMutationCtx,
-    args: {
-      agentId: string;
-      name: string;
-      staticHash: string;
-      metadata?: Record<string, unknown>;
-    },
-  ) => {
+  private _runRegisterAgent = async (
+    ctx: FingerprintCallCtx,
+    args: RegisterAgentArgs,
+  ): Promise<RegisterAgentMutationResult> => {
     return await ctx.runMutation(this.registerAPI.registerAgent, {
       agentId: args.agentId,
       name: args.name,
@@ -53,15 +61,10 @@ export class FingerprintClient {
     });
   };
 
-  /** Register or update the **static fingerprint** row for a single tool. */
-  registerTool = async (
-    ctx: RunMutationCtx,
-    args: {
-      toolKey: string;
-      toolHash: string;
-      metadata?: Record<string, unknown>;
-    },
-  ) => {
+  private _runRegisterTool = async (
+    ctx: FingerprintCallCtx,
+    args: RegisterToolArgs,
+  ): Promise<RegisterToolMutationResult> => {
     return await ctx.runMutation(this.registerAPI.registerTool, {
       toolKey: args.toolKey,
       toolHash: args.toolHash,
@@ -69,51 +72,10 @@ export class FingerprintClient {
     });
   };
 
-  /**
-   * Registers one agent row then each tool row (e.g. from
-   * `collectToolStaticHashes` in `@very-coffee/agent-identity`).
-   */
-  registerAgentAndTools = async (
-    ctx: RunMutationCtx,
-    args: {
-      agentId: string;
-      name: string;
-      staticHash: string;
-      metadata?: Record<string, unknown>;
-      tools: Map<string, string> | Iterable<readonly [string, string]>;
-    },
-  ) => {
-    await this.registerAgent(ctx, {
-      agentId: args.agentId,
-      name: args.name,
-      staticHash: args.staticHash,
-      metadata: args.metadata,
-    });
-    const iterable =
-      args.tools instanceof Map ? args.tools.entries() : args.tools;
-    for (const [toolKey, toolHash] of iterable) {
-      await this.registerTool(ctx, { toolKey, toolHash });
-    }
-  };
-
-  /**
-   * Persist static + runtime fingerprints and tool refs for one evaluation,
-   * keyed by `messageId` / `threadId` (your app’s correlation ids).
-   * Wraps the component `recordTurnIdentity` mutation.
-   */
-  recordEvaluation = async (
-    ctx: RunMutationCtx,
-    args: {
-      agentId: string;
-      agentName: string;
-      staticHash: string;
-      runtimeHash: string;
-      threadId: string;
-      messageId: string;
-      sessionId?: string;
-      tools: Array<{ toolKey: string; toolHash: string }>;
-    },
-  ) => {
+  private _runRecordTurnIdentity = async (
+    ctx: FingerprintCallCtx,
+    args: RecordEvaluationArgs,
+  ): Promise<RecordTurnIdentityMutationResult> => {
     return await ctx.runMutation(this.recordAPI.recordTurnIdentity, {
       agentId: args.agentId,
       agentName: args.agentName,
@@ -126,19 +88,86 @@ export class FingerprintClient {
     });
   };
 
+  /** Register or update the **static fingerprint** row for an agent (toolkit definition hash). */
+  registerAgent = async (
+    ctx: FingerprintCallCtx,
+    args: RegisterAgentArgs,
+  ): Promise<RegisterAgentMutationResult> => {
+    const result = await this._runRegisterAgent(ctx, args);
+    await notifyFingerprintSubscribers(this._subscribers, ctx, {
+      event: "registerAgent",
+      args,
+      result,
+    });
+    return result;
+  };
+
+  /** Register or update the **static fingerprint** row for a single tool. */
+  registerTool = async (
+    ctx: FingerprintCallCtx,
+    args: RegisterToolArgs,
+  ): Promise<RegisterToolMutationResult> => {
+    const result = await this._runRegisterTool(ctx, args);
+    await notifyFingerprintSubscribers(this._subscribers, ctx, {
+      event: "registerTool",
+      args,
+      result,
+    });
+    return result;
+  };
+
+  /**
+   * Registers one agent row then each tool row (e.g. from
+   * `collectToolStaticHashes` in `@very-coffee/agent-identity`).
+   */
+  registerAgentAndTools = async (
+    ctx: FingerprintCallCtx,
+    args: RegisterAgentAndToolsArgs,
+  ): Promise<void> => {
+    const agent = await this._runRegisterAgent(ctx, {
+      agentId: args.agentId,
+      name: args.name,
+      staticHash: args.staticHash,
+      metadata: args.metadata,
+    });
+    const tools: RegisterAgentAndToolsResult["tools"] = [];
+    const iterable =
+      args.tools instanceof Map ? args.tools.entries() : args.tools;
+    for (const [toolKey, toolHash] of iterable) {
+      const result = await this._runRegisterTool(ctx, { toolKey, toolHash });
+      tools.push({ toolKey, toolHash, result });
+    }
+    await notifyFingerprintSubscribers(this._subscribers, ctx, {
+      event: "registerAgentAndTools",
+      args,
+      result: { agent, tools },
+    });
+  };
+
+  /**
+   * Persist static + runtime fingerprints and tool refs for one evaluation,
+   * keyed by `messageId` / `threadId` (your app’s correlation ids).
+   * Wraps the component `recordTurnIdentity` mutation.
+   */
+  recordEvaluation = async (
+    ctx: FingerprintCallCtx,
+    args: RecordEvaluationArgs,
+  ): Promise<RecordTurnIdentityMutationResult> => {
+    const result = await this._runRecordTurnIdentity(ctx, args);
+    await notifyFingerprintSubscribers(this._subscribers, ctx, {
+      event: "recordEvaluation",
+      args,
+      result,
+    });
+    return result;
+  };
+
   /** Same as {@link recordEvaluation} but fills agent id/name/static from `RegisteredAgentIdentity`. */
   recordEvaluationForRegisteredAgent = async (
-    ctx: RunMutationCtx,
-    args: {
-      agent: RegisteredAgentIdentity;
-      runtimeHash: string;
-      threadId: string;
-      messageId: string;
-      sessionId?: string;
-      tools: Array<{ toolKey: string; toolHash: string }>;
-    },
-  ) => {
-    return await this.recordEvaluation(ctx, {
+    ctx: FingerprintCallCtx,
+    args: RecordEvaluationForRegisteredAgentArgs,
+  ): Promise<RecordTurnIdentityMutationResult> => {
+    const recordArgs: RecordEvaluationArgs = {
       agentId: args.agent.agentId,
       agentName: args.agent.name,
       staticHash: args.agent.staticHash,
@@ -147,7 +176,14 @@ export class FingerprintClient {
       messageId: args.messageId,
       sessionId: args.sessionId,
       tools: args.tools,
+    };
+    const result = await this._runRecordTurnIdentity(ctx, recordArgs);
+    await notifyFingerprintSubscribers(this._subscribers, ctx, {
+      event: "recordEvaluationForRegisteredAgent",
+      args,
+      result,
     });
+    return result;
   };
 
   getRegisteredAgent = async (ctx: RunQueryCtx, args: { agentId: string }) => {
@@ -197,3 +233,8 @@ export class FingerprintClient {
     return await ctx.runQuery(this.queriesAPI.listTurnBindingsForThread, args);
   };
 }
+
+/**
+ * @deprecated Use {@link FingerprintClient}. Alias for searchability with older “identity” naming.
+ */
+export { FingerprintClient as IdentityClient };
