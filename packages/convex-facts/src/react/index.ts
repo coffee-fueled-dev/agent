@@ -1,7 +1,16 @@
 "use client";
 
-// This is where React components / hooks go.
-
-export const useMyComponent = () => {
-  return {};
-};
+/**
+ * Re-exports for React + Convex apps that prefer a dedicated subpath.
+ */
+export {
+  FactsBatch,
+  FactsClient,
+  type FactsCallCtx,
+  type FactsClientEvent,
+  type FactsMutationCtx,
+  type FactsSubscribable,
+  type FactsSubscriber,
+  type FactsSyncRemoveArgs,
+  type FactsSyncUpsertArgs,
+} from "../client/index.js";

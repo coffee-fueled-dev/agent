@@ -1,10 +1,18 @@
 import type {
   GenericDataModel,
-  GenericMutationCtx,
   GenericQueryCtx,
 } from "convex/server";
 import type { ComponentApi } from "../component/_generated/component.js";
 import type { OrderedSelectionDerived } from "../component/internal/derive.js";
+import {
+  notifyFactsSubscribers,
+  type FactsCallCtx,
+  type FactsSubscriber,
+  type FactsSubscribable,
+  type FactsSyncUpsertArgs,
+} from "./events.js";
+
+export type * from "./events.js";
 
 export type { OrderedSelectionDerived };
 
@@ -13,10 +21,6 @@ export type { OrderedSelectionDerived };
 // ---------------------------------------------------------------------------
 
 type FactsQueryCtx = Pick<GenericQueryCtx<GenericDataModel>, "runQuery">;
-type FactsMutationCtx = Pick<
-  GenericMutationCtx<GenericDataModel>,
-  "runMutation" | "runQuery"
->;
 
 // ---------------------------------------------------------------------------
 // Config types
@@ -165,20 +169,21 @@ export class FactsBatch<
   }
 
   async commit(
-    ctx: FactsMutationCtx,
+    ctx: FactsCallCtx,
     opts?: {
       version?: number;
       projector?: string;
       mode?: "direct" | "event";
     },
   ): Promise<void> {
-    await ctx.runMutation(this.client.component.public.sync.upsertFacts, {
+    const args: FactsSyncUpsertArgs = {
       namespace: this.namespace,
       items: this._items,
       edges: this._edges,
       partitions: this._partitions.length > 0 ? this._partitions : undefined,
       ...opts,
-    });
+    };
+    await this.client.batchCommit(ctx, args);
   }
 }
 
@@ -190,15 +195,42 @@ export class FactsClient<
   const E extends readonly EntityTemplate[],
   const K extends readonly string[],
   const P extends readonly string[],
-> {
+> implements FactsSubscribable
+{
+  private _subscribers = new Map<string, FactsSubscriber>();
+
   constructor(
     public component: ComponentApi,
     public config: FactsConfig<E, K, P>,
   ) {}
 
+  subscribe(id: string, callback: FactsSubscriber): void {
+    this._subscribers.set(id, callback);
+  }
+
+  /**
+   * Runs `upsertFacts` with the given payload and emits `batchCommit`.
+   * Used by {@link FactsBatch#commit}; prefer {@link sync.upsert} or {@link batch} for typical use.
+   */
+  batchCommit = async (
+    ctx: FactsCallCtx,
+    args: FactsSyncUpsertArgs,
+  ): Promise<null> => {
+    const result = await ctx.runMutation(
+      this.component.public.sync.upsertFacts,
+      args,
+    );
+    await notifyFactsSubscribers(this._subscribers, ctx, {
+      event: "batchCommit",
+      args,
+      result: null,
+    });
+    return result;
+  };
+
   sync = {
     upsert: async (
-      ctx: FactsMutationCtx,
+      ctx: FactsCallCtx,
       args: {
         namespace: string;
         items: {
@@ -231,20 +263,32 @@ export class FactsClient<
         mode?: "direct" | "event";
       },
     ) => {
-      return await ctx.runMutation(
+      const result = await ctx.runMutation(
         this.component.public.sync.upsertFacts,
         args,
       );
+      await notifyFactsSubscribers(this._subscribers, ctx, {
+        event: "syncUpsert",
+        args: args as FactsSyncUpsertArgs,
+        result: null,
+      });
+      return result;
     },
 
     remove: async (
-      ctx: FactsMutationCtx,
+      ctx: FactsCallCtx,
       args: { namespace: string; entities: string[] },
     ) => {
-      return await ctx.runMutation(
+      const result = await ctx.runMutation(
         this.component.public.sync.removeFacts,
         args,
       );
+      await notifyFactsSubscribers(this._subscribers, ctx, {
+        event: "syncRemove",
+        args,
+        result: null,
+      });
+      return result;
     },
   };
 
