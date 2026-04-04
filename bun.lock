@@ -152,6 +152,7 @@
         "@convex-dev/agent": "^0.3.2",
         "@convex-dev/workpool": "^0.4.6",
         "@very-coffee/agent-identity": "workspace:*",
+        "@very-coffee/convex-agent-fingerprints": "workspace:*",
         "@very-coffee/convex-graph": "workspace:*",
         "@very-coffee/convex-history": "workspace:*",
         "@very-coffee/convex-lexical-search": "workspace:*",

@@ -8,7 +8,7 @@
  * @module
  */
 
-import type * as _clients_identity from "../_clients/identity.js";
+import type * as _clients_fingerprints from "../_clients/fingerprints.js";
 import type * as _clients_memory from "../_clients/memory.js";
 import type * as agents__policies_actorPolicies from "../agents/_policies/actorPolicies.js";
 import type * as agents__policies_convexPolicy from "../agents/_policies/convexPolicy.js";
@@ -57,7 +57,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  "_clients/identity": typeof _clients_identity;
+  "_clients/fingerprints": typeof _clients_fingerprints;
   "_clients/memory": typeof _clients_memory;
   "agents/_policies/actorPolicies": typeof agents__policies_actorPolicies;
   "agents/_policies/convexPolicy": typeof agents__policies_convexPolicy;
@@ -244,7 +244,7 @@ export declare const components: {
       };
     };
   };
-  identity: {
+  agentFingerprints: {
     public: {
       queries: {
         getAgentRegistration: FunctionReference<

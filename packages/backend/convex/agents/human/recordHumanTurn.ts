@@ -1,6 +1,6 @@
 import { computeRuntimeIdentityFromEvaluation } from "@very-coffee/agent-identity";
 import { v } from "convex/values";
-import { identityClient } from "../../_clients/identity.js";
+import { fingerprintClient } from "../../_clients/fingerprints.js";
 import { internalAction } from "../../_generated/server.js";
 import type { ToolBuilderContext } from "../lib/customFunctions.js";
 import { createToolkitContext } from "../lib/customFunctions.js";
@@ -65,7 +65,7 @@ export const recordHumanTurnBackground = internalAction({
     };
     const identity = await computeHumanTurnIdentity(toolCtx);
     const agent = humanAgentIdentity(args.namespace, identity.staticHash);
-    await identityClient.recordTurnForRegisteredAgent(ctx, {
+    await fingerprintClient.recordEvaluationForRegisteredAgent(ctx, {
       agent,
       runtimeHash: identity.runtimeHash,
       threadId: identity.threadId,

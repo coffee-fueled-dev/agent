@@ -4,10 +4,10 @@ import {
   defineAgentIdentity,
   type RegisteredAgentIdentity,
 } from "@very-coffee/agent-identity";
+import { fingerprintClient } from "_clients/fingerprints.js";
+import { components, internal } from "_generated/api.js";
+import { internalAction } from "_generated/server.js";
 import { v } from "convex/values";
-import { identityClient } from "../../_clients/identity.js";
-import { components, internal } from "../../_generated/api.js";
-import { internalAction } from "../../_generated/server.js";
 import { pool } from "../../workpool.js";
 import { toolLibrary } from "../_tools/toolRegistry.js";
 import type { ToolBuilderContext } from "../lib/customFunctions.js";
@@ -105,7 +105,7 @@ export const recordAgentTurnBackground = internalAction({
   returns: v.null(),
   handler: async (ctx, args) => {
     const agent = await getAssistantDefinition();
-    await identityClient.recordTurnForRegisteredAgent(ctx, {
+    await fingerprintClient.recordEvaluationForRegisteredAgent(ctx, {
       agent,
       runtimeHash: args.runtimeHash,
       threadId: args.threadId,
