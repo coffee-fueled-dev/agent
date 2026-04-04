@@ -1,4 +1,3 @@
-import { listMessages } from "@convex-dev/agent";
 import type { ToolSpec } from "@very-coffee/agent-identity";
 import { v } from "convex/values";
 import { SessionIdArg } from "convex-helpers/server/sessions";
@@ -22,6 +21,10 @@ import {
   chatActorHistory,
   chatActorStreamId,
 } from "./actorHistory.js";
+import {
+  resolveEffectiveThreadMessageIdForAction,
+  resolveEffectiveThreadMessageIdForQuery,
+} from "./threadMessageAnchor.js";
 
 const toolSpecValidator = v.object({
   name: v.string(),
@@ -85,26 +88,14 @@ export const humanToolkitForChat = query({
   }),
   handler: async (ctx, args) => {
     const threadId = args.threadId?.trim() || undefined;
-    let messageId = args.messageId;
-    if (threadId) {
-      if (!messageId?.length) {
-        const row = await ctx.db
-          .query("chatContext")
-          .withIndex("by_namespace_thread", (q) =>
-            q.eq("namespace", args.namespace).eq("threadId", threadId),
-          )
-          .first();
-        messageId = row?.lastMessageId;
-      }
-      /** Opening threads with history may have no `chatContext` row until send/stream; use thread tip. */
-      if (!messageId?.length) {
-        const tipPage = await listMessages(ctx, components.agent, {
-          threadId,
-          paginationOpts: { cursor: null, numItems: 1 },
-        });
-        messageId = tipPage.page[0]?._id;
-      }
-    }
+    const messageId =
+      threadId !== undefined
+        ? await resolveEffectiveThreadMessageIdForQuery(ctx, {
+            namespace: args.namespace,
+            threadId,
+            messageIdOverride: args.messageId,
+          })
+        : undefined;
     const toolkitCtx = createHumanToolkitContextFromQuery(ctx, {
       ...(threadId ? { threadId } : {}),
       ...(messageId?.length ? { messageId } : {}),
@@ -146,9 +137,19 @@ export const executeHumanTool = action({
     if (args.namespace !== args.userId) {
       throw new Error("Namespace must match authenticated user");
     }
+    const effectiveMessageId = await resolveEffectiveThreadMessageIdForAction(
+      ctx,
+      {
+        namespace: args.namespace,
+        threadId: args.threadId,
+        messageIdOverride: args.messageId,
+      },
+    );
     const toolCtx = adaptToHumanToolBuilderContext(ctx, {
       threadId: args.threadId,
-      ...(args.messageId !== undefined ? { messageId: args.messageId } : {}),
+      ...(effectiveMessageId !== undefined
+        ? { messageId: effectiveMessageId }
+        : {}),
       sessionId: args.sessionId,
       namespace: args.namespace,
     });
@@ -168,22 +169,13 @@ export const executeHumanTool = action({
       throw new Error(issues ?? "Invalid tool input");
     }
 
-    let anchorMessageId = args.messageId;
-    if (!anchorMessageId?.length) {
-      const tipPage = await listMessages(ctx, components.agent, {
-        threadId: args.threadId,
-        paginationOpts: { cursor: null, numItems: 1 },
-      });
-      anchorMessageId = tipPage.page[0]?._id;
-    }
-
     const streamId = chatActorStreamId(args.threadId, args.namespace);
     const invocationEntryId = crypto.randomUUID();
     const basePayload = {
       threadId: args.threadId,
       actorKey: args.namespace,
       toolName: args.toolName,
-      ...(anchorMessageId ? { anchorMessageId } : {}),
+      ...(effectiveMessageId ? { anchorMessageId: effectiveMessageId } : {}),
     } satisfies ChatActorTurnPayload;
 
     await chatActorHistory.append(ctx, {

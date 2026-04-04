@@ -1,7 +1,5 @@
-import { listMessages } from "@convex-dev/agent";
 import type { ToolSpec } from "@very-coffee/agent-identity";
 import type { JSONValue, ModelMessage, ToolCallPart, ToolResultPart } from "ai";
-import { api, components } from "../_generated/api.js";
 import type { ActionCtx } from "../_generated/server.js";
 import { humanTools } from "../agents/human/humanToolkit.js";
 import {
@@ -10,26 +8,7 @@ import {
   createHumanToolkitContextFromQuery,
 } from "../agents/lib/customFunctions.js";
 import type { HumanToolCall } from "./humanToolCallValidator.js";
-
-async function threadTipMessageId(
-  ctx: Pick<ActionCtx, "runQuery">,
-  threadId: string,
-  namespace: string,
-): Promise<string | undefined> {
-  const row = await ctx.runQuery(api.chat.chatContext.getChatContext, {
-    namespace,
-    threadId,
-  });
-  let messageId = row?.lastMessageId;
-  if (!messageId?.length) {
-    const tipPage = await listMessages(ctx, components.agent, {
-      threadId,
-      paginationOpts: { cursor: null, numItems: 1 },
-    });
-    messageId = tipPage.page[0]?._id;
-  }
-  return messageId?.length ? messageId : undefined;
-}
+import { resolveEffectiveThreadMessageIdForAction } from "./threadMessageAnchor.js";
 
 function toolOutputToJsonValue(output: unknown): JSONValue {
   return JSON.parse(JSON.stringify(output)) as JSONValue;
@@ -53,11 +32,10 @@ export async function executeHumanToolCallsForTurn(
     toolCalls: HumanToolCall[];
   },
 ): Promise<[ModelMessage, ModelMessage]> {
-  const messageId = await threadTipMessageId(
-    ctx,
-    args.threadId,
-    args.namespace,
-  );
+  const messageId = await resolveEffectiveThreadMessageIdForAction(ctx, {
+    namespace: args.namespace,
+    threadId: args.threadId,
+  });
   const toolkitCtx = createHumanToolkitContextFromQuery(ctx, {
     threadId: args.threadId,
     ...(messageId !== undefined ? { messageId } : {}),

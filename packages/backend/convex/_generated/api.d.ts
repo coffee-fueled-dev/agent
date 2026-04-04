@@ -42,6 +42,7 @@ import type * as chat_humanToolCallValidator from "../chat/humanToolCallValidato
 import type * as chat_memorySearch from "../chat/memorySearch.js";
 import type * as chat_resolveMemories from "../chat/resolveMemories.js";
 import type * as chat_thread from "../chat/thread.js";
+import type * as chat_threadMessageAnchor from "../chat/threadMessageAnchor.js";
 import type * as chat_threadUiMessages from "../chat/threadUiMessages.js";
 import type * as env from "../env.js";
 import type * as files from "../files.js";
@@ -91,6 +92,7 @@ declare const fullApi: ApiFromModules<{
   "chat/memorySearch": typeof chat_memorySearch;
   "chat/resolveMemories": typeof chat_resolveMemories;
   "chat/thread": typeof chat_thread;
+  "chat/threadMessageAnchor": typeof chat_threadMessageAnchor;
   "chat/threadUiMessages": typeof chat_threadUiMessages;
   env: typeof env;
   files: typeof files;
