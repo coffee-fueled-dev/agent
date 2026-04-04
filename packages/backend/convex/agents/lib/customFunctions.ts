@@ -8,14 +8,15 @@ import type {
 } from "convex/server";
 
 export type ToolPolicyArgs = {
-  threadId: string;
+  /** Omitted when evaluating affordances before a thread exists (e.g. composer on new chat). */
+  threadId?: string;
   /** Absent before any message exists in the thread (e.g. first user send). */
   messageId?: string;
   sessionId: string;
 };
 
 export type AgentIdentityCtx = {
-  threadId: string;
+  threadId?: string;
   messageId?: string;
   sessionId: string;
   namespace: string;
@@ -108,14 +109,14 @@ export function createConvexAgentEnvForQuery(
 export function createHumanToolkitContextFromQuery(
   ctx: Pick<GenericQueryCtx<GenericDataModel>, "runQuery">,
   args: {
-    threadId: string;
+    threadId?: string;
     messageId?: string;
     sessionId: string;
     namespace: string;
   },
 ): ToolkitContext {
   const identity: AgentIdentityCtx = {
-    threadId: args.threadId,
+    ...(args.threadId?.length ? { threadId: args.threadId } : {}),
     messageId: args.messageId,
     sessionId: args.sessionId,
     namespace: args.namespace,
@@ -140,7 +141,7 @@ export function adaptToHumanToolBuilderContext(
     "runQuery" | "runMutation" | "runAction"
   >,
   args: {
-    threadId: string;
+    threadId?: string;
     messageId?: string;
     sessionId: string;
     namespace: string;
@@ -148,7 +149,7 @@ export function adaptToHumanToolBuilderContext(
 ): ToolBuilderContext {
   return {
     ...ctx,
-    threadId: args.threadId,
+    ...(args.threadId?.length ? { threadId: args.threadId } : {}),
     messageId: args.messageId,
     sessionId: args.sessionId,
     namespace: args.namespace,

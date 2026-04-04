@@ -1,7 +1,5 @@
-import { api } from "@very-coffee/backend/api";
-import { useSessionMutation } from "convex-helpers/react/sessions";
 import { PaperclipIcon, SearchIcon } from "lucide-react";
-import { type ReactNode, useState } from "react";
+import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import {
   InputGroup,
@@ -9,118 +7,46 @@ import {
   InputGroupButton,
   InputGroupTextarea,
 } from "@/components/ui/input-group";
-import { FileDropzone, useFiles } from "@/files";
-import { optimisticallySendChatMessage } from "../_hooks/optimistically-send-chat-message.js";
+import { FileDropzone } from "@/files";
 import { useChatThread } from "../_hooks/use-chat-thread.js";
 import {
-  ChatComposerFileProvider,
+  ChatComposerAttachmentsProvider,
   ChatComposerFileRow,
   fileKeyFor,
-  useChatComposerFile,
-} from "./chat-composer-file-provider.js";
+  useChatComposerAttachments,
+} from "./chat-composer-attachments-provider.js";
 import {
   memoryBadgeLabel,
   useChatComposerMemory,
 } from "./chat-composer-memory-provider.js";
-import { useHumanToolkit } from "./human-toolkit-provider.js";
 import { MemorySearchModal } from "./memory-search-modal.js";
+import {
+  ComposeMessageProvider,
+  useComposeMessage,
+} from "./use-compose-message.js";
 
 function ChatComposerInner() {
-  const { threadId, userId, createThread, setAwaitingAssistantStream } =
-    useChatThread();
-  const sendMessage = useSessionMutation(
-    api.chat.thread.sendMessage,
-  ).withOptimisticUpdate((store, args) => {
-    optimisticallySendChatMessage(api.chat.thread.listThreadMessages)(store, {
-      threadId: args.threadId,
-      prompt: args.prompt,
-      memoryRecordIds: args.memoryRecordIds,
-    });
-  });
-  const { files, addFiles, clearFiles } = useFiles();
-  const { allAttachmentsReady, fileEmbedStates } = useChatComposerFile();
+  const { userId } = useChatThread();
+  const {
+    text,
+    setText,
+    send,
+    sendDisabled,
+    sending,
+    error,
+  } = useComposeMessage();
   const {
     memoryEntries,
-    memoryRecordIds,
     removeMemoryRecordId,
-    clearMemoryRecordIds,
     memorySearchOpen,
     setMemorySearchOpen,
+    shareMemoriesAllowed,
   } = useChatComposerMemory();
-  const humanToolkit = useHumanToolkit();
-  const humanToolNames =
-    humanToolkit?.toolkit?.tools?.filter((t) => t.enabled).map((t) => t.name) ??
-    [];
-  const [text, setText] = useState("");
-  const [sending, setSending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleSend = async () => {
-    const trimmed = text.trim();
-    if (
-      (!trimmed && files.length === 0 && memoryRecordIds.length === 0) ||
-      sending
-    ) {
-      return;
-    }
-    if (files.length > 0 && !allAttachmentsReady) return;
-    if (!userId) return;
-    setSending(true);
-    setError(null);
-    try {
-      const activeThreadId =
-        threadId ?? (await createThread({ title: "Chat" }));
-
-      const attachments =
-        files.length > 0
-          ? files.map((file) => {
-              const state = fileEmbedStates[fileKeyFor(file)];
-              if (
-                !state ||
-                state.status !== "completed" ||
-                !state.storageId ||
-                !state.contentHash
-              ) {
-                throw new Error(`File is not ready yet: ${file.name}`);
-              }
-              return {
-                storageId: state.storageId,
-                fileName: file.name,
-                mimeType: file.type || "application/octet-stream",
-                contentHash: state.contentHash,
-              };
-            })
-          : undefined;
-
-      await sendMessage({
-        threadId: activeThreadId,
-        userId,
-        namespace: userId,
-        prompt: trimmed,
-        attachments,
-        memoryRecordIds:
-          memoryRecordIds.length > 0 ? [...memoryRecordIds] : undefined,
-      });
-      setAwaitingAssistantStream(true);
-      setText("");
-      clearFiles();
-      clearMemoryRecordIds();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setSending(false);
-    }
-  };
-
-  const sendDisabled =
-    sending ||
-    (!text.trim() && files.length === 0 && memoryRecordIds.length === 0) ||
-    !userId ||
-    (files.length > 0 && !allAttachmentsReady);
+  const { files, addFiles } = useChatComposerAttachments();
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-2">
-      {userId ? (
+      {userId && shareMemoriesAllowed ? (
         <MemorySearchModal
           open={memorySearchOpen}
           onOpenChange={setMemorySearchOpen}
@@ -165,11 +91,6 @@ function ChatComposerInner() {
         </div>
       ) : null}
       {error ? <p className="text-destructive text-xs">{error}</p> : null}
-      {humanToolNames.length > 0 ? (
-        <p className="text-muted-foreground text-xs" aria-live="polite">
-          Human tools: {humanToolNames.join(", ")}
-        </p>
-      ) : null}
       <InputGroup className="items-stretch">
         <InputGroupTextarea
           placeholder="Accomplish anything..."
@@ -180,7 +101,7 @@ function ChatComposerInner() {
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
-              void handleSend();
+              void send();
             }
           }}
         />
@@ -189,17 +110,19 @@ function ChatComposerInner() {
           className="justify-between px-2 pb-2"
         >
           <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-8 gap-1 px-2 text-muted-foreground text-xs"
-              disabled={!userId}
-              onClick={() => setMemorySearchOpen(true)}
-            >
-              <SearchIcon className="size-3.5" />
-              Memories
-            </Button>
+            {shareMemoriesAllowed ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 gap-1 px-2 text-muted-foreground text-xs"
+                disabled={!userId}
+                onClick={() => setMemorySearchOpen(true)}
+              >
+                <SearchIcon className="size-3.5" />
+                Memories
+              </Button>
+            ) : null}
             <label className="inline-flex cursor-pointer items-center gap-1 text-muted-foreground text-xs">
               <PaperclipIcon className="size-3.5" />
               <span>Attach</span>
@@ -225,7 +148,7 @@ function ChatComposerInner() {
           <InputGroupButton
             type="button"
             disabled={sendDisabled}
-            onClick={() => void handleSend()}
+            onClick={() => void send()}
           >
             {sending ? "Sending…" : "Send"}
           </InputGroupButton>
@@ -253,8 +176,10 @@ export function ChatComposerDropzone({
 
 export function ChatComposer() {
   return (
-    <ChatComposerFileProvider>
-      <ChatComposerInner />
-    </ChatComposerFileProvider>
+    <ChatComposerAttachmentsProvider>
+      <ComposeMessageProvider>
+        <ChatComposerInner />
+      </ComposeMessageProvider>
+    </ChatComposerAttachmentsProvider>
   );
 }

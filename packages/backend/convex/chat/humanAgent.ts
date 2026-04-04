@@ -6,6 +6,10 @@ import { toJSONSchema } from "zod/v4";
 import { components } from "../_generated/api.js";
 import { action, query } from "../_generated/server.js";
 import { humanTools } from "../agents/human/humanToolkit.js";
+import type {
+  HumanToolkitToolName,
+  HumanToolkitToolUi,
+} from "../agents/human/humanToolkitTypes.js";
 import {
   adaptToHumanToolBuilderContext,
   createConvexAgentEnv,
@@ -64,14 +68,15 @@ function serializeInputSchema(spec: ToolSpec): unknown {
 
 /**
  * Server-driven human affordances: tools enabled after policy evaluation, with JSON Schema for inputs.
- * {@code messageId} is the thread tip when known; omitted for an empty thread (tools still evaluate).
+ * Omit {@code threadId} before a thread exists (e.g. new chat); policy runs with namespace + session only.
+ * With a thread, {@code messageId} overrides; else {@code chatContext.lastMessageId} / thread tip are used.
  */
 export const humanToolkitForChat = query({
   args: {
-    threadId: v.string(),
+    threadId: v.optional(v.string()),
     namespace: v.string(),
     ...SessionIdArg,
-    /** Thread tip message id; omit to use {@code chatContext.lastMessageId} if present. */
+    /** Thread tip message id; omit to use {@code chatContext.lastMessageId} or list tip when thread is set. */
     messageId: v.optional(v.string()),
   },
   returns: v.object({
@@ -79,38 +84,43 @@ export const humanToolkitForChat = query({
     instructions: v.string(),
   }),
   handler: async (ctx, args) => {
+    const threadId = args.threadId?.trim() || undefined;
     let messageId = args.messageId;
-    if (!messageId?.length) {
-      const row = await ctx.db
-        .query("chatContext")
-        .withIndex("by_namespace_thread", (q) =>
-          q.eq("namespace", args.namespace).eq("threadId", args.threadId),
-        )
-        .first();
-      messageId = row?.lastMessageId;
-    }
-    /** Opening threads with history may have no `chatContext` row until send/stream; use thread tip. */
-    if (!messageId?.length) {
-      const tipPage = await listMessages(ctx, components.agent, {
-        threadId: args.threadId,
-        paginationOpts: { cursor: null, numItems: 1 },
-      });
-      messageId = tipPage.page[0]?._id;
+    if (threadId) {
+      if (!messageId?.length) {
+        const row = await ctx.db
+          .query("chatContext")
+          .withIndex("by_namespace_thread", (q) =>
+            q.eq("namespace", args.namespace).eq("threadId", threadId),
+          )
+          .first();
+        messageId = row?.lastMessageId;
+      }
+      /** Opening threads with history may have no `chatContext` row until send/stream; use thread tip. */
+      if (!messageId?.length) {
+        const tipPage = await listMessages(ctx, components.agent, {
+          threadId,
+          paginationOpts: { cursor: null, numItems: 1 },
+        });
+        messageId = tipPage.page[0]?._id;
+      }
     }
     const toolkitCtx = createHumanToolkitContextFromQuery(ctx, {
-      threadId: args.threadId,
+      ...(threadId ? { threadId } : {}),
       ...(messageId?.length ? { messageId } : {}),
       sessionId: args.sessionId,
       namespace: args.namespace,
     });
     const { tools, instructions } = await humanTools.evaluate(toolkitCtx);
-    const list = Object.entries(tools).map(([name, spec]) => ({
-      name,
-      description: spec.description,
-      enabled: true,
-      policyIds: spec.policyIds,
-      inputJsonSchema: serializeInputSchema(spec),
-    }));
+    const list: HumanToolkitToolUi[] = Object.entries(tools).map(
+      ([name, spec]) => ({
+        name: name as HumanToolkitToolName,
+        description: spec.description,
+        enabled: true,
+        policyIds: spec.policyIds,
+        inputJsonSchema: serializeInputSchema(spec),
+      }),
+    );
     return { tools: list, instructions };
   },
 });

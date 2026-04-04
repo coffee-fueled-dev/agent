@@ -1,9 +1,9 @@
 import type { AnyComposable } from "@very-coffee/agent-identity";
 import { defineAgentIdentity } from "@very-coffee/agent-identity";
-import { toolLibrary } from "../_tools/toolRegistry.js";
+import { humanMemoryToolkit } from "../_tools/memory/humanMemoryToolkit.js";
 import { toolkit } from "../lib/toolkit.js";
 
-export const humanTools = toolkit([toolLibrary.memory], {
+export const humanTools = toolkit([humanMemoryToolkit()], {
   name: "human-tools",
 });
 

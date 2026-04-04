@@ -93,7 +93,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         listSourceMapsForMemory: FunctionReference<
           "query",
           "internal",
-          { memoryRecordId: string; namespace: string },
+          { memoryRecordId: string; namespace: string; type?: string },
           Array<{
             contentSource: { id: string; type: string };
             fileName?: string;

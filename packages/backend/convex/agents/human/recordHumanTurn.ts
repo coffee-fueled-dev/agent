@@ -47,6 +47,9 @@ export async function computeHumanTurnIdentity(
     }),
   );
   const staticHash = await getHumanToolkitStaticHash();
+  if (!ctx.threadId?.length) {
+    throw new Error("Human turn identity requires threadId");
+  }
   if (!ctx.messageId) {
     throw new Error("Human turn identity requires messageId (user message id)");
   }

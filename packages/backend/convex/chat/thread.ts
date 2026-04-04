@@ -1,18 +1,15 @@
 import {
   createThread as createAgentThread,
   listMessages,
-  listUIMessages,
   type SyncStreamsReturnValue,
   saveMessages,
   syncStreams,
-  toUIMessages,
 } from "@convex-dev/agent";
 import type { StreamArgs } from "@convex-dev/agent/validators";
-import type { ModelMessage, UserContent, UserModelMessage } from "ai";
+import type { UserContent, UserModelMessage } from "ai";
 import { type PaginationResult, paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { SessionIdArg } from "convex-helpers/server/sessions";
-import type { Id as MemoryComponentId } from "../_components/memory/_generated/dataModel.js";
 import { components, internal } from "../_generated/api.js";
 import type { Id } from "../_generated/dataModel.js";
 import {
@@ -32,6 +29,16 @@ import {
   chatActorStreamId,
 } from "./actorHistory.js";
 import { upsertChatContextRow } from "./chatContext.js";
+import { executeHumanToolCallsForTurn } from "./executeHumanToolCallsForTurn.js";
+import {
+  filterEffectiveHumanToolCalls,
+  humanToolCallValidator,
+} from "./humanToolCallValidator.js";
+import { CHAT_PROVIDER_METADATA_NS } from "./resolveMemories.js";
+import {
+  type ThreadMessageMetadata,
+  toThreadUIMessages,
+} from "./threadUiMessages.js";
 
 /** Convex `Agent` expects `ActionCtx & Record<string, unknown>`. */
 function agentActionCtx(ctx: ActionCtx): ActionCtx & Record<string, unknown> {
@@ -99,56 +106,6 @@ async function appendFileAttachmentParts(
   content.push(imagePart ?? filePart);
 }
 
-async function appendMemoryRecordParts(
-  ctx: MessageBuildCtx,
-  namespace: string,
-  memoryRecordIds: string[],
-  fileIds: string[],
-  content: UserMessageParts,
-) {
-  for (const rawId of memoryRecordIds) {
-    const maps = await ctx.runQuery(
-      components.memory.public.sourceMaps.listSourceMapsForMemory,
-      {
-        namespace,
-        memoryRecordId: rawId as MemoryComponentId<"memoryRecords">,
-      },
-    );
-    const storageRow = maps.find((m) => m.contentSource.type === "storage");
-    if (storageRow) {
-      await appendFileAttachmentParts(
-        ctx,
-        {
-          storageId: storageRow.contentSource.id,
-          fileName: storageRow.fileName ?? "file",
-          mimeType: storageRow.mimeType ?? "application/octet-stream",
-          contentHash: "",
-        },
-        fileIds,
-        content,
-      );
-      continue;
-    }
-    const rec = await ctx.runQuery(
-      components.memory.public.records.getMemoryRecord,
-      {
-        namespace,
-        memoryRecordId: rawId as MemoryComponentId<"memoryRecords">,
-      },
-    );
-    if (!rec?.text?.trim()) {
-      throw new Error(
-        `Memory ${rawId} has no storage source map and no canonical text on the record`,
-      );
-    }
-    content.push({
-      type: "text",
-      text: rec.text.trim(),
-      providerOptions: { ui: { visible: false } },
-    });
-  }
-}
-
 async function buildUserMessageWithFiles(
   ctx: MessageBuildCtx,
   prompt: string,
@@ -160,8 +117,6 @@ async function buildUserMessageWithFiles(
         contentHash: string;
       }>
     | undefined,
-  namespace: string,
-  memoryRecordIds: string[] | undefined,
 ): Promise<{ message: UserModelMessage; fileIds: string[] }> {
   const fileIds: string[] = [];
   const content: UserMessageParts = [];
@@ -171,14 +126,8 @@ async function buildUserMessageWithFiles(
   for (const attachment of attachments ?? []) {
     await appendFileAttachmentParts(ctx, attachment, fileIds, content);
   }
-  if (memoryRecordIds?.length) {
-    await appendMemoryRecordParts(
-      ctx,
-      namespace,
-      memoryRecordIds,
-      fileIds,
-      content,
-    );
+  if (content.length === 0) {
+    content.push({ type: "text", text: "" });
   }
   return { message: { role: "user", content }, fileIds };
 }
@@ -199,7 +148,9 @@ const streamArgsValidator = v.union(
   }),
 );
 
-type ListThreadMessagesPage = PaginationResult<UIMessage> & {
+type ListThreadMessagesPage = PaginationResult<
+  UIMessage<ThreadMessageMetadata>
+> & {
   streams: SyncStreamsReturnValue;
 };
 
@@ -233,7 +184,7 @@ export const sendMessage = mutation({
         }),
       ),
     ),
-    memoryRecordIds: v.optional(v.array(v.string())),
+    toolCalls: v.optional(v.array(humanToolCallValidator)),
   },
   returns: v.object({
     promptMessageId: v.string(),
@@ -241,52 +192,51 @@ export const sendMessage = mutation({
   }),
   handler: async (ctx, args) => {
     const hasAttachments = Boolean(args.attachments?.length);
-    const hasMemories = Boolean(args.memoryRecordIds?.length);
-    if (!args.prompt.trim() && !hasAttachments && !hasMemories) {
-      throw new Error(
-        "Message must include text, attachments, or memory selections.",
-      );
+    const toolCalls = args.toolCalls ?? [];
+    const hasToolCalls = toolCalls.length > 0;
+    if (!args.prompt.trim() && !hasAttachments && !hasToolCalls) {
+      throw new Error("Message must include text, attachments, or tool calls.");
     }
+
+    const turnId = crypto.randomUUID();
 
     const { message: userMessage, fileIds } = await buildUserMessageWithFiles(
       ctx,
       args.prompt,
       args.attachments,
-      args.namespace,
-      args.memoryRecordIds,
     );
 
-    const messagesToSave: ModelMessage[] = [userMessage];
+    const cfdMeta = {
+      [CHAT_PROVIDER_METADATA_NS]: {
+        turnId,
+        threadId: args.threadId,
+      },
+    };
+
+    const userMeta = {
+      ...(fileIds.length > 0 ? { fileIds } : {}),
+      providerMetadata: cfdMeta,
+    };
     const { messages } = await saveMessages(ctx, components.agent, {
       threadId: args.threadId,
       userId: args.userId,
-      messages: messagesToSave,
-      metadata: fileIds.length > 0 ? [{ fileIds }] : undefined,
+      messages: [userMessage],
+      metadata: [userMeta],
     });
 
-    const promptMessageId = messages.at(-1)?._id;
+    const promptMessageId = messages[0]?._id;
     if (!promptMessageId) {
       throw new Error("Failed to save prompt message");
     }
+
+    const tipId = promptMessageId;
 
     const { sessionId } = args;
     await upsertChatContextRow(ctx, {
       namespace: args.namespace,
       threadId: args.threadId,
-      lastMessageId: promptMessageId,
+      lastMessageId: tipId,
       sessionId,
-    });
-
-    await chatActorHistory.append(ctx, {
-      streamType: CHAT_ACTOR_STREAM_TYPE,
-      streamId: chatActorStreamId(args.threadId, args.namespace),
-      entryId: crypto.randomUUID(),
-      kind: "humanMessageSent",
-      payload: {
-        threadId: args.threadId,
-        actorKey: args.namespace,
-        anchorMessageId: promptMessageId,
-      } satisfies ChatActorTurnPayload,
     });
 
     await ctx.scheduler.runAfter(0, internal.chat.thread.continueThreadStream, {
@@ -295,6 +245,8 @@ export const sendMessage = mutation({
       namespace: args.namespace,
       sessionId,
       promptMessageId,
+      turnId,
+      ...(hasToolCalls ? { toolCalls } : {}),
     });
 
     await ctx.scheduler.runAfter(
@@ -315,43 +267,56 @@ export const sendMessage = mutation({
   },
 });
 
-export const continueThreadStream = internalAction({
+/** Persists human tool assistant rows after the user message; invoked from {@link continueThreadStream}. */
+export const applyHumanToolCallsForTurn = internalAction({
   args: {
     threadId: v.string(),
     userId: v.string(),
     namespace: v.string(),
-    sessionId: v.string(),
+    ...SessionIdArg,
     promptMessageId: v.string(),
+    turnId: v.string(),
+    toolCalls: v.array(humanToolCallValidator),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const agent = await createAssistantAgent({
-      ...ctx,
-      threadId: args.threadId,
-      messageId: args.promptMessageId,
-      namespace: args.namespace,
-      sessionId: args.sessionId,
-      agentId: "assistant",
-      agentName: "Assistant",
-    });
-
-    const { thread } = await agent.continueThread(agentActionCtx(ctx), {
+    const toolCalls = filterEffectiveHumanToolCalls(args.toolCalls);
+    if (toolCalls.length === 0) {
+      return null;
+    }
+    const [assistantWithToolCalls, toolResultsMessage] =
+      await executeHumanToolCallsForTurn(ctx, {
+        threadId: args.threadId,
+        namespace: args.namespace,
+        sessionId: args.sessionId,
+        toolCalls,
+      });
+    const cfdMeta = {
+      [CHAT_PROVIDER_METADATA_NS]: {
+        turnId: args.turnId,
+        threadId: args.threadId,
+      },
+    };
+    await saveMessages(ctx, components.agent, {
       threadId: args.threadId,
       userId: args.userId,
+      promptMessageId: args.promptMessageId,
+      messages: [assistantWithToolCalls, toolResultsMessage],
+      metadata: [{ providerMetadata: cfdMeta }, { providerMetadata: cfdMeta }],
     });
+    return null;
+  },
+});
 
-    const result = await thread.streamText(
-      { promptMessageId: args.promptMessageId },
-      {
-        saveStreamDeltas: { throttleMs: 100, returnImmediately: true },
-        contextOptions: {
-          searchOtherThreads: true,
-        },
-      },
-    );
-
-    await result.text;
-
+/** Chat context tip + actor history after the assistant stream completes (not on the stream critical path). */
+export const finalizeAssistantStreamTurn = internalAction({
+  args: {
+    threadId: v.string(),
+    namespace: v.string(),
+    ...SessionIdArg,
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
     const tipPage = await listMessages(ctx, components.agent, {
       threadId: args.threadId,
       paginationOpts: { cursor: null, numItems: 1 },
@@ -379,6 +344,89 @@ export const continueThreadStream = internalAction({
         } satisfies ChatActorTurnPayload,
       });
     }
+    return null;
+  },
+});
+
+export const continueThreadStream = internalAction({
+  args: {
+    threadId: v.string(),
+    userId: v.string(),
+    namespace: v.string(),
+    ...SessionIdArg,
+    promptMessageId: v.string(),
+    /** Same turn as user send + optional shareMemories; streamed messages may be tagged in a follow-up. */
+    turnId: v.optional(v.string()),
+    toolCalls: v.optional(v.array(humanToolCallValidator)),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const turnId = args.turnId ?? "";
+    await chatActorHistory.append(ctx, {
+      streamType: CHAT_ACTOR_STREAM_TYPE,
+      streamId: chatActorStreamId(args.threadId, args.namespace),
+      entryId: crypto.randomUUID(),
+      kind: "humanMessageSent",
+      payload: {
+        threadId: args.threadId,
+        actorKey: args.namespace,
+        turnId,
+        anchorMessageId: args.promptMessageId,
+      } satisfies ChatActorTurnPayload,
+    });
+
+    const toolCalls = filterEffectiveHumanToolCalls(args.toolCalls ?? []);
+    const hasToolCalls = toolCalls.length > 0;
+
+    const [agent] = await Promise.all([
+      createAssistantAgent({
+        ...ctx,
+        threadId: args.threadId,
+        messageId: args.promptMessageId,
+        namespace: args.namespace,
+        sessionId: args.sessionId,
+        agentId: "assistant",
+        agentName: "Assistant",
+      }),
+      hasToolCalls
+        ? ctx.runAction(internal.chat.thread.applyHumanToolCallsForTurn, {
+            threadId: args.threadId,
+            userId: args.userId,
+            namespace: args.namespace,
+            sessionId: args.sessionId,
+            promptMessageId: args.promptMessageId,
+            turnId,
+            toolCalls,
+          })
+        : Promise.resolve(null),
+    ]);
+
+    const { thread } = await agent.continueThread(agentActionCtx(ctx), {
+      threadId: args.threadId,
+      userId: args.userId,
+    });
+
+    const result = await thread.streamText(
+      { promptMessageId: args.promptMessageId },
+      {
+        saveStreamDeltas: { throttleMs: 100, returnImmediately: true },
+        contextOptions: {
+          searchOtherThreads: true,
+        },
+      },
+    );
+
+    await result.text;
+
+    void ctx.scheduler.runAfter(
+      0,
+      internal.chat.thread.finalizeAssistantStreamTurn,
+      {
+        threadId: args.threadId,
+        namespace: args.namespace,
+        sessionId: args.sessionId,
+      },
+    );
 
     return null;
   },
@@ -414,12 +462,10 @@ export const listThreadMessages = query({
     };
 
     const result = await listMessages(ctx, components.agent, agentArgs);
-    const paginated = { ...result, page: toUIMessages(result.page) }; // Spread turn metadata into each message
     const streams = await syncStreams(ctx, components.agent, agentArgs);
-
     return {
-      ...paginated,
-      page: paginated.page as UIMessage[],
+      ...result,
+      page: toThreadUIMessages(args.threadId, result.page),
       streams,
     };
   },

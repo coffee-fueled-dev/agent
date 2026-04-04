@@ -99,8 +99,11 @@ export function tool<
       inputSchema: args.inputSchema,
       instructions: (args.instructions ?? []).join("\n\n"),
       policyIds,
-      handler: (_ctxUnknown, inputUnknown, options) =>
-        args.handler(toolCtx, inputUnknown as INPUT, options),
+      /** Prefer runtime {@code ctx} when the caller passes one (e.g. action env); else use env from {@code evaluate}. */
+      handler: (runtimeCtx, inputUnknown, options) => {
+        const ctx = (runtimeCtx != null ? runtimeCtx : toolCtx) as ToolRuntimeContext<Env>;
+        return args.handler(ctx, inputUnknown as INPUT, options);
+      },
     };
 
     return {

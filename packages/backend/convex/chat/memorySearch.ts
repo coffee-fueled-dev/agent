@@ -1,8 +1,6 @@
 import { v } from "convex/values";
 import { memoryClient } from "../_clients/memory.js";
-import type { Id as MemoryComponentId } from "../_components/memory/_generated/dataModel.js";
 import { createEmbeddingModel } from "../_components/memory/_lib.js";
-import { components } from "../_generated/api.js";
 import { action } from "../_generated/server.js";
 import { getGoogleApiKey } from "../env.js";
 
@@ -83,26 +81,23 @@ export const searchMemoriesForComposer = action({
       title: string | null;
     }> = [];
     for (const h of hits) {
-      const maps = await ctx.runQuery(
-        components.memory.public.sourceMaps.listSourceMapsForMemory,
-        {
-          namespace: args.namespace,
-          memoryRecordId: h.sourceRef as MemoryComponentId<"memoryRecords">,
-        },
-      );
-      const storageRow = maps.find((m) => m.contentSource.type === "storage");
-      const record = await ctx.runQuery(
-        components.memory.public.records.getMemoryRecord,
-        {
-          namespace: args.namespace,
-          memoryRecordId: h.sourceRef as MemoryComponentId<"memoryRecords">,
-        },
-      );
+      const recordArgs = {
+        namespace: args.namespace,
+        memoryRecordId: h.sourceRef,
+      };
+      const [storageSources, memoryRecord] = await Promise.all([
+        memoryClient.resolveSourceMapsByName("storage", ctx, recordArgs),
+        memoryClient.getMemoryRecord(ctx, recordArgs),
+      ]);
+      const storage = storageSources[0];
+      const title = memoryRecord?.title?.trim()
+        ? memoryRecord.title.trim()
+        : null;
       out.push({
         ...h,
-        mimeType: storageRow?.mimeType ?? null,
-        fileName: storageRow?.fileName ?? null,
-        title: record?.title ?? null,
+        mimeType: storage?.mimeType ?? null,
+        fileName: storage?.fileName ?? null,
+        title,
       });
     }
     return out;

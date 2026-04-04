@@ -76,6 +76,9 @@ export async function createAssistantAgent(ctx: ToolBuilderContext) {
       return { toolKey, toolHash };
     }),
   );
+  if (!ctx.threadId?.length) {
+    throw new Error("Assistant turn requires threadId");
+  }
   if (!ctx.messageId) {
     throw new Error("Assistant turn requires messageId (prompt message id)");
   }

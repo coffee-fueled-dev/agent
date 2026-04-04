@@ -76,7 +76,8 @@ export function MemorySearchModal({
   onOpenChange: (open: boolean) => void;
   namespace: string;
 }) {
-  const { memoryRecordIds, toggleMemoryRecordId } = useChatComposerMemory();
+  const { memoryRecordIds, toggleMemoryRecordId, registerSeenMemoryIds } =
+    useChatComposerMemory();
   const selectedSet = useMemo(
     () => new Set(memoryRecordIds),
     [memoryRecordIds],
@@ -160,6 +161,11 @@ export function MemorySearchModal({
       setResults([]);
     }
   }, [open]);
+
+  useEffect(() => {
+    if (results.length === 0) return;
+    registerSeenMemoryIds(results.map((h) => h.sourceRef));
+  }, [results, registerSeenMemoryIds]);
 
   const {
     getRootProps,

@@ -14,9 +14,5 @@ export function memoryToolkit(): Composable<
   return toolkit([mergeMemoryTool(), searchMemoriesTool()], {
     name: "memory",
     instructions: [memoryUsage],
-  }) as Composable<
-    { kind: string; name: string },
-    Record<string, ToolSpec>,
-    ConvexAgentEnv
-  >;
+  });
 }

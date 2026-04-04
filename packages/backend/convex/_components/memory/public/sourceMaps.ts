@@ -43,34 +43,56 @@ export const registerStorageSourceMetadata = mutation({
   },
 });
 
+const sourceMapRowValidator = v.object({
+  contentSource: v.object({
+    type: v.string(),
+    id: v.string(),
+  }),
+  searchBackend: v.union(v.literal("lexical"), v.literal("vector")),
+  searchItemId: v.string(),
+  fileName: v.optional(v.string()),
+  mimeType: v.optional(v.string()),
+});
+
+/**
+ * Source map rows for a memory. Without `type`, returns all rows via `by_namespace_memoryRecord`.
+ * With `type`, filters by `contentSource.type` using `by_namespace_memory_content_backend`.
+ */
 export const listSourceMapsForMemory = query({
   args: {
     namespace: v.string(),
     memoryRecordId: v.id("memoryRecords"),
+    /** When set, only rows whose `contentSource.type` matches (indexed read). */
+    type: v.optional(v.string()),
   },
-  returns: v.array(
-    v.object({
-      contentSource: v.object({
-        type: v.string(),
-        id: v.string(),
-      }),
-      searchBackend: v.union(v.literal("lexical"), v.literal("vector")),
-      searchItemId: v.string(),
-      fileName: v.optional(v.string()),
-      mimeType: v.optional(v.string()),
-    }),
-  ),
+  returns: v.array(sourceMapRowValidator),
   handler: async (ctx, args) => {
     const doc = await ctx.db.get(args.memoryRecordId);
     if (!doc || doc.namespace !== args.namespace) {
       return [];
     }
-    const rows = await ctx.db
-      .query("memorySourceMap")
-      .withIndex("by_namespace_memoryRecord", (q) =>
-        q.eq("namespace", args.namespace).eq("memoryRecord", args.memoryRecordId),
-      )
-      .collect();
+
+    const typeFilter = args.type?.trim();
+    const rows =
+      typeFilter !== undefined && typeFilter.length > 0
+        ? await ctx.db
+            .query("memorySourceMap")
+            .withIndex("by_namespace_memory_content_backend", (q) =>
+              q
+                .eq("namespace", args.namespace)
+                .eq("memoryRecord", args.memoryRecordId)
+                .eq("contentSource.type", typeFilter),
+            )
+            .collect()
+        : await ctx.db
+            .query("memorySourceMap")
+            .withIndex("by_namespace_memoryRecord", (q) =>
+              q
+                .eq("namespace", args.namespace)
+                .eq("memoryRecord", args.memoryRecordId),
+            )
+            .collect();
+
     return rows.map((r) => ({
       contentSource: r.contentSource,
       searchBackend: r.searchBackend,

@@ -24,7 +24,7 @@ function randomUUID() {
 
 /**
  * Like `@convex-dev/agent/react` `optimisticallySendMessage`, but supports
- * optional `memoryRecordIds` for a best-effort pending row until the server responds.
+ * optional `selectedMemoryCount` for a best-effort pending row until the server responds.
  */
 export function optimisticallySendChatMessage(
   query: FunctionReference<
@@ -44,7 +44,7 @@ export function optimisticallySendChatMessage(
   args: {
     threadId: string;
     prompt: string;
-    memoryRecordIds?: string[];
+    selectedMemoryCount?: number;
   },
 ) => void {
   return (store, args) => {
@@ -60,21 +60,22 @@ export function optimisticallySendChatMessage(
     const order = maxOrder + 1;
     const stepOrder = 0;
     const id = randomUUID();
-    const { prompt, memoryRecordIds, ...rest } = args;
+    const { prompt, selectedMemoryCount, ...rest } = args;
+    const memCount = selectedMemoryCount ?? 0;
 
     const parts: Array<{ type: "text"; text: string }> = [];
     if (prompt.trim()) {
       parts.push({ type: "text", text: prompt.trim() });
     }
-    if (memoryRecordIds?.length) {
+    if (memCount > 0) {
       parts.push({
         type: "text",
-        text: `[${memoryRecordIds.length} memory context]`,
+        text: `[${memCount} shared memories — context in tool result]`,
       });
     }
 
     const displayText =
-      [prompt.trim(), memoryRecordIds?.length ? `[${memoryRecordIds.length} memories]` : ""]
+      [prompt.trim(), memCount > 0 ? `[${memCount} memories]` : ""]
         .filter(Boolean)
         .join("\n\n") || " ";
 

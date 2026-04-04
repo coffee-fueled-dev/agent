@@ -15,8 +15,10 @@ import type * as agents__policies_convexPolicy from "../agents/_policies/convexP
 import type * as agents__tools_filesystem_runShell_internal from "../agents/_tools/filesystem/runShell/internal.js";
 import type * as agents__tools_filesystem_runShell_tool from "../agents/_tools/filesystem/runShell/tool.js";
 import type * as agents__tools_filesystem_toolkit from "../agents/_tools/filesystem/toolkit.js";
+import type * as agents__tools_memory_humanMemoryToolkit from "../agents/_tools/memory/humanMemoryToolkit.js";
 import type * as agents__tools_memory_mergeMemory_tool from "../agents/_tools/memory/mergeMemory/tool.js";
 import type * as agents__tools_memory_searchMemories_tool from "../agents/_tools/memory/searchMemories/tool.js";
+import type * as agents__tools_memory_shareMemories_tool from "../agents/_tools/memory/shareMemories/tool.js";
 import type * as agents__tools_memory_toolkit from "../agents/_tools/memory/toolkit.js";
 import type * as agents__tools_registeredToolAugments from "../agents/_tools/registeredToolAugments.js";
 import type * as agents__tools_registeredToolMap from "../agents/_tools/registeredToolMap.js";
@@ -25,6 +27,8 @@ import type * as agents__tools_uiMessage from "../agents/_tools/uiMessage.js";
 import type * as agents_assistant_createAgent from "../agents/assistant/createAgent.js";
 import type * as agents_human_ensureRegistration from "../agents/human/ensureRegistration.js";
 import type * as agents_human_humanToolkit from "../agents/human/humanToolkit.js";
+import type * as agents_human_humanToolkitToolCall from "../agents/human/humanToolkitToolCall.js";
+import type * as agents_human_humanToolkitTypes from "../agents/human/humanToolkitTypes.js";
 import type * as agents_human_recordHumanTurn from "../agents/human/recordHumanTurn.js";
 import type * as agents_lib_customFunctions from "../agents/lib/customFunctions.js";
 import type * as agents_lib_models from "../agents/lib/models.js";
@@ -32,9 +36,13 @@ import type * as agents_lib_toolSpecAdapter from "../agents/lib/toolSpecAdapter.
 import type * as agents_lib_toolkit from "../agents/lib/toolkit.js";
 import type * as chat_actorHistory from "../chat/actorHistory.js";
 import type * as chat_chatContext from "../chat/chatContext.js";
+import type * as chat_executeHumanToolCallsForTurn from "../chat/executeHumanToolCallsForTurn.js";
 import type * as chat_humanAgent from "../chat/humanAgent.js";
+import type * as chat_humanToolCallValidator from "../chat/humanToolCallValidator.js";
 import type * as chat_memorySearch from "../chat/memorySearch.js";
+import type * as chat_resolveMemories from "../chat/resolveMemories.js";
 import type * as chat_thread from "../chat/thread.js";
+import type * as chat_threadUiMessages from "../chat/threadUiMessages.js";
 import type * as env from "../env.js";
 import type * as files from "../files.js";
 import type * as files_store from "../files/store.js";
@@ -56,8 +64,10 @@ declare const fullApi: ApiFromModules<{
   "agents/_tools/filesystem/runShell/internal": typeof agents__tools_filesystem_runShell_internal;
   "agents/_tools/filesystem/runShell/tool": typeof agents__tools_filesystem_runShell_tool;
   "agents/_tools/filesystem/toolkit": typeof agents__tools_filesystem_toolkit;
+  "agents/_tools/memory/humanMemoryToolkit": typeof agents__tools_memory_humanMemoryToolkit;
   "agents/_tools/memory/mergeMemory/tool": typeof agents__tools_memory_mergeMemory_tool;
   "agents/_tools/memory/searchMemories/tool": typeof agents__tools_memory_searchMemories_tool;
+  "agents/_tools/memory/shareMemories/tool": typeof agents__tools_memory_shareMemories_tool;
   "agents/_tools/memory/toolkit": typeof agents__tools_memory_toolkit;
   "agents/_tools/registeredToolAugments": typeof agents__tools_registeredToolAugments;
   "agents/_tools/registeredToolMap": typeof agents__tools_registeredToolMap;
@@ -66,6 +76,8 @@ declare const fullApi: ApiFromModules<{
   "agents/assistant/createAgent": typeof agents_assistant_createAgent;
   "agents/human/ensureRegistration": typeof agents_human_ensureRegistration;
   "agents/human/humanToolkit": typeof agents_human_humanToolkit;
+  "agents/human/humanToolkitToolCall": typeof agents_human_humanToolkitToolCall;
+  "agents/human/humanToolkitTypes": typeof agents_human_humanToolkitTypes;
   "agents/human/recordHumanTurn": typeof agents_human_recordHumanTurn;
   "agents/lib/customFunctions": typeof agents_lib_customFunctions;
   "agents/lib/models": typeof agents_lib_models;
@@ -73,9 +85,13 @@ declare const fullApi: ApiFromModules<{
   "agents/lib/toolkit": typeof agents_lib_toolkit;
   "chat/actorHistory": typeof chat_actorHistory;
   "chat/chatContext": typeof chat_chatContext;
+  "chat/executeHumanToolCallsForTurn": typeof chat_executeHumanToolCallsForTurn;
   "chat/humanAgent": typeof chat_humanAgent;
+  "chat/humanToolCallValidator": typeof chat_humanToolCallValidator;
   "chat/memorySearch": typeof chat_memorySearch;
+  "chat/resolveMemories": typeof chat_resolveMemories;
   "chat/thread": typeof chat_thread;
+  "chat/threadUiMessages": typeof chat_threadUiMessages;
   env: typeof env;
   files: typeof files;
   "files/store": typeof files_store;
@@ -180,7 +196,7 @@ export declare const components: {
         listSourceMapsForMemory: FunctionReference<
           "query",
           "internal",
-          { memoryRecordId: string; namespace: string },
+          { memoryRecordId: string; namespace: string; type?: string },
           Array<{
             contentSource: { id: string; type: string };
             fileName?: string;

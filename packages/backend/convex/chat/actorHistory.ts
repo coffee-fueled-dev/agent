@@ -39,6 +39,8 @@ export function chatActorStreamId(threadId: string, actorKey: string): string {
 export type ChatActorTurnPayload = {
   threadId: string;
   actorKey: string;
+  /** Stable id for this user send + tool snapshot + following assistant stream. */
+  turnId?: string;
   /** Agent message id this event aligns with in the transcript (preferred for merge order). */
   anchorMessageId?: string;
   /** When no message exists yet; monotonic tie-break with {@link ChatActorTurnPayload.entryTime}. */
