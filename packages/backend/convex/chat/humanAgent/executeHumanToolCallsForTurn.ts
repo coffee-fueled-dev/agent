@@ -1,6 +1,8 @@
+import type { ToolPipelineHooks } from "@very-coffee/agent-identity";
 import type { JSONValue, ModelMessage, ToolCallPart, ToolResultPart } from "ai";
 import type { ActionCtx } from "../../_generated/server.js";
 import { humanTools } from "../../agents/human/humanToolkit.js";
+import type { ConvexAgentEnv } from "../../agents/lib/customFunctions.js";
 import {
   adaptToHumanToolBuilderContext,
   createConvexAgentEnv,
@@ -35,18 +37,24 @@ export async function executeHumanToolCallsForTurn(
     namespace: string;
     sessionId: string;
     toolCalls: HumanToolCall[];
+    /** Server-side only (call from Convex TS, not serialized args). */
+    pipelineHooks?: ToolPipelineHooks<ConvexAgentEnv>;
   },
 ): Promise<[ModelMessage, ModelMessage]> {
   const messageId = await resolveEffectiveThreadMessageIdForAction(ctx, {
     namespace: args.namespace,
     threadId: args.threadId,
   });
-  const toolkitCtx = createHumanToolkitContextFromQuery(ctx, {
-    threadId: args.threadId,
-    ...(messageId !== undefined ? { messageId } : {}),
-    sessionId: args.sessionId,
-    namespace: args.namespace,
-  });
+  const toolkitCtx = createHumanToolkitContextFromQuery(
+    ctx,
+    {
+      threadId: args.threadId,
+      ...(messageId !== undefined ? { messageId } : {}),
+      sessionId: args.sessionId,
+      namespace: args.namespace,
+    },
+    args.pipelineHooks ? { pipelineHooks: args.pipelineHooks } : undefined,
+  );
   const { tools } = await humanTools.evaluate(toolkitCtx);
 
   const toolBuilderCtx = adaptToHumanToolBuilderContext(ctx, {

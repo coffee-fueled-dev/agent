@@ -3,6 +3,7 @@ import {
   computeRuntimeIdentityFromEvaluation,
   defineAgentIdentity,
   type RegisteredAgentIdentity,
+  type ToolPipelineHooks,
 } from "@very-coffee/agent-identity";
 import { fingerprintClient } from "_clients/fingerprints.js";
 import { components, internal } from "_generated/api.js";
@@ -10,7 +11,10 @@ import { internalAction } from "_generated/server.js";
 import { v } from "convex/values";
 import { pool } from "../../workpool.js";
 import { toolLibrary } from "../_tools/toolRegistry.js";
-import type { ToolBuilderContext } from "../lib/customFunctions.js";
+import type {
+  ConvexAgentEnv,
+  ToolBuilderContext,
+} from "../lib/customFunctions.js";
 import {
   createConvexAgentEnv,
   createToolkitContext,
@@ -48,8 +52,11 @@ type RecordAgentTurnEnqueueArgs = {
   tools: Array<{ toolKey: string; toolHash: string }>;
 };
 
-export async function createAssistantAgent(ctx: ToolBuilderContext) {
-  const toolkitCtx = createToolkitContext(ctx);
+export async function createAssistantAgent(
+  ctx: ToolBuilderContext,
+  options?: { pipelineHooks?: ToolPipelineHooks<ConvexAgentEnv> },
+) {
+  const toolkitCtx = createToolkitContext(ctx, options);
   const env = createConvexAgentEnv(ctx);
   const agent = await getAssistantDefinition();
   const { runtimeHash, toolRefs, evaluatedTools } =

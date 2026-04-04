@@ -1,10 +1,16 @@
 import { hashPlainObject } from "./hash.js";
+import {
+  evaluatePolicyWithHooks,
+  mergeToolPipelineHooks,
+} from "./pipeline-hooks.js";
 import type {
   Composable,
+  PolicyEvaluatedPayload,
   PolicyResultMap,
   SharedPolicy,
   ToolkitContext,
   ToolkitResult,
+  ToolPipelineHooks,
   ToolSpec,
 } from "./types.js";
 
@@ -74,15 +80,14 @@ async function resolvePolicies<Env>(
   policies: SharedPolicy[],
   ctx: ToolkitContext<Env>,
   resolved: PolicyResultMap,
+  hooks: ToolPipelineHooks<Env> | undefined,
+  meta: Pick<PolicyEvaluatedPayload, "phase" | "composableName">,
 ): Promise<void> {
   const unresolved = policies.filter((p) => !resolved.has(p));
   const unique = [...new Set(unresolved)];
-  await Promise.all(
-    unique.map(async (p) => {
-      const ok = await p.evaluate(ctx.env);
-      resolved.set(p, ok);
-    }),
-  );
+  for (const p of unique) {
+    await evaluatePolicyWithHooks(p, ctx, resolved, hooks, meta);
+  }
 }
 
 export function toolkit<
@@ -90,7 +95,11 @@ export function toolkit<
   const MEMBERS extends readonly AnyComposable<AnyEnv>[],
 >(
   members: MEMBERS,
-  options: { name: NAME; instructions?: string[] },
+  options: {
+    name: NAME;
+    instructions?: string[];
+    hooks?: ToolPipelineHooks<EnvFromMembers<MEMBERS>>;
+  },
 ): ComposableWithChildren<EnvFromMembers<MEMBERS>> &
   Composable<
     ToolkitStaticProps<NAME, MEMBERS>,
@@ -129,11 +138,25 @@ export function toolkit<
     resolvedPolicies?: PolicyResultMap,
   ): Promise<ToolkitResult<ToolMapFromMembers<MEMBERS>>> {
     const resolved = resolvedPolicies ?? new Map<SharedPolicy, boolean>();
+    const hooks = mergeToolPipelineHooks(
+      ctx.inheritedPipelineHooks,
+      options.hooks,
+      ctx.pipelineHooks,
+    );
+    const childCtx: ToolkitContext<EnvFromMembers<MEMBERS>> = {
+      ...ctx,
+      inheritedPipelineHooks:
+        mergeToolPipelineHooks(ctx.inheritedPipelineHooks, options.hooks) ??
+        undefined,
+    };
 
-    await resolvePolicies(policies, ctx, resolved);
+    await resolvePolicies(policies, ctx, resolved, hooks, {
+      phase: "toolkit",
+      composableName: options.name,
+    });
 
     const results = await Promise.all(
-      members.map((m) => m.evaluate(ctx, resolved)),
+      members.map((m) => m.evaluate(childCtx, resolved)),
     );
     const mergedTools = Object.assign(
       {} as ToolMapFromMembers<MEMBERS>,
@@ -167,11 +190,13 @@ export function dynamicToolkit<const NAME extends string, Env = unknown>({
   policies: policiesConfig,
   instructions,
   create,
+  hooks: dynamicHooks,
 }: {
   name: NAME;
   policies?: SharedPolicy[];
   instructions?: string[];
   create: (ctx: ToolkitContext<Env>) => Promise<AnyComposable<Env>[]>;
+  hooks?: ToolPipelineHooks<Env>;
 }): Composable<
   {
     kind: "dynamicToolkit";
@@ -208,22 +233,38 @@ export function dynamicToolkit<const NAME extends string, Env = unknown>({
     resolvedPolicies?: PolicyResultMap,
   ): Promise<ToolkitResult<Record<string, ToolSpec>>> {
     const resolved = resolvedPolicies ?? new Map<SharedPolicy, boolean>();
+    const hooks = mergeToolPipelineHooks(
+      ctx.inheritedPipelineHooks,
+      dynamicHooks,
+      ctx.pipelineHooks,
+    );
+    const childCtx: ToolkitContext<Env> = {
+      ...ctx,
+      inheritedPipelineHooks:
+        mergeToolPipelineHooks(ctx.inheritedPipelineHooks, dynamicHooks) ??
+        undefined,
+    };
 
     for (const policy of policies) {
-      const ok = resolved.get(policy) ?? (await policy.evaluate(ctx.env));
-      resolved.set(policy, ok);
+      const ok = await evaluatePolicyWithHooks(policy, ctx, resolved, hooks, {
+        phase: "dynamicToolkit",
+        composableName: name,
+      });
       if (!ok) {
         return { tools: {}, instructions: "" };
       }
     }
 
-    const members = await create(ctx);
+    const members = await create(childCtx);
 
     const memberPolicies = members.flatMap((m) => m.policies);
-    await resolvePolicies(memberPolicies, ctx, resolved);
+    await resolvePolicies(memberPolicies, ctx, resolved, hooks, {
+      phase: "toolkit",
+      composableName: name,
+    });
 
     const results = await Promise.all(
-      members.map((m) => m.evaluate(ctx, resolved)),
+      members.map((m) => m.evaluate(childCtx, resolved)),
     );
     const mergedTools = Object.assign(
       {} as Record<string, ToolSpec>,

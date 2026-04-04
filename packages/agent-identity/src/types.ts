@@ -6,11 +6,48 @@ export type SharedPolicy = {
   readonly evaluate: (env: unknown) => Promise<boolean>;
 };
 
+/** Where policy evaluation ran (for {@link ToolPipelineHooks.onPolicyEvaluated}). */
+export type PolicyEvaluatedPhase = "toolkit" | "tool" | "dynamicToolkit";
+
+export type PolicyEvaluatedPayload = {
+  ok: boolean;
+  policyId: string;
+  phase: PolicyEvaluatedPhase;
+  /** Set when {@link phase} is {@code tool}. */
+  toolName?: string;
+  /** Parent toolkit / dynamic toolkit name when applicable. */
+  composableName?: string;
+  /** Present when {@link ok} is false. */
+  error?: string;
+};
+
+export type ToolExecutedPayload = {
+  ok: boolean;
+  toolName: string;
+  input: unknown;
+  output?: unknown;
+  error?: string;
+  durationMs?: number;
+};
+
+export type ToolPipelineHooks<Env = unknown> = {
+  onPolicyEvaluated?: (
+    event: PolicyEvaluatedPayload & { env: Env },
+  ) => void | Promise<void>;
+  onToolExecuted?: (
+    event: ToolExecutedPayload & { env: Env },
+  ) => void | Promise<void>;
+};
+
 export type ToolkitContext<Env = unknown> = {
   env: Env;
   namespace?: string;
   agentId?: string;
   agentName?: string;
+  /** Runtime-level hooks (merged last with toolkit + tool hooks). */
+  pipelineHooks?: ToolPipelineHooks<Env>;
+  /** Hooks accumulated from parent toolkit {@code hooks} options (excludes {@link pipelineHooks}). */
+  inheritedPipelineHooks?: ToolPipelineHooks<Env>;
 };
 
 export type PolicyResultMap = Map<SharedPolicy, boolean>;

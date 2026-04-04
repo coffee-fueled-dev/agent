@@ -4,7 +4,8 @@
 
 ## What it does
 
-- **Composable graph**: `tool`, `toolkit`, `dynamicToolkit`; evaluate with `ToolkitContext` (`env`, optional `namespace` / `agentId` / `agentName`).
+- **Composable graph**: `tool`, `toolkit`, `dynamicToolkit`; evaluate with `ToolkitContext` (`env`, optional `namespace` / `agentId` / `agentName`, optional `pipelineHooks` / `inheritedPipelineHooks`).
+- **Pipeline hooks** (not part of static hashes): `onPolicyEvaluated` / `onToolExecuted` via `mergeToolPipelineHooks`. Three levels — `hooks` on `toolkit` / `tool`, plus `ToolkitContext.pipelineHooks` (runtime). Typical merge order: ancestor toolkit → tool → runtime. Member tool policies are usually evaluated once at the parent toolkit (deduped); leaf `tool` hooks for policy run when that tool evaluates a policy not already in the shared `PolicyResultMap`.
 - **Policies**: async gates that prune tools at runtime; policies dedupe by object identity.
 - **Static hash**: bottom-up hash of “what this toolkit can be” (per-tool semantics + structure).
 - **Runtime hash**: hash of enabled tools only, after policies (sorted by tool name).
@@ -62,6 +63,7 @@ Grouped by role; full exports (including types like `ToolSpec`, `Composable`, `I
 - `tool` / `toolkit` / `dynamicToolkit`
 - `evaluateComposable(composable, ctx)`
 - `policy(id, evaluate)`
+- `mergeToolPipelineHooks` / `evaluatePolicyWithHooks` — optional telemetry; hooks are **not** hashed
 
 ### Hashing and runtime snapshot
 

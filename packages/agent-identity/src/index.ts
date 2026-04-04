@@ -12,6 +12,10 @@ export {
   toolSpecCanonicalPayload,
 } from "./canonical-payloads.js";
 export { hashPlainObject, schemaToHashInput } from "./hash.js";
+export {
+  evaluatePolicyWithHooks,
+  mergeToolPipelineHooks,
+} from "./pipeline-hooks.js";
 export { defineAgentIdentity } from "./identity.js";
 export type {
   CreateIdentityLinkArgs,
@@ -73,10 +77,14 @@ export {
 } from "./toolkit.js";
 export type {
   Composable,
+  PolicyEvaluatedPayload,
+  PolicyEvaluatedPhase,
   PolicyResultMap,
   RegisteredAgentIdentity,
   SharedPolicy,
   ToolkitContext,
   ToolkitResult,
+  ToolExecutedPayload,
+  ToolPipelineHooks,
   ToolSpec,
 } from "./types.js";

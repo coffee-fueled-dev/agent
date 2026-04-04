@@ -1,5 +1,8 @@
 import type { ToolCtx } from "@convex-dev/agent";
-import type { ToolkitContext as IdentityToolkitContext } from "@very-coffee/agent-identity";
+import type {
+  ToolkitContext as IdentityToolkitContext,
+  ToolPipelineHooks,
+} from "@very-coffee/agent-identity";
 import type {
   FunctionReference,
   GenericActionCtx,
@@ -70,13 +73,17 @@ export function createConvexAgentEnv(ctx: ToolBuilderContext): ConvexAgentEnv {
   };
 }
 
-export function createToolkitContext(ctx: ToolBuilderContext): ToolkitContext {
+export function createToolkitContext(
+  ctx: ToolBuilderContext,
+  options?: { pipelineHooks?: ToolPipelineHooks<ConvexAgentEnv> },
+): ToolkitContext {
   const env = createConvexAgentEnv(ctx);
   return {
     env,
     namespace: env.namespace,
     agentId: env.agentId,
     agentName: env.agentName,
+    ...(options?.pipelineHooks ? { pipelineHooks: options.pipelineHooks } : {}),
   };
 }
 
@@ -114,6 +121,7 @@ export function createHumanToolkitContextFromQuery(
     sessionId: string;
     namespace: string;
   },
+  options?: { pipelineHooks?: ToolPipelineHooks<ConvexAgentEnv> },
 ): ToolkitContext {
   const identity: AgentIdentityCtx = {
     ...(args.threadId?.length ? { threadId: args.threadId } : {}),
@@ -129,6 +137,7 @@ export function createHumanToolkitContextFromQuery(
     namespace: env.namespace,
     agentId: env.agentId,
     agentName: env.agentName,
+    ...(options?.pipelineHooks ? { pipelineHooks: options.pipelineHooks } : {}),
   };
 }
 

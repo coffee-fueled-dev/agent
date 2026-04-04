@@ -1,4 +1,8 @@
 import { hashPlainObject, schemaToHashInput } from "./hash.js";
+import {
+  evaluatePolicyWithHooks,
+  mergeToolPipelineHooks,
+} from "./pipeline-hooks.js";
 import type { StandardSchemaV1 } from "./standard-schema.js";
 import type {
   Composable,
@@ -6,6 +10,7 @@ import type {
   SharedPolicy,
   ToolkitContext,
   ToolkitResult,
+  ToolPipelineHooks,
   ToolSpec,
 } from "./types.js";
 
@@ -25,6 +30,13 @@ export type ToolRuntimeContext<Env = unknown> = {
   agentName?: string;
 };
 
+function monotonicNowMs(): number {
+  return typeof performance !== "undefined" &&
+    typeof performance.now === "function"
+    ? performance.now()
+    : Date.now();
+}
+
 export function tool<
   const NAME extends string,
   INPUT,
@@ -36,6 +48,8 @@ export function tool<
   inputSchema: StandardSchemaV1<INPUT>;
   instructions?: string[];
   policies?: SharedPolicy[];
+  /** Per-tool pipeline hooks (merged with inherited toolkit + runtime context hooks). */
+  hooks?: ToolPipelineHooks<Env>;
   handler: (
     ctx: ToolRuntimeContext<Env>,
     input: INPUT,
@@ -74,10 +88,22 @@ export function tool<
     resolvedPolicies?: PolicyResultMap,
   ): Promise<ToolkitResult<Record<NAME, ToolSpec>>> {
     const resolved = resolvedPolicies ?? new Map<SharedPolicy, boolean>();
+    const hooks = mergeToolPipelineHooks(
+      ctx.inheritedPipelineHooks,
+      args.hooks,
+      ctx.pipelineHooks,
+    );
 
     for (const policy of policies) {
-      const ok = resolved.get(policy) ?? (await policy.evaluate(ctx.env));
-      resolved.set(policy, ok);
+      let ok: boolean;
+      if (resolved.has(policy)) {
+        ok = resolved.get(policy) ?? false;
+      } else {
+        ok = await evaluatePolicyWithHooks(policy, ctx, resolved, hooks, {
+          phase: "tool",
+          toolName: args.name,
+        });
+      }
       if (!ok) {
         return {
           tools: {} as Record<NAME, ToolSpec>,
@@ -101,8 +127,36 @@ export function tool<
       policyIds,
       /** Prefer runtime {@code ctx} when the caller passes one (e.g. action env); else use env from {@code evaluate}. */
       handler: (runtimeCtx, inputUnknown, options) => {
-        const ctx = (runtimeCtx != null ? runtimeCtx : toolCtx) as ToolRuntimeContext<Env>;
-        return args.handler(ctx, inputUnknown as INPUT, options);
+        const rt = (
+          runtimeCtx != null ? runtimeCtx : toolCtx
+        ) as ToolRuntimeContext<Env>;
+        const start = monotonicNowMs();
+        return (async () => {
+          try {
+            const out = await args.handler(rt, inputUnknown as INPUT, options);
+            const durationMs = monotonicNowMs() - start;
+            await hooks?.onToolExecuted?.({
+              ok: true,
+              toolName: args.name,
+              input: inputUnknown,
+              output: out,
+              durationMs,
+              env: ctx.env,
+            });
+            return out;
+          } catch (err) {
+            const durationMs = monotonicNowMs() - start;
+            await hooks?.onToolExecuted?.({
+              ok: false,
+              toolName: args.name,
+              input: inputUnknown,
+              error: err instanceof Error ? err.message : String(err),
+              durationMs,
+              env: ctx.env,
+            });
+            throw err;
+          }
+        })();
       },
     };
 
