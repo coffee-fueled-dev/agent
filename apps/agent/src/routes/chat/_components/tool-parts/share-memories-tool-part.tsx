@@ -1,6 +1,10 @@
 import { ToolPartLayout } from "./tool-part-layout.js";
 import { toolPartStateIcon, toolPartStatusLabel } from "./tool-part-status.js";
-import { type ToolPartProps, toolPartDetailBody } from "./types.js";
+import {
+  type ToolPartProps,
+  toolPartDetailBody,
+  toolPartGoalFromInput,
+} from "./types.js";
 
 export function ShareMemoriesToolPart({ part, toolName }: ToolPartProps) {
   const input = "input" in part ? part.input : undefined;
@@ -24,6 +28,7 @@ export function ShareMemoriesToolPart({ part, toolName }: ToolPartProps) {
   return (
     <ToolPartLayout
       toolName={toolName}
+      goal={toolPartGoalFromInput(input)}
       stateIcon={toolPartStateIcon(part)}
       statusLabel={toolPartStatusLabel(part)}
     >

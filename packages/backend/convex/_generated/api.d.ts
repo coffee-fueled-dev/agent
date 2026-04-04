@@ -15,6 +15,7 @@ import type * as agents__policies_convexPolicy from "../agents/_policies/convexP
 import type * as agents__tools_filesystem_runShell_internal from "../agents/_tools/filesystem/runShell/internal.js";
 import type * as agents__tools_filesystem_runShell_tool from "../agents/_tools/filesystem/runShell/tool.js";
 import type * as agents__tools_filesystem_toolkit from "../agents/_tools/filesystem/toolkit.js";
+import type * as agents__tools_inputArgs from "../agents/_tools/inputArgs.js";
 import type * as agents__tools_memory_humanMemoryToolkit from "../agents/_tools/memory/humanMemoryToolkit.js";
 import type * as agents__tools_memory_mergeMemory_tool from "../agents/_tools/memory/mergeMemory/tool.js";
 import type * as agents__tools_memory_searchMemories_tool from "../agents/_tools/memory/searchMemories/tool.js";
@@ -74,6 +75,7 @@ declare const fullApi: ApiFromModules<{
   "agents/_tools/filesystem/runShell/internal": typeof agents__tools_filesystem_runShell_internal;
   "agents/_tools/filesystem/runShell/tool": typeof agents__tools_filesystem_runShell_tool;
   "agents/_tools/filesystem/toolkit": typeof agents__tools_filesystem_toolkit;
+  "agents/_tools/inputArgs": typeof agents__tools_inputArgs;
   "agents/_tools/memory/humanMemoryToolkit": typeof agents__tools_memory_humanMemoryToolkit;
   "agents/_tools/memory/mergeMemory/tool": typeof agents__tools_memory_mergeMemory_tool;
   "agents/_tools/memory/searchMemories/tool": typeof agents__tools_memory_searchMemories_tool;

@@ -12,6 +12,15 @@ export type ToolPartProps = {
   toolName: string;
 };
 
+/** Reads `goal` from tool input when present (shared tool arg). */
+export function toolPartGoalFromInput(input: unknown): string | undefined {
+  if (!input || typeof input !== "object") return undefined;
+  const g = (input as { goal?: unknown }).goal;
+  if (typeof g !== "string") return undefined;
+  const t = g.trim();
+  return t.length > 0 ? t : undefined;
+}
+
 export function formatToolPayload(value: unknown): string {
   if (value === undefined) {
     return "";

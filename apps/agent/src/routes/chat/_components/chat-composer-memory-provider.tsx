@@ -2,6 +2,7 @@
 
 import {
   buildHumanToolCall,
+  DEFAULT_SHARE_MEMORIES_GOAL,
   type HumanToolkitToolInputs,
 } from "@very-coffee/backend/types";
 import {
@@ -89,9 +90,7 @@ export function ChatComposerMemoryProvider({
   children: ReactNode;
 }) {
   const humanToolkit = useHumanToolkit();
-  const [memoryEntries, setMemoryEntries] = useState<ComposerMemoryEntry[]>(
-    [],
-  );
+  const [memoryEntries, setMemoryEntries] = useState<ComposerMemoryEntry[]>([]);
   const [memorySearchOpen, setMemorySearchOpen] = useState(false);
   const [seenMemoryRecordIds, setSeenMemoryRecordIds] = useState<string[]>([]);
 
@@ -111,6 +110,7 @@ export function ChatComposerMemoryProvider({
     }
     return [
       buildHumanToolCall("shareMemories", {
+        goal: DEFAULT_SHARE_MEMORIES_GOAL,
         seenMemoryRecordIds: [...seenMemoryRecordIds],
         selectedMemoryRecordIds: [...memoryRecordIds],
       }),

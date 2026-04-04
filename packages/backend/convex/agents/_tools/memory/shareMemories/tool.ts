@@ -1,10 +1,10 @@
 import { tool } from "@very-coffee/agent-identity";
-import { internal } from "_generated/api.js";
 import type { InferUITool, Tool } from "ai";
 import { z } from "zod/v4";
+import { internal } from "../../../../_generated/api.js";
 import type { ConvexAgentEnv } from "../../../lib/customFunctions.js";
 import type { ToolRuntimeContext } from "../../../lib/toolkit.js";
-import { withFormattedResults } from "../../../lib/toolkit.js";
+import { inputArgs, withFormattedResults } from "../../../lib/toolkit.js";
 
 declare module "../../registeredToolMap.js" {
   interface RegisteredToolMap {
@@ -12,7 +12,7 @@ declare module "../../registeredToolMap.js" {
   }
 }
 
-export const shareMemoriesInputSchema = z.object({
+export const shareMemoriesInputSchema = inputArgs({
   seenMemoryRecordIds: z
     .array(z.string())
     .describe("All memory records that were provided to select from."),
@@ -27,6 +27,7 @@ export function shareMemoriesTool() {
     description: "Choose memory records to share with another agent.",
     inputSchema: shareMemoriesInputSchema,
     handler: async (ctx: ToolRuntimeContext<ConvexAgentEnv>, args) => {
+      void args.goal;
       return await withFormattedResults(
         ctx.env.runAction(
           internal.memories.resolveMemories.resolveMemoriesAction,

@@ -5,7 +5,7 @@ import { components } from "../../../../_generated/api.js";
 import { requireGoogleApiKey } from "../../../../env/models.js";
 import type { ConvexAgentEnv } from "../../../lib/customFunctions.js";
 import type { ToolRuntimeContext } from "../../../lib/toolkit.js";
-import { withFormattedResults } from "../../../lib/toolkit.js";
+import { inputArgs, withFormattedResults } from "../../../lib/toolkit.js";
 
 declare module "../../registeredToolMap.js" {
   interface RegisteredToolMap {
@@ -18,7 +18,7 @@ export function searchMemoriesTool() {
     name: "searchMemories" as const,
     description:
       "Hybrid search over session memory: combines lexical and vector similarity using reciprocal rank fusion (RRF). Uses the same namespace as this chat session.",
-    inputSchema: z.object({
+    inputSchema: inputArgs({
       query: z.string().describe("Natural-language query to search for."),
       limit: z
         .number()
@@ -35,6 +35,7 @@ export function searchMemoriesTool() {
       k: z.number().optional().describe("RRF rank constant (default 60)."),
     }),
     handler: async (ctx: ToolRuntimeContext<ConvexAgentEnv>, args) => {
+      void args.goal;
       const googleApiKey = requireGoogleApiKey();
       return await withFormattedResults(
         ctx.env.runAction(components.memory.public.search.searchMemory, {

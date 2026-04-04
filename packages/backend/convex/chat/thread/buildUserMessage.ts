@@ -1,4 +1,4 @@
-import type { UserContent, UserModelMessage } from "ai";
+import type { UserModelMessage } from "ai";
 import { components } from "../../_generated/api.js";
 import type { Id } from "../../_generated/dataModel.js";
 import type { ActionCtx, MutationCtx } from "../../_generated/server.js";

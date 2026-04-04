@@ -5,7 +5,7 @@ import { components } from "../../../../_generated/api.js";
 import { requireGoogleApiKey } from "../../../../env/models.js";
 import type { ConvexAgentEnv } from "../../../lib/customFunctions.js";
 import type { ToolRuntimeContext } from "../../../lib/toolkit.js";
-import { withFormattedResults } from "../../../lib/toolkit.js";
+import { inputArgs, withFormattedResults } from "../../../lib/toolkit.js";
 
 declare module "../../registeredToolMap.js" {
   interface RegisteredToolMap {
@@ -24,45 +24,44 @@ export function mergeMemoryTool() {
     name: "mergeMemory" as const,
     description:
       "Create or update a memory record and index text chunks in lexical and vector search. By default upserts by key (new memory). Use mode append with an existing memoryRecordId to add more searchable text to that memory without creating a new record.",
-    inputSchema: z
-      .object({
-        mode: z
-          .enum(["append"])
-          .optional()
-          .describe(
-            'Set to "append" to add chunks to an existing memory; omit for a new memory identified by key.',
-          ),
-        key: z
-          .string()
-          .optional()
-          .describe(
-            "Stable key for this memory within the namespace (required when not appending).",
-          ),
-        memoryRecordId: z
-          .string()
-          .optional()
-          .describe(
-            "Existing memory document id (required when mode is append).",
-          ),
-        content: contentField,
-        title: z
-          .string()
-          .optional()
-          .describe(
-            "Short human-readable title for this memory (shown in chat UI). Provide for new plaintext memories.",
-          ),
-      })
-      .refine(
-        (a) =>
-          a.mode === "append"
-            ? a.memoryRecordId !== undefined && a.memoryRecordId.length > 0
-            : a.key !== undefined && a.key.length > 0,
-        {
-          message:
-            "mergeMemory: provide memoryRecordId when mode is append, otherwise provide key.",
-        },
-      ),
+    inputSchema: inputArgs({
+      mode: z
+        .enum(["append"])
+        .optional()
+        .describe(
+          'Set to "append" to add chunks to an existing memory; omit for a new memory identified by key.',
+        ),
+      key: z
+        .string()
+        .optional()
+        .describe(
+          "Stable key for this memory within the namespace (required when not appending).",
+        ),
+      memoryRecordId: z
+        .string()
+        .optional()
+        .describe(
+          "Existing memory document id (required when mode is append).",
+        ),
+      content: contentField,
+      title: z
+        .string()
+        .optional()
+        .describe(
+          "Short human-readable title for this memory (shown in chat UI). Provide for new plaintext memories.",
+        ),
+    }).refine(
+      (a) =>
+        a.mode === "append"
+          ? a.memoryRecordId !== undefined && a.memoryRecordId.length > 0
+          : a.key !== undefined && a.key.length > 0,
+      {
+        message:
+          "mergeMemory: provide memoryRecordId when mode is append, otherwise provide key.",
+      },
+    ),
     handler: async (ctx: ToolRuntimeContext<ConvexAgentEnv>, args) => {
+      void args.goal;
       const googleApiKey = requireGoogleApiKey();
       const content = args.content.map((text) => ({ text }));
       if (args.mode === "append") {

@@ -22,6 +22,7 @@ export {
   tool,
   toolkit,
 } from "@very-coffee/agent-identity";
+export { inputArgs } from "../_tools/inputArgs.js";
 
 export async function withFormattedResults<DATA>(
   promise: Promise<DATA>,
