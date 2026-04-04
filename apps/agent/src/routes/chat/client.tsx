@@ -15,6 +15,7 @@ import {
   AppLayoutSidebarProvider,
   useAppLayoutSidebar,
 } from "../_components/app-layout-sidebar-context.js";
+import { HumanToolkitProvider } from "./_components/human-toolkit-provider.js";
 import { ChatComposerMemoryProvider } from "./_components/chat-composer-memory-provider.js";
 import {
   ChatComposer,
@@ -90,35 +91,37 @@ function ChatRouteInner() {
       ) : (
         <PageSection>
           <PageSection.Content className="px-8">
-            <FileDropzoneProvider limit={10}>
-              <ChatComposerMemoryProvider>
-                <SidebarInsetFill>
-                  <PageSection.Body className="flex h-full min-h-0 flex-col gap-2">
-                    <div className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-4">
-                      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                        {threadId ? (
-                          <ChatMessageList />
-                        ) : (
-                          <Empty>
-                            <EmptyContent>
-                              <EmptyDescription>
-                                No messages yet. Send a message to start a
-                                thread.
-                              </EmptyDescription>
-                            </EmptyContent>
-                          </Empty>
-                        )}
+            <HumanToolkitProvider>
+              <FileDropzoneProvider limit={10}>
+                <ChatComposerMemoryProvider>
+                  <SidebarInsetFill>
+                    <PageSection.Body className="flex h-full min-h-0 flex-col gap-2">
+                      <div className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-4">
+                        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                          {threadId ? (
+                            <ChatMessageList />
+                          ) : (
+                            <Empty>
+                              <EmptyContent>
+                                <EmptyDescription>
+                                  No messages yet. Send a message to start a
+                                  thread.
+                                </EmptyDescription>
+                              </EmptyContent>
+                            </Empty>
+                          )}
+                        </div>
+                        <div className="flex-shrink-0 pb-8">
+                          <ChatComposerDropzone className="flex flex-col gap-4 rounded-lg">
+                            <ChatComposer />
+                          </ChatComposerDropzone>
+                        </div>
                       </div>
-                      <div className="flex-shrink-0 pb-8">
-                        <ChatComposerDropzone className="flex flex-col gap-4 rounded-lg">
-                          <ChatComposer />
-                        </ChatComposerDropzone>
-                      </div>
-                    </div>
-                  </PageSection.Body>
-                </SidebarInsetFill>
-              </ChatComposerMemoryProvider>
-            </FileDropzoneProvider>
+                    </PageSection.Body>
+                  </SidebarInsetFill>
+                </ChatComposerMemoryProvider>
+              </FileDropzoneProvider>
+            </HumanToolkitProvider>
           </PageSection.Content>
         </PageSection>
       )}

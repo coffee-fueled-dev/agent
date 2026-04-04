@@ -1,14 +1,17 @@
 import {
   createThread as createAgentThread,
+  listMessages,
   listUIMessages,
   type SyncStreamsReturnValue,
   saveMessages,
   syncStreams,
+  toUIMessages,
 } from "@convex-dev/agent";
 import type { StreamArgs } from "@convex-dev/agent/validators";
 import type { ModelMessage, UserContent, UserModelMessage } from "ai";
 import { type PaginationResult, paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
+import { SessionIdArg } from "convex-helpers/server/sessions";
 import type { Id as MemoryComponentId } from "../_components/memory/_generated/dataModel.js";
 import { components, internal } from "../_generated/api.js";
 import type { Id } from "../_generated/dataModel.js";
@@ -21,6 +24,14 @@ import {
 } from "../_generated/server.js";
 import type { UIMessage } from "../agents/_tools/uiMessage.js";
 import { createAssistantAgent } from "../agents/assistant/createAgent.js";
+import {
+  ASSISTANT_ACTOR_KEY,
+  CHAT_ACTOR_STREAM_TYPE,
+  type ChatActorTurnPayload,
+  chatActorHistory,
+  chatActorStreamId,
+} from "./actorHistory.js";
+import { upsertChatContextRow } from "./chatContext.js";
 
 /** Convex `Agent` expects `ActionCtx & Record<string, unknown>`. */
 function agentActionCtx(ctx: ActionCtx): ActionCtx & Record<string, unknown> {
@@ -211,7 +222,7 @@ export const sendMessage = mutation({
     userId: v.string(),
     namespace: v.string(),
     prompt: v.string(),
-    sessionId: v.optional(v.string()),
+    ...SessionIdArg,
     attachments: v.optional(
       v.array(
         v.object({
@@ -258,13 +269,44 @@ export const sendMessage = mutation({
       throw new Error("Failed to save prompt message");
     }
 
+    const { sessionId } = args;
+    await upsertChatContextRow(ctx, {
+      namespace: args.namespace,
+      threadId: args.threadId,
+      lastMessageId: promptMessageId,
+      sessionId,
+    });
+
+    await chatActorHistory.append(ctx, {
+      streamType: CHAT_ACTOR_STREAM_TYPE,
+      streamId: chatActorStreamId(args.threadId, args.namespace),
+      entryId: crypto.randomUUID(),
+      kind: "humanMessageSent",
+      payload: {
+        threadId: args.threadId,
+        actorKey: args.namespace,
+        anchorMessageId: promptMessageId,
+      } satisfies ChatActorTurnPayload,
+    });
+
     await ctx.scheduler.runAfter(0, internal.chat.thread.continueThreadStream, {
       threadId: args.threadId,
       userId: args.userId,
       namespace: args.namespace,
-      sessionId: args.sessionId ?? args.threadId,
+      sessionId,
       promptMessageId,
     });
+
+    await ctx.scheduler.runAfter(
+      0,
+      internal.agents.human.recordHumanTurn.recordHumanTurnBackground,
+      {
+        threadId: args.threadId,
+        messageId: promptMessageId,
+        sessionId,
+        namespace: args.namespace,
+      },
+    );
 
     return {
       promptMessageId,
@@ -309,6 +351,35 @@ export const continueThreadStream = internalAction({
     );
 
     await result.text;
+
+    const tipPage = await listMessages(ctx, components.agent, {
+      threadId: args.threadId,
+      paginationOpts: { cursor: null, numItems: 1 },
+    });
+    const tip = tipPage.page[0];
+    if (tip) {
+      await ctx.runMutation(
+        internal.chat.chatContext.internalUpsertChatContext,
+        {
+          namespace: args.namespace,
+          threadId: args.threadId,
+          lastMessageId: tip._id,
+          sessionId: args.sessionId,
+        },
+      );
+      await chatActorHistory.append(ctx, {
+        streamType: CHAT_ACTOR_STREAM_TYPE,
+        streamId: chatActorStreamId(args.threadId, ASSISTANT_ACTOR_KEY),
+        entryId: crypto.randomUUID(),
+        kind: "assistantResponseComplete",
+        payload: {
+          threadId: args.threadId,
+          actorKey: ASSISTANT_ACTOR_KEY,
+          anchorMessageId: tip._id,
+        } satisfies ChatActorTurnPayload,
+      });
+    }
+
     return null;
   },
 });
@@ -341,8 +412,11 @@ export const listThreadMessages = query({
       paginationOpts: args.paginationOpts,
       streamArgs,
     };
-    const paginated = await listUIMessages(ctx, components.agent, agentArgs);
+
+    const result = await listMessages(ctx, components.agent, agentArgs);
+    const paginated = { ...result, page: toUIMessages(result.page) }; // Spread turn metadata into each message
     const streams = await syncStreams(ctx, components.agent, agentArgs);
+
     return {
       ...paginated,
       page: paginated.page as UIMessage[],

@@ -1,5 +1,5 @@
 import { api } from "@very-coffee/backend/api";
-import { useMutation } from "convex/react";
+import { useSessionMutation } from "convex-helpers/react/sessions";
 import { PaperclipIcon, SearchIcon } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -13,21 +13,22 @@ import { FileDropzone, useFiles } from "@/files";
 import { optimisticallySendChatMessage } from "../_hooks/optimistically-send-chat-message.js";
 import { useChatThread } from "../_hooks/use-chat-thread.js";
 import {
-  memoryBadgeLabel,
-  useChatComposerMemory,
-} from "./chat-composer-memory-provider.js";
-import {
   ChatComposerFileProvider,
   ChatComposerFileRow,
   fileKeyFor,
   useChatComposerFile,
 } from "./chat-composer-file-provider.js";
+import {
+  memoryBadgeLabel,
+  useChatComposerMemory,
+} from "./chat-composer-memory-provider.js";
+import { useHumanToolkit } from "./human-toolkit-provider.js";
 import { MemorySearchModal } from "./memory-search-modal.js";
 
 function ChatComposerInner() {
   const { threadId, userId, createThread, setAwaitingAssistantStream } =
     useChatThread();
-  const sendMessage = useMutation(
+  const sendMessage = useSessionMutation(
     api.chat.thread.sendMessage,
   ).withOptimisticUpdate((store, args) => {
     optimisticallySendChatMessage(api.chat.thread.listThreadMessages)(store, {
@@ -46,6 +47,10 @@ function ChatComposerInner() {
     memorySearchOpen,
     setMemorySearchOpen,
   } = useChatComposerMemory();
+  const humanToolkit = useHumanToolkit();
+  const humanToolNames =
+    humanToolkit?.toolkit?.tools?.filter((t) => t.enabled).map((t) => t.name) ??
+    [];
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -92,7 +97,6 @@ function ChatComposerInner() {
         userId,
         namespace: userId,
         prompt: trimmed,
-        sessionId: activeThreadId,
         attachments,
         memoryRecordIds:
           memoryRecordIds.length > 0 ? [...memoryRecordIds] : undefined,
@@ -161,6 +165,11 @@ function ChatComposerInner() {
         </div>
       ) : null}
       {error ? <p className="text-destructive text-xs">{error}</p> : null}
+      {humanToolNames.length > 0 ? (
+        <p className="text-muted-foreground text-xs" aria-live="polite">
+          Human tools: {humanToolNames.join(", ")}
+        </p>
+      ) : null}
       <InputGroup className="items-stretch">
         <InputGroupTextarea
           placeholder="Accomplish anything..."

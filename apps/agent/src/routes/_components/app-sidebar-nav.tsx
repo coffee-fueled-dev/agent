@@ -140,7 +140,7 @@ export function AppSidebarNav({
   }
 
   return (
-    <div className={cn("flex flex-col gap-4", className)}>
+    <div className={cn("flex flex-col gap-4 max-h-96", className)}>
       <SidebarGroup>
         <span className="flex items-center justify-between">
           <SidebarGroupLabel>Chat</SidebarGroupLabel>

@@ -25,7 +25,10 @@ function Root({ children }: { children: ReactNode }) {
         </div>
       ) : (
         <ConvexProvider client={client}>
-          <SessionProvider useStorage={useLocalStorage}>
+          <SessionProvider
+            storageKey="cfd-agent-session-id"
+            useStorage={useLocalStorage}
+          >
             <TooltipProvider>{children}</TooltipProvider>
           </SessionProvider>
         </ConvexProvider>

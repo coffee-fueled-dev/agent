@@ -10,6 +10,7 @@
 
 import type * as _clients_identity from "../_clients/identity.js";
 import type * as _clients_memory from "../_clients/memory.js";
+import type * as agents__policies_actorPolicies from "../agents/_policies/actorPolicies.js";
 import type * as agents__policies_convexPolicy from "../agents/_policies/convexPolicy.js";
 import type * as agents__tools_filesystem_runShell_internal from "../agents/_tools/filesystem/runShell/internal.js";
 import type * as agents__tools_filesystem_runShell_tool from "../agents/_tools/filesystem/runShell/tool.js";
@@ -22,10 +23,16 @@ import type * as agents__tools_registeredToolMap from "../agents/_tools/register
 import type * as agents__tools_toolRegistry from "../agents/_tools/toolRegistry.js";
 import type * as agents__tools_uiMessage from "../agents/_tools/uiMessage.js";
 import type * as agents_assistant_createAgent from "../agents/assistant/createAgent.js";
+import type * as agents_human_ensureRegistration from "../agents/human/ensureRegistration.js";
+import type * as agents_human_humanToolkit from "../agents/human/humanToolkit.js";
+import type * as agents_human_recordHumanTurn from "../agents/human/recordHumanTurn.js";
 import type * as agents_lib_customFunctions from "../agents/lib/customFunctions.js";
 import type * as agents_lib_models from "../agents/lib/models.js";
 import type * as agents_lib_toolSpecAdapter from "../agents/lib/toolSpecAdapter.js";
 import type * as agents_lib_toolkit from "../agents/lib/toolkit.js";
+import type * as chat_actorHistory from "../chat/actorHistory.js";
+import type * as chat_chatContext from "../chat/chatContext.js";
+import type * as chat_humanAgent from "../chat/humanAgent.js";
 import type * as chat_memorySearch from "../chat/memorySearch.js";
 import type * as chat_thread from "../chat/thread.js";
 import type * as env from "../env.js";
@@ -44,6 +51,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   "_clients/identity": typeof _clients_identity;
   "_clients/memory": typeof _clients_memory;
+  "agents/_policies/actorPolicies": typeof agents__policies_actorPolicies;
   "agents/_policies/convexPolicy": typeof agents__policies_convexPolicy;
   "agents/_tools/filesystem/runShell/internal": typeof agents__tools_filesystem_runShell_internal;
   "agents/_tools/filesystem/runShell/tool": typeof agents__tools_filesystem_runShell_tool;
@@ -56,10 +64,16 @@ declare const fullApi: ApiFromModules<{
   "agents/_tools/toolRegistry": typeof agents__tools_toolRegistry;
   "agents/_tools/uiMessage": typeof agents__tools_uiMessage;
   "agents/assistant/createAgent": typeof agents_assistant_createAgent;
+  "agents/human/ensureRegistration": typeof agents_human_ensureRegistration;
+  "agents/human/humanToolkit": typeof agents_human_humanToolkit;
+  "agents/human/recordHumanTurn": typeof agents_human_recordHumanTurn;
   "agents/lib/customFunctions": typeof agents_lib_customFunctions;
   "agents/lib/models": typeof agents_lib_models;
   "agents/lib/toolSpecAdapter": typeof agents_lib_toolSpecAdapter;
   "agents/lib/toolkit": typeof agents_lib_toolkit;
+  "chat/actorHistory": typeof chat_actorHistory;
+  "chat/chatContext": typeof chat_chatContext;
+  "chat/humanAgent": typeof chat_humanAgent;
   "chat/memorySearch": typeof chat_memorySearch;
   "chat/thread": typeof chat_thread;
   env: typeof env;
@@ -3344,6 +3358,159 @@ export declare const components: {
           | { state: "finished" }
         >
       >;
+    };
+  };
+  history: {
+    public: {
+      append: {
+        append: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            attrs?: Record<string, string | number | boolean | null>;
+            entryId: string;
+            entryTime?: number;
+            kind: string;
+            parentEntryIds?: Array<string>;
+            payload?: any;
+            streamId: string;
+            streamType: string;
+          },
+          {
+            attrs?: Record<string, string | number | boolean | null>;
+            entryId: string;
+            entryTime: number;
+            kind: string;
+            parentEntryIds: Array<string>;
+            payload?: any;
+            streamId: string;
+            streamType: string;
+          }
+        >;
+      };
+      heads: {
+        listHeads: FunctionReference<
+          "query",
+          "internal",
+          { streamId: string; streamType: string },
+          Array<{
+            entryId: string;
+            headKind?: string;
+            streamId: string;
+            streamType: string;
+          }>
+        >;
+      };
+      read: {
+        getChildren: FunctionReference<
+          "query",
+          "internal",
+          { entryId: string; streamId: string; streamType: string },
+          Array<{
+            attrs?: Record<string, string | number | boolean | null>;
+            entryId: string;
+            entryTime: number;
+            kind: string;
+            parentEntryIds: Array<string>;
+            payload?: any;
+            streamId: string;
+            streamType: string;
+          }>
+        >;
+        getEntry: FunctionReference<
+          "query",
+          "internal",
+          { entryId: string; streamId: string; streamType: string },
+          {
+            attrs?: Record<string, string | number | boolean | null>;
+            entryId: string;
+            entryTime: number;
+            kind: string;
+            parentEntryIds: Array<string>;
+            payload?: any;
+            streamId: string;
+            streamType: string;
+          } | null
+        >;
+        getLatestCommonAncestor: FunctionReference<
+          "query",
+          "internal",
+          {
+            leftEntryId: string;
+            rightEntryId: string;
+            streamId: string;
+            streamType: string;
+          },
+          {
+            attrs?: Record<string, string | number | boolean | null>;
+            entryId: string;
+            entryTime: number;
+            kind: string;
+            parentEntryIds: Array<string>;
+            payload?: any;
+            streamId: string;
+            streamType: string;
+          } | null
+        >;
+        getParents: FunctionReference<
+          "query",
+          "internal",
+          { entryId: string; streamId: string; streamType: string },
+          Array<{
+            attrs?: Record<string, string | number | boolean | null>;
+            entryId: string;
+            entryTime: number;
+            kind: string;
+            parentEntryIds: Array<string>;
+            payload?: any;
+            streamId: string;
+            streamType: string;
+          }>
+        >;
+        getPathToRoot: FunctionReference<
+          "query",
+          "internal",
+          { entryId: string; streamId: string; streamType: string },
+          Array<{
+            attrs?: Record<string, string | number | boolean | null>;
+            entryId: string;
+            entryTime: number;
+            kind: string;
+            parentEntryIds: Array<string>;
+            payload?: any;
+            streamId: string;
+            streamType: string;
+          }>
+        >;
+        isAncestor: FunctionReference<
+          "query",
+          "internal",
+          {
+            ancestorEntryId: string;
+            descendantEntryId: string;
+            streamId: string;
+            streamType: string;
+          },
+          boolean
+        >;
+        listEntries: FunctionReference<
+          "query",
+          "internal",
+          {
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
+            streamId: string;
+            streamType: string;
+          },
+          any
+        >;
+      };
     };
   };
 };

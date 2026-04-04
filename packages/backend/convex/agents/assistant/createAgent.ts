@@ -68,11 +68,17 @@ export async function createAssistantAgent(ctx: ToolBuilderContext) {
   const toolRefs = await Promise.all(
     enabledNames.map(async (toolKey) => {
       const spec = tools[toolKey];
+      if (!spec) {
+        throw new Error(`Missing evaluated tool: ${toolKey}`);
+      }
       const toolHash =
         nameToStaticHash.get(toolKey) ?? (await hashToolSpecIdentity(spec));
       return { toolKey, toolHash };
     }),
   );
+  if (!ctx.messageId) {
+    throw new Error("Assistant turn requires messageId (prompt message id)");
+  }
   const enqueueArgs = {
     threadId: ctx.threadId,
     messageId: ctx.messageId,

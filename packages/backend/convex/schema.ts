@@ -31,4 +31,16 @@ export default defineSchema({
     contentHash: v.string(),
     jobId: v.optional(v.string()),
   }).index("by_content_hash", ["contentHash"]),
+
+  /**
+   * Per (namespace, thread) chat tip + session for building human ToolPolicyArgs / ConvexAgentEnv.
+   */
+  chatContext: defineTable({
+    namespace: v.string(),
+    threadId: v.string(),
+    /** Latest message in the thread when known; unset until first message or backfill. */
+    lastMessageId: v.optional(v.string()),
+    sessionId: v.string(),
+    updatedAt: v.number(),
+  }).index("by_namespace_thread", ["namespace", "threadId"]),
 });
