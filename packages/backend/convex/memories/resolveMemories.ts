@@ -35,9 +35,6 @@ export type ResolvedMemoryRecord = {
   sources: ResolvedMemorySource[];
 };
 
-/** Namespace key under Convex Agent `providerMetadata` for chat app fields. */
-export const CHAT_PROVIDER_METADATA_NS = "cfd";
-
 /** Invoked from the {@code shareMemories} human tool (action context). */
 export const resolveMemoriesAction = internalAction({
   args: {

@@ -1,4 +1,3 @@
-import type { ToolSpec } from "@very-coffee/agent-identity";
 import type { JSONValue, ModelMessage, ToolCallPart, ToolResultPart } from "ai";
 import type { ActionCtx } from "../../_generated/server.js";
 import { humanTools } from "../../agents/human/humanToolkit.js";
@@ -9,6 +8,10 @@ import {
 } from "../../agents/lib/customFunctions.js";
 import { resolveEffectiveThreadMessageIdForAction } from "../thread/threadMessageAnchor.js";
 import type { HumanToolCall } from "./humanToolCallWire.js";
+import {
+  getEvaluatedHumanToolSpec,
+  parseValidatedHumanToolInput,
+} from "./humanToolRun.js";
 
 function toolOutputToJsonValue(output: unknown): JSONValue {
   return JSON.parse(JSON.stringify(output)) as JSONValue;
@@ -22,6 +25,8 @@ function toolOutputToJsonValue(output: unknown): JSONValue {
  * parts, then a `role: "tool"` row with the matching `tool-result` parts (same `toolCallId`s).
  *
  * Expects {@link ActionCtx} so tool handlers can use real {@code runAction} (e.g. shareMemories).
+ *
+ * Uses {@link getEvaluatedHumanToolSpec} and {@link parseValidatedHumanToolInput} (same as {@code executeHumanTool} in the parent {@code humanAgent} module).
  */
 export async function executeHumanToolCallsForTurn(
   ctx: ActionCtx,
@@ -60,18 +65,8 @@ export async function executeHumanToolCallsForTurn(
 
   const pairs = await Promise.all(
     args.toolCalls.map(async (call) => {
-      const spec = tools[call.name];
-      if (!spec) {
-        throw new Error(`Tool not available or denied by policy: ${call.name}`);
-      }
-      const validateResult = await spec.inputSchema["~standard"].validate(
-        call.input,
-      );
-      if (!("value" in validateResult)) {
-        const issues = validateResult.issues?.map((i) => i.message).join("; ");
-        throw new Error(issues ?? "Invalid tool input");
-      }
-      const value = validateResult.value;
+      const spec = getEvaluatedHumanToolSpec(tools, call.name);
+      const value = await parseValidatedHumanToolInput(spec, call.input);
       const toolCallId = crypto.randomUUID();
       const output = await spec.handler(runtimeBase, value);
       return {

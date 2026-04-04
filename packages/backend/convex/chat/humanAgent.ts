@@ -24,6 +24,10 @@ import {
   chatActorHistory,
   chatActorStreamId,
 } from "./actorHistory.js";
+import {
+  getEvaluatedHumanToolSpec,
+  parseValidatedHumanToolInput,
+} from "./humanAgent/humanToolRun.js";
 import { serializeInputSchema } from "./humanAgent/toolSpecJsonSchema.js";
 import {
   resolveEffectiveThreadMessageIdForAction,
@@ -124,19 +128,8 @@ export const executeHumanTool = action({
     });
     const tk = createToolkitContext(toolCtx);
     const { tools } = await humanTools.evaluate(tk);
-    const spec = tools[args.toolName];
-    if (!spec) {
-      throw new Error(
-        `Tool not available or denied by policy: ${args.toolName}`,
-      );
-    }
-    const validateResult = await spec.inputSchema["~standard"].validate(
-      args.input,
-    );
-    if (!("value" in validateResult)) {
-      const issues = validateResult.issues?.map((i) => i.message).join("; ");
-      throw new Error(issues ?? "Invalid tool input");
-    }
+    const spec = getEvaluatedHumanToolSpec(tools, args.toolName);
+    const value = await parseValidatedHumanToolInput(spec, args.input);
 
     const streamId = chatActorStreamId(args.threadId, args.namespace);
     const invocationEntryId = crypto.randomUUID();
@@ -164,7 +157,7 @@ export const executeHumanTool = action({
           agentId: args.namespace,
           agentName: "User",
         },
-        validateResult.value,
+        value,
       );
     } finally {
       await chatActorHistory.append(ctx, {

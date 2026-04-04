@@ -1,7 +1,7 @@
 import { toUIMessages } from "@convex-dev/agent";
 import type { MessageDoc } from "@convex-dev/agent/validators";
 import type { UIMessage } from "../../agents/_tools/uiMessage.js";
-import { CHAT_PROVIDER_METADATA_NS } from "../../memories/resolveMemories.js";
+import { CHAT_PROVIDER_METADATA_NS } from "../chatConstants.js";
 
 /** Merged into each UI message from `providerMetadata.cfd` and thread id. */
 export type ThreadMessageMetadata = {
