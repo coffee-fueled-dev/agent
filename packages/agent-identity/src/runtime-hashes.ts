@@ -1,4 +1,8 @@
-import { hashPlainObject, schemaToHashInput } from "./hash.js";
+import {
+  runtimeIdentityCanonicalPayload,
+  toolSpecCanonicalPayload,
+} from "./canonical-payloads.js";
+import { hashPlainObject } from "./hash.js";
 import type { AnyComposable, ComposableWithChildren } from "./toolkit.js";
 import type { Composable, ToolkitContext, ToolSpec } from "./types.js";
 
@@ -74,10 +78,7 @@ export async function computeRuntimeHash(
     nameToStaticHash,
     toolsFallback,
   );
-  return hashPlainObject({
-    kind: "runtime",
-    tools: refs.map((r) => ({ name: r.toolKey, hash: r.toolHash })),
-  });
+  return hashPlainObject(runtimeIdentityCanonicalPayload(refs));
 }
 
 /**
@@ -102,10 +103,9 @@ export async function computeRuntimeIdentityFromEvaluation<
     nameToStaticHash,
     tools,
   );
-  const runtimeHash = await hashPlainObject({
-    kind: "runtime",
-    tools: toolRefs.map((r) => ({ name: r.toolKey, hash: r.toolHash })),
-  });
+  const runtimeHash = await hashPlainObject(
+    runtimeIdentityCanonicalPayload(toolRefs),
+  );
   return { runtimeHash, toolRefs, evaluatedTools: tools };
 }
 
@@ -113,15 +113,5 @@ export async function computeRuntimeIdentityFromEvaluation<
  * Hash a {@link ToolSpec} using the same fields as static tool identity (for dynamic-only tools).
  */
 export async function hashToolSpecIdentity(spec: ToolSpec): Promise<string> {
-  const instructionLines = spec.instructions
-    ? spec.instructions.split("\n\n")
-    : [];
-  return hashPlainObject({
-    kind: "tool",
-    name: spec.name,
-    description: spec.description ?? null,
-    schema: schemaToHashInput(spec.inputSchema),
-    instructions: [...instructionLines].sort((a, b) => a.localeCompare(b)),
-    policies: spec.policyIds ?? [],
-  });
+  return hashPlainObject(toolSpecCanonicalPayload(spec));
 }

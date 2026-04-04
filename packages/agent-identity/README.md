@@ -1,36 +1,100 @@
 # @very-coffee/agent-identity
 
-Framework-agnostic **agent identity** and **capability graph** primitives:
+**Composable toolkits + policies → deterministic SHA-256 fingerprints** for static tool definitions and for the effective tool set at evaluation time—so you can correlate behavior with a **versioned capability snapshot** (logs, evals, storage).
 
-- Static tool/toolkit graph (known at build time)
-- Async **policy** nodes (runtime pruning); policies dedupe by object identity
-- **[Standard Schema](https://standardschema.dev)**-compatible `inputSchema` on tools (no runtime schema dependency in the core; types are vendored locally)
-- **Bottom-up SHA-256** identity: each composable implements `computeStaticHash()` from semantic fields (JSON Schema for `inputSchema` via `toJSONSchema()` when present), not deep object walks
-- **Zero runtime dependencies** (`dependencies` is empty)
+## What it does
 
-## API
+- **Composable graph**: `tool`, `toolkit`, `dynamicToolkit`; evaluate with `ToolkitContext` (`env`, optional `namespace` / `agentId` / `agentName`).
+- **Policies**: async gates that prune tools at runtime; policies dedupe by object identity.
+- **Static hash**: bottom-up hash of “what this toolkit can be” (per-tool semantics + structure).
+- **Runtime hash**: hash of enabled tools only, after policies (sorted by tool name).
+- **Zero runtime dependencies** (`dependencies` is empty). **[Standard Schema](https://standardschema.dev)** `inputSchema`; hashed canonically (e.g. `toJSONSchema()` when present).
 
-- `defineAgentIdentity({ agentId, name, staticHash })` — `staticHash` from `await rootComposable.computeStaticHash()`
-- `hashPlainObject` / `schemaToHashInput` — building blocks for canonical JSON hashing
-- `collectToolStaticHashes(root)` — map of tool name → leaf static hash (walks `childComposables` on toolkits)
-- `computeRuntimeHash(enabledNames, nameToStaticHash, tools)` — runtime identity for enabled tools only
-- `hashToolSpecIdentity(spec)` — hash a `ToolSpec` (e.g. dynamic-only tools)
-- `createIdentityLink({ agent, enabledToolNames, nameToStaticHash, tools })` — `IdentityLink` with `staticHash` / `runtimeHash`
-- `policy(id, evaluate)` — reusable policy objects
-- `tool({ name, description, inputSchema, instructions, policies, handler })` — returns composable with `computeStaticHash()`
-- `toolkit([...members], { name, instructions? })` — Merkle-style hash over sorted member `{ name, hash }` pairs
-- `dynamicToolkit({ name, policies?, instructions?, create })` — static hash includes name + instructions + policy ids only
-- `evaluateComposable(composable, ctx)` — `ToolkitContext` is `{ env, namespace?, agentId?, agentName? }`
+This is **not** end-user authentication. `agentId` / `name` on `RegisteredAgentIdentity` are **your** labels for telemetry or storage.
 
-## Registration and static hashing
+## When to use it
 
-- `hashToolComposableStatic(composable)` — for composables whose `staticProps.kind` is `"tool"` (throws otherwise); delegates to `computeStaticHash()`.
-- `createToolRegistry()` — `register(key, composable)`; `get` / `getByHash` / `has` / `listKeys` / `entries`. Duplicate keys: **last register wins**.
-- `createAgentRegistry()` — `register(agent)` stores `RegisteredAgentIdentity`; `get` / `has` / `listKeys` / `entries`. Duplicate `agentId`: **last register wins**.
+- Tool lists change by **environment**, **feature flags**, or **deploys** — you need to know **which snapshot** ran (e.g. assistant gets different tools in staging vs prod).
+- **Policies** gate tools — you need **runtime** identity, not only static.
+- You want **stable ids** for dashboards, evals, or logs without ad hoc versioning.
+- **Before/after** changing a tool’s schema or instructions — static hashes shift; use `diffToolRefs` / canonical payloads to compare.
 
-## Examples (Vercel AI SDK consumer)
+**When not to:** you only need a single fixed tool list forever and never compare runs—skip this and use your framework’s tools directly.
 
-Examples live under `examples/`
+**Out of scope:** persistence, threads, transports. You supply correlation ids (message id, job id, etc.). Optional: store hashes in **Convex** or any DB per message/job; this package does not require Convex.
+
+## Quick example
+
+Full pipeline (matches how many apps record one evaluation):
+
+```ts
+import {
+  computeRuntimeIdentityFromEvaluation,
+  toolkit,
+  tool,
+} from "@very-coffee/agent-identity";
+
+const search = tool({
+  name: "search",
+  inputSchema: yourStandardSchema,
+  instructions: "…",
+  handler: async () => {},
+});
+
+const root = toolkit([search], { name: "my-agent-tools" });
+
+const { runtimeHash, toolRefs, evaluatedTools } =
+  await computeRuntimeIdentityFromEvaluation(root, {
+    env: { userTier: "pro" },
+  });
+```
+
+Lower-level pieces: `collectToolStaticHashes(root)` → map of tool name → leaf hash; `evaluateComposable(root, ctx)` → tools; then `computeRuntimeHash(enabledNames, map, tools)` or `resolveRuntimeToolRefs(...)`.
+
+More runnable scripts under `examples/` (see below). `examples/toAiSdk.ts` maps evaluated `ToolSpec` values to Vercel AI SDK `tool()`.
+
+## API overview
+
+Grouped by role; full exports (including types like `ToolSpec`, `Composable`, `IdentityLink`) are in [`src/index.ts`](src/index.ts).
+
+### Composables and evaluation
+
+- `tool` / `toolkit` / `dynamicToolkit`
+- `evaluateComposable(composable, ctx)`
+- `policy(id, evaluate)`
+
+### Hashing and runtime snapshot
+
+- `collectToolStaticHashes` / `computeRuntimeHash` / `resolveRuntimeToolRefs`
+- `computeRuntimeIdentityFromEvaluation` — one-shot evaluate + static map + runtime hash + `toolRefs` + `evaluatedTools`
+- `hashToolSpecIdentity` — dynamic-only / fallback tool identity
+- `hashPlainObject` / `schemaToHashInput`
+
+### Canonical payloads (debug / UI)
+
+- `runtimeIdentityCanonicalPayload` / `toolSpecCanonicalPayload`
+
+### Agent label + link
+
+- `defineAgentIdentity` / `createIdentityLink`
+
+### Dashboard-style helpers
+
+- `formatHashShort` / `diffToolRefs` / `diffIdentityLinks` / `explainIdentityLinkRelationship`
+
+### Registries (in-memory; tests / examples)
+
+- `createToolRegistry` / `createAgentRegistry` / `hashToolComposableStatic`
+
+### Output
+
+- `withFormattedResults`
+
+## Mapping to persistence
+
+This package only computes hashes and payloads. A database may add its own ids (`registrationId`, `toolVersionId`, etc.). In this repo, see `packages/backend/convex/_components/identity/schema.ts`. Those ids are **not** emitted here.
+
+## Examples
 
 ```bash
 bun run example:static
@@ -38,7 +102,7 @@ bun run example:dynamic
 bun run example:identity
 ```
 
-`examples/toAiSdk.ts` maps evaluated `ToolSpec` values to `tool()` from the AI SDK.
+`examples/toAiSdk.ts` — map `ToolSpec` → AI SDK `tool()`.
 
 ## Tests
 

@@ -3,6 +3,14 @@ export type {
   RegisteredAgentEntry,
 } from "./agent-registry.js";
 export { createAgentRegistry } from "./agent-registry.js";
+export type {
+  RuntimeIdentityCanonicalPayload,
+  ToolIdentityCanonicalPayload,
+} from "./canonical-payloads.js";
+export {
+  runtimeIdentityCanonicalPayload,
+  toolSpecCanonicalPayload,
+} from "./canonical-payloads.js";
 export { hashPlainObject, schemaToHashInput } from "./hash.js";
 export { defineAgentIdentity } from "./identity.js";
 export type {
@@ -10,6 +18,19 @@ export type {
   IdentityLink,
 } from "./identity-link.js";
 export { createIdentityLink } from "./identity-link.js";
+export type {
+  IdentityLinkField,
+  IdentityLinkFieldChange,
+  IdentityLinksDiff,
+  ToolRefRow,
+  ToolRefsDiff,
+} from "./identity-diff.js";
+export {
+  diffIdentityLinks,
+  diffToolRefs,
+  explainIdentityLinkRelationship,
+  formatHashShort,
+} from "./identity-diff.js";
 export type {
   ToolErrorOutput,
   ToolOutput,
