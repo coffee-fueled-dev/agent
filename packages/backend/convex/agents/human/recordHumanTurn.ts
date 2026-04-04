@@ -1,9 +1,4 @@
-import {
-  type AnyComposable,
-  collectToolStaticHashes,
-  computeRuntimeHash,
-  hashToolSpecIdentity,
-} from "@very-coffee/agent-identity";
+import { computeRuntimeIdentityFromEvaluation } from "@very-coffee/agent-identity";
 import { v } from "convex/values";
 import { identityClient } from "../../_clients/identity.js";
 import { internalAction } from "../../_generated/server.js";
@@ -25,27 +20,8 @@ export async function computeHumanTurnIdentity(
   ctx: ToolBuilderContext,
 ): Promise<RecordHumanTurnEnqueueArgs> {
   const toolkitCtx = createToolkitContext(ctx);
-  const nameToStaticHash = await collectToolStaticHashes(
-    humanTools as AnyComposable,
-  );
-  const { tools } = await humanTools.evaluate(toolkitCtx);
-  const enabledNames = Object.keys(tools).sort((a, b) => a.localeCompare(b));
-  const runtimeHash = await computeRuntimeHash(
-    enabledNames,
-    nameToStaticHash,
-    tools,
-  );
-  const toolRefs = await Promise.all(
-    enabledNames.map(async (toolKey) => {
-      const spec = tools[toolKey];
-      if (!spec) {
-        throw new Error(`Missing evaluated tool: ${toolKey}`);
-      }
-      const toolHash =
-        nameToStaticHash.get(toolKey) ?? (await hashToolSpecIdentity(spec));
-      return { toolKey, toolHash };
-    }),
-  );
+  const { runtimeHash, toolRefs } =
+    await computeRuntimeIdentityFromEvaluation(humanTools, toolkitCtx);
   const staticHash = await getHumanToolkitStaticHash();
   if (!ctx.threadId?.length) {
     throw new Error("Human turn identity requires threadId");
@@ -63,6 +39,7 @@ export async function computeHumanTurnIdentity(
     tools: toolRefs,
   };
 }
+
 
 /**
  * Records identity for the user's message turn. Call from a scheduled action with
@@ -88,10 +65,8 @@ export const recordHumanTurnBackground = internalAction({
     };
     const identity = await computeHumanTurnIdentity(toolCtx);
     const agent = humanAgentIdentity(args.namespace, identity.staticHash);
-    await identityClient.recordAgentTurn(ctx, {
-      agentId: agent.agentId,
-      agentName: agent.name,
-      staticHash: identity.staticHash,
+    await identityClient.recordTurnForRegisteredAgent(ctx, {
+      agent,
       runtimeHash: identity.runtimeHash,
       threadId: identity.threadId,
       messageId: identity.messageId,

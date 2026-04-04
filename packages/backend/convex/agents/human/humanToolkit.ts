@@ -1,4 +1,3 @@
-import type { AnyComposable } from "@very-coffee/agent-identity";
 import { defineAgentIdentity } from "@very-coffee/agent-identity";
 import { humanMemoryToolkit } from "../_tools/memory/humanMemoryToolkit.js";
 import { toolkit } from "../lib/toolkit.js";
@@ -24,4 +23,3 @@ export function humanAgentIdentity(namespace: string, staticHash: string) {
   });
 }
 
-export const humanToolsForIdentity: AnyComposable = humanTools as AnyComposable;

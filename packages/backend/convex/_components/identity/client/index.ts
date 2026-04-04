@@ -1,3 +1,4 @@
+import type { RegisteredAgentIdentity } from "@very-coffee/agent-identity";
 import type {
   GenericDataModel,
   GenericMutationCtx,
@@ -57,6 +58,30 @@ export class IdentityClient {
     });
   };
 
+  /** Registers one agent row then each tool definition (e.g. from {@link collectToolStaticHashes}). */
+  registerAgentAndTools = async (
+    ctx: RunMutationCtx,
+    args: {
+      agentId: string;
+      name: string;
+      staticHash: string;
+      metadata?: Record<string, unknown>;
+      tools: Map<string, string> | Iterable<readonly [string, string]>;
+    },
+  ) => {
+    await this.registerAgentDefinition(ctx, {
+      agentId: args.agentId,
+      name: args.name,
+      staticHash: args.staticHash,
+      metadata: args.metadata,
+    });
+    const iterable =
+      args.tools instanceof Map ? args.tools.entries() : args.tools;
+    for (const [toolKey, toolHash] of iterable) {
+      await this.registerToolDefinition(ctx, { toolKey, toolHash });
+    }
+  };
+
   recordAgentTurn = async (
     ctx: RunMutationCtx,
     args: {
@@ -75,6 +100,29 @@ export class IdentityClient {
       agentId: args.agentId,
       agentName: args.agentName,
       staticHash: args.staticHash,
+      runtimeHash: args.runtimeHash,
+      threadId: args.threadId,
+      messageId: args.messageId,
+      sessionId: args.sessionId,
+      tools: args.tools,
+    });
+  };
+
+  recordTurnForRegisteredAgent = async (
+    ctx: RunMutationCtx,
+    args: {
+      agent: RegisteredAgentIdentity;
+      runtimeHash: string;
+      threadId: string;
+      messageId: string;
+      sessionId?: string;
+      tools: Array<{ toolKey: string; toolHash: string }>;
+    },
+  ) => {
+    return await this.recordAgentTurn(ctx, {
+      agentId: args.agent.agentId,
+      agentName: args.agent.name,
+      staticHash: args.agent.staticHash,
       runtimeHash: args.runtimeHash,
       threadId: args.threadId,
       messageId: args.messageId,

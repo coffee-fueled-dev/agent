@@ -20,7 +20,9 @@ export { policy } from "./policy.js";
 export {
   collectToolStaticHashes,
   computeRuntimeHash,
+  computeRuntimeIdentityFromEvaluation,
   hashToolSpecIdentity,
+  resolveRuntimeToolRefs,
 } from "./runtime-hashes.js";
 export type {
   StandardSchemaV1,

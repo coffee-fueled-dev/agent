@@ -3,10 +3,7 @@ import { v } from "convex/values";
 import { SessionIdArg } from "convex-helpers/server/sessions";
 import { identityClient } from "../../_clients/identity.js";
 import { mutation } from "../../_generated/server.js";
-import {
-  getHumanToolkitStaticHash,
-  humanToolsForIdentity,
-} from "./humanToolkit.js";
+import { getHumanToolkitStaticHash, humanTools } from "./humanToolkit.js";
 
 /**
  * Idempotent: registers the human actor (`agentId` = namespace) and leaf tools in the identity component.
@@ -18,18 +15,13 @@ export const ensureHumanAgentRegistration = mutation({
   handler: async (ctx, args) => {
     void args.sessionId;
     const staticHash = await getHumanToolkitStaticHash();
-    await identityClient.registerAgentDefinition(ctx, {
+    const nameToHash = await collectToolStaticHashes(humanTools);
+    await identityClient.registerAgentAndTools(ctx, {
       agentId: args.namespace,
       name: "User",
       staticHash,
+      tools: nameToHash,
     });
-    const nameToHash = await collectToolStaticHashes(humanToolsForIdentity);
-    for (const [toolKey, toolHash] of nameToHash) {
-      await identityClient.registerToolDefinition(ctx, {
-        toolKey,
-        toolHash,
-      });
-    }
     return null;
   },
 });

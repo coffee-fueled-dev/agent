@@ -1,10 +1,7 @@
 import { Agent } from "@convex-dev/agent";
 import {
-  type AnyComposable,
-  collectToolStaticHashes,
-  computeRuntimeHash,
+  computeRuntimeIdentityFromEvaluation,
   defineAgentIdentity,
-  hashToolSpecIdentity,
   type RegisteredAgentIdentity,
 } from "@very-coffee/agent-identity";
 import { v } from "convex/values";
@@ -55,27 +52,8 @@ export async function createAssistantAgent(ctx: ToolBuilderContext) {
   const toolkitCtx = createToolkitContext(ctx);
   const env = createConvexAgentEnv(ctx);
   const agent = await getAssistantDefinition();
-  const nameToStaticHash = await collectToolStaticHashes(
-    assistantTools as AnyComposable,
-  );
-  const { tools } = await assistantTools.evaluate(toolkitCtx);
-  const enabledNames = Object.keys(tools).sort((a, b) => a.localeCompare(b));
-  const runtimeHash = await computeRuntimeHash(
-    enabledNames,
-    nameToStaticHash,
-    tools,
-  );
-  const toolRefs = await Promise.all(
-    enabledNames.map(async (toolKey) => {
-      const spec = tools[toolKey];
-      if (!spec) {
-        throw new Error(`Missing evaluated tool: ${toolKey}`);
-      }
-      const toolHash =
-        nameToStaticHash.get(toolKey) ?? (await hashToolSpecIdentity(spec));
-      return { toolKey, toolHash };
-    }),
-  );
+  const { runtimeHash, toolRefs, evaluatedTools } =
+    await computeRuntimeIdentityFromEvaluation(assistantTools, toolkitCtx);
   if (!ctx.threadId?.length) {
     throw new Error("Assistant turn requires threadId");
   }
@@ -97,7 +75,7 @@ export async function createAssistantAgent(ctx: ToolBuilderContext) {
     enqueueArgs,
   );
 
-  const runtimeTools = toolSpecsToAgentTools(tools, env);
+  const runtimeTools = toolSpecsToAgentTools(evaluatedTools, env);
 
   return new Agent(components.agent, {
     name: agent.name,
@@ -127,10 +105,8 @@ export const recordAgentTurnBackground = internalAction({
   returns: v.null(),
   handler: async (ctx, args) => {
     const agent = await getAssistantDefinition();
-    await identityClient.recordAgentTurn(ctx, {
-      agentId: agent.agentId,
-      agentName: agent.name,
-      staticHash: args.staticHash,
+    await identityClient.recordTurnForRegisteredAgent(ctx, {
+      agent,
       runtimeHash: args.runtimeHash,
       threadId: args.threadId,
       messageId: args.messageId,
