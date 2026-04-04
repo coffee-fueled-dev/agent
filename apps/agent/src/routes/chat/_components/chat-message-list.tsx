@@ -24,8 +24,12 @@ const PAGE_SIZE = 15;
 const ESTIMATE_ROW = 120;
 
 export function ChatMessageList() {
-  const { threadId, awaitingAssistantStream, setAwaitingAssistantStream } =
-    useChatThread();
+  const {
+    threadId,
+    userId,
+    awaitingAssistantStream,
+    setAwaitingAssistantStream,
+  } = useChatThread();
   const viewportRef = useRef<HTMLDivElement>(null);
   const [viewportHeight, setViewportHeight] = useState(0);
 
@@ -115,17 +119,19 @@ export function ChatMessageList() {
   const lastPairContent =
     hasActiveUserTurn && userMessage ? (
       <>
-        <ChatMessageBubble message={userMessage} />
+        <ChatMessageBubble message={userMessage} namespace={userId} />
         {showAssistantLoading ? (
           <ChatAssistantLoadingBubble />
         ) : (
           assistantMessages.map((m) => (
-            <ChatMessageBubble key={m.id} message={m} />
+            <ChatMessageBubble key={m.id} message={m} namespace={userId} />
           ))
         )}
       </>
     ) : turnTail.length > 0 ? (
-      turnTail.map((row) => <ChatMessageBubble key={row.id} message={row} />)
+      turnTail.map((row) => (
+        <ChatMessageBubble key={row.id} message={row} namespace={userId} />
+      ))
     ) : null;
 
   return (
@@ -163,7 +169,7 @@ export function ChatMessageList() {
                         transform: `translateY(${vi.start}px)`,
                       }}
                     >
-                      <ChatMessageBubble message={row} />
+                      <ChatMessageBubble message={row} namespace={userId} />
                     </div>
                   );
                 })}

@@ -16,7 +16,14 @@ function separateFileParts(message: UIMessage["parts"]) {
   return { fileParts, otherParts };
 }
 
-export function ChatMessageBubble({ message }: { message: UIMessage }) {
+export function ChatMessageBubble({
+  message,
+  namespace,
+}: {
+  message: UIMessage;
+  /** For minting file URLs from storage id (e.g. account / tenant id). */
+  namespace: string | undefined;
+}) {
   const isUser = message.role === "user";
   const { fileParts, otherParts } = separateFileParts(message.parts);
   return (
@@ -33,6 +40,7 @@ export function ChatMessageBubble({ message }: { message: UIMessage }) {
             part={part}
             role={message.role}
             messageStatus={message.status}
+            namespace={namespace}
           />
         ))}
         <div className="flex flex-wrap gap-2">
@@ -40,8 +48,8 @@ export function ChatMessageBubble({ message }: { message: UIMessage }) {
             <ChatMessagePartFile
               // biome-ignore lint/suspicious/noArrayIndexKey: UIMessage parts have no stable id
               key={`${message.id}-${i}-${part.type}`}
-              filename={part.filename}
-              mediaType={part.mediaType}
+              part={part}
+              namespace={namespace}
             />
           ))}
         </div>

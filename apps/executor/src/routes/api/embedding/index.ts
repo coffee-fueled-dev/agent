@@ -112,7 +112,7 @@ async function reportCompletion(job: EmbedJob, result: ProcessedFileResult) {
       );
       const lastGlobal = batchStart + slice.length - 1;
       const isLastBatch = lastGlobal === chunks.length - 1;
-      await getConvexClient().action(api.files.ingestFileEmbeddingChunks, {
+      await getConvexClient().action(api.files.store.ingestFileEmbeddingChunks, {
         secret: sharedSecret,
         jobId: job.processId,
         chunks: slice,
@@ -125,7 +125,7 @@ async function reportCompletion(job: EmbedJob, result: ProcessedFileResult) {
     if (!first) {
       throw new Error("No chunk for binary ingest");
     }
-    await getConvexClient().action(api.files.ingestFileEmbeddingChunk, {
+    await getConvexClient().action(api.files.store.ingestFileEmbeddingChunk, {
       secret: sharedSecret,
       jobId: job.processId,
       chunkOrder: 0,
@@ -135,7 +135,7 @@ async function reportCompletion(job: EmbedJob, result: ProcessedFileResult) {
     });
   }
   if (job.contentHash && chunks.length <= MAX_CACHED_FILE_CHUNKS) {
-    await getConvexClient().mutation(api.files.cacheFileEmbeddingResult, {
+    await getConvexClient().mutation(api.files.store.cacheFileEmbeddingResult, {
       secret: sharedSecret,
       jobId: job.processId,
     });
@@ -146,7 +146,7 @@ async function reportFailure(job: EmbedJob, error: unknown) {
   const message =
     error instanceof Error ? error.message : "File embedding worker failed";
   try {
-    await getConvexClient().mutation(api.files.failFileProcess, {
+    await getConvexClient().mutation(api.files.store.failFileProcess, {
       secret: sharedSecret,
       jobId: job.processId,
       error: message,

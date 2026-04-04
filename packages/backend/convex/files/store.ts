@@ -16,6 +16,7 @@ import {
   getFileEmbeddingApiUrl,
   getFileEmbeddingSecret,
 } from "../env/embedding.js";
+import { mintFileUrlForNamespace } from "./storageAccess.js";
 
 function requireSecret(secret: string) {
   if (secret !== getFileEmbeddingSecret()) {
@@ -33,6 +34,21 @@ export const generateFileUploadUrl = mutation({
   returns: v.string(),
   handler: async (ctx) => {
     return await ctx.storage.generateUploadUrl();
+  },
+});
+
+/** Mint a display/fetch URL for an attachment; same pipeline as embedding and model attach. */
+export const getAttachmentPublicUrl = query({
+  args: {
+    namespace: v.string(),
+    storageId: v.string(),
+  },
+  returns: v.string(),
+  handler: async (ctx, args) => {
+    return await mintFileUrlForNamespace(ctx, {
+      namespace: args.namespace,
+      storageId: args.storageId as Id<"_storage">,
+    });
   },
 });
 
@@ -130,6 +146,7 @@ export const getProcessForDispatch = internalQuery({
     v.null(),
     v.object({
       _id: v.id("fileProcesses"),
+      namespace: v.string(),
       storageId: v.id("_storage"),
       mimeType: v.string(),
       fileName: v.optional(v.string()),
@@ -142,6 +159,7 @@ export const getProcessForDispatch = internalQuery({
     if (!doc) return null;
     return {
       _id: doc._id,
+      namespace: doc.namespace,
       storageId: doc.storageId,
       mimeType: doc.mimeType,
       fileName: doc.fileName,
@@ -285,11 +303,16 @@ export const dispatchEmbeddingJob = internalAction({
     if (!doc) {
       return null;
     }
-    const fileUrl = await ctx.storage.getUrl(doc.storageId);
-    if (!fileUrl) {
+    let fileUrl: string;
+    try {
+      fileUrl = await mintFileUrlForNamespace(ctx, {
+        namespace: doc.namespace,
+        storageId: doc.storageId,
+      });
+    } catch (e) {
       await ctx.runMutation(internal.files.store.setProcessFailed, {
         processId: args.processId,
-        error: "Storage URL unavailable",
+        error: e instanceof Error ? e.message : "Storage URL unavailable",
       });
       return null;
     }

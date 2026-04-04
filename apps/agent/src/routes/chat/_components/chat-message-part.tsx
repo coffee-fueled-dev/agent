@@ -13,10 +13,13 @@ export function ChatMessagePart({
   part,
   role,
   messageStatus,
+  namespace,
 }: {
   part: UIMessage["parts"][number];
   role: UIMessage["role"];
   messageStatus: UIMessage["status"];
+  /** When file parts are rendered here (not via {@link ChatMessageBubble} file strip), used to mint URLs. */
+  namespace?: string | undefined;
 }) {
   const streaming = messageStatus === "streaming";
 
@@ -41,12 +44,7 @@ export function ChatMessagePart({
     case "source-document":
       return <ChatMessagePartSourceDocument title={part.title} />;
     case "file":
-      return (
-        <ChatMessagePartFile
-          filename={part.filename}
-          mediaType={part.mediaType}
-        />
-      );
+      return <ChatMessagePartFile part={part} namespace={namespace} />;
     case "dynamic-tool":
       return <ChatMessagePartTool part={part} />;
     case "step-start":

@@ -150,10 +150,7 @@ export class FingerprintClient {
     });
   };
 
-  getRegisteredAgent = async (
-    ctx: RunQueryCtx,
-    args: { agentId: string },
-  ) => {
+  getRegisteredAgent = async (ctx: RunQueryCtx, args: { agentId: string }) => {
     return await ctx.runQuery(this.queriesAPI.getAgentRegistration, args);
   };
 
@@ -200,8 +197,3 @@ export class FingerprintClient {
     return await ctx.runQuery(this.queriesAPI.listTurnBindingsForThread, args);
   };
 }
-
-/**
- * @deprecated Use {@link FingerprintClient}. Alias for searchability with older “identity” naming.
- */
-export { FingerprintClient as IdentityClient };

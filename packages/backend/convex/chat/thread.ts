@@ -92,8 +92,11 @@ export const sendMessage = mutation({
 
     const { message: userMessage, fileIds } = await buildUserMessageWithFiles(
       ctx,
-      args.prompt,
-      args.attachments,
+      {
+        namespace: args.namespace,
+        prompt: args.prompt,
+        attachments: args.attachments,
+      },
     );
 
     const cfdMeta = cfdTurnProviderMetadata(turnId, args.threadId);

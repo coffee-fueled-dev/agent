@@ -14,3 +14,8 @@ export type {
   HumanToolkitToolUi,
 } from "./agents/human/humanToolkitTypes.js";
 export type { HumanToolCall } from "./chat/humanAgent/humanToolCallWire.js";
+export {
+  CHAT_CFD_FILE_METADATA_KEY,
+  CHAT_PROVIDER_METADATA_NS,
+} from "./chat/chatConstants.js";
+export type { CfdFileProviderMetadata } from "./chat/chatConstants.js";

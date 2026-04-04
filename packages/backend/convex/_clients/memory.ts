@@ -5,6 +5,7 @@ import type {
 import { MemoryClient } from "../_components/memory/client/index.js";
 import { components } from "../_generated/api.js";
 import type { Id } from "../_generated/dataModel.js";
+import { mintFileUrlForNamespace } from "../files/storageAccess.js";
 import type {
   ResolvedMemorySource,
   ResolvedOtherMemorySource,
@@ -19,7 +20,7 @@ export type MemoryClientSourceMapByName = {
 
 async function resolveStorageSourceMaps(
   ctx: MemorySourceMapsResolveCtx,
-  _args: { namespace: string; memoryRecordId: string },
+  args: { namespace: string; memoryRecordId: string },
   { sourceMaps }: { sourceMaps: SourceMapRowForMemory[] },
 ): Promise<ResolvedStorageMemorySource[]> {
   const sources: ResolvedStorageMemorySource[] = [];
@@ -28,13 +29,19 @@ async function resolveStorageSourceMaps(
     const key = `${row.contentSource.type}:${row.contentSource.id}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    const rawUrl = await ctx.storage.getUrl(
-      row.contentSource.id as Id<"_storage">,
-    );
+    let url: string | null = null;
+    try {
+      url = await mintFileUrlForNamespace(ctx, {
+        namespace: args.namespace,
+        storageId: row.contentSource.id as Id<"_storage">,
+      });
+    } catch {
+      url = null;
+    }
     sources.push({
       kind: "storage",
       storageId: row.contentSource.id,
-      url: rawUrl ?? null,
+      url,
       fileName: row.fileName,
       mimeType: row.mimeType,
     });

@@ -51,7 +51,9 @@ import type * as chat_thread_threadUiMessages from "../chat/thread/threadUiMessa
 import type * as env_embedding from "../env/embedding.js";
 import type * as env_executor from "../env/executor.js";
 import type * as env_models from "../env/models.js";
-import type * as files from "../files.js";
+import type * as env_storagePublic from "../env/storagePublic.js";
+import type * as files_namespaceAccess from "../files/namespaceAccess.js";
+import type * as files_storageAccess from "../files/storageAccess.js";
 import type * as files_store from "../files/store.js";
 import type * as memories_memorySearch from "../memories/memorySearch.js";
 import type * as memories_resolveMemories from "../memories/resolveMemories.js";
@@ -108,7 +110,9 @@ declare const fullApi: ApiFromModules<{
   "env/embedding": typeof env_embedding;
   "env/executor": typeof env_executor;
   "env/models": typeof env_models;
-  files: typeof files;
+  "env/storagePublic": typeof env_storagePublic;
+  "files/namespaceAccess": typeof files_namespaceAccess;
+  "files/storageAccess": typeof files_storageAccess;
   "files/store": typeof files_store;
   "memories/memorySearch": typeof memories_memorySearch;
   "memories/resolveMemories": typeof memories_resolveMemories;
