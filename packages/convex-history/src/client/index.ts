@@ -1,6 +1,5 @@
 import type {
   GenericDataModel,
-  GenericMutationCtx,
   GenericQueryCtx,
   PaginationOptions,
   PaginationResult,
@@ -15,12 +14,16 @@ import type {
   HistoryStreamTemplate,
   StreamTypeFor,
 } from "../types.js";
+import {
+  notifyHistorySubscribers,
+  type HistoryCallCtx,
+  type HistorySubscriber,
+  type HistorySubscribable,
+} from "./events.js";
+
+export type * from "./events.js";
 
 type RunQueryCtx = Pick<GenericQueryCtx<GenericDataModel>, "runQuery">;
-type RunMutationCtx = Pick<
-  GenericMutationCtx<GenericDataModel>,
-  "runMutation" | "runQuery"
->;
 
 type EntryRefArgs<Streams extends readonly HistoryStreamTemplate[]> = {
   streamType: StreamTypeFor<Streams>;
@@ -30,18 +33,34 @@ type EntryRefArgs<Streams extends readonly HistoryStreamTemplate[]> = {
 
 export class HistoryClient<
   const Streams extends readonly HistoryStreamTemplate[],
-> {
+> implements HistorySubscribable<Streams>
+{
+  private _subscribers = new Map<string, HistorySubscriber<Streams>>();
+
   constructor(
     public component: ComponentApi,
     public config: HistoryConfig<Streams>,
   ) {}
 
+  subscribe(id: string, callback: HistorySubscriber<Streams>): void {
+    this._subscribers.set(id, callback);
+  }
+
   async append(
-    ctx: RunMutationCtx,
+    ctx: HistoryCallCtx,
     args: AppendArgs<Streams>,
   ): Promise<HistoryEntry<Streams>> {
     assertRegisteredStream(this.config.streams, args.streamType, args.kind);
-    return await ctx.runMutation(this.component.public.append.append, args);
+    const result = await ctx.runMutation(
+      this.component.public.append.append,
+      args,
+    );
+    await notifyHistorySubscribers(this._subscribers, ctx, {
+      event: "append",
+      args,
+      result,
+    });
+    return result;
   }
 
   async getEntry(

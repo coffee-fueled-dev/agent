@@ -8,17 +8,18 @@
  * @module
  */
 
+import type * as internal_graph from "../internal/graph.js";
+import type * as internal_shared from "../internal/shared.js";
+import type * as public_append from "../public/append.js";
+import type * as public_heads from "../public/heads.js";
+import type * as public_read from "../public/read.js";
+
 import type {
   ApiFromModules,
   FilterApi,
   FunctionReference,
 } from "convex/server";
 import { anyApi, componentsGeneric } from "convex/server";
-import type * as internal_graph from "../internal/graph.js";
-import type * as internal_shared from "../internal/shared.js";
-import type * as public_append from "../public/append.js";
-import type * as public_heads from "../public/heads.js";
-import type * as public_read from "../public/read.js";
 
 const fullApi: ApiFromModules<{
   "internal/graph": typeof internal_graph;
