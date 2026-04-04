@@ -1,8 +1,16 @@
 {
   "name": "@very-coffee/agent-identity",
   "module": "src/index.ts",
+  "types": "./src/index.ts",
   "type": "module",
   "private": true,
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
   "dependencies": {},
   "scripts": {
     "test": "bun test",

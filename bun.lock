@@ -171,6 +171,30 @@
         "typescript": "^5",
       },
     },
+    "packages/convex-agent-fingerprints": {
+      "name": "@very-coffee/convex-agent-fingerprints",
+      "version": "0.1.0",
+      "dependencies": {
+        "@very-coffee/agent-identity": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "^1.2.0",
+        "@types/react": "^19.2.14",
+        "@types/react-dom": "^19.2.3",
+        "convex": "1.34.0",
+        "convex-test": "0.0.41",
+        "knip": "^6.1.0",
+        "prettier": "3.8.1",
+        "react": "^19.2.4",
+        "react-dom": "^19.2.4",
+        "typescript": "5.9.3",
+      },
+      "peerDependencies": {
+        "convex": "^1.34.0",
+        "convex-helpers": "^0.1.114",
+        "react": "^18.3.1 || ^19.0.0",
+      },
+    },
     "packages/convex-events": {
       "name": "@very-coffee/convex-events",
       "version": "0.2.0",
@@ -840,6 +864,8 @@
     "@very-coffee/agent-identity": ["@very-coffee/agent-identity@workspace:packages/agent-identity"],
 
     "@very-coffee/backend": ["@very-coffee/backend@workspace:packages/backend"],
+
+    "@very-coffee/convex-agent-fingerprints": ["@very-coffee/convex-agent-fingerprints@workspace:packages/convex-agent-fingerprints"],
 
     "@very-coffee/convex-events": ["@very-coffee/convex-events@workspace:packages/convex-events"],
 
