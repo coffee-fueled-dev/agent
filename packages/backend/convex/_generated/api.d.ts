@@ -27,6 +27,8 @@ import type * as agents__tools_toolRegistry from "../agents/_tools/toolRegistry.
 import type * as agents__tools_uiMessage from "../agents/_tools/uiMessage.js";
 import type * as agents__tools_web_browseWeb_internal from "../agents/_tools/web/browseWeb/internal.js";
 import type * as agents__tools_web_browseWeb_tool from "../agents/_tools/web/browseWeb/tool.js";
+import type * as agents__tools_web_queryUrl_internal from "../agents/_tools/web/queryUrl/internal.js";
+import type * as agents__tools_web_queryUrl_tool from "../agents/_tools/web/queryUrl/tool.js";
 import type * as agents__tools_web_searchWeb_internal from "../agents/_tools/web/searchWeb/internal.js";
 import type * as agents__tools_web_searchWeb_tool from "../agents/_tools/web/searchWeb/tool.js";
 import type * as agents__tools_web_toolkit from "../agents/_tools/web/toolkit.js";
@@ -107,6 +109,8 @@ declare const fullApi: ApiFromModules<{
   "agents/_tools/uiMessage": typeof agents__tools_uiMessage;
   "agents/_tools/web/browseWeb/internal": typeof agents__tools_web_browseWeb_internal;
   "agents/_tools/web/browseWeb/tool": typeof agents__tools_web_browseWeb_tool;
+  "agents/_tools/web/queryUrl/internal": typeof agents__tools_web_queryUrl_internal;
+  "agents/_tools/web/queryUrl/tool": typeof agents__tools_web_queryUrl_tool;
   "agents/_tools/web/searchWeb/internal": typeof agents__tools_web_searchWeb_internal;
   "agents/_tools/web/searchWeb/tool": typeof agents__tools_web_searchWeb_tool;
   "agents/_tools/web/toolkit": typeof agents__tools_web_toolkit;

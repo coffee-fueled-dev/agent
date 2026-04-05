@@ -3,6 +3,7 @@ import type * as React from "react";
 import { BrowseWebToolPart } from "./browse-web-tool-part.js";
 import { FallbackToolPart } from "./fallback-tool-part.js";
 import { MergeMemoryToolPart } from "./merge-memory-tool-part.js";
+import { QueryUrlToolPart } from "./query-url-tool-part.js";
 import { RunShellToolPart } from "./run-shell-tool-part.js";
 import { SearchMemoryToolPart } from "./search-memory-tool-part.js";
 import { SearchWebToolPart } from "./search-web-tool-part.js";
@@ -15,6 +16,7 @@ const registry = {
   shareMemories: ShareMemoriesToolPart,
   runShell: RunShellToolPart,
   searchWeb: SearchWebToolPart,
+  queryUrl: QueryUrlToolPart,
   browseWeb: BrowseWebToolPart,
 } satisfies Record<RegisteredToolName, React.ComponentType<ToolPartProps>>;
 

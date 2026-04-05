@@ -28,6 +28,7 @@
     "@browserbasehq/sdk": "^2.9.0",
     "@convex-dev/agent": "^0.3.2",
     "@convex-dev/workpool": "^0.4.6",
+    "@google/genai": "^1.48.0",
     "@very-coffee/agent-identity": "workspace:*",
     "@very-coffee/convex-agent-fingerprints": "workspace:*",
     "@very-coffee/convex-events": "workspace:*",

@@ -8,6 +8,8 @@ const convexEnvSchema = z.object({
   GOOGLE_GENERATIVE_AI_API_KEY: z.string().optional(),
   GOOGLE_API_KEY: z.string().optional(),
   GEMINI_API_KEY: z.string().optional(),
+  /** Default Gemini model for `queryUrl` (URL context + Google Search). */
+  QUERY_URL_GEMINI_MODEL: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),
 });
 
@@ -43,4 +45,9 @@ export function requireGoogleApiKey(): string {
 
 export function getOpenaiApiKey(): string | undefined {
   return trim(process.env.OPENAI_API_KEY);
+}
+
+/** Model id for `agents/_tools/web/queryUrl` when the tool does not pass `model`. */
+export function getQueryUrlGeminiModelDefault(): string | undefined {
+  return trim(process.env.QUERY_URL_GEMINI_MODEL);
 }

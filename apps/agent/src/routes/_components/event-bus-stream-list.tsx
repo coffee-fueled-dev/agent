@@ -12,7 +12,6 @@ import {
   Empty,
   EmptyContent,
   EmptyDescription,
-  EmptyTitle,
 } from "@/components/ui/empty.js";
 import { Item, ItemHeader, ItemTitle } from "@/components/ui/item";
 import {
