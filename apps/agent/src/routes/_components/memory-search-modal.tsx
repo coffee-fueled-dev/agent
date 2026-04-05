@@ -3,7 +3,16 @@
 import { api } from "@agent/backend/api";
 import { useAction } from "convex/react";
 import { CheckIcon, PaperclipIcon, SearchIcon } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useDropzone } from "react-dropzone";
 import { LoaderWithMessage } from "@/components/blocks/loader-with-message.js";
 import { Button } from "@/components/ui/button";
@@ -32,12 +41,8 @@ import {
   buildLexicalContextQuery,
   lexicalSnippetFromFileText,
 } from "@/routes/_hooks/context-search-query.js";
-import {
-  memoryBadgeLabel,
-  useChatComposerMemory,
-} from "../chat/_components/chat-composer-memory-provider.js";
 
-type SearchHit = {
+export type SearchHit = {
   sourceRef: string;
   rrfScore: number;
   contributions: Array<{ armId: string; rank: number; score: number }>;
@@ -49,6 +54,90 @@ type SearchHit = {
   fileName: string | null;
   title: string | null;
 };
+
+type MemorySearchContextValue = {
+  open: boolean;
+  setOpen: (open: boolean) => void;
+  disabled: boolean;
+  namespace: string;
+  onHitSelected?: (hit: SearchHit) => void;
+  onResults?: (hits: SearchHit[]) => void;
+  isHitSelected: (hit: SearchHit) => boolean;
+  formatHitLabel: (hit: SearchHit) => string;
+};
+
+const MemorySearchContext = createContext<MemorySearchContextValue | null>(
+  null,
+);
+
+export function useMemorySearch(): MemorySearchContextValue {
+  const ctx = useContext(MemorySearchContext);
+  if (!ctx) {
+    throw new Error(
+      "MemorySearch compound components must be used within MemorySearch",
+    );
+  }
+  return ctx;
+}
+
+function defaultFormatHitLabel(hit: SearchHit): string {
+  const t = hit.title?.trim();
+  if (t) return t;
+  const f = hit.fileName?.trim();
+  if (f) return f;
+  return hit.sourceRef;
+}
+
+export function MemorySearch({
+  children,
+  namespace,
+  open,
+  onOpenChange,
+  disabled = false,
+  onHitSelected,
+  onResults,
+  isHitSelected,
+  formatHitLabel,
+}: {
+  children: ReactNode;
+  namespace: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  disabled?: boolean;
+  onHitSelected?: (hit: SearchHit) => void;
+  onResults?: (hits: SearchHit[]) => void;
+  isHitSelected?: (hit: SearchHit) => boolean;
+  formatHitLabel?: (hit: SearchHit) => string;
+}) {
+  const value = useMemo(
+    (): MemorySearchContextValue => ({
+      open,
+      setOpen: onOpenChange,
+      disabled,
+      namespace,
+      onHitSelected,
+      onResults,
+      isHitSelected: isHitSelected ?? (() => false),
+      formatHitLabel: formatHitLabel ?? defaultFormatHitLabel,
+    }),
+    [
+      open,
+      onOpenChange,
+      disabled,
+      namespace,
+      onHitSelected,
+      onResults,
+      isHitSelected,
+      formatHitLabel,
+    ],
+  );
+
+  return (
+    <MemorySearchContext.Provider value={value}>
+      {children}
+    </MemorySearchContext.Provider>
+  );
+}
 
 function isTextLikeFile(file: File) {
   const t = file.type;
@@ -67,21 +156,17 @@ function hitPreviewText(hit: SearchHit): string {
   return "";
 }
 
-export function MemorySearchModal({
-  open,
-  onOpenChange,
-  namespace,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  namespace: string;
-}) {
-  const { memoryRecordIds, toggleMemoryRecordId, registerSeenMemoryIds } =
-    useChatComposerMemory();
-  const selectedSet = useMemo(
-    () => new Set(memoryRecordIds),
-    [memoryRecordIds],
-  );
+export function MemorySearchModal() {
+  const {
+    open,
+    setOpen,
+    disabled,
+    namespace,
+    onHitSelected,
+    onResults,
+    isHitSelected,
+    formatHitLabel,
+  } = useMemorySearch();
 
   const searchMemories = useAction(api.memories.memorySearch.searchMemories);
   const [query, setQuery] = useState("");
@@ -162,8 +247,8 @@ export function MemorySearchModal({
 
   useEffect(() => {
     if (results.length === 0) return;
-    registerSeenMemoryIds(results.map((h) => h.sourceRef));
-  }, [results, registerSeenMemoryIds]);
+    onResults?.(results);
+  }, [results, onResults]);
 
   const {
     getRootProps,
@@ -172,7 +257,7 @@ export function MemorySearchModal({
   } = useDropzone({
     multiple: false,
     noClick: true,
-    disabled: !open,
+    disabled: !open || disabled,
     noDragEventsBubbling: true,
     onDrop: (files) => {
       const f = files[0];
@@ -187,7 +272,7 @@ export function MemorySearchModal({
   return (
     <CommandDialog
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={setOpen}
       className="p-4"
       showCloseButton={false}
       title="Search memories"
@@ -196,7 +281,7 @@ export function MemorySearchModal({
         onKeyDown: (e) => {
           if (e.key !== "Enter" || e.nativeEvent.isComposing) return;
           e.preventDefault();
-          onOpenChange(false);
+          setOpen(false);
         },
       }}
     >
@@ -210,6 +295,7 @@ export function MemorySearchModal({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={searchFile ? "Search with file…" : "Search memories…"}
+            disabled={disabled}
           />
           <InputGroupAddon align="inline-end">
             <InputGroupButton
@@ -217,6 +303,7 @@ export function MemorySearchModal({
               size="icon-xs"
               onClick={openFilePicker}
               title="Attach file for hybrid search"
+              disabled={disabled}
             >
               <PaperclipIcon className="size-4" />
             </InputGroupButton>
@@ -235,6 +322,7 @@ export function MemorySearchModal({
               size="sm"
               className="h-7 px-2"
               onClick={() => setSearchFile(null)}
+              disabled={disabled}
             >
               Remove
             </Button>
@@ -247,19 +335,15 @@ export function MemorySearchModal({
             ) : (
               <CommandGroup>
                 {results.map((hit) => {
-                  const isHitSelected = selectedSet.has(hit.sourceRef);
+                  const hitSelected = isHitSelected(hit);
                   const mime = hit.mimeType ?? "application/octet-stream";
                   return (
                     <CommandItem
                       key={hit.sourceRef}
                       value={hit.sourceRef}
-                      onSelect={() =>
-                        toggleMemoryRecordId(hit.sourceRef, {
-                          title: hit.title,
-                          fileName: hit.fileName,
-                        })
-                      }
+                      onSelect={() => onHitSelected?.(hit)}
                       className="cursor-pointer flex-col items-stretch gap-1 py-2"
+                      disabled={disabled}
                     >
                       <Item>
                         <ItemMedia variant="icon">
@@ -268,13 +352,9 @@ export function MemorySearchModal({
                         <ItemContent>
                           <ItemTitle className="flex justify-between items-center w-full">
                             <span className="truncate text-xs font-medium">
-                              {memoryBadgeLabel({
-                                id: hit.sourceRef,
-                                title: hit.title,
-                                fileName: hit.fileName,
-                              })}
+                              {formatHitLabel(hit)}
                             </span>
-                            {isHitSelected && (
+                            {hitSelected && (
                               <CheckIcon
                                 size={6}
                                 className="shrink-0 text-muted-foreground"
@@ -296,5 +376,34 @@ export function MemorySearchModal({
         ) : null}
       </Command>
     </CommandDialog>
+  );
+}
+
+export function MemorySearchTrigger({
+  children,
+  type,
+  variant,
+  size,
+  className,
+  onClick,
+  disabled: disabledProp,
+  ...props
+}: React.ComponentProps<typeof Button>) {
+  const { setOpen, disabled } = useMemorySearch();
+  return (
+    <Button
+      type={type ?? "button"}
+      variant={variant ?? "ghost"}
+      size={size ?? "sm"}
+      className={className}
+      disabled={disabled || disabledProp}
+      onClick={(e) => {
+        setOpen(true);
+        onClick?.(e);
+      }}
+      {...props}
+    >
+      {children}
+    </Button>
   );
 }

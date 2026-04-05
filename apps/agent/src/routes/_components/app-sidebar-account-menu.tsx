@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  ActivityIcon,
-  BookOpenIcon,
-  ChevronDownIcon,
-  UserIcon,
-} from "lucide-react";
+import { ChevronDownIcon, UserIcon } from "lucide-react";
 import { useSidebar } from "@/components/layout/sidebar.js";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar.js";
 import { Button } from "@/components/ui/button.js";
@@ -17,7 +12,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu.js";
 import { cn } from "@/lib/utils";
-import { contextList, eventsList, Link } from "@/navigation/index.js";
+import { eventsList, Link, memoriesList } from "@/navigation/index.js";
+import EventsRouteIcon from "../events/route-icon.js";
+import MemoriesRouteIcon from "../memories/route-icon.js";
 
 function AccountMenuItems({ onNavigate }: { onNavigate?: () => void }) {
   return (
@@ -28,17 +25,17 @@ function AccountMenuItems({ onNavigate }: { onNavigate?: () => void }) {
           onBeforeNavigate={onNavigate}
           className={cn("flex cursor-pointer items-center gap-2")}
         >
-          <ActivityIcon className="size-4" />
+          <EventsRouteIcon className="size-4 opacity-70" />
           Events
         </Link>
       </DropdownMenuItem>
       <DropdownMenuItem asChild>
         <Link
-          href={contextList()}
+          href={memoriesList()}
           onBeforeNavigate={onNavigate}
           className={cn("flex cursor-pointer items-center gap-2")}
         >
-          <BookOpenIcon className="size-4" />
+          <MemoriesRouteIcon className="size-4 opacity-70" />
           Memories
         </Link>
       </DropdownMenuItem>

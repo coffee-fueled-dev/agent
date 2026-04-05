@@ -72,6 +72,7 @@ import type * as files_storeLib_ingestContent from "../files/storeLib/ingestCont
 import type * as files_storeLib_processDb from "../files/storeLib/processDb.js";
 import type * as files_storeLib_urls from "../files/storeLib/urls.js";
 import type * as files_storeLib_validators from "../files/storeLib/validators.js";
+import type * as memories_list from "../memories/list.js";
 import type * as memories_memorySearch from "../memories/memorySearch.js";
 import type * as memories_resolveMemories from "../memories/resolveMemories.js";
 import type * as observability_append from "../observability/append.js";
@@ -154,6 +155,7 @@ declare const fullApi: ApiFromModules<{
   "files/storeLib/processDb": typeof files_storeLib_processDb;
   "files/storeLib/urls": typeof files_storeLib_urls;
   "files/storeLib/validators": typeof files_storeLib_validators;
+  "memories/list": typeof memories_list;
   "memories/memorySearch": typeof memories_memorySearch;
   "memories/resolveMemories": typeof memories_resolveMemories;
   "observability/append": typeof observability_append;
@@ -472,6 +474,34 @@ export declare const components: {
           "internal",
           { memoryRecordId: string; namespace: string },
           null | { key: string; text?: string; title?: string }
+        >;
+        listMemoryRecordsPaginated: FunctionReference<
+          "query",
+          "internal",
+          {
+            namespace: string;
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
+          },
+          {
+            continueCursor: string;
+            isDone: boolean;
+            page: Array<{
+              _creationTime: number;
+              _id: string;
+              key: string;
+              namespace: string;
+              title?: string;
+            }>;
+            pageStatus?: "SplitRecommended" | "SplitRequired" | null;
+            splitCursor?: string | null;
+          }
         >;
       };
       search: {

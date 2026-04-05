@@ -1,6 +1,5 @@
 import { PaperclipIcon, SearchIcon } from "lucide-react";
-import type { ReactNode } from "react";
-import { Button } from "@/components/ui/button";
+import { type ReactNode, useCallback, useMemo } from "react";
 import {
   InputGroup,
   InputGroupAddon,
@@ -8,7 +7,12 @@ import {
   InputGroupTextarea,
 } from "@/components/ui/input-group";
 import { FileDropzone } from "@/files";
-import { MemorySearchModal } from "../../_components/memory-search-modal.js";
+import {
+  MemorySearch,
+  MemorySearchModal,
+  MemorySearchTrigger,
+  type SearchHit,
+} from "../../_components/memory-search-modal.js";
 import { useChatThread } from "../_hooks/use-chat-thread.js";
 import {
   ChatComposerAttachmentsProvider,
@@ -31,22 +35,41 @@ function ChatComposerInner() {
     useComposeMessage();
   const {
     memoryEntries,
+    memoryRecordIds,
     removeMemoryRecordId,
+    registerSeenMemoryIds,
+    toggleMemoryRecordId,
     memorySearchOpen,
     setMemorySearchOpen,
     shareMemoriesAllowed,
   } = useChatComposerMemory();
   const { files, addFiles } = useChatComposerAttachments();
 
-  return (
+  const selectedSet = useMemo(
+    () => new Set(memoryRecordIds),
+    [memoryRecordIds],
+  );
+
+  const onMemoryHitSelected = useCallback(
+    (hit: SearchHit) => {
+      toggleMemoryRecordId(hit.sourceRef, {
+        title: hit.title,
+        fileName: hit.fileName,
+      });
+    },
+    [toggleMemoryRecordId],
+  );
+
+  const onMemoryResults = useCallback(
+    (hits: SearchHit[]) => {
+      registerSeenMemoryIds(hits.map((h) => h.sourceRef));
+    },
+    [registerSeenMemoryIds],
+  );
+
+  const composerBody = (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-2">
-      {userId && shareMemoriesAllowed ? (
-        <MemorySearchModal
-          open={memorySearchOpen}
-          onOpenChange={setMemorySearchOpen}
-          namespace={userId}
-        />
-      ) : null}
+      {userId && shareMemoriesAllowed ? <MemorySearchModal /> : null}
       {memoryEntries.length > 0 ? (
         <div className="flex flex-wrap gap-1.5">
           {memoryEntries.map((entry) => (
@@ -104,19 +127,12 @@ function ChatComposerInner() {
           className="justify-between px-2 pb-2"
         >
           <div className="flex items-center gap-2">
-            {shareMemoriesAllowed ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-8 gap-1 px-2 text-muted-foreground text-xs"
-                disabled={!userId}
-                onClick={() => setMemorySearchOpen(true)}
-              >
+            {shareMemoriesAllowed && (
+              <MemorySearchTrigger className="h-8 gap-1 px-2 text-muted-foreground text-xs">
                 <SearchIcon className="size-3.5" />
                 Memories
-              </Button>
-            ) : null}
+              </MemorySearchTrigger>
+            )}
             <label className="inline-flex cursor-pointer items-center gap-1 text-muted-foreground text-xs">
               <PaperclipIcon className="size-3.5" />
               <span>Attach</span>
@@ -149,6 +165,29 @@ function ChatComposerInner() {
         </InputGroupAddon>
       </InputGroup>
     </div>
+  );
+
+  return shareMemoriesAllowed ? (
+    <MemorySearch
+      namespace={userId ?? ""}
+      open={memorySearchOpen}
+      onOpenChange={setMemorySearchOpen}
+      disabled={!userId}
+      onHitSelected={onMemoryHitSelected}
+      onResults={onMemoryResults}
+      isHitSelected={(hit) => selectedSet.has(hit.sourceRef)}
+      formatHitLabel={(hit) =>
+        memoryBadgeLabel({
+          id: hit.sourceRef,
+          title: hit.title,
+          fileName: hit.fileName,
+        })
+      }
+    >
+      {composerBody}
+    </MemorySearch>
+  ) : (
+    composerBody
   );
 }
 

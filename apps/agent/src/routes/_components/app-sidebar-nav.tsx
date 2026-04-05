@@ -7,7 +7,7 @@ import type {
   PaginationOptions,
   PaginationResult,
 } from "convex/server";
-import { ActivityIcon, PlusIcon } from "lucide-react";
+import { PlusIcon } from "lucide-react";
 import { FadeOverflow } from "@/components/layout/fade-overflow";
 import LoadMoreSentinel from "@/components/layout/load-more-sentinel";
 import {
@@ -25,7 +25,9 @@ import {
 } from "@/components/ui/tooltip";
 import { usePublicEnv } from "@/env/index.js";
 import { cn } from "@/lib/utils";
-import { chat, eventsList, Link } from "@/navigation/index.js";
+import { chat, eventsList, Link, memoriesList } from "@/navigation/index.js";
+import EventsRouteIcon from "../events/route-icon.js";
+import MemoriesRouteIcon from "../memories/route-icon.js";
 
 const PAGE_SIZE = 15;
 
@@ -169,8 +171,18 @@ export function AppSidebarNav({
               onBeforeNavigate={onNavigate}
               className="flex min-w-0 items-center gap-2"
             >
-              <ActivityIcon className="size-3.5 shrink-0 opacity-70" />
+              <EventsRouteIcon className="size-3.5 shrink-0 opacity-70" />
               <span className="truncate">Events</span>
+            </Link>
+          </SidebarGroupButton>
+          <SidebarGroupButton depth={1} asChild>
+            <Link
+              href={memoriesList()}
+              onBeforeNavigate={onNavigate}
+              className="flex min-w-0 items-center gap-2"
+            >
+              <MemoriesRouteIcon className="size-3.5 shrink-0 opacity-70" />
+              <span className="truncate">Memories</span>
             </Link>
           </SidebarGroupButton>
         </SidebarGroupContent>

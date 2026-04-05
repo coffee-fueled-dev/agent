@@ -32,6 +32,35 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           null | { key: string; text?: string; title?: string },
           Name
         >;
+        listMemoryRecordsPaginated: FunctionReference<
+          "query",
+          "internal",
+          {
+            namespace: string;
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
+          },
+          {
+            continueCursor: string;
+            isDone: boolean;
+            page: Array<{
+              _creationTime: number;
+              _id: string;
+              key: string;
+              namespace: string;
+              title?: string;
+            }>;
+            pageStatus?: "SplitRecommended" | "SplitRequired" | null;
+            splitCursor?: string | null;
+          },
+          Name
+        >;
       };
       search: {
         searchMemory: FunctionReference<

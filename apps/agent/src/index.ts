@@ -2,11 +2,13 @@ import { serve } from "bun";
 import chatPage from "./routes/chat/page.html";
 import eventsEventDetail from "./routes/events/[event]/page.html";
 import eventsPage from "./routes/events/page.html";
+import memoriesPage from "./routes/memories/page.html";
 
 const server = serve({
   routes: {
     "/events/:event": eventsEventDetail,
     "/events": eventsPage,
+    "/memories": memoriesPage,
     "/chat": chatPage,
     "/": chatPage,
     "/*": chatPage,

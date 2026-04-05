@@ -8,5 +8,6 @@ export {
   eventsDetail,
   eventsList,
   home,
+  memoriesList,
 } from "./routes.js";
 export { useNavigate } from "./use-navigate.js";
