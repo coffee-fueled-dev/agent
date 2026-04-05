@@ -92,7 +92,7 @@ function AppLayoutFrame({
           <header className="flex shrink-0 flex-wrap items-center gap-2 px-3 py-2 md:px-4">
             <SidebarPanelControl />
             {segmentLead ? (
-              <span className="flex shrink-0 items-center gap-2">
+              <span className="flex min-w-0 flex-1 flex-nowrap items-center gap-2">
                 {segmentLead}
               </span>
             ) : null}

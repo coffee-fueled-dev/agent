@@ -1,5 +1,9 @@
+import { api } from "@very-coffee/backend/api";
+import { useMutation, useQuery } from "convex/react";
 import { ActivityIcon } from "lucide-react";
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { LoaderWithMessage } from "@/components/blocks/loader-with-message.js";
+import { ClickToEditInline } from "@/components/click-to-edit-inline";
 import { PageSection } from "@/components/layout/page-section";
 import { SidebarInsetFill } from "@/components/layout/sidebar.js";
 import { Button } from "@/components/ui/button";
@@ -10,6 +14,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { FileDropzoneProvider } from "@/files";
+import { middleTruncate } from "@/lib/utils";
 import { renderApp } from "../../render-root.js";
 import { AppLayout } from "../_components/app-layout.js";
 import {
@@ -31,6 +36,58 @@ import { ChatComposerMemoryProvider } from "./_components/chat-composer-memory-p
 import { ChatMessageList } from "./_components/chat-message-list.js";
 import { HumanToolkitProvider } from "./_components/human-toolkit-provider.js";
 import { ChatThreadProvider, useChatThread } from "./_hooks/use-chat-thread.js";
+
+function ChatThreadSegmentLead() {
+  const [titleEditing, setTitleEditing] = useState(false);
+  const { threadId, hasUserId, userId } = useChatThread();
+  const thread = useQuery(
+    api.chat.thread.getThread,
+    threadId && userId ? { threadId, userId } : "skip",
+  );
+  const updateTitle = useMutation(api.chat.thread.updateThreadTitle);
+
+  const displayTitle = useMemo(() => {
+    const fallback = <LoaderWithMessage className="py-1 px-2" />;
+    if (!threadId || !userId) return fallback;
+    if (thread === undefined || thread === null) return fallback;
+    return thread.title?.trim() || fallback;
+  }, [thread, threadId, userId]);
+
+  const onSave = useCallback(
+    async (title: string) => {
+      if (!threadId || !userId) return;
+      await updateTitle({ threadId, userId, title });
+    },
+    [threadId, updateTitle, userId],
+  );
+
+  return (
+    <span className="text-muted-foreground flex min-w-0 max-w-full flex-nowrap items-center gap-2 text-xs font-medium uppercase tracking-wide">
+      <span className="min-w-0 flex-1 overflow-hidden">
+        {threadId && hasUserId ? (
+          <ClickToEditInline
+            value={displayTitle}
+            onSave={onSave}
+            onEditingChange={setTitleEditing}
+            className="font-bold uppercase"
+            inputClassName="uppercase tracking-wide"
+            aria-label="Thread name"
+          />
+        ) : (
+          <b>Chat</b>
+        )}
+      </span>
+      {threadId && !titleEditing ? (
+        <span
+          className="text-muted-foreground shrink-0 font-thin font-mono normal-case tabular-nums"
+          title={threadId}
+        >
+          {middleTruncate(threadId, 20)}
+        </span>
+      ) : null}
+    </span>
+  );
+}
 
 function ChatThreadEventBusPanel({
   threadId,
@@ -79,18 +136,13 @@ export function ChatRoute() {
 }
 
 function ChatRouteInner() {
-  const { threadId, hasUserId, userId } = useChatThread();
+  const { hasUserId, userId, threadId } = useChatThread();
   const { innerSidebarVisible, toggleInnerSidebarVisible } =
     useAppLayoutSidebar();
 
   return (
     <AppLayout
-      segmentLead={
-        <span className="text-muted-foreground text-xs font-medium uppercase tracking-wide space-x-2">
-          <b>Chat</b>
-          <span className="font-thin">{threadId}</span>
-        </span>
-      }
+      segmentLead={<ChatThreadSegmentLead />}
       segmentTrail={
         <Tooltip>
           <TooltipTrigger asChild>

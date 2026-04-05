@@ -329,6 +329,51 @@ export const continueThreadStream = internalAction({
   },
 });
 
+export const getThread = query({
+  args: {
+    threadId: v.string(),
+    userId: v.string(),
+  },
+  returns: v.union(
+    v.null(),
+    v.object({
+      _id: v.string(),
+      title: v.optional(v.string()),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    const thread = await ctx.runQuery(components.agent.threads.getThread, {
+      threadId: args.threadId as never,
+    });
+    if (!thread || thread.userId !== args.userId) {
+      return null;
+    }
+    return { _id: thread._id, title: thread.title };
+  },
+});
+
+export const updateThreadTitle = mutation({
+  args: {
+    threadId: v.string(),
+    userId: v.string(),
+    title: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const thread = await ctx.runQuery(components.agent.threads.getThread, {
+      threadId: args.threadId as never,
+    });
+    if (!thread || thread.userId !== args.userId) {
+      throw new Error("Thread not found or access denied");
+    }
+    await ctx.runMutation(components.agent.threads.updateThread, {
+      threadId: args.threadId,
+      patch: { title: args.title },
+    });
+    return null;
+  },
+});
+
 export const listRecentThreads = query({
   args: {
     userId: v.string(),
