@@ -58,6 +58,12 @@ import type * as files_storageAccess from "../files/storageAccess.js";
 import type * as files_store from "../files/store.js";
 import type * as memories_memorySearch from "../memories/memorySearch.js";
 import type * as memories_resolveMemories from "../memories/resolveMemories.js";
+import type * as observability_append from "../observability/append.js";
+import type * as observability_events from "../observability/events.js";
+import type * as observability_lookup from "../observability/lookup.js";
+import type * as observability_pipelineHooks from "../observability/pipelineHooks.js";
+import type * as observability_public from "../observability/public.js";
+import type * as observability_wiring from "../observability/wiring.js";
 import type * as types from "../types.js";
 import type * as workpool from "../workpool.js";
 
@@ -118,6 +124,12 @@ declare const fullApi: ApiFromModules<{
   "files/store": typeof files_store;
   "memories/memorySearch": typeof memories_memorySearch;
   "memories/resolveMemories": typeof memories_resolveMemories;
+  "observability/append": typeof observability_append;
+  "observability/events": typeof observability_events;
+  "observability/lookup": typeof observability_lookup;
+  "observability/pipelineHooks": typeof observability_pipelineHooks;
+  "observability/public": typeof observability_public;
+  "observability/wiring": typeof observability_wiring;
   types: typeof types;
   workpool: typeof workpool;
 }>;
@@ -149,6 +161,277 @@ export declare const internal: FilterApi<
 >;
 
 export declare const components: {
+  events: {
+    public: {
+      append: {
+        appendToStream: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            causationId?: string;
+            correlationId?: string;
+            eventId: string;
+            eventTime?: number;
+            eventType: string;
+            expectedVersion?: number;
+            metadata?: Record<string, string | number | boolean | null>;
+            namespace?: string;
+            payload?: any;
+            session?: string;
+            streamId: string;
+            streamType: string;
+          },
+          {
+            _creationTime: number;
+            _id: string;
+            causationId?: string;
+            correlationId?: string;
+            eventId: string;
+            eventTime: number;
+            eventType: string;
+            eventTypeId: string;
+            globalSequence: number;
+            metadata?: Record<string, string | number | boolean | null>;
+            namespace: string;
+            payload?: any;
+            session?: string;
+            streamId: string;
+            streamType: string;
+            streamTypeId: string;
+            streamVersion: number;
+          }
+        >;
+      };
+      dimensions: {
+        listDimensions: FunctionReference<
+          "query",
+          "internal",
+          { kind: "eventType" | "streamType"; namespace?: string },
+          any
+        >;
+      };
+      metrics: {
+        getMetricsBatch: FunctionReference<
+          "query",
+          "internal",
+          { groupKeys: Array<string>; name: string },
+          Record<string, { count: number; lastEventTime: number }>
+        >;
+        incrementBatch: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            increments: Array<{
+              eventTime: number;
+              groupKey: string;
+              name: string;
+            }>;
+          },
+          null
+        >;
+      };
+      projectors: {
+        advanceCheckpoint: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            lastSequence: number;
+            leaseOwner?: string;
+            projector: string;
+            releaseClaim?: boolean;
+            streamType: string;
+          },
+          {
+            _creationTime: number;
+            _id: string;
+            lastSequence: number;
+            leaseExpiresAt?: number;
+            leaseOwner?: string;
+            projector: string;
+            streamType: string;
+            updatedTime: number;
+          }
+        >;
+        claimOrReadCheckpoint: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            leaseDurationMs?: number;
+            leaseOwner?: string;
+            projector: string;
+            streamType: string;
+          },
+          {
+            checkpoint: {
+              _creationTime: number;
+              _id: string;
+              lastSequence: number;
+              leaseExpiresAt?: number;
+              leaseOwner?: string;
+              projector: string;
+              streamType: string;
+              updatedTime: number;
+            };
+            claimed: boolean;
+          }
+        >;
+        listUnprocessedEvents: FunctionReference<
+          "query",
+          "internal",
+          { limit?: number; projector: string; streamType: string },
+          Array<{
+            _creationTime: number;
+            _id: string;
+            causationId?: string;
+            correlationId?: string;
+            eventId: string;
+            eventTime: number;
+            eventType: string;
+            eventTypeId: string;
+            globalSequence: number;
+            metadata?: Record<string, string | number | boolean | null>;
+            namespace: string;
+            payload?: any;
+            session?: string;
+            streamId: string;
+            streamType: string;
+            streamTypeId: string;
+            streamVersion: number;
+          }>
+        >;
+        readCheckpoint: FunctionReference<
+          "query",
+          "internal",
+          { projector: string; streamType: string },
+          {
+            _creationTime: number;
+            _id: string;
+            lastSequence: number;
+            leaseExpiresAt?: number;
+            leaseOwner?: string;
+            projector: string;
+            streamType: string;
+            updatedTime: number;
+          } | null
+        >;
+      };
+      read: {
+        getEvent: FunctionReference<
+          "query",
+          "internal",
+          {
+            eventId: string;
+            namespace?: string;
+            streamId: string;
+            streamType: string;
+          },
+          {
+            _creationTime: number;
+            _id: string;
+            causationId?: string;
+            correlationId?: string;
+            eventId: string;
+            eventTime: number;
+            eventType: string;
+            eventTypeId: string;
+            globalSequence: number;
+            metadata?: Record<string, string | number | boolean | null>;
+            namespace: string;
+            payload?: any;
+            session?: string;
+            streamId: string;
+            streamType: string;
+            streamTypeId: string;
+            streamVersion: number;
+          } | null
+        >;
+        listCategoryEvents: FunctionReference<
+          "query",
+          "internal",
+          {
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
+            streamType: string;
+          },
+          any
+        >;
+        listStreamEvents: FunctionReference<
+          "query",
+          "internal",
+          {
+            eventTypeId?: string;
+            eventTypes?: Array<string>;
+            namespace?: string;
+            order?: "asc" | "desc";
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
+            streamId: string;
+            streamType: string;
+            streamTypeId?: string;
+          },
+          any
+        >;
+        listStreamEventsSince: FunctionReference<
+          "query",
+          "internal",
+          {
+            eventTypeId?: string;
+            eventTypes?: Array<string>;
+            minEventTime: number;
+            namespace?: string;
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
+            streamId: string;
+            streamType: string;
+            streamTypeId?: string;
+          },
+          any
+        >;
+      };
+      streams: {
+        getStream: FunctionReference<
+          "query",
+          "internal",
+          { namespace?: string; streamId: string; streamType: string },
+          {
+            _creationTime: number;
+            _id: string;
+            createdTime: number;
+            lastEventSequence: number | null;
+            namespace: string;
+            streamId: string;
+            streamType: string;
+            updatedTime: number;
+            version: number;
+          } | null
+        >;
+        getStreamVersion: FunctionReference<
+          "query",
+          "internal",
+          { namespace?: string; streamId: string; streamType: string },
+          number
+        >;
+      };
+    };
+  };
   memory: {
     public: {
       records: {

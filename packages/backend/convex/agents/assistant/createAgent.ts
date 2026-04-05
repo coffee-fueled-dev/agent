@@ -2,6 +2,7 @@ import { Agent } from "@convex-dev/agent";
 import {
   computeRuntimeIdentityFromEvaluation,
   defineAgentIdentity,
+  mergeToolPipelineHooks,
   type RegisteredAgentIdentity,
   type ToolPipelineHooks,
 } from "@very-coffee/agent-identity";
@@ -9,6 +10,7 @@ import { fingerprintClient } from "_clients/fingerprints.js";
 import { components, internal } from "_generated/api.js";
 import { internalAction } from "_generated/server.js";
 import { v } from "convex/values";
+import { buildObservabilityPipelineHooks } from "../../observability/pipelineHooks.js";
 import { pool } from "../../workpool.js";
 import { toolLibrary } from "../_tools/toolRegistry.js";
 import type {
@@ -54,22 +56,46 @@ type RecordAgentTurnEnqueueArgs = {
 
 export async function createAssistantAgent(
   ctx: ToolBuilderContext,
-  options?: { pipelineHooks?: ToolPipelineHooks<ConvexAgentEnv> },
+  options?: {
+    pipelineHooks?: ToolPipelineHooks<ConvexAgentEnv>;
+    userId?: string;
+  },
 ) {
-  const toolkitCtx = createToolkitContext(ctx, options);
-  const env = createConvexAgentEnv(ctx);
-  const agent = await getAssistantDefinition();
-  const { runtimeHash, toolRefs, evaluatedTools } =
-    await computeRuntimeIdentityFromEvaluation(assistantTools, toolkitCtx);
   if (!ctx.threadId?.length) {
     throw new Error("Assistant turn requires threadId");
   }
   if (!ctx.messageId) {
     throw new Error("Assistant turn requires messageId (prompt message id)");
   }
+  const threadId = ctx.threadId;
+  const messageId = ctx.messageId;
+
+  const observabilityHooks =
+    options?.userId != null && options.userId !== ""
+      ? buildObservabilityPipelineHooks({
+          userId: options.userId,
+          threadId,
+          messageId,
+          sessionId: ctx.sessionId,
+          namespace: ctx.namespace,
+          agentId: ctx.agentId,
+        })
+      : undefined;
+  const mergedHooks = mergeToolPipelineHooks(
+    observabilityHooks,
+    options?.pipelineHooks,
+  );
+  const toolkitCtx = createToolkitContext(
+    ctx,
+    mergedHooks ? { pipelineHooks: mergedHooks } : undefined,
+  );
+  const env = createConvexAgentEnv(ctx);
+  const agent = await getAssistantDefinition();
+  const { runtimeHash, toolRefs, evaluatedTools } =
+    await computeRuntimeIdentityFromEvaluation(assistantTools, toolkitCtx);
   const enqueueArgs = {
-    threadId: ctx.threadId,
-    messageId: ctx.messageId,
+    threadId,
+    messageId,
     sessionId: ctx.sessionId,
     namespace: ctx.namespace,
     staticHash: agent.staticHash,

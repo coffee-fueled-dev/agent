@@ -7,6 +7,13 @@ import type {
 } from "convex/server";
 import { getGoogleApiKey } from "../../../env/models.js";
 import type { ComponentApi } from "../_generated/component.js";
+import {
+  type MemorySubscribable,
+  type MemorySubscriber,
+  notifyMemorySubscribers,
+} from "./events.js";
+
+export type * from "./events.js";
 
 type RunMutationCtx = Pick<
   GenericMutationCtx<GenericDataModel>,
@@ -109,7 +116,10 @@ export class MemoryClient<
     string,
     TSourceItem
   >,
-> {
+> implements MemorySubscribable<NAME>
+{
+  private _subscribers = new Map<string, MemorySubscriber<NAME>>();
+
   readonly resolvers: Record<
     string,
     (
@@ -163,28 +173,65 @@ export class MemoryClient<
     }
   }
 
-  mergeMemory = (ctx: RunMutationCtx, args: FunctionArgs<MergeMemory<NAME>>) =>
-    ctx.runMutation(this.component.public.store.mergeMemory, {
-      ...args,
-      googleApiKey:
-        args.googleApiKey ?? this.config.googleApiKey ?? getGoogleApiKey(),
-    });
+  subscribe(id: string, callback: MemorySubscriber<NAME>): void {
+    this._subscribers.set(id, callback);
+  }
 
-  searchMemory = (ctx: RunActionCtx, args: FunctionArgs<SearchMemory<NAME>>) =>
-    ctx.runAction(this.component.public.search.searchMemory, {
-      ...args,
-      googleApiKey:
-        args.googleApiKey ?? this.config.googleApiKey ?? getGoogleApiKey(),
+  mergeMemory = async (
+    ctx: RunMutationCtx,
+    args: FunctionArgs<MergeMemory<NAME>>,
+  ) => {
+    const result = await ctx.runMutation(
+      this.component.public.store.mergeMemory,
+      {
+        ...args,
+        googleApiKey:
+          args.googleApiKey ?? this.config.googleApiKey ?? getGoogleApiKey(),
+      },
+    );
+    await notifyMemorySubscribers(this._subscribers, ctx, {
+      event: "mergeMemory",
+      args,
+      result,
     });
+    return result;
+  };
 
-  registerStorageSourceMetadata = (
+  searchMemory = async (
+    ctx: RunActionCtx,
+    args: FunctionArgs<SearchMemory<NAME>>,
+  ) => {
+    const result = await ctx.runAction(
+      this.component.public.search.searchMemory,
+      {
+        ...args,
+        googleApiKey:
+          args.googleApiKey ?? this.config.googleApiKey ?? getGoogleApiKey(),
+      },
+    );
+    await notifyMemorySubscribers(this._subscribers, ctx, {
+      event: "searchMemory",
+      args,
+      result,
+    });
+    return result;
+  };
+
+  registerStorageSourceMetadata = async (
     ctx: RunMutationCtx,
     args: FunctionArgs<RegisterStorageSourceMetadata<NAME>>,
-  ) =>
-    ctx.runMutation(
+  ) => {
+    await ctx.runMutation(
       this.component.public.sourceMaps.registerStorageSourceMetadata,
       args,
     );
+    await notifyMemorySubscribers(this._subscribers, ctx, {
+      event: "registerStorageSourceMetadata",
+      args,
+      result: null,
+    });
+    return null;
+  };
 
   listSourceMapsForMemory = (
     ctx: RunQueryCtx,

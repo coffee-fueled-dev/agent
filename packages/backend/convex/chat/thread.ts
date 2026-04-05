@@ -20,6 +20,8 @@ import { SessionIdArg } from "convex-helpers/server/sessions";
 import { components, internal } from "../_generated/api.js";
 import { internalAction, mutation, query } from "../_generated/server.js";
 import { createAssistantAgent } from "../agents/assistant/createAgent.js";
+import { buildObservabilityPipelineHooks } from "../observability/pipelineHooks.js";
+import { ensureObservabilityWiring } from "../observability/wiring.js";
 import {
   ASSISTANT_ACTOR_KEY,
   CHAT_ACTOR_STREAM_TYPE,
@@ -178,6 +180,14 @@ export const applyHumanToolCallsForTurn = internalAction({
         namespace: args.namespace,
         sessionId: args.sessionId,
         toolCalls,
+        pipelineHooks: buildObservabilityPipelineHooks({
+          userId: args.userId,
+          threadId: args.threadId,
+          messageId: args.promptMessageId,
+          sessionId: args.sessionId,
+          namespace: args.namespace,
+          agentId: args.namespace,
+        }),
       });
     const cfdMeta = cfdTurnProviderMetadata(args.turnId, args.threadId);
     await saveMessages(ctx, components.agent, {
@@ -244,6 +254,7 @@ export const continueThreadStream = internalAction({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
+    ensureObservabilityWiring();
     const turnId = args.turnId ?? "";
     await chatActorHistory.append(ctx, {
       streamType: CHAT_ACTOR_STREAM_TYPE,
@@ -262,15 +273,18 @@ export const continueThreadStream = internalAction({
     const hasToolCalls = toolCalls.length > 0;
 
     const [agent] = await Promise.all([
-      createAssistantAgent({
-        ...ctx,
-        threadId: args.threadId,
-        messageId: args.promptMessageId,
-        namespace: args.namespace,
-        sessionId: args.sessionId,
-        agentId: "assistant",
-        agentName: "Assistant",
-      }),
+      createAssistantAgent(
+        {
+          ...ctx,
+          threadId: args.threadId,
+          messageId: args.promptMessageId,
+          namespace: args.namespace,
+          sessionId: args.sessionId,
+          agentId: "assistant",
+          agentName: "Assistant",
+        },
+        { userId: args.userId },
+      ),
       hasToolCalls
         ? ctx.runAction(internal.chat.thread.applyHumanToolCallsForTurn, {
             threadId: args.threadId,

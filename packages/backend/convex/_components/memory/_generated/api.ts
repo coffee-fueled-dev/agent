@@ -9,6 +9,7 @@
  */
 
 import type * as _lib from "../_lib.js";
+import type * as client_events from "../client/events.js";
 import type * as client_index from "../client/index.js";
 import type * as graph from "../graph.js";
 import type * as history from "../history.js";
@@ -32,6 +33,7 @@ import { anyApi, componentsGeneric } from "convex/server";
 
 const fullApi: ApiFromModules<{
   _lib: typeof _lib;
+  "client/events": typeof client_events;
   "client/index": typeof client_index;
   graph: typeof graph;
   history: typeof history;

@@ -1,7 +1,9 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { busTables } from "./observability/events.js";
 
 export default defineSchema({
+  ...busTables,
   fileProcesses: defineTable({
     namespace: v.string(),
     key: v.string(),
