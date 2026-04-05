@@ -19,8 +19,16 @@ const server = serve({
     console: true,
   },
 
-  hostname: "0.0.0.0",
+  hostname: process.env.HOSTNAME ?? "0.0.0.0",
   port: process.env.PORT ? parseInt(process.env.PORT, 10) : 3000,
 });
 
-console.log(`Server running at ${server.url}`);
+console.log(
+  JSON.stringify({
+    type: "bun-dev-server",
+    app: "agent",
+    url: server.url.href,
+    hostname: server.hostname,
+    port: server.port,
+  }),
+);

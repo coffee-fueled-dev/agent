@@ -28,7 +28,8 @@
 
     "baseUrl": ".",
     "paths": {
-      "@/convex/*": ["./convex/*"]
+      "@/convex/*": ["./convex/*"],
+      "@/scripts/*": ["./scripts/*"]
     }
   }
 }
