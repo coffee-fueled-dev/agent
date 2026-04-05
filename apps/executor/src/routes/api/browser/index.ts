@@ -1,9 +1,7 @@
 import type { AgentAction } from "@browserbasehq/stagehand";
 import { Stagehand } from "@browserbasehq/stagehand";
-import { getLocalShellSecret, isLocalAgentEnabled } from "../fs/env.js";
+import { isLocalAgentEnabled } from "../fs/env.js";
 import { runWithBrowserbaseRetries } from "./rateLimitRetry.js";
-
-const secret = getLocalShellSecret();
 
 /** CUA agent instructions — bias toward fewer Gemini calls (RPM/TPM/RPD per https://ai.google.dev/gemini-api/docs/rate-limits). */
 const BROWSE_SYSTEM_PROMPT =
@@ -62,6 +60,10 @@ function trim(s: string | undefined): string | undefined {
   return t === "" ? undefined : t;
 }
 
+function browserExecutorSecret(): string | undefined {
+  return trim(process.env.BROWSER_EXECUTOR_SECRET);
+}
+
 function requireEnv(name: string): string {
   const v = trim(process.env[name]);
   if (!v) {
@@ -113,8 +115,10 @@ function notFound(): Response {
 }
 
 function checkAuth(req: Request): boolean {
+  const expected = browserExecutorSecret();
+  if (!expected) return false;
   const auth = req.headers.get("authorization");
-  return auth === `Bearer ${secret}`;
+  return auth === `Bearer ${expected}`;
 }
 
 export const browserBrowseRoute = {

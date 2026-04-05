@@ -4,6 +4,7 @@ import type { ActionCtx } from "../../_generated/server.js";
 import {
   getFileEmbeddingApiUrl,
   getFileEmbeddingSecret,
+  isFileEmbeddingApiConfigured,
 } from "../../env/embedding.js";
 import { mintFileUrlForNamespace } from "../storageAccess.js";
 
@@ -27,6 +28,15 @@ export async function handleDispatchEmbeddingJob(
     await ctx.runMutation(internal.files.store.setProcessFailed, {
       processId: args.processId,
       error: e instanceof Error ? e.message : "Storage URL unavailable",
+    });
+    return;
+  }
+
+  if (!isFileEmbeddingApiConfigured()) {
+    await ctx.runMutation(internal.files.store.setProcessFailed, {
+      processId: args.processId,
+      error:
+        "FILE_EMBEDDING_API_URL is not set in Convex environment; file embedding is disabled",
     });
     return;
   }

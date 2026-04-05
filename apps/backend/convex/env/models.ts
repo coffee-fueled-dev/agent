@@ -1,6 +1,8 @@
 /**
  * Host app Convex env. Components do not reliably receive deployment env; pass keys from
  * the app into component calls (see MemoryClient, agent tools).
+ *
+ * Key names align with `convexDashboardEnvSchema` in `packages/config` (subset used for models).
  */
 import { z } from "zod/v4";
 

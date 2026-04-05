@@ -1,3 +1,8 @@
+import {
+  DEFAULT_EXECUTOR_LISTEN_HOST,
+  DEFAULT_EXECUTOR_LISTEN_PORT,
+  executorHttpRoutes,
+} from "@agent/config";
 import { serve } from "bun";
 import { browserBrowseRoute } from "./routes/api/browser/index.js";
 import { fileEmbeddingRoute } from "./routes/api/embedding/index.js";
@@ -7,13 +12,25 @@ import {
   fsWriteRoute,
 } from "./routes/api/fs/index.js";
 
+const r = executorHttpRoutes;
+
+const hostname =
+  process.env.EXECUTOR_LISTEN_HOST?.trim() ||
+  process.env.HOSTNAME?.trim() ||
+  DEFAULT_EXECUTOR_LISTEN_HOST;
+const port = process.env.EXECUTOR_LISTEN_PORT?.trim()
+  ? Number.parseInt(process.env.EXECUTOR_LISTEN_PORT, 10)
+  : process.env.PORT
+    ? Number.parseInt(process.env.PORT, 10)
+    : DEFAULT_EXECUTOR_LISTEN_PORT;
+
 const server = serve({
   routes: {
-    "/api/browser/browse": browserBrowseRoute,
-    "/api/file-embedding": fileEmbeddingRoute,
-    "/api/fs/execute": fsExecuteRoute,
-    "/api/fs/read": fsReadRoute,
-    "/api/fs/write": fsWriteRoute,
+    [r.browserBrowse]: browserBrowseRoute,
+    [r.fileEmbedding]: fileEmbeddingRoute,
+    [r.fsExecute]: fsExecuteRoute,
+    [r.fsRead]: fsReadRoute,
+    [r.fsWrite]: fsWriteRoute,
   },
 
   development: process.env.NODE_ENV !== "production" && {
@@ -21,8 +38,8 @@ const server = serve({
     console: true,
   },
 
-  hostname: process.env.HOSTNAME ?? "0.0.0.0",
-  port: process.env.PORT ? parseInt(process.env.PORT, 10) : 3000,
+  hostname,
+  port,
 });
 
 console.log(

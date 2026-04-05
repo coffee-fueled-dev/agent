@@ -8,6 +8,7 @@
     "start": "bun --env-file=.env run src/index.ts"
   },
   "dependencies": {
+    "@agent/config": "workspace:*",
     "@browserbasehq/stagehand": "^3.2.0",
     "@google/genai": "^1.48.0",
     "@agent/backend": "workspace:*",

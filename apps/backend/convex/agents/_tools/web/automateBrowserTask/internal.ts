@@ -2,7 +2,7 @@ import { internalAction } from "_generated/server.js";
 import { v } from "convex/values";
 import {
   getBrowseExecutorApiUrl,
-  getLocalShellSecret,
+  getBrowserExecutorSecret,
   isBrowseExecutorEnabled,
 } from "env/executor.js";
 
@@ -19,11 +19,11 @@ export const execute = internalAction({
   handler: async (_ctx, args) => {
     if (!isBrowseExecutorEnabled()) {
       throw new Error(
-        "Browser automation executor is not enabled. Set BROWSER_EXECUTOR_ENABLED=true and configure EXECUTOR_URL and LOCAL_SHELL_SECRET to match the executor (same as shell). The executor process must have LOCAL_AGENT=true and Browserbase / Google env vars — see apps/executor.",
+        "Browser automation executor is not enabled. Set BROWSER_EXECUTOR_ENABLED=true and configure BROWSER_EXECUTOR_API_URL and BROWSER_EXECUTOR_SECRET (must match the executor process). The HTTP tooling server must have local agent enabled and Browserbase / Google env vars — see apps/executor.",
       );
     }
     const url = getBrowseExecutorApiUrl();
-    const secret = getLocalShellSecret();
+    const secret = getBrowserExecutorSecret();
     const res = await fetch(url, {
       method: "POST",
       headers: {

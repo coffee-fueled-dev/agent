@@ -1,5 +1,6 @@
 import { z } from "zod/v4";
 
+/** Optional; same key as in `convexDashboardEnvSchema` (`@agent/config`). */
 const schema = z.object({
   STORAGE_PUBLIC_TUNNEL_ORIGIN: z.string().optional(),
 });

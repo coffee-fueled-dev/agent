@@ -1,3 +1,5 @@
+import { getEmbeddingCacheDbPath as embeddingCachePathFromEnv } from "@agent/config";
+
 function trim(value: string | undefined): string | undefined {
   const next = value?.trim();
   return next ? next : undefined;
@@ -12,15 +14,13 @@ export function getConvexUrl(): string {
 
 export function getFileEmbeddingSecret(): string {
   return (
-    trim(process.env.BINARY_EMBEDDING_SECRET) ??
+    trim(process.env.FILE_EMBEDDING_SECRET) ??
     "dev-only-binary-embedding-secret"
   );
 }
 
 export function getEmbeddingCacheDbPath(): string {
-  return (
-    trim(process.env.EMBEDDING_CACHE_DB) ?? ".sqlite/embedding-cache.sqlite"
-  );
+  return embeddingCachePathFromEnv(process.env);
 }
 
 export function getGoogleApiKey(): string | undefined {

@@ -1,23 +1,14 @@
 import { randomBytes } from "node:crypto";
 import path from "node:path";
-import { z } from "zod";
+import {
+  type ConvexDashboardEnv,
+  convexDashboardEnvSchema,
+} from "@agent/config";
 import { forwardStream } from "./_lib.ts";
 
-export const convexEnvSchema = z.object({
-  GOOGLE_GENERATIVE_AI_API_KEY: z.string().min(1),
-  OPENAI_API_KEY: z.string().min(1),
-  EMBEDDING_SERVER_URL: z.string().min(1),
-  BINARY_EMBEDDING_SECRET: z.string().min(1),
-  EXECUTOR_URL: z.string().min(1),
-  LOCAL_SHELL_SECRET: z.string().min(1),
-  SHELL_EXECUTOR_ENABLED: z.string().min(1),
-  BROWSER_EXECUTOR_ENABLED: z.string().min(1),
-  BROWSERBASE_API_KEY: z.string().min(1),
-  BROWSERBASE_PROJECT_ID: z.string().min(1),
-  QUERY_URL_GEMINI_MODEL: z.string().optional(),
-  STORAGE_PUBLIC_TUNNEL_ORIGIN: z.string().optional(),
-  BROWSERBASE_STAGEHAND_CUA_MODEL: z.string().optional(),
-});
+/** Same as `convexDashboardEnvSchema` from `@agent/config` (Convex `convex env set` keys). */
+export const convexEnvSchema = convexDashboardEnvSchema;
+export type { ConvexDashboardEnv };
 
 const CONVEX_DEV_READY_RE =
   /Provisioned a dev deployment|Convex functions ready!/;
@@ -103,8 +94,12 @@ export async function ensurePublicEnvInDotenvLocal(cwd: string): Promise<void> {
 
   const out: string[] = [...lines];
   if (convexUrl) {
-    out.push(`BUN_PUBLIC_CONVEX_URL=${quoteEnvValue(convexUrl)}`);
     process.env.BUN_PUBLIC_CONVEX_URL = convexUrl;
+    // Always emit `BUN_PUBLIC_CONVEX_URL` for the agent app: `bunfig.toml` uses `env = "BUN_PUBLIC_*"` so the
+    // browser bundle only inlines those keys from `.env.local` / `--env-file`. Skipping this line when it
+    // matched `CONVEX_URL` left the bundler with no `BUN_PUBLIC_CONVEX_URL` (Convex WebSocket failed with 1006).
+    // Duplicate URL values may trigger “Can't safely modify .env.local for CONVEX_URL” from the Convex CLI; harmless for dev.
+    out.push(`BUN_PUBLIC_CONVEX_URL=${quoteEnvValue(convexUrl)}`);
   }
   out.push(`BUN_PUBLIC_ACCOUNT_TOKEN=${quoteEnvValue(token)}`);
   process.env.BUN_PUBLIC_ACCOUNT_TOKEN = token;
@@ -280,12 +275,49 @@ export type ConvexDevRun = {
   ready: Promise<void>;
 };
 
+/** Set a single Convex dashboard env var (same spawn env as `runConvexDev`). */
+export async function convexEnvSetInDeployment(opts: {
+  cwd: string;
+  key: string;
+  value: string;
+}): Promise<void> {
+  const { cwd, key, value } = opts;
+  let env: Record<string, string | undefined> = { ...process.env };
+
+  const localConfigPath = path.join(cwd, ".convex/local/default/config.json");
+  const localConfigFile = Bun.file(localConfigPath);
+  if (await localConfigFile.exists()) {
+    try {
+      const local = (await localConfigFile.json()) as {
+        deploymentName?: string;
+      };
+      if (typeof local.deploymentName === "string" && local.deploymentName) {
+        env = { ...env, CONVEX_DEPLOYMENT: local.deploymentName };
+      }
+    } catch {
+      // ignore invalid JSON
+    }
+  }
+
+  const proc = Bun.spawn({
+    cmd: ["bunx", "convex", "env", "set", key, value],
+    cwd,
+    env: env as Record<string, string>,
+    stdout: "inherit",
+    stderr: "inherit",
+  });
+  const code = await proc.exited;
+  if (code !== 0) {
+    throw new Error(`Failed to set convex env: ${key}`);
+  }
+}
+
 export async function runConvexDev(opts: {
-  appEnv: z.infer<typeof convexEnvSchema>;
+  appEnv: ConvexDashboardEnv;
   cwd: string;
 }): Promise<ConvexDevRun> {
   const { appEnv, cwd } = opts;
-  const parsed = convexEnvSchema.parse(appEnv);
+  const parsed = convexDashboardEnvSchema.parse(appEnv);
 
   let env: Record<string, string | undefined> = { ...process.env, ...parsed };
 
@@ -305,6 +337,7 @@ export async function runConvexDev(opts: {
   }
 
   for (const [key, value] of Object.entries(parsed)) {
+    if (value === undefined || value === "") continue;
     const proc = Bun.spawn({
       cmd: ["bunx", "convex", "env", "set", key, value],
       cwd,

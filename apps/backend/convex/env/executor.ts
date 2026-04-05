@@ -1,10 +1,13 @@
 import { z } from "zod/v4";
 
+/** Field names match tooling URLs/secrets in `convexDashboardEnvSchema` (`@agent/config`). */
 const executorEnvSchema = z.object({
-  EXECUTOR_URL: z.string().optional(),
-  LOCAL_SHELL_SECRET: z.string().optional(),
+  SHELL_EXECUTOR_API_URL: z.string().optional(),
+  BROWSER_EXECUTOR_API_URL: z.string().optional(),
+  SHELL_EXECUTOR_SECRET: z.string().optional(),
+  BROWSER_EXECUTOR_SECRET: z.string().optional(),
   SHELL_EXECUTOR_ENABLED: z.string().optional(),
-  /** When true, `automateBrowserTask` POSTs to the executor Bun server (`/api/browser/browse`). */
+  /** When true, `automateBrowserTask` POSTs to the browser executor HTTP endpoint. */
   BROWSER_EXECUTOR_ENABLED: z.string().optional(),
 });
 
@@ -15,29 +18,59 @@ function trim(s: string | undefined): string | undefined {
   return t === "" ? undefined : t;
 }
 
-/** Base URL of the executor HTTP server (shell routes under `/api/fs/*`). */
-export function getExecutorBaseUrl(): string {
-  return trim(env.EXECUTOR_URL) ?? "http://127.0.0.1:3000";
+function shellExecutorUrlConfigured(): boolean {
+  return Boolean(trim(env.SHELL_EXECUTOR_API_URL));
 }
 
-/** POST target for sandboxed shell execution on the executor. */
+function browseExecutorUrlConfigured(): boolean {
+  return Boolean(trim(env.BROWSER_EXECUTOR_API_URL));
+}
+
+function browseExecutorSecretConfigured(): boolean {
+  return Boolean(trim(env.BROWSER_EXECUTOR_SECRET));
+}
+
+/** POST target for sandboxed shell execution on the HTTP tooling server. */
 export function getShellExecutorApiUrl(): string {
-  return `${getExecutorBaseUrl().replace(/\/+$/, "")}/api/fs/execute`;
+  const u = trim(env.SHELL_EXECUTOR_API_URL);
+  if (!u) {
+    throw new Error("SHELL_EXECUTOR_API_URL is not set");
+  }
+  return u;
 }
 
 export function getLocalShellSecret(): string {
-  return trim(env.LOCAL_SHELL_SECRET) ?? "dev-only-local-shell-secret";
+  return trim(env.SHELL_EXECUTOR_SECRET) ?? "dev-only-local-shell-secret";
 }
 
 export function isShellExecutorEnabled(): boolean {
-  return trim(env.SHELL_EXECUTOR_ENABLED) === "true";
+  return (
+    trim(env.SHELL_EXECUTOR_ENABLED) === "true" && shellExecutorUrlConfigured()
+  );
 }
 
-/** POST target for Stagehand / Browserbase browser runs on the executor. */
+/** POST target for Stagehand / Browserbase browser runs. */
 export function getBrowseExecutorApiUrl(): string {
-  return `${getExecutorBaseUrl().replace(/\/+$/, "")}/api/browser/browse`;
+  const u = trim(env.BROWSER_EXECUTOR_API_URL);
+  if (!u) {
+    throw new Error("BROWSER_EXECUTOR_API_URL is not set");
+  }
+  return u;
+}
+
+/** Bearer token Convex sends to `POST` browser automation; must match the executor’s `BROWSER_EXECUTOR_SECRET`. */
+export function getBrowserExecutorSecret(): string {
+  const u = trim(env.BROWSER_EXECUTOR_SECRET);
+  if (!u) {
+    throw new Error("BROWSER_EXECUTOR_SECRET is not set");
+  }
+  return u;
 }
 
 export function isBrowseExecutorEnabled(): boolean {
-  return trim(env.BROWSER_EXECUTOR_ENABLED) === "true";
+  return (
+    trim(env.BROWSER_EXECUTOR_ENABLED) === "true" &&
+    browseExecutorUrlConfigured() &&
+    browseExecutorSecretConfigured()
+  );
 }

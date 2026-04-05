@@ -1,8 +1,22 @@
+import {
+  DEFAULT_AGENT_LISTEN_HOST,
+  DEFAULT_AGENT_LISTEN_PORT,
+} from "@agent/config";
 import { serve } from "bun";
 import chatPage from "./routes/chat/page.html";
 import eventsEventDetail from "./routes/events/[event]/page.html";
 import eventsPage from "./routes/events/page.html";
 import memoriesPage from "./routes/memories/page.html";
+
+const hostname =
+  process.env.AGENT_LISTEN_HOST?.trim() ||
+  process.env.HOSTNAME?.trim() ||
+  DEFAULT_AGENT_LISTEN_HOST;
+const port = process.env.AGENT_LISTEN_PORT?.trim()
+  ? Number.parseInt(process.env.AGENT_LISTEN_PORT, 10)
+  : process.env.PORT
+    ? Number.parseInt(process.env.PORT, 10)
+    : DEFAULT_AGENT_LISTEN_PORT;
 
 const server = serve({
   routes: {
@@ -19,8 +33,8 @@ const server = serve({
     console: true,
   },
 
-  hostname: process.env.HOSTNAME ?? "0.0.0.0",
-  port: process.env.PORT ? parseInt(process.env.PORT, 10) : 3000,
+  hostname,
+  port,
 });
 
 console.log(

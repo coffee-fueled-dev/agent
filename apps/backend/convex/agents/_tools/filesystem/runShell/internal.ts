@@ -20,7 +20,7 @@ export const execute = internalAction({
   handler: async (_ctx, args) => {
     if (!isShellExecutorEnabled()) {
       throw new Error(
-        "Shell executor is not enabled. Set SHELL_EXECUTOR_ENABLED=true and configure EXECUTOR_URL and LOCAL_SHELL_SECRET to match the executor.",
+        "Shell executor is not enabled. Set SHELL_EXECUTOR_ENABLED=true and configure SHELL_EXECUTOR_API_URL and SHELL_EXECUTOR_SECRET to match the HTTP tooling server.",
       );
     }
     const url = getShellExecutorApiUrl();

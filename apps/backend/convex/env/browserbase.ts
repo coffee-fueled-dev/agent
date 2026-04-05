@@ -1,3 +1,5 @@
+/** Reads `BROWSERBASE_*` from Convex env (set via `convexDashboardEnvSchema` in `@agent/config`). */
+
 function trim(s: string | undefined): string | undefined {
   const t = s?.trim();
   return t === "" ? undefined : t;

@@ -9,6 +9,7 @@
     "build": "bun run build.ts"
   },
   "dependencies": {
+    "@agent/config": "workspace:*",
     "@chenglou/pretext": "^0.0.3",
     "@convex-dev/agent": "^0.3.2",
     "@convex-dev/rag": "^0.7.2",

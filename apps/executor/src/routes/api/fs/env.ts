@@ -1,4 +1,8 @@
 import { join } from "node:path";
+import {
+  getFilesystemAgentDbPath,
+  isLocalAgentEnabled as readLocalAgentEnabled,
+} from "@agent/config";
 
 function trim(value: string | undefined): string | undefined {
   const next = value?.trim();
@@ -6,20 +10,17 @@ function trim(value: string | undefined): string | undefined {
 }
 
 export function isLocalAgentEnabled(): boolean {
-  const v = trim(process.env.LOCAL_AGENT) ?? trim(process.env.LOACL_AGENT);
-  return v === "true";
+  return readLocalAgentEnabled(process.env);
 }
 
 export function getLocalShellSecret(): string {
-  return trim(process.env.LOCAL_SHELL_SECRET) ?? "dev-only-local-shell-secret";
+  return (
+    trim(process.env.SHELL_EXECUTOR_SECRET) ?? "dev-only-local-shell-secret"
+  );
 }
 
 export function getFilesystemDbPath(): string {
-  return (
-    trim(process.env.FILESYSTEM_AGENT_DB) ??
-    new URL("../../../../.sqlite/agent-filesystem.sqlite", import.meta.url)
-      .pathname
-  );
+  return getFilesystemAgentDbPath(process.env);
 }
 
 export function getAgentHomeRoot(): string {

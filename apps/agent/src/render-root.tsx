@@ -12,7 +12,11 @@ import { TooltipProvider } from "./components/ui/tooltip";
 import { PublicEnvProvider } from "./env/index.js";
 
 function Root({ children }: { children: ReactNode }) {
-  const convexUrl = String(process.env.BUN_PUBLIC_CONVEX_URL ?? "");
+  const convexUrl = String(
+    process.env.BUN_PUBLIC_CONVEX_URL?.trim() ||
+      process.env.CONVEX_URL?.trim() ||
+      "",
+  );
   const accountToken = String(process.env.BUN_PUBLIC_ACCOUNT_TOKEN ?? "");
 
   const client = new ConvexReactSessionClient(convexUrl);
