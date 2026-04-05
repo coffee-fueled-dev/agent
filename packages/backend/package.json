@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "^2",
+    "@browserbasehq/sdk": "^2.9.0",
     "@convex-dev/agent": "^0.3.2",
     "@convex-dev/workpool": "^0.4.6",
     "@very-coffee/agent-identity": "workspace:*",
@@ -34,9 +35,9 @@
     "@very-coffee/convex-history": "workspace:*",
     "@very-coffee/convex-lexical-search": "workspace:*",
     "@very-coffee/convex-vector-search": "workspace:*",
-    "@very-coffee/reciprocal-rank-fusion": "workspace:*",
     "@very-coffee/k-nearest-neighbors": "workspace:*",
     "@very-coffee/leiden": "workspace:*",
+    "@very-coffee/reciprocal-rank-fusion": "workspace:*",
     "ai": "^5.0.82",
     "convex": "^1.34.0",
     "convex-helpers": "^0.1.114",

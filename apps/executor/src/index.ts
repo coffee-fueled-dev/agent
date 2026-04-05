@@ -1,4 +1,5 @@
 import { serve } from "bun";
+import { browserBrowseRoute } from "./routes/api/browser/index.js";
 import { fileEmbeddingRoute } from "./routes/api/embedding/index.js";
 import {
   fsExecuteRoute,
@@ -8,6 +9,7 @@ import {
 
 const server = serve({
   routes: {
+    "/api/browser/browse": browserBrowseRoute,
     "/api/file-embedding": fileEmbeddingRoute,
     "/api/fs/execute": fsExecuteRoute,
     "/api/fs/read": fsReadRoute,

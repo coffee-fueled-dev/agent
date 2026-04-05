@@ -4,6 +4,8 @@ const executorEnvSchema = z.object({
   EXECUTOR_URL: z.string().optional(),
   LOCAL_SHELL_SECRET: z.string().optional(),
   SHELL_EXECUTOR_ENABLED: z.string().optional(),
+  /** When true, `browseWeb` POSTs to the executor Bun server (`/api/browser/browse`). */
+  BROWSER_EXECUTOR_ENABLED: z.string().optional(),
 });
 
 const env = executorEnvSchema.parse(process.env);
@@ -29,4 +31,13 @@ export function getLocalShellSecret(): string {
 
 export function isShellExecutorEnabled(): boolean {
   return trim(env.SHELL_EXECUTOR_ENABLED) === "true";
+}
+
+/** POST target for Stagehand / Browserbase browser runs on the executor. */
+export function getBrowseExecutorApiUrl(): string {
+  return `${getExecutorBaseUrl().replace(/\/+$/, "")}/api/browser/browse`;
+}
+
+export function isBrowseExecutorEnabled(): boolean {
+  return trim(env.BROWSER_EXECUTOR_ENABLED) === "true";
 }
