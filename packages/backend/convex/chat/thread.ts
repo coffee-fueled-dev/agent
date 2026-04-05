@@ -306,7 +306,7 @@ export const continueThreadStream = internalAction({
     const result = await thread.streamText(
       { promptMessageId: args.promptMessageId },
       {
-        saveStreamDeltas: { throttleMs: 100, returnImmediately: true },
+        saveStreamDeltas: { throttleMs: 100 },
         contextOptions: {
           searchOtherThreads: true,
         },
@@ -315,7 +315,7 @@ export const continueThreadStream = internalAction({
 
     await result.text;
 
-    void ctx.scheduler.runAfter(
+    await ctx.scheduler.runAfter(
       0,
       internal.chat.thread.finalizeAssistantStreamTurn,
       {

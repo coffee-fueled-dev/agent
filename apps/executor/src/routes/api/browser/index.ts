@@ -24,6 +24,20 @@ function requireEnv(name: string): string {
   return v;
 }
 
+/** Gemini / Google key for CUA — matches Stagehand `providerEnvVarMap.google`. */
+function requireGoogleModelApiKey(): string {
+  const v =
+    trim(process.env.GEMINI_API_KEY) ??
+    trim(process.env.GOOGLE_GENERATIVE_AI_API_KEY) ??
+    trim(process.env.GOOGLE_API_KEY);
+  if (!v) {
+    throw new Error(
+      "Missing Google API key for browser CUA: set GEMINI_API_KEY, GOOGLE_GENERATIVE_AI_API_KEY, or GOOGLE_API_KEY on the executor process.",
+    );
+  }
+  return v;
+}
+
 function getCuaModelName(): string {
   return (
     trim(process.env.BROWSERBASE_STAGEHAND_CUA_MODEL) ??
@@ -88,13 +102,19 @@ export const browserBrowseRoute = {
 
     const apiKey = requireEnv("BROWSERBASE_API_KEY");
     const projectId = requireEnv("BROWSERBASE_PROJECT_ID");
-    const googleApiKey = requireEnv("GOOGLE_GENERATIVE_AI_API_KEY");
+    const googleApiKey = requireGoogleModelApiKey();
     const modelName = getCuaModelName();
 
+    // Model + key must be set on the Stagehand constructor: `init()` calls the
+    // Browserbase Stagehand API with `modelApiKey` before `agent()` runs.
     const stagehand = new Stagehand({
       env: "BROWSERBASE",
       apiKey,
       projectId,
+      model: {
+        modelName,
+        apiKey: googleApiKey,
+      },
     });
     try {
       await stagehand.init();
@@ -107,10 +127,6 @@ export const browserBrowseRoute = {
       }
       const agent = stagehand.agent({
         mode: "cua",
-        model: {
-          modelName,
-          apiKey: googleApiKey,
-        },
         systemPrompt: BROWSE_SYSTEM_PROMPT,
       });
       const result = await agent.execute({

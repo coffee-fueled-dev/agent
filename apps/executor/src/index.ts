@@ -20,6 +20,8 @@ const server = serve({
     hmr: true,
     console: true,
   },
+
+  port: process.env.PORT ? parseInt(process.env.PORT, 10) : 3000,
 });
 
 console.log(`Server running at ${server.url}`);

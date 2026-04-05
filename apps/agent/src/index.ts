@@ -1,12 +1,8 @@
 import { serve } from "bun";
-import { fileEmbeddingRoute } from "./routes/api/file-embedding/index.js";
-import { fileSystemRoute } from "./routes/api/file-system/index.js";
 import chatPage from "./routes/chat/page.html";
 
 const server = serve({
   routes: {
-    "/api/file-embedding": fileEmbeddingRoute,
-    "/api/file-system/execute": fileSystemRoute,
     "/chat": chatPage,
     "/": chatPage,
     "/*": chatPage,
@@ -16,6 +12,9 @@ const server = serve({
     hmr: true,
     console: true,
   },
+
+  hostname: "0.0.0.0",
+  port: process.env.PORT ? parseInt(process.env.PORT, 10) : 3000,
 });
 
 console.log(`Server running at ${server.url}`);
