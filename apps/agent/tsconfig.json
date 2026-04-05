@@ -24,7 +24,9 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@very-coffee/agent-identity": ["../../packages/agent-identity/src/index.ts"]
+      "@very-coffee/agent-identity": [
+        "../../packages/agent-identity/src/index.ts"
+      ]
     },
 
     // Some stricter flags (disabled by default)

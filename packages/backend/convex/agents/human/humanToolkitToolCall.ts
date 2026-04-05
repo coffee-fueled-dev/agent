@@ -1,4 +1,7 @@
-import type { HumanToolkitToolInputs, HumanToolkitToolName } from "./humanToolkitTypes.js";
+import type {
+  HumanToolkitToolInputs,
+  HumanToolkitToolName,
+} from "./humanToolkitTypes.js";
 
 /** Build a validated-shaped tool call for {@link sendMessage} `toolCalls`. */
 export function buildHumanToolCall<K extends HumanToolkitToolName>(

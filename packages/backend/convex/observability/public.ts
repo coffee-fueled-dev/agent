@@ -25,9 +25,7 @@ export const listStreamEvents = query({
   handler: async (ctx, args) => {
     const streamId =
       args.streamId ??
-      (args.name === "memory"
-        ? MEMORY_OBSERVABILITY_STREAM_ID
-        : undefined);
+      (args.name === "memory" ? MEMORY_OBSERVABILITY_STREAM_ID : undefined);
     if (streamId === undefined) {
       throw new Error("streamId is required when name is not memory");
     }

@@ -7,7 +7,10 @@ import {
   mutation,
   query,
 } from "../_generated/server.js";
-import { handleDispatchEmbeddingJob, handleProcessFile } from "./storeLib/embedding.js";
+import {
+  handleDispatchEmbeddingJob,
+  handleProcessFile,
+} from "./storeLib/embedding.js";
 import {
   handleIngestFileEmbeddingChunk,
   handleIngestFileEmbeddingChunks,

@@ -8,17 +8,16 @@
  * @module
  */
 
-import type * as internal_helpers from "../internal/helpers.js";
-import type * as public_queries from "../public/queries.js";
-import type * as public_record from "../public/record.js";
-import type * as public_register from "../public/register.js";
-
 import type {
   ApiFromModules,
   FilterApi,
   FunctionReference,
 } from "convex/server";
 import { anyApi, componentsGeneric } from "convex/server";
+import type * as internal_helpers from "../internal/helpers.js";
+import type * as public_queries from "../public/queries.js";
+import type * as public_record from "../public/record.js";
+import type * as public_register from "../public/register.js";
 
 const fullApi: ApiFromModules<{
   "internal/helpers": typeof internal_helpers;

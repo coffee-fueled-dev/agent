@@ -112,13 +112,16 @@ async function reportCompletion(job: EmbedJob, result: ProcessedFileResult) {
       );
       const lastGlobal = batchStart + slice.length - 1;
       const isLastBatch = lastGlobal === chunks.length - 1;
-      await getConvexClient().action(api.files.store.ingestFileEmbeddingChunks, {
-        secret: sharedSecret,
-        jobId: job.processId,
-        chunks: slice,
-        lastChunkOrder: lastGlobal,
-        isLast: isLastBatch,
-      });
+      await getConvexClient().action(
+        api.files.store.ingestFileEmbeddingChunks,
+        {
+          secret: sharedSecret,
+          jobId: job.processId,
+          chunks: slice,
+          lastChunkOrder: lastGlobal,
+          isLast: isLastBatch,
+        },
+      );
     }
   } else {
     const first = chunks[0];

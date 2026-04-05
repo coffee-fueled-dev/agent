@@ -1,15 +1,12 @@
-import type {
-  GenericDataModel,
-  GenericQueryCtx,
-} from "convex/server";
+import type { GenericDataModel, GenericQueryCtx } from "convex/server";
 import type { ComponentApi } from "../component/_generated/component.js";
 import type { OrderedSelectionDerived } from "../component/internal/derive.js";
 import {
-  notifyFactsSubscribers,
   type FactsCallCtx,
-  type FactsSubscriber,
   type FactsSubscribable,
+  type FactsSubscriber,
   type FactsSyncUpsertArgs,
+  notifyFactsSubscribers,
 } from "./events.js";
 
 export type * from "./events.js";

@@ -6,11 +6,11 @@ import {
 } from "lucide-react";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { MimeTypeIcon } from "./mime-type-icon.js";
 import {
   type FileMemoryEmbeddingState,
   useFileMemoryEmbedding,
 } from "./use-file-memory-embedding.js";
-import { MimeTypeIcon } from "./mime-type-icon.js";
 
 export type { FileMemoryEmbeddingState };
 

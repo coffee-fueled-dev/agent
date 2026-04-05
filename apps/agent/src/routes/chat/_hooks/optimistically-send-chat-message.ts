@@ -1,3 +1,6 @@
+import type { SyncStreamsReturnValue } from "@convex-dev/agent";
+import type { UIMessage } from "@convex-dev/agent/react";
+import type { MessageDoc, StreamArgs } from "@convex-dev/agent/validators";
 import type { OptimisticLocalStore } from "convex/browser";
 import { insertAtTop } from "convex/react";
 import type {
@@ -5,9 +8,6 @@ import type {
   PaginationOptions,
   PaginationResult,
 } from "convex/server";
-import type { MessageDoc, StreamArgs } from "@convex-dev/agent/validators";
-import type { SyncStreamsReturnValue } from "@convex-dev/agent";
-import type { UIMessage } from "@convex-dev/agent/react";
 
 function randomUUID() {
   if (

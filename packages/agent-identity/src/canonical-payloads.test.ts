@@ -1,4 +1,8 @@
 import { describe, expect, test } from "bun:test";
+import {
+  runtimeIdentityCanonicalPayload,
+  toolSpecCanonicalPayload,
+} from "./canonical-payloads.js";
 import { hashPlainObject } from "./hash.js";
 import {
   collectToolStaticHashes,
@@ -6,10 +10,6 @@ import {
   hashToolSpecIdentity,
   resolveRuntimeToolRefs,
 } from "./runtime-hashes.js";
-import {
-  runtimeIdentityCanonicalPayload,
-  toolSpecCanonicalPayload,
-} from "./canonical-payloads.js";
 import type { StandardSchemaV1 } from "./standard-schema.js";
 import { tool } from "./tool.js";
 import { evaluateComposable, toolkit } from "./toolkit.js";

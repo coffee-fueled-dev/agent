@@ -103,9 +103,7 @@ describe("SearchClient", () => {
         _creationTime: 1,
         _id: "h1",
         namespace: "n",
-        propertyHits: [
-          { _score: 0.9, propKey: "p", sliceId: "s" },
-        ],
+        propertyHits: [{ _score: 0.9, propKey: "p", sliceId: "s" }],
         sourceRef: "r",
         sourceSystem: "test",
         updatedAt: 1,

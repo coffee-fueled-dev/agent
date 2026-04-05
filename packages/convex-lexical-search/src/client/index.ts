@@ -7,11 +7,11 @@ import type {
 import type { ComponentApi } from "../component/_generated/component.js";
 import type { Doc } from "../component/_generated/dataModel.js";
 import {
-  notifyLexicalSearchSubscribers,
   type LexicalSearchMutationCallCtx,
   type LexicalSearchSearchCtx,
-  type LexicalSearchSubscriber,
   type LexicalSearchSubscribable,
+  type LexicalSearchSubscriber,
+  notifyLexicalSearchSubscribers,
 } from "./events.js";
 
 export type * from "./events.js";

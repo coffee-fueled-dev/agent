@@ -66,11 +66,7 @@ function EventDetailRoute() {
           <PageSection.Body className="h-full overflow-auto">
             <RequiredResult
               query={api.chat.eventBus.getEventBusEntryForSession}
-              args={
-                userId
-                  ? { userId, busEntryId: eventId }
-                  : "skip"
-              }
+              args={userId ? { userId, busEntryId: eventId } : "skip"}
             >
               {(data) => (
                 <PageSection.Body className="gap-4">

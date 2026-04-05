@@ -10,8 +10,8 @@ import {
   notifyVectorSearchSubscribers,
   type VectorSearchMutationCallCtx,
   type VectorSearchSearchCtx,
-  type VectorSearchSubscriber,
   type VectorSearchSubscribable,
+  type VectorSearchSubscriber,
 } from "./events.js";
 
 export type * from "./events.js";

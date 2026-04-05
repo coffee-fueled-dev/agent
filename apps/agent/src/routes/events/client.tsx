@@ -3,11 +3,11 @@
 import { useMemo } from "react";
 import { PageSection } from "@/components/layout/page-section";
 import { SidebarInsetFill } from "@/components/layout/sidebar.js";
+import { usePublicEnv } from "@/env/index.js";
 import { renderApp } from "../../render-root.js";
 import { AppLayout } from "../_components/app-layout.js";
 import { EventBusStreamFiltersDialog } from "../_components/event-bus-stream-filters-dialog.js";
 import { EventBusStreamList } from "../_components/event-bus-stream-list.js";
-import { usePublicEnv } from "@/env/index.js";
 import {
   eventsFiltersToQueryArgs,
   useEventsFiltersFromUrl,

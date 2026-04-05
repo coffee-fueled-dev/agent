@@ -1,5 +1,4 @@
 import { describe, expect, test } from "bun:test";
-import type { IdentityLink } from "./identity-link.js";
 import {
   diffIdentityLinks,
   diffToolRefs,
@@ -7,6 +6,7 @@ import {
   formatHashShort,
   type IdentityLinkField,
 } from "./identity-diff.js";
+import type { IdentityLink } from "./identity-link.js";
 
 describe("formatHashShort", () => {
   test("abbreviates long hex", () => {

@@ -85,11 +85,9 @@ export async function handleProcessFile(
     scheduledDispatch: boolean;
   } = await ctx.runMutation(internal.files.store.startFileProcess, args);
   if (result.scheduledDispatch) {
-    await ctx.scheduler.runAfter(
-      0,
-      internal.files.store.dispatchEmbeddingJob,
-      { processId: result.processId },
-    );
+    await ctx.scheduler.runAfter(0, internal.files.store.dispatchEmbeddingJob, {
+      processId: result.processId,
+    });
   }
   return {
     processId: result.processId,

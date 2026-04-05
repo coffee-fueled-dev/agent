@@ -5,8 +5,8 @@
  */
 export {
   FactsBatch,
-  FactsClient,
   type FactsCallCtx,
+  FactsClient,
   type FactsClientEvent,
   type FactsMutationCtx,
   type FactsSubscribable,

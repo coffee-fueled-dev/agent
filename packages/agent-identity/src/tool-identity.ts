@@ -7,11 +7,7 @@ export async function hashToolComposableStatic<
   Env,
   TOOLS extends Record<string, ToolSpec>,
 >(
-  composable: Composable<
-    { kind: string; name: string },
-    TOOLS,
-    Env
-  >,
+  composable: Composable<{ kind: string; name: string }, TOOLS, Env>,
 ): Promise<string> {
   if (composable.staticProps.kind !== "tool") {
     throw new Error(

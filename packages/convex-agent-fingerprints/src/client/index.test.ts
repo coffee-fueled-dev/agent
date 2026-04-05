@@ -1,8 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type {
-  FingerprintCallCtx,
-  FingerprintClientEvent,
-} from "./index.js";
+import type { FingerprintCallCtx, FingerprintClientEvent } from "./index.js";
 import { FingerprintClient } from "./index.js";
 import { components } from "./setup.test.js";
 
@@ -46,15 +43,19 @@ function mockMutationCtx(sequence: Array<Record<string, unknown>>): {
   const ctx = {
     runMutation: async () => {
       const next = sequence[i];
-      if (next === undefined) throw new Error(`unexpected runMutation call ${i}`);
+      if (next === undefined)
+        throw new Error(`unexpected runMutation call ${i}`);
       i++;
       return next;
     },
     runQuery: async () => null,
   } as FingerprintCallCtx;
-  return { ctx, get calls() {
-    return i;
-  } };
+  return {
+    ctx,
+    get calls() {
+      return i;
+    },
+  };
 }
 
 describe("FingerprintClient", () => {

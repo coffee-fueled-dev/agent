@@ -9,9 +9,9 @@ import {
 } from "../search.js";
 import { appendCanonicalMemoryText } from "./canonicalText.js";
 import {
+  type ContentSource,
   lexicalSlicePropKey,
   memorySearchSourceRef,
-  type ContentSource,
   upsertSourceMapLink,
   VECTOR_EMBEDDING_PROP,
 } from "./store.js";

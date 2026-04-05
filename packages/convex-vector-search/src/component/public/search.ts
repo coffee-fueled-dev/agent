@@ -1,9 +1,9 @@
-import { v } from "convex/values";
 import type { GenericActionCtx } from "convex/server";
-import type { DataModel, Doc, Id } from "../_generated/dataModel.js";
+import { v } from "convex/values";
 import { internal } from "../_generated/api.js";
-import { EMBEDDING_DIMENSIONS } from "../schema.js";
+import type { DataModel, Doc, Id } from "../_generated/dataModel.js";
 import { action } from "../_generated/server.js";
+import { EMBEDDING_DIMENSIONS } from "../schema.js";
 import { vectorSearchHitValidator } from "../searchHitValidators.js";
 
 type VectorSearchHit = {
@@ -47,11 +47,15 @@ async function runVectorSearch(
   const limit = args.limit ?? 20;
   const candidateCap = Math.min(Math.max(limit * 4, 40), 256);
 
-  const rawHits = await ctx.vectorSearch("searchEmbeddings", "search_embedding", {
-    vector: args.vector,
-    limit: candidateCap,
-    filter: (q) => q.eq("namespace", args.namespace),
-  });
+  const rawHits = await ctx.vectorSearch(
+    "searchEmbeddings",
+    "search_embedding",
+    {
+      vector: args.vector,
+      limit: candidateCap,
+      filter: (q) => q.eq("namespace", args.namespace),
+    },
+  );
 
   const scored: ScoredRow[] = await ctx.runQuery(
     internal.internal.load.loadEmbeddingRowsForHits,

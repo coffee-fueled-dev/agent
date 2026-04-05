@@ -27,14 +27,8 @@ import {
 
 function ChatComposerInner() {
   const { userId } = useChatThread();
-  const {
-    text,
-    setText,
-    send,
-    sendDisabled,
-    sending,
-    error,
-  } = useComposeMessage();
+  const { text, setText, send, sendDisabled, sending, error } =
+    useComposeMessage();
   const {
     memoryEntries,
     removeMemoryRecordId,

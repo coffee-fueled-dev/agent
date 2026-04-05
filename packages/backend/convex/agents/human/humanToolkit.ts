@@ -22,4 +22,3 @@ export function humanAgentIdentity(namespace: string, staticHash: string) {
     staticHash,
   });
 }
-

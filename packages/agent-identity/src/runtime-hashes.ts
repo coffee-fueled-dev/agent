@@ -19,10 +19,7 @@ export async function collectToolStaticHashes<
   async function walk(c: AnyComposable): Promise<void> {
     const kind = c.staticProps.kind;
     if (kind === "tool") {
-      map.set(
-        c.staticProps.name,
-        await c.computeStaticHash(),
-      );
+      map.set(c.staticProps.name, await c.computeStaticHash());
       return;
     }
     const children = (c as ComposableWithChildren).childComposables;

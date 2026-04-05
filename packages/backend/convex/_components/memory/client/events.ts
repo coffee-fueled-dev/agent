@@ -33,10 +33,7 @@ export type MemoryClientEvent<NAME extends Name = Name> =
     };
 
 export type MemorySubscriberCallCtx =
-  | Pick<
-      GenericMutationCtx<GenericDataModel>,
-      "runMutation" | "runQuery"
-    >
+  | Pick<GenericMutationCtx<GenericDataModel>, "runMutation" | "runQuery">
   | Pick<
       GenericActionCtx<GenericDataModel>,
       "runAction" | "runMutation" | "runQuery"

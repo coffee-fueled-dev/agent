@@ -12,16 +12,7 @@ export {
   toolSpecCanonicalPayload,
 } from "./canonical-payloads.js";
 export { hashPlainObject, schemaToHashInput } from "./hash.js";
-export {
-  evaluatePolicyWithHooks,
-  mergeToolPipelineHooks,
-} from "./pipeline-hooks.js";
 export { defineAgentIdentity } from "./identity.js";
-export type {
-  CreateIdentityLinkArgs,
-  IdentityLink,
-} from "./identity-link.js";
-export { createIdentityLink } from "./identity-link.js";
 export type {
   IdentityLinkField,
   IdentityLinkFieldChange,
@@ -36,11 +27,20 @@ export {
   formatHashShort,
 } from "./identity-diff.js";
 export type {
+  CreateIdentityLinkArgs,
+  IdentityLink,
+} from "./identity-link.js";
+export { createIdentityLink } from "./identity-link.js";
+export type {
   ToolErrorOutput,
   ToolOutput,
   ToolSuccessOutput,
 } from "./output.js";
 export { withFormattedResults } from "./output.js";
+export {
+  evaluatePolicyWithHooks,
+  mergeToolPipelineHooks,
+} from "./pipeline-hooks.js";
 export { policy } from "./policy.js";
 export {
   collectToolStaticHashes,
@@ -82,9 +82,9 @@ export type {
   PolicyResultMap,
   RegisteredAgentIdentity,
   SharedPolicy,
+  ToolExecutedPayload,
   ToolkitContext,
   ToolkitResult,
-  ToolExecutedPayload,
   ToolPipelineHooks,
   ToolSpec,
 } from "./types.js";

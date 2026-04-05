@@ -8,16 +8,15 @@
  * @module
  */
 
-import type * as internal_derive from "../internal/derive.js";
-import type * as public_evaluate from "../public/evaluate.js";
-import type * as public_sync from "../public/sync.js";
-
 import type {
   ApiFromModules,
   FilterApi,
   FunctionReference,
 } from "convex/server";
 import { anyApi, componentsGeneric } from "convex/server";
+import type * as internal_derive from "../internal/derive.js";
+import type * as public_evaluate from "../public/evaluate.js";
+import type * as public_sync from "../public/sync.js";
 
 const fullApi: ApiFromModules<{
   "internal/derive": typeof internal_derive;

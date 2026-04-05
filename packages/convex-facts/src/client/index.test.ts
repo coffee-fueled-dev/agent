@@ -45,9 +45,7 @@ describe("FactsClient", () => {
       }[],
     };
     await client.sync.upsert(mockFactsCtx(), args);
-    expect(received).toEqual([
-      { event: "syncUpsert", args, result: null },
-    ]);
+    expect(received).toEqual([{ event: "syncUpsert", args, result: null }]);
   });
 
   test("sync.remove notifies with syncRemove", async () => {
@@ -62,9 +60,7 @@ describe("FactsClient", () => {
     });
     const args = { namespace: "ns", entities: ["a"] };
     await client.sync.remove(mockFactsCtx(), args);
-    expect(received).toEqual([
-      { event: "syncRemove", args, result: null },
-    ]);
+    expect(received).toEqual([{ event: "syncRemove", args, result: null }]);
   });
 
   test("batch().commit notifies with batchCommit only", async () => {

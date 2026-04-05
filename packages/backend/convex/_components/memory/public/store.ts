@@ -58,7 +58,9 @@ export const mergeMemory = mutation({
     if (mode === "append") {
       const id = args.memoryRecordId;
       if (!id) {
-        throw new Error("mergeMemory: memoryRecordId is required when mode is append");
+        throw new Error(
+          "mergeMemory: memoryRecordId is required when mode is append",
+        );
       }
       memoryRecordId = id;
       const titleTrim = args.title?.trim();
@@ -66,7 +68,8 @@ export const mergeMemory = mutation({
         await ctx.db.patch(id, { title: titleTrim });
       }
       const contentSource =
-        args.contentSource ?? ({ type: "memoryInline", id: String(id) } as const);
+        args.contentSource ??
+        ({ type: "memoryInline", id: String(id) } as const);
       await executeMergeMemoryBatch(ctx, {
         namespace: args.namespace,
         memoryRecordId: id,

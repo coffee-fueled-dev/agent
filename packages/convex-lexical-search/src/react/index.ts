@@ -1,7 +1,6 @@
 "use client";
 
 export {
-  SearchClient,
   type LexicalSearchClientEvent,
   type LexicalSearchHit,
   type LexicalSearchHits,
@@ -11,4 +10,5 @@ export {
   type LexicalSearchSubscribable,
   type LexicalSearchSubscriber,
   type LexicalSearchSubscriberCtx,
+  SearchClient,
 } from "../client/index.js";

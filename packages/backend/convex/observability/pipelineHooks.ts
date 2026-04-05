@@ -1,6 +1,4 @@
-import type {
-  ToolPipelineHooks,
-} from "@very-coffee/agent-identity";
+import type { ToolPipelineHooks } from "@very-coffee/agent-identity";
 import { internal } from "../_generated/api.js";
 import type { ConvexAgentEnv } from "../agents/lib/customFunctions.js";
 
@@ -14,20 +12,23 @@ export function buildObservabilityPipelineHooks(params: {
 }): ToolPipelineHooks<ConvexAgentEnv> {
   return {
     onToolExecuted: async (e) => {
-      await e.env.runMutation(internal.observability.append.appendToolExecuted, {
-        userId: params.userId,
-        threadId: params.threadId,
-        messageId: params.messageId,
-        sessionId: params.sessionId,
-        namespace: params.namespace,
-        agentId: params.agentId,
-        ok: e.ok,
-        toolName: e.toolName,
-        input: e.input,
-        output: e.output,
-        error: e.error,
-        durationMs: e.durationMs,
-      });
+      await e.env.runMutation(
+        internal.observability.append.appendToolExecuted,
+        {
+          userId: params.userId,
+          threadId: params.threadId,
+          messageId: params.messageId,
+          sessionId: params.sessionId,
+          namespace: params.namespace,
+          agentId: params.agentId,
+          ok: e.ok,
+          toolName: e.toolName,
+          input: e.input,
+          output: e.output,
+          error: e.error,
+          durationMs: e.durationMs,
+        },
+      );
     },
     onPolicyEvaluated: async (e) => {
       await e.env.runMutation(

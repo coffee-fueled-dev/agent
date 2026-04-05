@@ -15,10 +15,10 @@ import type {
   StreamTypeFor,
 } from "../types.js";
 import {
-  notifyHistorySubscribers,
   type HistoryCallCtx,
-  type HistorySubscriber,
   type HistorySubscribable,
+  type HistorySubscriber,
+  notifyHistorySubscribers,
 } from "./events.js";
 
 export type * from "./events.js";

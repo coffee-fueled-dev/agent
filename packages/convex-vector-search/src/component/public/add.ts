@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import type { Id } from "../_generated/dataModel.js";
-import { EMBEDDING_DIMENSIONS } from "../schema.js";
 import { mutation } from "../_generated/server.js";
+import { EMBEDDING_DIMENSIONS } from "../schema.js";
 
 const embeddingSliceValidator = v.object({
   propKey: v.string(),
@@ -31,8 +31,7 @@ function normalizeSlices(
     );
     if (idx >= 0)
       merged[idx] = { propKey: "embedding", sliceId: "", embedding };
-    else
-      merged.unshift({ propKey: "embedding", sliceId: "", embedding });
+    else merged.unshift({ propKey: "embedding", sliceId: "", embedding });
   }
   if (merged.length === 0) {
     throw new Error("upsertItem: provide `embedding` and/or `embeddingSlices`");

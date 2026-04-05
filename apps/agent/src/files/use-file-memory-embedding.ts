@@ -82,10 +82,7 @@ export function useFileMemoryEmbedding(file: File, namespace: string) {
           setStatus("processing");
         }
       } catch (cause) {
-        if (
-          cause instanceof DOMException &&
-          cause.name === "AbortError"
-        ) {
+        if (cause instanceof DOMException && cause.name === "AbortError") {
           return;
         }
         if (!abort.signal.aborted) {

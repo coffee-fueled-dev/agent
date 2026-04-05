@@ -4,8 +4,8 @@
  * Re-exports for React + Convex apps that prefer a dedicated subpath.
  */
 export {
-  HistoryClient,
   type HistoryCallCtx,
+  HistoryClient,
   type HistoryClientEvent,
   type HistoryMutationCtx,
   type HistorySubscribable,

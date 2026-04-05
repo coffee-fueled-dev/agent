@@ -26,7 +26,9 @@ export const registerStorageSourceMetadata = mutation({
       throw new Error("registerStorageSourceMetadata: memory record not found");
     }
     if (args.contentSource.type !== "storage") {
-      throw new Error("registerStorageSourceMetadata: expected storage contentSource");
+      throw new Error(
+        "registerStorageSourceMetadata: expected storage contentSource",
+      );
     }
     for (const searchBackend of ["lexical", "vector"] as const) {
       await upsertSourceMapLink(ctx, {

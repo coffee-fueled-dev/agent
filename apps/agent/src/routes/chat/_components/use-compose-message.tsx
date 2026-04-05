@@ -71,9 +71,7 @@ export function ComposeMessageProvider({ children }: { children: ReactNode }) {
   const send = useCallback(async () => {
     const trimmed = text.trim();
     if (
-      (!trimmed &&
-        files.length === 0 &&
-        memoryRecordIds.length === 0) ||
+      (!trimmed && files.length === 0 && memoryRecordIds.length === 0) ||
       sending
     ) {
       return;
@@ -124,9 +122,7 @@ export function ComposeMessageProvider({ children }: { children: ReactNode }) {
 
   const sendDisabled =
     sending ||
-    (!text.trim() &&
-      files.length === 0 &&
-      memoryRecordIds.length === 0) ||
+    (!text.trim() && files.length === 0 && memoryRecordIds.length === 0) ||
     !userId ||
     (files.length > 0 && !allAttachmentsReady);
 
