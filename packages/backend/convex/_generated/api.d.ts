@@ -41,6 +41,7 @@ import type * as agents_lib_toolkit from "../agents/lib/toolkit.js";
 import type * as chat_actorHistory from "../chat/actorHistory.js";
 import type * as chat_chatConstants from "../chat/chatConstants.js";
 import type * as chat_chatContext from "../chat/chatContext.js";
+import type * as chat_eventBus from "../chat/eventBus.js";
 import type * as chat_humanAgent from "../chat/humanAgent.js";
 import type * as chat_humanAgent_ensureRegistration from "../chat/humanAgent/ensureRegistration.js";
 import type * as chat_humanAgent_executeHumanToolCallsForTurn from "../chat/humanAgent/executeHumanToolCallsForTurn.js";
@@ -120,6 +121,7 @@ declare const fullApi: ApiFromModules<{
   "chat/actorHistory": typeof chat_actorHistory;
   "chat/chatConstants": typeof chat_chatConstants;
   "chat/chatContext": typeof chat_chatContext;
+  "chat/eventBus": typeof chat_eventBus;
   "chat/humanAgent": typeof chat_humanAgent;
   "chat/humanAgent/ensureRegistration": typeof chat_humanAgent_ensureRegistration;
   "chat/humanAgent/executeHumanToolCallsForTurn": typeof chat_humanAgent_executeHumanToolCallsForTurn;

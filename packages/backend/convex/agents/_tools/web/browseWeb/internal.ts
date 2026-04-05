@@ -10,6 +10,9 @@ export const execute = internalAction({
   args: {
     instruction: v.string(),
     startUrl: v.optional(v.string()),
+    effort: v.optional(
+      v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
+    ),
     maxSteps: v.optional(v.number()),
   },
   returns: v.any(),
@@ -30,6 +33,7 @@ export const execute = internalAction({
       body: JSON.stringify({
         instruction: args.instruction,
         startUrl: args.startUrl,
+        effort: args.effort ?? "low",
         maxSteps: args.maxSteps,
       }),
     });

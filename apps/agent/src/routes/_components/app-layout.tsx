@@ -110,7 +110,7 @@ function AppLayoutFrame({
               <div className="flex h-full min-h-0 flex-col gap-2 lg:flex-row">
                 <div className="min-h-0 min-w-0 flex-1">{children}</div>
                 <aside className="flex flex-column justify-start shrink-0 p-6 lg:min-h-0 lg:w-72">
-                  <div className="bg-sidebar fade-mask rounded-xl">
+                  <div className="bg-sidebar fade-mask rounded-xl p-2 overflow-y-auto w-full">
                     {rightSidebar}
                   </div>
                 </aside>

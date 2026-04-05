@@ -7,7 +7,7 @@ import type {
   PaginationOptions,
   PaginationResult,
 } from "convex/server";
-import { PlusIcon } from "lucide-react";
+import { ActivityIcon, PlusIcon } from "lucide-react";
 import { FadeOverflow } from "@/components/layout/fade-overflow";
 import LoadMoreSentinel from "@/components/layout/load-more-sentinel";
 import {
@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/tooltip";
 import { usePublicEnv } from "@/env/index.js";
 import { cn } from "@/lib/utils";
-import { chat, Link } from "@/navigation/index.js";
+import { chat, eventsList, Link } from "@/navigation/index.js";
 
 const PAGE_SIZE = 15;
 
@@ -157,6 +157,22 @@ export function AppSidebarNav({
         </span>
         <SidebarGroupContent>
           <ChatThreadHistoryList onNavigate={onNavigate} />
+        </SidebarGroupContent>
+      </SidebarGroup>
+
+      <SidebarGroup>
+        <SidebarGroupLabel>Observability</SidebarGroupLabel>
+        <SidebarGroupContent>
+          <SidebarGroupButton depth={1} asChild>
+            <Link
+              href={eventsList()}
+              onBeforeNavigate={onNavigate}
+              className="flex min-w-0 items-center gap-2"
+            >
+              <ActivityIcon className="size-3.5 shrink-0 opacity-70" />
+              <span className="truncate">Events</span>
+            </Link>
+          </SidebarGroupButton>
         </SidebarGroupContent>
       </SidebarGroup>
     </div>

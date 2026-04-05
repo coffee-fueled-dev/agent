@@ -11,5 +11,8 @@ export function webToolkit(): Composable<
 > {
   return toolkit([searchWebTool(), browseWebTool()], {
     name: "web",
+    instructions: [
+      "Prefer searchWeb for discovery (links/snippets); use browseWeb for on-page interaction. For browseWeb, default effort is low—raise effort only for multi-page or heavy UI tasks.",
+    ],
   });
 }

@@ -83,7 +83,7 @@ export function MemorySearchModal({
     [memoryRecordIds],
   );
 
-  const searchMemories = useAction(api.chat.memorySearch.searchMemories);
+  const searchMemories = useAction(api.memories.memorySearch.searchMemories);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchHit[]>([]);
   const [searching, setSearching] = useState(false);

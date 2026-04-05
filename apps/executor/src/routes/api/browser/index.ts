@@ -1,11 +1,59 @@
 import type { AgentAction } from "@browserbasehq/stagehand";
 import { Stagehand } from "@browserbasehq/stagehand";
 import { getLocalShellSecret, isLocalAgentEnabled } from "../fs/env.js";
+import { runWithBrowserbaseRetries } from "./rateLimitRetry.js";
 
 const secret = getLocalShellSecret();
 
+/** CUA agent instructions — bias toward fewer Gemini calls (RPM/TPM/RPD per https://ai.google.dev/gemini-api/docs/rate-limits). */
 const BROWSE_SYSTEM_PROMPT =
-  "You are a browser automation agent. Complete the user's task on the current page. Be concise and avoid unnecessary actions.";
+  "You are a browser automation agent. Each action triggers a costly model call—minimize steps to stay within API rate limits (see Google Gemini limits: requests/minute, tokens/minute, requests/day). " +
+  "Read visible text first; scroll only if the answer is not on screen. Do not explore unrelated links, open extra tabs, or repeat actions. " +
+  "Complete the user's task on the current page with the fewest interactions; stop immediately once the task is satisfied.";
+
+const GLOBAL_MAX_STEPS = 40;
+
+type BrowseEffort = "low" | "medium" | "high";
+
+/** Upper bound per effort tier; optional maxSteps is clamped to min(user, cap). */
+function capForEffort(effort: BrowseEffort): number {
+  switch (effort) {
+    case "low":
+      return 2;
+    case "medium":
+      return 4;
+    case "high":
+      return 8;
+    default:
+      return 2;
+  }
+}
+
+const EFFORT_SUFFIX: Record<BrowseEffort, string> = {
+  low: " Default to the absolute minimum: zero scrolling if the answer is visible; at most one short scroll if not. Never click navigational clutter (ads, menus) unless required. Finish in as few model steps as possible.",
+  medium:
+    " Stay efficient: no redundant clicks, no exploratory browsing. Scroll only in small increments until you can answer; avoid back-and-forth navigation.",
+  high: " Use extra steps only when the task clearly requires multiple pages or complex UI—still avoid loops and duplicate actions.",
+};
+
+function parseEffort(raw: unknown): BrowseEffort {
+  if (raw === "medium" || raw === "high" || raw === "low") {
+    return raw;
+  }
+  return "low";
+}
+
+function resolveMaxSteps(effort: BrowseEffort, maxStepsRaw: unknown): number {
+  const cap = Math.min(capForEffort(effort), GLOBAL_MAX_STEPS);
+  if (typeof maxStepsRaw === "number" && Number.isFinite(maxStepsRaw)) {
+    const requested = Math.min(
+      Math.max(Math.floor(maxStepsRaw), 1),
+      GLOBAL_MAX_STEPS,
+    );
+    return Math.min(requested, cap);
+  }
+  return cap;
+}
 
 const MAX_ACTIONS_RETURNED = 30;
 
@@ -94,62 +142,67 @@ export const browserBrowseRoute = {
       typeof body.startUrl === "string" && body.startUrl.trim() !== ""
         ? body.startUrl.trim()
         : undefined;
-    const maxStepsRaw = body.maxSteps;
-    const maxSteps =
-      typeof maxStepsRaw === "number" && Number.isFinite(maxStepsRaw)
-        ? Math.min(Math.max(Math.floor(maxStepsRaw), 1), 40)
-        : 20;
+    const effort = parseEffort(body.effort);
+    const maxSteps = resolveMaxSteps(effort, body.maxSteps);
+    const browseSystemPrompt = BROWSE_SYSTEM_PROMPT + EFFORT_SUFFIX[effort];
 
     const apiKey = requireEnv("BROWSERBASE_API_KEY");
     const projectId = requireEnv("BROWSERBASE_PROJECT_ID");
     const googleApiKey = requireGoogleModelApiKey();
     const modelName = getCuaModelName();
 
-    // Model + key must be set on the Stagehand constructor: `init()` calls the
-    // Browserbase Stagehand API with `modelApiKey` before `agent()` runs.
-    const stagehand = new Stagehand({
-      env: "BROWSERBASE",
-      apiKey,
-      projectId,
-      model: {
-        modelName,
-        apiKey: googleApiKey,
-      },
-    });
     try {
-      await stagehand.init();
-      if (startUrl) {
-        const page = stagehand.context.pages()[0];
-        if (!page) {
-          throw new Error("No browser page available after Stagehand init.");
+      const payload = await runWithBrowserbaseRetries({}, async () => {
+        // Model + key on Stagehand constructor: `init()` hits Browserbase + Stagehand API
+        // (429 / Retry-After: https://docs.browserbase.com/guides/concurrency-rate-limits).
+        const stagehand = new Stagehand({
+          env: "BROWSERBASE",
+          apiKey,
+          projectId,
+          model: {
+            modelName,
+            apiKey: googleApiKey,
+          },
+        });
+        try {
+          await stagehand.init();
+          if (startUrl) {
+            const page = stagehand.context.pages()[0];
+            if (!page) {
+              throw new Error(
+                "No browser page available after Stagehand init.",
+              );
+            }
+            await page.goto(startUrl);
+          }
+          const agent = stagehand.agent({
+            mode: "cua",
+            systemPrompt: browseSystemPrompt,
+          });
+          const result = await agent.execute({
+            instruction,
+            maxSteps,
+            highlightCursor: true,
+          });
+          return {
+            ok: true as const,
+            success: result.success,
+            message: result.message,
+            completed: result.completed,
+            usage: result.usage,
+            actions: compactActions(result.actions),
+            browserbaseSessionId: stagehand.browserbaseSessionID,
+            browserbaseSessionUrl: stagehand.browserbaseSessionURL,
+            browserbaseDebugUrl: stagehand.browserbaseDebugURL,
+          };
+        } finally {
+          await stagehand.close().catch(() => {});
         }
-        await page.goto(startUrl);
-      }
-      const agent = stagehand.agent({
-        mode: "cua",
-        systemPrompt: BROWSE_SYSTEM_PROMPT,
       });
-      const result = await agent.execute({
-        instruction,
-        maxSteps,
-        highlightCursor: true,
-      });
-      return Response.json({
-        ok: true,
-        success: result.success,
-        message: result.message,
-        completed: result.completed,
-        usage: result.usage,
-        actions: compactActions(result.actions),
-        browserbaseSessionId: stagehand.browserbaseSessionID,
-        browserbaseSessionUrl: stagehand.browserbaseSessionURL,
-        browserbaseDebugUrl: stagehand.browserbaseDebugURL,
-      });
+      return Response.json(payload);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       return Response.json({ ok: false, error: msg }, { status: 500 });
-    } finally {
-      await stagehand.close();
     }
   },
 };

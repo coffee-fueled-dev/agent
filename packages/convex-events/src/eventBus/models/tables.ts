@@ -19,7 +19,8 @@ export const eventBusEntries = defineTable(eventBusEntryFields)
     "namespace",
     "streamTypeId",
     "eventTime",
-  ]);
+  ])
+  .index("by_namespace_streamId_time", ["namespace", "streamId", "eventTime"]);
 
 export const eventBusEvictionBuffer = defineTable(eventBusEvictionBufferFields);
 

@@ -1,4 +1,5 @@
 import { ActivityIcon } from "lucide-react";
+import { useMemo } from "react";
 import { PageSection } from "@/components/layout/page-section";
 import { SidebarInsetFill } from "@/components/layout/sidebar.js";
 import { Button } from "@/components/ui/button";
@@ -15,14 +16,57 @@ import {
   AppLayoutSidebarProvider,
   useAppLayoutSidebar,
 } from "../_components/app-layout-sidebar-context.js";
-import { HumanToolkitProvider } from "./_components/human-toolkit-provider.js";
-import { ChatComposerMemoryProvider } from "./_components/chat-composer-memory-provider.js";
+import { EventBusStreamFiltersDialog } from "../_components/event-bus-stream-filters-dialog.js";
+import { EventBusStreamList } from "../_components/event-bus-stream-list.js";
+import {
+  EventBusStreamProvider,
+  useEventBusStreamFilters,
+} from "../_components/event-bus-stream-provider.js";
+import { eventsFiltersToQueryArgs } from "../events/_hooks/use-events-filters-from-url.js";
 import {
   ChatComposer,
   ChatComposerDropzone,
 } from "./_components/chat-composer.js";
+import { ChatComposerMemoryProvider } from "./_components/chat-composer-memory-provider.js";
 import { ChatMessageList } from "./_components/chat-message-list.js";
+import { HumanToolkitProvider } from "./_components/human-toolkit-provider.js";
 import { ChatThreadProvider, useChatThread } from "./_hooks/use-chat-thread.js";
+
+function ChatThreadEventBusPanel({
+  threadId,
+  userId,
+}: {
+  threadId: string;
+  userId: string;
+}) {
+  const { filters } = useEventBusStreamFilters();
+  const filterArgs = useMemo(
+    () =>
+      eventsFiltersToQueryArgs({
+        eventTypeId: filters.eventTypeId,
+        sourceStreamTypeId: filters.sourceStreamTypeId,
+        eventTimeMin: filters.eventTimeMin,
+        eventTimeMax: filters.eventTimeMax,
+      }),
+    [filters],
+  );
+  return (
+    <div className="flex h-full min-h-0 flex-col gap-2 px-2 py-2">
+      <div className="flex shrink-0 justify-end">
+        <EventBusStreamFiltersDialog syncUrl={false} />
+      </div>
+      <div className="min-h-0 flex-1">
+        <EventBusStreamList
+          userId={userId}
+          scope={{ kind: "thread", threadId }}
+          filters={filterArgs}
+          variant="sidebar"
+          emptyTitle="No events for this thread yet."
+        />
+      </div>
+    </div>
+  );
+}
 
 export function ChatRoute() {
   return (
@@ -35,7 +79,7 @@ export function ChatRoute() {
 }
 
 function ChatRouteInner() {
-  const { threadId, hasUserId } = useChatThread();
+  const { threadId, hasUserId, userId } = useChatThread();
   const { innerSidebarVisible, toggleInnerSidebarVisible } =
     useAppLayoutSidebar();
 
@@ -71,13 +115,21 @@ function ChatRouteInner() {
       }
       rightSidebar={
         innerSidebarVisible ? (
-          <Empty>
-            <EmptyContent className="text-muted-foreground text-xs">
-              <EmptyDescription>
-                Side panel content is not wired yet.
-              </EmptyDescription>
-            </EmptyContent>
-          </Empty>
+          hasUserId && threadId && userId ? (
+            <EventBusStreamProvider>
+              <ChatThreadEventBusPanel threadId={threadId} userId={userId} />
+            </EventBusStreamProvider>
+          ) : (
+            <Empty>
+              <EmptyContent className="text-muted-foreground text-xs">
+                <EmptyDescription>
+                  {hasUserId && !threadId
+                    ? "Open a thread to see observability events for it."
+                    : "Set BUN_PUBLIC_ACCOUNT_TOKEN to load the event stream."}
+                </EmptyDescription>
+              </EmptyContent>
+            </Empty>
+          )
         ) : null
       }
     >
