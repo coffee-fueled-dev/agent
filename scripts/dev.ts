@@ -1,7 +1,13 @@
+/// <reference path="./repo-env.d.ts" />
 import path from "node:path";
 import { runDev as runAgentDev } from "../apps/agent/scripts/dev.ts";
-import { runDev as runBackendDev } from "../apps/backend/scripts/dev.ts";
 import { runDev as runExecutorDev } from "../apps/executor/scripts/dev.ts";
+import {
+  convexEnvSchema,
+  isConvexProjectConfigured,
+  runConvexDev,
+  setupConvexProject,
+} from "./convex.ts";
 
 /** Set on the orchestrator process after the nested check so all dev children inherit it. */
 const ORCHESTRATOR_CHILD_ENV = "MONOREPO_DEV_ORCHESTRATOR_CHILD";
@@ -26,6 +32,35 @@ function killAll(children: readonly Bun.Subprocess[]) {
   }
 }
 
+function executorBaseUrl(): string {
+  const host = process.env.APPS_EXECUTOR_HOST?.trim() || "127.0.0.1";
+  const port = process.env.APPS_EXECUTOR_PORT?.trim() || "3010";
+  return `http://${host}:${port}`;
+}
+
+/** Fresh process loads `.env.local`, runs `convex env set` + `convex dev`, and starts apps. */
+async function reexecDevAfterSetup(monorepoRoot: string): Promise<never> {
+  console.log(
+    "Convex setup complete; restarting dev to apply env and start apps…",
+  );
+  const env = { ...process.env } as Record<string, string | undefined>;
+  delete env[ORCHESTRATOR_CHILD_ENV];
+  const proc = Bun.spawn({
+    cmd: [
+      "bun",
+      "--env-file=.env.local",
+      path.join(monorepoRoot, "scripts/dev.ts"),
+    ],
+    cwd: monorepoRoot,
+    stdin: "inherit",
+    stdout: "inherit",
+    stderr: "inherit",
+    env: env as NodeJS.ProcessEnv,
+  });
+  const code = await proc.exited;
+  process.exit(code ?? 1);
+}
+
 async function main() {
   process.env[ORCHESTRATOR_CHILD_ENV] = "1";
 
@@ -43,28 +78,51 @@ async function main() {
   process.once("uncaughtException", fatal);
   process.once("unhandledRejection", fatal);
 
+  const agentHost = process.env.APPS_AGENT_HOST?.trim() || "127.0.0.1";
+  const agentPort = process.env.APPS_AGENT_PORT?.trim() || "3000";
+  const executorHost = process.env.APPS_EXECUTOR_HOST?.trim() || "127.0.0.1";
+  const executorPort = process.env.APPS_EXECUTOR_PORT?.trim() || "3010";
+
+  process.env.APPS_AGENT_HOST = agentHost;
+  process.env.APPS_AGENT_PORT = agentPort;
+  process.env.APPS_EXECUTOR_HOST = executorHost;
+  process.env.APPS_EXECUTOR_PORT = executorPort;
+
+  const executorUrl = executorBaseUrl();
+  process.env.EXECUTOR_URL = executorUrl;
+
   try {
-    const { subprocess: backendProc, ready: backendReady } = await runBackendDev({
-      appEnv: {
-        GOOGLE_GENERATIVE_AI_API_KEY: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
-        OPENAI_API_KEY: process.env.OPENAI_API_KEY,
-        EMBEDDING_SERVER_URL: process.env.EMBEDDING_SERVER_URL,
-        BINARY_EMBEDDING_SECRET: process.env.BINARY_EMBEDDING_SECRET,
-        EXECUTOR_URL: process.env.EXECUTOR_URL,
-        LOCAL_SHELL_SECRET: process.env.LOCAL_SHELL_SECRET,
-        SHELL_EXECUTOR_ENABLED: process.env.SHELL_EXECUTOR_ENABLED,
-        BROWSER_EXECUTOR_ENABLED: process.env.BROWSER_EXECUTOR_ENABLED,
-        BROWSERBASE_API_KEY: process.env.BROWSERBASE_API_KEY,
-        BROWSERBASE_PROJECT_ID: process.env.BROWSERBASE_PROJECT_ID,
-        QUERY_URL_GEMINI_MODEL: process.env.QUERY_URL_GEMINI_MODEL,
-        STORAGE_PUBLIC_TUNNEL_ORIGIN: process.env.STORAGE_PUBLIC_TUNNEL_ORIGIN,
-        BROWSERBASE_STAGEHAND_CUA_MODEL:
-          process.env.BROWSERBASE_STAGEHAND_CUA_MODEL,
-      },
-      packageRoot: path.join(monorepoRoot, "apps/backend"),
+    if (!(await isConvexProjectConfigured(monorepoRoot))) {
+      console.log(
+        "No root Convex local deployment found; running interactive `convex dev --configure --dev-deployment local`…",
+      );
+      await setupConvexProject({ cwd: monorepoRoot });
+      await reexecDevAfterSetup(monorepoRoot);
+    }
+
+    const appEnv = convexEnvSchema.parse({
+      GOOGLE_GENERATIVE_AI_API_KEY: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+      OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+      EMBEDDING_SERVER_URL: process.env.EMBEDDING_SERVER_URL,
+      BINARY_EMBEDDING_SECRET: process.env.BINARY_EMBEDDING_SECRET,
+      EXECUTOR_URL: executorUrl,
+      LOCAL_SHELL_SECRET: process.env.LOCAL_SHELL_SECRET,
+      SHELL_EXECUTOR_ENABLED: process.env.SHELL_EXECUTOR_ENABLED,
+      BROWSER_EXECUTOR_ENABLED: process.env.BROWSER_EXECUTOR_ENABLED,
+      BROWSERBASE_API_KEY: process.env.BROWSERBASE_API_KEY,
+      BROWSERBASE_PROJECT_ID: process.env.BROWSERBASE_PROJECT_ID,
+      QUERY_URL_GEMINI_MODEL: process.env.QUERY_URL_GEMINI_MODEL,
+      STORAGE_PUBLIC_TUNNEL_ORIGIN: process.env.STORAGE_PUBLIC_TUNNEL_ORIGIN,
+      BROWSERBASE_STAGEHAND_CUA_MODEL:
+        process.env.BROWSERBASE_STAGEHAND_CUA_MODEL,
     });
-    devChildren.push(backendProc);
-    await backendReady;
+
+    const { subprocess: convexProc, ready: convexReady } = await runConvexDev({
+      appEnv,
+      cwd: monorepoRoot,
+    });
+    devChildren.push(convexProc);
+    await convexReady;
 
     const publicConvexUrl =
       process.env.BUN_PUBLIC_CONVEX_URL?.trim() ||
@@ -74,9 +132,10 @@ async function main() {
     devChildren.push(
       runAgentDev({
         appEnv: {
+          HOSTNAME: agentHost,
           BUN_PUBLIC_CONVEX_URL: publicConvexUrl,
-          BUN_PUBLIC_ACCOUNT_TOKEN: process.env.BUN_PUBLIC_ACCOUNT_TOKEN,
-          PORT: process.env.APPS_AGENT_PORT,
+          BUN_PUBLIC_ACCOUNT_TOKEN: process.env.BUN_PUBLIC_ACCOUNT_TOKEN ?? "",
+          PORT: agentPort,
         },
         packageRoot: path.join(monorepoRoot, "apps/agent"),
       }),
@@ -84,9 +143,10 @@ async function main() {
     devChildren.push(
       runExecutorDev({
         appEnv: {
+          HOSTNAME: executorHost,
           CONVEX_URL: process.env.CONVEX_URL,
           BUN_PUBLIC_CONVEX_URL: publicConvexUrl,
-          PORT: process.env.APPS_EXECUTOR_PORT,
+          PORT: executorPort,
         },
         packageRoot: path.join(monorepoRoot, "apps/executor"),
       }),

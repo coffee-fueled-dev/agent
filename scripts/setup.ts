@@ -1,12 +1,10 @@
 import path from "node:path";
-import { setupConvexProject } from "../apps/backend/scripts/setup.ts";
+import { setupConvexProject } from "./convex.ts";
 
-const backendRoot = path.join(import.meta.dir, "..", "apps", "backend");
+const monorepoRoot = path.join(import.meta.dir, "..");
 
 export async function setup() {
-  await setupConvexProject({
-    packageRoot: backendRoot,
-  });
+  await setupConvexProject({ cwd: monorepoRoot });
 }
 
 setup().catch((err) => {

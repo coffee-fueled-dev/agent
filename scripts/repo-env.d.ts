@@ -32,7 +32,9 @@ declare module "bun" {
     BUN_PUBLIC_CONVEX_URL: string;
     BUN_PUBLIC_ACCOUNT_TOKEN: string;
 
-    // Local HTTP ports for `bun run dev` (mapped to each app’s `PORT` in scripts/dev.ts)
+    // Local HTTP hostnames/ports for `bun run dev` (fixed before Convex starts so EXECUTOR_URL is stable)
+    APPS_AGENT_HOST?: string;
+    APPS_EXECUTOR_HOST?: string;
     APPS_AGENT_PORT?: string;
     APPS_EXECUTOR_PORT?: string;
     /** Reserved if the backend app ever exposes a dev HTTP port from env */

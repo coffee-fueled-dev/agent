@@ -1,7 +1,14 @@
 {
   "$schema": "./node_modules/convex/schemas/convex.schema.json",
+  "functions": "apps/backend/convex/",
   "typescriptCompiler": "tsgo",
   "node": {
     "nodeVersion": "22"
+  },
+  "bundler": {
+    "includeSourcesContent": false
+  },
+  "aiFiles": {
+    "enabled": false
   }
 }
