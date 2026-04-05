@@ -8,15 +8,15 @@ import { inputArgs, withFormattedResults } from "../../../lib/toolkit.js";
 
 declare module "../../registeredToolMap.js" {
   interface RegisteredToolMap {
-    browseWeb: InferUITool<Tool>;
+    automateBrowserTask: InferUITool<Tool>;
   }
 }
 
 const browseEffortSchema = z.enum(["low", "medium", "high"]);
 
-export function browseWebTool() {
+export function automateBrowserTaskTool() {
   return tool({
-    name: "browseWeb" as const,
+    name: "automateBrowserTask" as const,
     instructions: [
       "Use browse web to perform tasks in a real browser session.",
       "Prefer searchWeb for discovery and only use browse web if you need to perform a task in a real browser.",
@@ -56,7 +56,7 @@ export function browseWebTool() {
       void args.goal;
       return await withFormattedResults(
         ctx.env.runAction(
-          internal.agents._tools.web.browseWeb.internal.execute,
+          internal.agents._tools.web.automateBrowserTask.internal.execute,
           {
             instruction: args.instruction,
             startUrl: args.startUrl,

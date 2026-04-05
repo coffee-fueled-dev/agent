@@ -4,7 +4,7 @@ const executorEnvSchema = z.object({
   EXECUTOR_URL: z.string().optional(),
   LOCAL_SHELL_SECRET: z.string().optional(),
   SHELL_EXECUTOR_ENABLED: z.string().optional(),
-  /** When true, `browseWeb` POSTs to the executor Bun server (`/api/browser/browse`). */
+  /** When true, `automateBrowserTask` POSTs to the executor Bun server (`/api/browser/browse`). */
   BROWSER_EXECUTOR_ENABLED: z.string().optional(),
 });
 

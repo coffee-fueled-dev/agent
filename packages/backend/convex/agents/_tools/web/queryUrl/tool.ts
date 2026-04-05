@@ -16,7 +16,7 @@ export function queryUrlTool() {
   return tool({
     name: "queryUrl" as const,
     description:
-      "Answer using Gemini with Google Search + URL context (fetches public page content from URLs you provide). Cheaper than browseWeb for summaries and research; URLs must be public HTTPS. See https://ai.google.dev/gemini-api/docs/url-context",
+      "Answer using Gemini with Google Search + URL context (fetches public page content from URLs you provide). Cheaper than automateBrowserTask for summaries and research; URLs must be public HTTPS. See https://ai.google.dev/gemini-api/docs/url-context",
     inputSchema: inputArgs({
       query: z
         .string()

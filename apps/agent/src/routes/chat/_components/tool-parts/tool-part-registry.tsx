@@ -17,7 +17,7 @@ const registry = {
   runShell: RunShellToolPart,
   searchWeb: SearchWebToolPart,
   queryUrl: QueryUrlToolPart,
-  browseWeb: BrowseWebToolPart,
+  automateBrowserTask: BrowseWebToolPart,
 } satisfies Record<RegisteredToolName, React.ComponentType<ToolPartProps>>;
 
 export function ToolPartView(props: ToolPartProps) {

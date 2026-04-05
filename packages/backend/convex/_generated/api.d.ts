@@ -25,8 +25,8 @@ import type * as agents__tools_registeredToolAugments from "../agents/_tools/reg
 import type * as agents__tools_registeredToolMap from "../agents/_tools/registeredToolMap.js";
 import type * as agents__tools_toolRegistry from "../agents/_tools/toolRegistry.js";
 import type * as agents__tools_uiMessage from "../agents/_tools/uiMessage.js";
-import type * as agents__tools_web_browseWeb_internal from "../agents/_tools/web/browseWeb/internal.js";
-import type * as agents__tools_web_browseWeb_tool from "../agents/_tools/web/browseWeb/tool.js";
+import type * as agents__tools_web_automateBrowserTask_internal from "../agents/_tools/web/automateBrowserTask/internal.js";
+import type * as agents__tools_web_automateBrowserTask_tool from "../agents/_tools/web/automateBrowserTask/tool.js";
 import type * as agents__tools_web_queryUrl_internal from "../agents/_tools/web/queryUrl/internal.js";
 import type * as agents__tools_web_queryUrl_tool from "../agents/_tools/web/queryUrl/tool.js";
 import type * as agents__tools_web_searchWeb_internal from "../agents/_tools/web/searchWeb/internal.js";
@@ -107,8 +107,8 @@ declare const fullApi: ApiFromModules<{
   "agents/_tools/registeredToolMap": typeof agents__tools_registeredToolMap;
   "agents/_tools/toolRegistry": typeof agents__tools_toolRegistry;
   "agents/_tools/uiMessage": typeof agents__tools_uiMessage;
-  "agents/_tools/web/browseWeb/internal": typeof agents__tools_web_browseWeb_internal;
-  "agents/_tools/web/browseWeb/tool": typeof agents__tools_web_browseWeb_tool;
+  "agents/_tools/web/automateBrowserTask/internal": typeof agents__tools_web_automateBrowserTask_internal;
+  "agents/_tools/web/automateBrowserTask/tool": typeof agents__tools_web_automateBrowserTask_tool;
   "agents/_tools/web/queryUrl/internal": typeof agents__tools_web_queryUrl_internal;
   "agents/_tools/web/queryUrl/tool": typeof agents__tools_web_queryUrl_tool;
   "agents/_tools/web/searchWeb/internal": typeof agents__tools_web_searchWeb_internal;
