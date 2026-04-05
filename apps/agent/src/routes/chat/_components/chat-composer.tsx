@@ -8,6 +8,7 @@ import {
   InputGroupTextarea,
 } from "@/components/ui/input-group";
 import { FileDropzone } from "@/files";
+import { MemorySearchModal } from "../../_components/memory-search-modal.js";
 import { useChatThread } from "../_hooks/use-chat-thread.js";
 import {
   ChatComposerAttachmentsProvider,
@@ -19,7 +20,6 @@ import {
   memoryBadgeLabel,
   useChatComposerMemory,
 } from "./chat-composer-memory-provider.js";
-import { MemorySearchModal } from "./memory-search-modal.js";
 import {
   ComposeMessageProvider,
   useComposeMessage,

@@ -1,10 +1,10 @@
-import { api } from "@very-coffee/backend/api";
+import { api } from "@agent/backend/api";
 import {
   buildHumanToolCall,
   type HumanToolkitExecutableToolName,
   type HumanToolkitToolName,
   type HumanToolkitToolUi,
-} from "@very-coffee/backend/types";
+} from "@agent/backend/types";
 import { useQuery } from "convex/react";
 import {
   useSessionAction,

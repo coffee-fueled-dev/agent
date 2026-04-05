@@ -1,6 +1,6 @@
+import { api } from "@agent/backend/api";
 import { useUIMessages } from "@convex-dev/agent/react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { api } from "@very-coffee/backend/api";
 import { useEffect, useRef, useState } from "react";
 import { FadeOverflow } from "@/components/layout/fade-overflow";
 import LoadMoreSentinel from "@/components/layout/load-more-sentinel";

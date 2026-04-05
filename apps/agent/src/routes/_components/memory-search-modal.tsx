@@ -1,6 +1,6 @@
 "use client";
 
-import { api } from "@very-coffee/backend/api";
+import { api } from "@agent/backend/api";
 import { useAction } from "convex/react";
 import { CheckIcon, PaperclipIcon, SearchIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -35,7 +35,7 @@ import {
 import {
   memoryBadgeLabel,
   useChatComposerMemory,
-} from "./chat-composer-memory-provider.js";
+} from "../chat/_components/chat-composer-memory-provider.js";
 
 type SearchHit = {
   sourceRef: string;

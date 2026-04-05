@@ -1,7 +1,7 @@
 "use client";
 
-import { api } from "@very-coffee/backend/api";
-import type { Id } from "@very-coffee/backend/dataModel";
+import { api } from "@agent/backend/api";
+import type { Id } from "@agent/backend/dataModel";
 import { ArrowLeftIcon } from "lucide-react";
 import { PageSection } from "@/components/layout/page-section";
 import { RequiredResult } from "@/components/layout/required-result.js";

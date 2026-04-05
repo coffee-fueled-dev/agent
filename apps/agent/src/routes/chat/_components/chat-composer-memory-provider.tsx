@@ -4,7 +4,7 @@ import {
   buildHumanToolCall,
   DEFAULT_SHARE_MEMORIES_GOAL,
   type HumanToolkitToolInputs,
-} from "@very-coffee/backend/types";
+} from "@agent/backend/types";
 import {
   createContext,
   type ReactNode,

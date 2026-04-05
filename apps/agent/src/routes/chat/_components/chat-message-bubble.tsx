@@ -1,4 +1,4 @@
-import type { UIMessage } from "@very-coffee/backend/types";
+import type { UIMessage } from "@agent/backend/types";
 import type { FileUIPart } from "ai";
 import { ChatMessagePart } from "./chat-message-part.js";
 import { ChatMessagePartFile } from "./chat-message-part-file.js";

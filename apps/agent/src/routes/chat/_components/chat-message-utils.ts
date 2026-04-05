@@ -1,4 +1,4 @@
-import type { UIMessage } from "@very-coffee/backend/types";
+import type { UIMessage } from "@agent/backend/types";
 import { isToolUIPart } from "ai";
 
 export function findLastUserMessageIndex(messages: UIMessage[]): number {

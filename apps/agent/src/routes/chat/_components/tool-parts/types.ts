@@ -1,4 +1,4 @@
-import type { UIMessage, UITools } from "@very-coffee/backend/types";
+import type { UIMessage, UITools } from "@agent/backend/types";
 import type { ToolUIPart } from "ai";
 
 export type ToolUIPartForApp = ToolUIPart<UITools>;

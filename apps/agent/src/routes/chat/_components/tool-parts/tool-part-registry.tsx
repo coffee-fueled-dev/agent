@@ -1,4 +1,4 @@
-import type { RegisteredToolName } from "@very-coffee/backend/types";
+import type { RegisteredToolName } from "@agent/backend/types";
 import type * as React from "react";
 import { BrowseWebToolPart } from "./browse-web-tool-part.js";
 import { FallbackToolPart } from "./fallback-tool-part.js";

@@ -1,4 +1,4 @@
-import { api } from "@very-coffee/backend/api";
+import { api } from "@agent/backend/api";
 import { useMutation, useQuery } from "convex/react";
 import { ActivityIcon } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";

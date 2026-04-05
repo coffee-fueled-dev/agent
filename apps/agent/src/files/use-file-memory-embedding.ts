@@ -1,5 +1,5 @@
-import { api } from "@very-coffee/backend/api";
-import type { Id } from "@very-coffee/backend/dataModel";
+import { api } from "@agent/backend/api";
+import type { Id } from "@agent/backend/dataModel";
 import { useQuery } from "convex/react";
 import { useEffect, useState } from "react";
 import { useConvexFileUpload } from "./use-convex-file-upload.js";

@@ -1,6 +1,6 @@
+import { api } from "@agent/backend/api";
+import type { Id } from "@agent/backend/dataModel";
 import { contentHashFromArrayBuffer } from "@convex-dev/rag";
-import { api } from "@very-coffee/backend/api";
-import type { Id } from "@very-coffee/backend/dataModel";
 import { useAction, useMutation } from "convex/react";
 import { useCallback } from "react";
 import { buildFileMemoryKey } from "./file-keys.js";

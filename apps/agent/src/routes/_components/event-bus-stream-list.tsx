@@ -1,8 +1,8 @@
 "use client";
 
+import { api } from "@agent/backend/api";
+import type { Doc, Id } from "@agent/backend/dataModel";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { api } from "@very-coffee/backend/api";
-import type { Doc, Id } from "@very-coffee/backend/dataModel";
 import { useSessionIdArg } from "convex-helpers/react/sessions";
 import { useMemo, useRef } from "react";
 import { FadeOverflow } from "@/components/layout/fade-overflow";

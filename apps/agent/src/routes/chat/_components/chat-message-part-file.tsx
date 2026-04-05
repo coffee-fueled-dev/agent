@@ -1,10 +1,10 @@
 "use client";
 
-import { api } from "@very-coffee/backend/api";
+import { api } from "@agent/backend/api";
 import {
   CHAT_CFD_FILE_METADATA_KEY,
   CHAT_PROVIDER_METADATA_NS,
-} from "@very-coffee/backend/types";
+} from "@agent/backend/types";
 import type { FileUIPart } from "ai";
 import { useQuery } from "convex/react";
 import { Item, ItemContent, ItemTitle } from "@/components/ui/item.js";

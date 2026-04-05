@@ -1,6 +1,6 @@
 "use client";
 
-import { api } from "@very-coffee/backend/api";
+import { api } from "@agent/backend/api";
 import { useSessionMutation } from "convex-helpers/react/sessions";
 import {
   createContext,

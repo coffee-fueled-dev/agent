@@ -1,12 +1,12 @@
 import { Database } from "bun:sqlite";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
+import { api } from "@agent/backend/api";
 import {
   createPartFromBase64,
   createPartFromText,
   GoogleGenAI,
 } from "@google/genai";
-import { api } from "@very-coffee/backend/api";
 import { ConvexHttpClient } from "convex/browser";
 import {
   getConvexUrl,
