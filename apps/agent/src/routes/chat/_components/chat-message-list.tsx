@@ -1,7 +1,7 @@
 import { api } from "@agent/backend/api";
+import type { UIMessage } from "@agent/backend/types";
 import { useUIMessages } from "@convex-dev/agent/react";
-import { useVirtualizer } from "@tanstack/react-virtual";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { FadeOverflow } from "@/components/layout/fade-overflow";
 import LoadMoreSentinel from "@/components/layout/load-more-sentinel";
 import { Empty, EmptyContent, EmptyDescription } from "@/components/ui/empty";
@@ -14,6 +14,7 @@ import {
   LastMessagePair,
 } from "./chat-jump-to-latest-provider.js";
 import { ChatMessageBubble } from "./chat-message-bubble.js";
+import { estimateChatMessageTextMinHeight } from "./chat-message-pretext.js";
 import {
   findLastUserMessageIndex,
   hasRenderableAssistantContent,
@@ -21,7 +22,42 @@ import {
 
 const PAGE_SIZE = 15;
 
-const ESTIMATE_ROW = 120;
+function ChatMessageListItem({
+  message,
+  namespace,
+}: {
+  message: UIMessage;
+  namespace: string | undefined;
+}) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(0);
+
+  useLayoutEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => {
+      setWidth(el.clientWidth);
+    });
+    ro.observe(el);
+    setWidth(el.clientWidth);
+    return () => ro.disconnect();
+  }, []);
+
+  const minHeight = useMemo(
+    () => estimateChatMessageTextMinHeight(message, width),
+    [message, width],
+  );
+
+  return (
+    <div
+      ref={wrapRef}
+      className="flex w-full flex-col"
+      style={minHeight > 0 ? { minHeight } : undefined}
+    >
+      <ChatMessageBubble message={message} namespace={namespace} />
+    </div>
+  );
+}
 
 export function ChatMessageList() {
   const {
@@ -95,15 +131,6 @@ export function ChatMessageList() {
     }
   }, [lastAssistant, awaitingAssistantStream, setAwaitingAssistantStream]);
 
-  const virtualizer = useVirtualizer({
-    count: messagesBefore.length,
-    getScrollElement: () => viewportRef.current,
-    getItemKey: (index) => messagesBefore[index]?.id ?? index,
-    estimateSize: () => ESTIMATE_ROW,
-    gap: 20,
-    overscan: 6,
-  });
-
   if (!paginated) {
     return (
       <Empty className="min-h-[12rem]">
@@ -152,27 +179,14 @@ export function ChatMessageList() {
               scrollContainerSelector='[data-slot="scroll-area-viewport"]'
             />
             {messagesBefore.length > 0 ? (
-              <div
-                className="relative w-full space-y-5"
-                style={{ height: virtualizer.getTotalSize() }}
-              >
-                {virtualizer.getVirtualItems().map((vi) => {
-                  const row = messagesBefore[vi.index];
-                  if (!row) return null;
-                  return (
-                    <div
-                      key={row.id}
-                      data-index={vi.index}
-                      ref={virtualizer.measureElement}
-                      className="absolute top-0 left-0 flex w-full flex-col"
-                      style={{
-                        transform: `translateY(${vi.start}px)`,
-                      }}
-                    >
-                      <ChatMessageBubble message={row} namespace={userId} />
-                    </div>
-                  );
-                })}
+              <div className="flex w-full flex-col gap-5">
+                {messagesBefore.map((row) => (
+                  <ChatMessageListItem
+                    key={row.id}
+                    message={row}
+                    namespace={userId}
+                  />
+                ))}
               </div>
             ) : null}
 

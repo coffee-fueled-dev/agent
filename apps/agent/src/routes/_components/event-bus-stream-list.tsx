@@ -2,9 +2,8 @@
 
 import { api } from "@agent/backend/api";
 import type { Doc, Id } from "@agent/backend/dataModel";
-import { useVirtualizer } from "@tanstack/react-virtual";
 import { useSessionIdArg } from "convex-helpers/react/sessions";
-import { useMemo, useRef } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { FadeOverflow } from "@/components/layout/fade-overflow";
 import LoadMoreSentinel from "@/components/layout/load-more-sentinel";
 import { RequiredPaginatedResult } from "@/components/layout/required-result";
@@ -21,9 +20,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip.js";
 import { eventsDetail, Link } from "@/navigation/index.js";
+import { estimateTwoLineItemTextHeight } from "./two-line-item-pretext.js";
 
 const PAGE_SIZE = 25;
-const ESTIMATE_ROW = 88;
 
 const listEventBusEntriesForSession =
   api.chat.eventBus.listEventBusEntriesForSession;
@@ -55,21 +54,59 @@ type BusListRow = {
   streamTypeLabel: string;
 };
 
+function EventBusRowLabels({
+  primary,
+  secondary,
+}: {
+  primary: string;
+  secondary: string;
+}) {
+  const textColRef = useRef<HTMLDivElement>(null);
+  const [textWidth, setTextWidth] = useState(0);
+
+  useLayoutEffect(() => {
+    const el = textColRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => {
+      setTextWidth(el.clientWidth);
+    });
+    ro.observe(el);
+    setTextWidth(el.clientWidth);
+    return () => ro.disconnect();
+  }, []);
+
+  const minHeight = useMemo(
+    () => estimateTwoLineItemTextHeight(primary, secondary, textWidth),
+    [primary, secondary, textWidth],
+  );
+
+  return (
+    <div
+      ref={textColRef}
+      className="min-w-0 flex-1 flex flex-col gap-0.5"
+      style={minHeight > 0 ? { minHeight } : undefined}
+    >
+      <ItemTitle className="w-full min-w-0 max-w-full break-words text-xs leading-4 font-medium">
+        {primary}
+      </ItemTitle>
+      <span className="text-muted-foreground min-w-0 max-w-full break-words text-xs leading-4">
+        {secondary}
+      </span>
+    </div>
+  );
+}
+
 function EventRowLinkPage({ row }: { row: BusListRow }) {
   const href = eventsDetail(row.busEntry._id);
   return (
     <Item size="sm" asChild>
       <Link href={href} className="no-underline">
-        <ItemHeader className="min-w-0 gap-2">
-          <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <ItemTitle className="w-full min-w-0 max-w-full truncate text-xs">
-              {row.eventTypeLabel}
-            </ItemTitle>
-            <span className="text-muted-foreground min-w-0 max-w-full truncate text-xs">
-              {row.streamTypeLabel}
-            </span>
-          </div>
-          <span className="text-muted-foreground shrink-0 font-mono text-[10px] tabular-nums">
+        <ItemHeader className="min-w-0 items-start gap-2">
+          <EventBusRowLabels
+            primary={row.eventTypeLabel}
+            secondary={row.streamTypeLabel}
+          />
+          <span className="text-muted-foreground shrink-0 font-mono text-[10px] leading-[14px] tabular-nums">
             {new Date(row.busEntry.eventTime).toLocaleString()}
           </span>
         </ItemHeader>
@@ -85,15 +122,11 @@ function EventRowLinkSidebar({ row }: { row: BusListRow }) {
       <TooltipTrigger asChild>
         <Item size="sm" asChild className="flex-col items-stretch">
           <Link href={href}>
-            <ItemHeader className="min-w-0 gap-2">
-              <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                <ItemTitle className="w-full min-w-0 max-w-full truncate text-xs">
-                  {row.eventTypeLabel}
-                </ItemTitle>
-                <span className="text-muted-foreground min-w-0 max-w-full truncate text-xs">
-                  {row.streamTypeLabel}
-                </span>
-              </div>
+            <ItemHeader className="min-w-0 items-start gap-2">
+              <EventBusRowLabels
+                primary={row.eventTypeLabel}
+                secondary={row.streamTypeLabel}
+              />
             </ItemHeader>
           </Link>
         </Item>
@@ -105,7 +138,7 @@ function EventRowLinkSidebar({ row }: { row: BusListRow }) {
   );
 }
 
-function EventBusVirtualizedPage({
+function EventBusListPage({
   results,
   loadMore,
   canLoadMore,
@@ -117,37 +150,16 @@ function EventBusVirtualizedPage({
   isLoadingMore: boolean;
 }) {
   const viewportRef = useRef<HTMLDivElement>(null);
-  const virtualizer = useVirtualizer({
-    count: results.length,
-    getScrollElement: () => viewportRef.current,
-    estimateSize: () => ESTIMATE_ROW,
-    overscan: 8,
-  });
 
   return (
     <FadeOverflow
       viewportRef={viewportRef}
       className="h-full min-h-0 flex-1 px-8"
     >
-      <div
-        className="relative pr-2 w-full max-w-4xl"
-        style={{ height: virtualizer.getTotalSize() }}
-      >
-        {virtualizer.getVirtualItems().map((vi) => {
-          const row = results[vi.index];
-          if (!row) return null;
-          return (
-            <div
-              key={row.busEntry._id}
-              data-index={vi.index}
-              ref={virtualizer.measureElement}
-              className="absolute top-0 left-0 w-full pb-2"
-              style={{ transform: `translateY(${vi.start}px)` }}
-            >
-              <EventRowLinkPage row={row} />
-            </div>
-          );
-        })}
+      <div className="flex flex-col gap-2 pr-2 w-full max-w-4xl">
+        {results.map((row) => (
+          <EventRowLinkPage key={row.busEntry._id} row={row} />
+        ))}
       </div>
       <LoadMoreSentinel
         onLoadMore={() => loadMore(PAGE_SIZE)}
@@ -159,7 +171,7 @@ function EventBusVirtualizedPage({
   );
 }
 
-function EventBusVirtualizedSidebar({
+function EventBusListSidebar({
   results,
   loadMore,
   canLoadMore,
@@ -171,36 +183,13 @@ function EventBusVirtualizedSidebar({
   isLoadingMore: boolean;
 }) {
   const viewportRef = useRef<HTMLDivElement>(null);
-  const virtualizer = useVirtualizer({
-    count: results.length,
-    getScrollElement: () => viewportRef.current,
-    getItemKey: (index) => results[index]?.busEntry._id ?? index,
-    estimateSize: () => 72,
-    gap: 6,
-    overscan: 8,
-  });
 
   return (
     <FadeOverflow viewportRef={viewportRef} className="min-h-0 flex-1">
-      <div
-        className="relative w-full max-w-4xl"
-        style={{ height: virtualizer.getTotalSize() }}
-      >
-        {virtualizer.getVirtualItems().map((vi) => {
-          const row = results[vi.index];
-          if (!row) return null;
-          return (
-            <div
-              key={row.busEntry._id}
-              data-index={vi.index}
-              ref={virtualizer.measureElement}
-              className="absolute top-0 left-0 w-full"
-              style={{ transform: `translateY(${vi.start}px)` }}
-            >
-              <EventRowLinkSidebar row={row} />
-            </div>
-          );
-        })}
+      <div className="flex flex-col gap-1.5 w-full max-w-4xl">
+        {results.map((row) => (
+          <EventRowLinkSidebar key={row.busEntry._id} row={row} />
+        ))}
       </div>
       <LoadMoreSentinel
         onLoadMore={() => loadMore(PAGE_SIZE)}
@@ -237,10 +226,8 @@ export function EventBusStreamList({
   }, [userId, scope, filters]);
   const sessionArgs = useSessionIdArg(baseArgs);
 
-  const RowVirtualized =
-    variant === "sidebar"
-      ? EventBusVirtualizedSidebar
-      : EventBusVirtualizedPage;
+  const RowList =
+    variant === "sidebar" ? EventBusListSidebar : EventBusListPage;
 
   const inner = ({
     results,
@@ -256,7 +243,7 @@ export function EventBusStreamList({
 
     if (results.length > 0) {
       return (
-        <RowVirtualized
+        <RowList
           results={results}
           loadMore={loadMore}
           canLoadMore={canLoadMore}

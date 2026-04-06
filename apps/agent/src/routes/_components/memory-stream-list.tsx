@@ -27,7 +27,7 @@ import {
   EmptyDescription,
 } from "@/components/ui/empty.js";
 import { Item, ItemHeader, ItemTitle } from "@/components/ui/item";
-import { estimateMemoryTextBlockHeight } from "./memory-row-pretext.js";
+import { estimateTwoLineItemTextHeight } from "./two-line-item-pretext.js";
 
 const PAGE_SIZE = 25;
 
@@ -75,7 +75,7 @@ function MemoryRowPage({
   }, []);
 
   const textBlockMinHeight = useMemo(
-    () => estimateMemoryTextBlockHeight(primary, secondaryText, textWidth),
+    () => estimateTwoLineItemTextHeight(primary, secondaryText, textWidth),
     [primary, secondaryText, textWidth],
   );
 
