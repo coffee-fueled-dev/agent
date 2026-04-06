@@ -1,7 +1,7 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { bus, events } from "./events";
+import { bus, events, fifoEvictionRules } from "./events";
 
 const vStreamName = v.union(v.literal("todo"), v.literal("counter"));
 const vTodoEventType = v.union(
@@ -178,5 +178,32 @@ export const listBusDimensions = query({
   },
   handler: async (ctx, args) => {
     return bus.listDimensions(ctx, args);
+  },
+});
+
+// ---------------------------------------------------------------------------
+// Throughput demo (FIFO buckets + eviction rule metadata)
+// ---------------------------------------------------------------------------
+
+export const listBusFifoBuckets = query({
+  args: {},
+  handler: async (ctx) => {
+    const rows = await ctx.db.query("eventBusCount").collect();
+    return rows.map((r) => ({
+      bucketKey: r.bucketKey,
+      currentSize: r.currentSize,
+    }));
+  },
+});
+
+export const getFifoEvictionRules = query({
+  args: {},
+  handler: async () => {
+    return fifoEvictionRules.map((rule, ruleIndex) => ({
+      ruleIndex,
+      size: rule.size,
+      match: rule.match,
+      groupBy: rule.groupBy,
+    }));
   },
 });

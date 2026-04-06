@@ -109,7 +109,10 @@ export const events = new EventsClient(components.events, eventsConfig);
 
 const { listener, tables } = createEventBus({
   sources: [{ client: events, key: "main" }],
-  eviction: { type: "fifo", options: { size: 500 } },
+  eviction: {
+    type: "fifo",
+    rules: [{ match: {}, groupBy: ["namespace"], size: 500 }],
+  },
 });
 export const bus = listener;
 export const busTables = tables;

@@ -5,6 +5,7 @@ import metrics from "./app/metrics/page.html";
 import home from "./app/page.html";
 import projectors from "./app/projectors/page.html";
 import streams from "./app/streams/page.html";
+import throughput from "./app/throughput/page.html";
 import version from "./app/version/page.html";
 
 const server = serve({
@@ -14,6 +15,7 @@ const server = serve({
     "/version": version,
     "/metrics": metrics,
     "/bus": bus,
+    "/throughput": throughput,
     "/dimensions": dimensions,
     "/projectors": projectors,
   },

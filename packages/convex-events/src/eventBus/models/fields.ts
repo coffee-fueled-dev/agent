@@ -8,6 +8,8 @@ export const eventBusEntryFields = {
   eventId: v.string(),
   eventType: v.string(),
   eventTime: v.number(),
+  /** FIFO scope: `${ruleIndex}` + NUL + `buildGroupKey(...)` — see `fifoBucketKeyForRule`. */
+  fifoBucketKey: v.string(),
   payload: v.optional(v.any()),
   eventTypeId: v.id("dimensions"),
   streamTypeId: v.id("dimensions"),
@@ -18,5 +20,6 @@ export const eventBusEvictionBufferFields = {
 };
 
 export const eventBusCountFields = {
+  bucketKey: v.string(),
   currentSize: v.number(),
 };

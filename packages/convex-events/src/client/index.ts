@@ -11,11 +11,10 @@ import type {
   EventsMutationCtx,
   EventsRunMutationCtx,
   EventsRunQueryCtx,
-  MetricGroupByField,
-  MetricMatchFields,
   ProjectorCheckpoint,
   StreamNameFor,
 } from "../component/types.js";
+import { buildGroupKey, matchesRule } from "../domain/metrics/grouping.js";
 
 type StreamArgs<Streams extends readonly EventStreamTemplate[]> = {
   name: StreamNameFor<Streams>;
@@ -60,37 +59,6 @@ function mapPage<Streams extends readonly EventStreamTemplate[]>(
     ...page,
     page: page.page.map((d) => toPublicEntry<Streams>(d)),
   };
-}
-
-function matchesRule<Streams extends readonly EventStreamTemplate[]>(
-  match: MetricMatchFields<Streams>,
-  entry: { namespace: string; streamType: string; eventType: string },
-): boolean {
-  if (match.namespace !== undefined && match.namespace !== entry.namespace)
-    return false;
-  if (match.name !== undefined && match.name !== entry.streamType) return false;
-  if (match.eventType !== undefined && match.eventType !== entry.eventType)
-    return false;
-  return true;
-}
-
-function buildGroupKey(
-  groupBy: MetricGroupByField[],
-  entry: {
-    namespace: string;
-    streamType: string;
-    streamId: string;
-    eventType: string;
-  },
-): string {
-  const map: Record<MetricGroupByField, string> = {
-    namespace: entry.namespace,
-    name: entry.streamType,
-    streamId: entry.streamId,
-    eventType: entry.eventType,
-  };
-  if (groupBy.length === 1) return map[groupBy[0] as MetricGroupByField];
-  return groupBy.map((f) => map[f as MetricGroupByField]).join("\0");
 }
 
 export class EventsClient<const Streams extends readonly EventStreamTemplate[]>

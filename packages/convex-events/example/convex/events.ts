@@ -1,4 +1,5 @@
 import { EventsClient } from "@very-coffee/convex-events";
+import type { EvictionPolicy } from "@very-coffee/convex-events/eventBus";
 import { createEventBus } from "@very-coffee/convex-events/eventBus";
 import type { EventsConfig } from "@very-coffee/convex-events/types";
 import { type PropertyValidators, v } from "convex/values";
@@ -29,6 +30,11 @@ export const eventsConfig = {
       groupBy: ["eventType"],
     },
     {
+      name: "todo_by_namespace",
+      match: { name: "todo" },
+      groupBy: ["namespace"],
+    },
+    {
       name: "counter_total",
       match: { name: "counter" },
       groupBy: ["streamId"],
@@ -38,9 +44,23 @@ export const eventsConfig = {
 
 export const events = new EventsClient(components.events, eventsConfig);
 
+/**
+ * First matching rule wins (ordered). Todo and counter are handled by rules 0–1;
+ * the catch-all (rule 2) only applies to **other** stream names — not an extra cap
+ * on todo/counter traffic.
+ */
+export const fifoEvictionRules: EvictionPolicy["rules"] = [
+  { match: { name: "todo" }, groupBy: ["namespace"], size: 500 },
+  { match: { name: "counter" }, groupBy: [], size: 500 },
+  { match: {}, groupBy: ["namespace"], size: 500 },
+];
+
 const { listener, tables } = createEventBus({
   sources: [{ client: events, key: "events" }],
-  eviction: { type: "fifo", options: { size: 500 } },
+  eviction: {
+    type: "fifo",
+    rules: fifoEvictionRules,
+  },
 });
 export const bus = listener;
 export const busTables = tables;

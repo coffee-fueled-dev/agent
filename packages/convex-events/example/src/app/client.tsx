@@ -20,6 +20,10 @@ function Client() {
             <a href="/bus">Bus</a> — cross-stream event bus feed
           </li>
           <li>
+            <a href="/throughput">Throughput</a> — load generator + metrics + FIFO
+            buckets
+          </li>
+          <li>
             <a href="/dimensions">Dimensions</a> — dimension lists + filtering
           </li>
           <li>
