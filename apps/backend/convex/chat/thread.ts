@@ -4,7 +4,7 @@
  * Pipeline:
  * 1. **sendMessage** — Persist user message, `upsertChatContextRow`, schedule `continueThreadStream` and `recordHumanTurnBackground`.
  * 2. **continueThreadStream** — Append `humanMessageSent` to actor history; optionally `applyHumanToolCallsForTurn` (parallel with agent setup); `streamText`; schedule `finalizeAssistantStreamTurn`.
- * 3. **finalizeAssistantStreamTurn** — Update chat context tip and `assistantResponseComplete` actor row (off the stream critical path).
+ * 3. **finalizeAssistantStreamTurn** — Update chat context tip and `assistantResponseComplete` actor row (off the stream critical path); optionally schedule `maybeGenerateThreadTitleAfterFirstExchange` when the thread has no title.
  * 4. **Reads** — `listRecentThreads`, `listThreadMessages`.
  */
 import {
@@ -12,14 +12,18 @@ import {
   listMessages,
   saveMessages,
   syncStreams,
+  toUIMessages,
 } from "@convex-dev/agent";
 import type { StreamArgs } from "@convex-dev/agent/validators";
+import { generateObject } from "ai";
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { SessionIdArg } from "convex-helpers/server/sessions";
+import { z } from "zod";
 import { components, internal } from "../_generated/api.js";
 import { internalAction, mutation, query } from "../_generated/server.js";
 import { createAssistantAgent } from "../agents/assistant/createAgent.js";
+import { languageModels } from "../agents/lib/models.js";
 import { buildObservabilityPipelineHooks } from "../observability/pipelineHooks.js";
 import { ensureObservabilityWiring } from "../observability/wiring.js";
 import {
@@ -205,6 +209,7 @@ export const applyHumanToolCallsForTurn = internalAction({
 export const finalizeAssistantStreamTurn = internalAction({
   args: {
     threadId: v.string(),
+    userId: v.string(),
     namespace: v.string(),
     ...SessionIdArg,
   },
@@ -236,7 +241,98 @@ export const finalizeAssistantStreamTurn = internalAction({
           anchorMessageId: tip._id,
         } satisfies ChatActorTurnPayload,
       });
+
+      const thread = await ctx.runQuery(components.agent.threads.getThread, {
+        threadId: args.threadId,
+      });
+      const firstTurnPage = await ctx.runQuery(
+        components.agent.messages.listMessagesByThreadId,
+        {
+          threadId: args.threadId,
+          order: "asc",
+          paginationOpts: { cursor: null, numItems: 64 },
+        },
+      );
+      const firstTurnUserCount = toUIMessages(firstTurnPage.page).filter(
+        (m) => m.role === "user",
+      ).length;
+      if (thread && !thread.title?.trim() && firstTurnUserCount === 1) {
+        await ctx.scheduler.runAfter(
+          0,
+          internal.chat.thread.maybeGenerateThreadTitleAfterFirstExchange,
+          {
+            threadId: args.threadId,
+            userId: args.userId,
+            lastMessageId: tip._id,
+          },
+        );
+      }
     }
+    return null;
+  },
+});
+
+/** After the first assistant reply, suggest a title when none is set (scheduled off the stream path). */
+export const maybeGenerateThreadTitleAfterFirstExchange = internalAction({
+  args: {
+    threadId: v.string(),
+    userId: v.string(),
+    lastMessageId: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const thread = await ctx.runQuery(components.agent.threads.getThread, {
+      threadId: args.threadId,
+    });
+
+    const isOwner = thread?.userId === args.userId;
+    const hasTitle = thread?.title !== undefined && thread?.title.trim() !== "";
+    if (!isOwner || hasTitle) return null;
+
+    const page = await ctx.runQuery(
+      components.agent.messages.listMessagesByThreadId,
+      {
+        threadId: args.threadId,
+        order: "asc",
+        upToAndIncludingMessageId: args.lastMessageId,
+        paginationOpts: { cursor: null, numItems: 64 },
+      },
+    );
+    const ui = toUIMessages(page.page);
+    const messages = ui
+      .filter((m) => m.role === "user" || m.role === "assistant")
+      .map((m) =>
+        m.role === "user"
+          ? ({ role: "user" as const, content: m.text } as const)
+          : ({ role: "assistant" as const, content: m.text } as const),
+      );
+
+    if (messages.length === 0) {
+      return null;
+    }
+
+    const { object } = await generateObject({
+      model: languageModels.quick,
+      schema: z.object({
+        title: z
+          .string()
+          .describe(
+            "Two or three words that capture the essence of the chat thread.",
+          ),
+      }),
+      schemaName: "thread_title",
+      system:
+        "You name chat threads. Given the first user message and assistant reply, output a short, specific title. No markdown, no quotes.",
+      messages,
+    });
+
+    const title = object.title.trim();
+    if (!title) return null;
+
+    await ctx.runMutation(components.agent.threads.updateThread, {
+      threadId: args.threadId,
+      patch: { title },
+    });
     return null;
   },
 });
@@ -320,6 +416,7 @@ export const continueThreadStream = internalAction({
       internal.chat.thread.finalizeAssistantStreamTurn,
       {
         threadId: args.threadId,
+        userId: args.userId,
         namespace: args.namespace,
         sessionId: args.sessionId,
       },
