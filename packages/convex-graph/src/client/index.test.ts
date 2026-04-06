@@ -5,6 +5,7 @@ import {
   buildKnnGraph,
   edgeSchema,
   GraphClient,
+  graphLabelValidatorsFromConfig,
   leiden,
   nodeSchema,
   normalizeLabel,
@@ -25,6 +26,21 @@ describe("GraphClient", () => {
     expect(graph).toBeInstanceOf(GraphClient);
     expect(graph.config.nodes).toHaveLength(1);
     expect(graph.config.edges).toHaveLength(1);
+    expect(graph.config).toBe(graph.config);
+  });
+
+  test("graphLabelValidatorsFromConfig matches config labels", () => {
+    const config = {
+      nodes: [nodeSchema(dummyAppSchema, "contextEntry", "dummy")],
+      edges: [
+        edgeSchema("SIMILAR_TO", undefined, { directed: false }),
+        edgeSchema("RELATES_TO"),
+      ],
+    } as const;
+    const { nodeLabelValidator, edgeLabelValidator } =
+      graphLabelValidatorsFromConfig(config);
+    expect(nodeLabelValidator).toBeDefined();
+    expect(edgeLabelValidator).toBeDefined();
   });
 
   test("placeholder: helpers are callable (replace with integration tests later)", () => {

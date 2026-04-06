@@ -79,6 +79,7 @@ import type * as memories_list from "../memories/list.js";
 import type * as memories_manualMemory from "../memories/manualMemory.js";
 import type * as memories_memorySearch from "../memories/memorySearch.js";
 import type * as memories_resolveMemories from "../memories/resolveMemories.js";
+import type * as memories_seedMemoryGraphOntology from "../memories/seedMemoryGraphOntology.js";
 import type * as memories_workflows from "../memories/workflows.js";
 import type * as observability_append from "../observability/append.js";
 import type * as observability_events from "../observability/events.js";
@@ -167,6 +168,7 @@ declare const fullApi: ApiFromModules<{
   "memories/manualMemory": typeof memories_manualMemory;
   "memories/memorySearch": typeof memories_memorySearch;
   "memories/resolveMemories": typeof memories_resolveMemories;
+  "memories/seedMemoryGraphOntology": typeof memories_seedMemoryGraphOntology;
   "memories/workflows": typeof memories_workflows;
   "observability/append": typeof observability_append;
   "observability/events": typeof observability_events;
@@ -994,6 +996,14 @@ export declare const components: {
   };
   memory: {
     public: {
+      ontology: {
+        seedMemoryGraphOntology: FunctionReference<
+          "mutation",
+          "internal",
+          {},
+          null
+        >;
+      };
       records: {
         deleteMemoryRecordDocument: FunctionReference<
           "mutation",
@@ -1129,7 +1139,7 @@ export declare const components: {
             contentSource: { id: string; type: string };
             fileName?: string;
             mimeType?: string;
-            searchBackend: "lexical" | "vector";
+            searchBackend: "lexical" | "vector" | "graph";
             searchItemId: string;
           }>
         >;
@@ -1160,10 +1170,24 @@ export declare const components: {
             fileName?: string;
             googleApiKey?: string;
             key?: string;
+            memoryLinks?: Array<
+              | {
+                  edge: "SIMILAR_TO";
+                  score: number;
+                  targetMemoryRecordId: string;
+                }
+              | { edge: "RELATES_TO"; targetMemoryRecordId: string }
+              | { edge: "REFINES"; targetMemoryRecordId: string }
+            >;
             memoryRecordId?: string;
             mimeType?: string;
             mode?: null | "append";
             namespace: string;
+            ontologyNodeLabel?:
+              | "Fact"
+              | "Preference"
+              | "Procedure"
+              | "Reference";
             skipCanonicalText?: boolean;
             title?: string;
           },

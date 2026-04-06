@@ -17,7 +17,11 @@ export function memoryToolkit(): Composable<
       and the most efficient ways of accomplishing tasks on their behalf. People have varying preferences, so it's important to be flexible and adapt to their needs.
       
       Use your tools to save memories at will, whenever they will help you to build a deeper understanding of the user and their needs.
-      If you do not save memories for later, it will impede your ability to efficiently complete tasks in the future.`,
+      If you do not save memories for later, it will impede your ability to efficiently complete tasks in the future.
+      
+      Whenever the user asks you to help with something personal to them, always consult your existing memories for any relevant information. 
+      If no memory was found or if the existing memory is outdated, assist them and save a new memory based on your experience of the task.
+      If a memory was found, use it to assist them.`,
     ],
   });
 }

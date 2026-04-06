@@ -26,7 +26,7 @@ export async function upsertSourceMapLink(
     namespace: string;
     memoryRecordId: Id<"memoryRecords">;
     contentSource: ContentSource;
-    searchBackend: "lexical" | "vector";
+    searchBackend: "lexical" | "vector" | "graph";
     searchItemId: string;
     fileName?: string;
     mimeType?: string;

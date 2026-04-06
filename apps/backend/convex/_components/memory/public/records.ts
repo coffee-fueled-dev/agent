@@ -5,7 +5,11 @@ import { mutation, query } from "../_generated/server.js";
 import { graph } from "../graph.js";
 import { memorySearchSourceRef } from "../internal/store.js";
 import schema from "../schema.js";
-import { lexicalSearch, MEMORY_SOURCE_SYSTEM, vectorSearch } from "../search.js";
+import {
+  lexicalSearch,
+  MEMORY_SOURCE_SYSTEM,
+  vectorSearch,
+} from "../search.js";
 
 const leanMemoryRecordValidator = v.object({
   _id: v.id("memoryRecords"),
@@ -83,7 +87,9 @@ export const patchMemoryRecordTitle = mutation({
   handler: async (ctx, args) => {
     const doc = await ctx.db.get(args.memoryRecordId);
     if (!doc || doc.namespace !== args.namespace) {
-      throw new Error("patchMemoryRecordTitle: not found or namespace mismatch");
+      throw new Error(
+        "patchMemoryRecordTitle: not found or namespace mismatch",
+      );
     }
     const titleTrim = args.title.trim();
     if (!titleTrim) {
@@ -165,10 +171,14 @@ export const tryDeleteMemoryGraphNode = mutation({
     if (!doc || doc.namespace !== args.namespace) {
       return null;
     }
-    await graph.nodes.delete(ctx, {
-      label: "memoryRecord",
-      key: String(args.memoryRecordId),
-    });
+    const key = args.memoryRecordId;
+    const node = await graph.nodes.get(ctx, { key });
+    if (node) {
+      await graph.nodes.delete(ctx, {
+        label: node.label,
+        key,
+      });
+    }
     return null;
   },
 });

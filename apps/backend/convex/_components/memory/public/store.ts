@@ -2,6 +2,12 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { mutation } from "../_generated/server";
+import { memoryOntologyNodeLabelValidator } from "../graph.js";
+import {
+  type MemoryLinkItem,
+  syncMemoryGraphForMerge,
+} from "../internal/graphMemory.js";
+import { memoryLinkItemValidator } from "../internal/memoryLinkValidator.js";
 import { executeMergeMemoryBatch } from "../internal/mergeBatch.js";
 import { mergeMemoryPool } from "../internal/mergeWorkpool";
 
@@ -42,6 +48,13 @@ export const mergeMemory = mutation({
     googleApiKey: v.optional(v.string()),
     /** Short label for UI (plaintext memories); optional on file-backed ingest. */
     title: v.optional(v.string()),
+    /**
+     * Graph node label (Fact | Preference | Procedure | Reference). Required when creating
+     * the memory’s graph node; optional on append if the node already exists.
+     */
+    ontologyNodeLabel: v.optional(memoryOntologyNodeLabelValidator),
+    /** Named edges to other memories in the same namespace (same contentSource as merge). */
+    memoryLinks: v.optional(v.array(memoryLinkItemValidator)),
   },
   returns: v.object({
     memoryRecordId: v.id("memoryRecords"),
@@ -70,6 +83,13 @@ export const mergeMemory = mutation({
       const contentSource =
         args.contentSource ??
         ({ type: "memoryInline", id: String(id) } as const);
+      await syncMemoryGraphForMerge(ctx, {
+        namespace: args.namespace,
+        memoryRecordId: id,
+        contentSource,
+        ontologyNodeLabel: args.ontologyNodeLabel,
+        memoryLinks: args.memoryLinks as MemoryLinkItem[] | undefined,
+      });
       await executeMergeMemoryBatch(ctx, {
         namespace: args.namespace,
         memoryRecordId: id,
@@ -112,6 +132,14 @@ export const mergeMemory = mutation({
     const contentSource =
       args.contentSource ??
       ({ type: "memoryInline", id: String(memoryRecordId) } as const);
+
+    await syncMemoryGraphForMerge(ctx, {
+      namespace: args.namespace,
+      memoryRecordId,
+      contentSource,
+      ontologyNodeLabel: args.ontologyNodeLabel,
+      memoryLinks: args.memoryLinks as MemoryLinkItem[] | undefined,
+    });
 
     const workId = await mergeMemoryPool.enqueueMutation(
       ctx,

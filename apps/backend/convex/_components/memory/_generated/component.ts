@@ -24,6 +24,15 @@ import type { FunctionReference } from "convex/server";
 export type ComponentApi<Name extends string | undefined = string | undefined> =
   {
     public: {
+      ontology: {
+        seedMemoryGraphOntology: FunctionReference<
+          "mutation",
+          "internal",
+          {},
+          null,
+          Name
+        >;
+      };
       records: {
         deleteMemoryRecordDocument: FunctionReference<
           "mutation",
@@ -167,7 +176,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             contentSource: { id: string; type: string };
             fileName?: string;
             mimeType?: string;
-            searchBackend: "lexical" | "vector";
+            searchBackend: "lexical" | "vector" | "graph";
             searchItemId: string;
           }>,
           Name
@@ -200,10 +209,24 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             fileName?: string;
             googleApiKey?: string;
             key?: string;
+            memoryLinks?: Array<
+              | {
+                  edge: "SIMILAR_TO";
+                  score: number;
+                  targetMemoryRecordId: string;
+                }
+              | { edge: "RELATES_TO"; targetMemoryRecordId: string }
+              | { edge: "REFINES"; targetMemoryRecordId: string }
+            >;
             memoryRecordId?: string;
             mimeType?: string;
             mode?: null | "append";
             namespace: string;
+            ontologyNodeLabel?:
+              | "Fact"
+              | "Preference"
+              | "Procedure"
+              | "Reference";
             skipCanonicalText?: boolean;
             title?: string;
           },

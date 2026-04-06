@@ -1,5 +1,6 @@
 import { memoryClient } from "../../_clients/memory.js";
 import type { Id as MemoryRecordId } from "../../_components/memory/_generated/dataModel.js";
+import { DEFAULT_FILE_MEMORY_ONTOLOGY_NODE_LABEL } from "../../_components/memory/graph.js";
 import type { Id } from "../../_generated/dataModel.js";
 import type { MutationCtx, QueryCtx } from "../../_generated/server.js";
 import { requireEmbeddingSecret } from "./auth.js";
@@ -176,7 +177,9 @@ export async function handleStartFileProcess(
       memoryRecordId: args.memoryRecordId as MemoryRecordId<"memoryRecords">,
     });
     if (!record) {
-      throw new Error("startFileProcess: memory record not found for namespace");
+      throw new Error(
+        "startFileProcess: memory record not found for namespace",
+      );
     }
     memoryRecordId = args.memoryRecordId;
 
@@ -196,6 +199,7 @@ export async function handleStartFileProcess(
       key: args.key,
       content: [],
       skipCanonicalText: true,
+      ontologyNodeLabel: DEFAULT_FILE_MEMORY_ONTOLOGY_NODE_LABEL,
       contentSource: {
         type: "storage",
         id: args.storageId as string,
@@ -207,7 +211,8 @@ export async function handleStartFileProcess(
 
     await memoryClient.registerStorageSourceMetadata(ctx, {
       namespace: args.namespace,
-      memoryRecordId: mergeResult.memoryRecordId as MemoryRecordId<"memoryRecords">,
+      memoryRecordId:
+        mergeResult.memoryRecordId as MemoryRecordId<"memoryRecords">,
       contentSource: {
         type: "storage",
         id: args.storageId as string,

@@ -50,7 +50,11 @@ const sourceMapRowValidator = v.object({
     type: v.string(),
     id: v.string(),
   }),
-  searchBackend: v.union(v.literal("lexical"), v.literal("vector")),
+  searchBackend: v.union(
+    v.literal("lexical"),
+    v.literal("vector"),
+    v.literal("graph"),
+  ),
   searchItemId: v.string(),
   fileName: v.optional(v.string()),
   mimeType: v.optional(v.string()),

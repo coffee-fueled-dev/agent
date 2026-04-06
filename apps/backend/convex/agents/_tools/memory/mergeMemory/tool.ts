@@ -1,5 +1,6 @@
 import { tool } from "@very-coffee/agent-identity";
 import { memoryClient } from "_clients/memory.js";
+import type { Id } from "_components/memory/_generated/dataModel.js";
 import type { InferUITool, Tool } from "ai";
 import { z } from "zod/v4";
 import { requireGoogleApiKey } from "../../../../env/models.js";
@@ -50,6 +51,34 @@ export function mergeMemoryTool() {
         .describe(
           "Short human-readable title for this memory (shown in chat UI). Provide for new plaintext memories.",
         ),
+      ontologyNodeLabel: z
+        .enum(["Fact", "Preference", "Procedure", "Reference"])
+        .optional()
+        .describe(
+          "Graph ontology node label for this memory (required until a graph node exists; optional on append if the node already exists).",
+        ),
+      memoryLinks: z
+        .array(
+          z.discriminatedUnion("edge", [
+            z.object({
+              edge: z.literal("RELATES_TO"),
+              targetMemoryRecordId: z.string(),
+            }),
+            z.object({
+              edge: z.literal("REFINES"),
+              targetMemoryRecordId: z.string(),
+            }),
+            z.object({
+              edge: z.literal("SIMILAR_TO"),
+              targetMemoryRecordId: z.string(),
+              score: z.number(),
+            }),
+          ]),
+        )
+        .optional()
+        .describe(
+          "Optional edges to other memories in the same namespace (RELATES_TO, REFINES, or SIMILAR_TO with score).",
+        ),
     }).refine(
       (a) =>
         a.mode === "append"
@@ -79,6 +108,27 @@ export function mergeMemoryTool() {
             content,
             googleApiKey,
             ...(args.title !== undefined ? { title: args.title } : {}),
+            ...(args.ontologyNodeLabel !== undefined
+              ? { ontologyNodeLabel: args.ontologyNodeLabel }
+              : {}),
+            ...(args.memoryLinks !== undefined
+              ? {
+                  memoryLinks: args.memoryLinks.map((l) =>
+                    l.edge === "SIMILAR_TO"
+                      ? {
+                          edge: l.edge,
+                          targetMemoryRecordId:
+                            l.targetMemoryRecordId as Id<"memoryRecords">,
+                          score: l.score,
+                        }
+                      : {
+                          edge: l.edge,
+                          targetMemoryRecordId:
+                            l.targetMemoryRecordId as Id<"memoryRecords">,
+                        },
+                  ),
+                }
+              : {}),
           }),
         );
       }
@@ -93,6 +143,27 @@ export function mergeMemoryTool() {
           content,
           googleApiKey,
           ...(args.title !== undefined ? { title: args.title } : {}),
+          ...(args.ontologyNodeLabel !== undefined
+            ? { ontologyNodeLabel: args.ontologyNodeLabel }
+            : {}),
+          ...(args.memoryLinks !== undefined
+            ? {
+                memoryLinks: args.memoryLinks.map((l) =>
+                  l.edge === "SIMILAR_TO"
+                    ? {
+                        edge: l.edge,
+                        targetMemoryRecordId:
+                          l.targetMemoryRecordId as Id<"memoryRecords">,
+                        score: l.score,
+                      }
+                    : {
+                        edge: l.edge,
+                        targetMemoryRecordId:
+                          l.targetMemoryRecordId as Id<"memoryRecords">,
+                      },
+                ),
+              }
+            : {}),
         }),
       );
     },

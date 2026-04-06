@@ -76,6 +76,27 @@ async function main() {
     devChildren.push(convexProc);
     await convexReady;
 
+    {
+      const proc = Bun.spawn({
+        cmd: [
+          "bunx",
+          "convex",
+          "run",
+          "memories/seedMemoryGraphOntology:seedMemoryGraphOntology",
+        ],
+        cwd: monorepoRoot,
+        stdout: "inherit",
+        stderr: "inherit",
+        env: process.env,
+      });
+      const code = await proc.exited;
+      if (code !== 0) {
+        throw new Error(
+          `memories/seedMemoryGraphOntology failed with exit code ${code}`,
+        );
+      }
+    }
+
     if (config.deferStoragePublicTunnelOrigin) {
       const tunnel = await startNgrokStorageTunnel(process.env);
       tunnelCleanups.push(tunnel.close);

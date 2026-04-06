@@ -12,6 +12,7 @@ export const contentSourceValidator = v.object({
 export const searchBackendValidator = v.union(
   v.literal("lexical"),
   v.literal("vector"),
+  v.literal("graph"),
 );
 
 export default defineSchema({
@@ -28,7 +29,8 @@ export default defineSchema({
   }).index("by_namespace_key", ["namespace", "key"]),
 
   /**
-   * Links canonical memory + content provenance to lexical/vector `searchItems` (one row per backend).
+   * Links canonical memory + content provenance to lexical/vector `searchItems` or the graph node key
+   * (`searchBackend: "graph"`, `searchItemId` = node key).
    * `contentSource` identifies the original artifact (e.g. storage id, inline memory id).
    */
   memorySourceMap: defineTable({

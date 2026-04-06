@@ -6,12 +6,18 @@ import type {
   EdgePropertiesArg,
   GraphConfig,
   GraphLabelArgs,
+  GraphNodesGet,
   NodeDef,
+  NodeGetArgs,
+  NodeKeyAny,
+  NodeKeyForLabel,
   NodeLabel,
   RunMutationCtx,
   RunQueryCtx,
   TypedGraphLabelDoc,
+  TypedGraphNodeAny,
   TypedListLabelsReturn,
+  TypedListNodesReturn,
   TypedQueryEdgesReturn,
 } from "./types.js";
 
@@ -21,14 +27,15 @@ export { normalizeLabel } from "../component/internal/normalize.js";
 
 export * from "./helpers.js";
 export * from "./types.js";
+export { graphLabelValidatorsFromConfig } from "./validators.js";
 
 export class GraphClient<
   const N extends readonly NodeDef[],
   const E extends readonly EdgeDef[],
 > {
   constructor(
-    public component: ComponentApi,
-    public config: GraphConfig<N, E>,
+    public readonly component: ComponentApi,
+    public readonly config: GraphConfig<N, E>,
   ) {}
 
   labels = {
@@ -84,42 +91,40 @@ export class GraphClient<
   nodes = {
     create: async <L extends NodeLabel<N>>(
       ctx: RunMutationCtx,
-      args: { label: L; key: string },
+      args: { label: L; key: NodeKeyForLabel<N, L> },
     ) => {
       return await ctx.runMutation(this.component.public.nodes.createNode, {
         label: args.label,
-        key: args.key,
+        key: args.key as string,
       });
     },
 
-    get: async (
-      ctx: RunQueryCtx,
-      args: { key: string; label?: NodeLabel<N> },
-    ) => {
-      return await ctx.runQuery(this.component.public.nodes.getNode, {
-        key: args.key,
-        label: args.label,
-      });
-    },
+    get: (async (ctx: RunQueryCtx, args: NodeGetArgs<N>) => {
+      const label = "label" in args ? args.label : undefined;
+      return (await ctx.runQuery(this.component.public.nodes.getNode, {
+        key: args.key as string,
+        label,
+      })) as TypedGraphNodeAny<N> | null;
+    }) as GraphNodesGet<N>,
 
     delete: async <L extends NodeLabel<N>>(
       ctx: RunMutationCtx,
-      args: { label: L; key: string },
+      args: { label: L; key: NodeKeyForLabel<N, L> },
     ) => {
       return await ctx.runMutation(this.component.public.nodes.deleteNode, {
         label: args.label,
-        key: args.key,
+        key: args.key as string,
       });
     },
 
-    list: async (
+    list: async <L extends NodeLabel<N>>(
       ctx: RunQueryCtx,
-      args: { label: NodeLabel<N>; paginationOpts: PaginationOptions },
-    ) => {
-      return await ctx.runQuery(this.component.public.nodes.listNodes, {
+      args: { label: L; paginationOpts: PaginationOptions },
+    ): Promise<TypedListNodesReturn<N, L>> => {
+      return (await ctx.runQuery(this.component.public.nodes.listNodes, {
         label: args.label,
         paginationOpts: args.paginationOpts,
-      });
+      })) as TypedListNodesReturn<N, L>;
     },
   };
 
@@ -133,12 +138,16 @@ export class GraphClient<
   edges = {
     create: async <L extends EdgeLabel<E>>(
       ctx: RunMutationCtx,
-      args: { label: L; from: string; to: string } & EdgePropertiesArg<E, L>,
+      args: {
+        label: L;
+        from: NodeKeyAny<N>;
+        to: NodeKeyAny<N>;
+      } & EdgePropertiesArg<E, L>,
     ) => {
       return await ctx.runMutation(this.component.public.edges.createEdge, {
         label: args.label,
-        from: args.from,
-        to: args.to,
+        from: args.from as string,
+        to: args.to as string,
         directed: this.edgeDirected(args.label),
         properties: (args as Record<string, unknown>).properties,
       });
@@ -146,12 +155,16 @@ export class GraphClient<
 
     update: async <L extends EdgeLabel<E>>(
       ctx: RunMutationCtx,
-      args: { label: L; from: string; to: string } & EdgePropertiesArg<E, L>,
+      args: {
+        label: L;
+        from: NodeKeyAny<N>;
+        to: NodeKeyAny<N>;
+      } & EdgePropertiesArg<E, L>,
     ) => {
       return await ctx.runMutation(this.component.public.edges.updateEdge, {
         label: args.label,
-        from: args.from,
-        to: args.to,
+        from: args.from as string,
+        to: args.to as string,
         directed: this.edgeDirected(args.label),
         properties: (args as Record<string, unknown>).properties,
       });
@@ -159,12 +172,12 @@ export class GraphClient<
 
     delete: async <L extends EdgeLabel<E>>(
       ctx: RunMutationCtx,
-      args: { label: L; from: string; to: string },
+      args: { label: L; from: NodeKeyAny<N>; to: NodeKeyAny<N> },
     ) => {
       return await ctx.runMutation(this.component.public.edges.deleteEdge, {
         label: args.label,
-        from: args.from,
-        to: args.to,
+        from: args.from as string,
+        to: args.to as string,
         directed: this.edgeDirected(args.label),
       });
     },
@@ -173,26 +186,30 @@ export class GraphClient<
       ctx: RunQueryCtx,
       args: {
         label: L;
-        from?: string;
-        to?: string;
+        from?: NodeKeyAny<N>;
+        to?: NodeKeyAny<N>;
         paginationOpts: PaginationOptions;
       },
     ) => {
       return (await ctx.runQuery(this.component.public.edges.queryEdges, {
         label: args.label,
-        from: args.from,
-        to: args.to,
+        from: args.from as string | undefined,
+        to: args.to as string | undefined,
         paginationOpts: args.paginationOpts,
       })) as TypedQueryEdgesReturn<E, L>;
     },
 
     neighbors: async <L extends EdgeLabel<E>>(
       ctx: RunQueryCtx,
-      args: { label: L; node: string; paginationOpts: PaginationOptions },
+      args: {
+        label: L;
+        node: NodeKeyAny<N>;
+        paginationOpts: PaginationOptions;
+      },
     ) => {
       return (await ctx.runQuery(this.component.public.edges.queryEdges, {
         label: args.label,
-        node: args.node,
+        node: args.node as string,
         paginationOpts: args.paginationOpts,
       })) as TypedQueryEdgesReturn<E, L>;
     },
@@ -203,8 +220,8 @@ export class GraphClient<
       args: {
         label: L;
         edges: Array<{
-          from: string;
-          to: string;
+          from: NodeKeyAny<N>;
+          to: NodeKeyAny<N>;
           properties?: Record<string, unknown>;
         }>;
       },
@@ -214,7 +231,11 @@ export class GraphClient<
         {
           label: args.label,
           directed: this.edgeDirected(args.label),
-          edges: args.edges,
+          edges: args.edges.map((e) => ({
+            from: e.from as string,
+            to: e.to as string,
+            properties: e.properties,
+          })),
         },
       )) as number;
     },
@@ -222,11 +243,15 @@ export class GraphClient<
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- available after codegen
     deleteForNode: async <L extends EdgeLabel<E>>(
       ctx: RunMutationCtx,
-      args: { label: L; nodeKey: string; limit?: number },
+      args: { label: L; nodeKey: NodeKeyAny<N>; limit?: number },
     ): Promise<{ deleted: number; hasMore: boolean }> => {
       return (await ctx.runMutation(
         this.component.public.edges.deleteEdgesForNode,
-        { label: args.label, nodeKey: args.nodeKey, limit: args.limit },
+        {
+          label: args.label,
+          nodeKey: args.nodeKey as string,
+          limit: args.limit,
+        },
       )) as { deleted: number; hasMore: boolean };
     },
   };
@@ -259,9 +284,9 @@ export class GraphClient<
       });
     },
 
-    nodeStats: async (ctx: RunQueryCtx, args: { key: string }) => {
+    nodeStats: async (ctx: RunQueryCtx, args: { key: NodeKeyAny<N> }) => {
       return await ctx.runQuery(this.component.public.stats.getNodeStats, {
-        key: args.key,
+        key: args.key as string,
       });
     },
   };

@@ -4,6 +4,7 @@
 import { v } from "convex/values";
 import { memoryClient } from "../_clients/memory.js";
 import type { Id } from "../_components/memory/_generated/dataModel.js";
+import { DEFAULT_MANUAL_MEMORY_ONTOLOGY_NODE_LABEL } from "../_components/memory/graph.js";
 import { mutation } from "../_generated/server.js";
 import { requireGoogleApiKey } from "../env/models.js";
 
@@ -26,6 +27,7 @@ export const beginManualMemory = mutation({
       key,
       content,
       googleApiKey,
+      ontologyNodeLabel: DEFAULT_MANUAL_MEMORY_ONTOLOGY_NODE_LABEL,
       ...(args.title?.trim() ? { title: args.title.trim() } : {}),
     });
     return {
