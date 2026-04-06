@@ -156,6 +156,10 @@ export type ListNodesReturn = FunctionReturnType<
   ComponentApi["public"]["nodes"]["listNodes"]
 >;
 
+export type ListNodesByKeyReturn = FunctionReturnType<
+  ComponentApi["public"]["nodes"]["listNodesByKey"]
+>;
+
 type RawGraphNodeDoc = Exclude<GetNodeReturn, null>;
 
 /** Node document from `getNode`, narrowed by graph config label and table id. */
@@ -183,6 +187,14 @@ export type TypedListNodesReturn<
   L extends NodeLabel<N>,
 > = Omit<ListNodesReturn, "page"> & {
   page: Array<TypedGraphNode<N, L>>;
+};
+
+/** Paginated nodes for a single `key` (may mix labels). */
+export type TypedListNodesByKeyReturn<N extends readonly NodeDef[]> = Omit<
+  ListNodesByKeyReturn,
+  "page"
+> & {
+  page: Array<TypedGraphNodeAny<N>>;
 };
 
 /** `GraphClient.nodes.get` — labeled lookup returns a single label; key-only returns a union. */

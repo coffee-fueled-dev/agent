@@ -216,6 +216,34 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           },
           Name
         >;
+        listNodesByKey: FunctionReference<
+          "query",
+          "internal",
+          {
+            key: string;
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
+          },
+          {
+            continueCursor: string;
+            isDone: boolean;
+            page: Array<{
+              _creationTime: number;
+              _id: string;
+              key: string;
+              label: string;
+            }>;
+            pageStatus?: "SplitRecommended" | "SplitRequired" | null;
+            splitCursor?: string | null;
+          },
+          Name
+        >;
       };
       stats: {
         getDegreeStats: FunctionReference<

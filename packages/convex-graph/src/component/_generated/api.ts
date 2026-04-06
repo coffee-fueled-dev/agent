@@ -11,6 +11,7 @@
 import type * as internal_aggregate from "../internal/aggregate.js";
 import type * as internal_canonical from "../internal/canonical.js";
 import type * as internal_counters from "../internal/counters.js";
+import type * as internal_labels from "../internal/labels.js";
 import type * as internal_normalize from "../internal/normalize.js";
 import type * as public_edges from "../public/edges.js";
 import type * as public_labels from "../public/labels.js";
@@ -28,6 +29,7 @@ const fullApi: ApiFromModules<{
   "internal/aggregate": typeof internal_aggregate;
   "internal/canonical": typeof internal_canonical;
   "internal/counters": typeof internal_counters;
+  "internal/labels": typeof internal_labels;
   "internal/normalize": typeof internal_normalize;
   "public/edges": typeof public_edges;
   "public/labels": typeof public_labels;

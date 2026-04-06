@@ -1,8 +1,13 @@
+import type { TypedListNodesByKeyReturn } from "@very-coffee/convex-graph";
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { paginator } from "convex-helpers/server/pagination";
 import { mutation, query } from "../_generated/server.js";
-import { graph } from "../graph.js";
+import {
+  graph,
+  type MemoryGraphNodeDefs,
+  type MemoryOntologyNodeLabel,
+} from "../graph.js";
 import { memorySearchSourceRef } from "../internal/store.js";
 import schema from "../schema.js";
 import {
@@ -144,7 +149,7 @@ export const deleteMemorySourceMapBatch = mutation({
     }
     const rows = await ctx.db
       .query("memorySourceMap")
-      .withIndex("by_namespace_memoryRecord", (q) =>
+      .withIndex("by_namespace_memory_search_backend", (q) =>
         q
           .eq("namespace", args.namespace)
           .eq("memoryRecord", args.memoryRecordId),
@@ -172,13 +177,40 @@ export const tryDeleteMemoryGraphNode = mutation({
       return null;
     }
     const key = args.memoryRecordId;
-    const node = await graph.nodes.get(ctx, { key });
-    if (node) {
-      await graph.nodes.delete(ctx, {
-        label: node.label,
-        key,
-      });
+
+    const labels = new Set<MemoryOntologyNodeLabel>();
+    let cursor: string | null = null;
+    while (true) {
+      const batch: TypedListNodesByKeyReturn<MemoryGraphNodeDefs> =
+        await graph.nodes.listByKey(ctx, {
+          key,
+          paginationOpts: { numItems: 100, cursor },
+        });
+      for (const n of batch.page) {
+        labels.add(n.label as MemoryOntologyNodeLabel);
+      }
+      if (batch.isDone) break;
+      cursor = batch.continueCursor;
     }
+
+    for (const label of labels) {
+      await graph.nodes.delete(ctx, { label, key });
+    }
+
+    const sourceMaps = await ctx.db
+      .query("memorySourceMap")
+      .withIndex("by_namespace_memory_search_backend", (q) =>
+        q
+          .eq("namespace", args.namespace)
+          .eq("memoryRecord", args.memoryRecordId),
+      )
+      .collect();
+    for (const row of sourceMaps) {
+      if (row.searchBackend === "graph") {
+        await ctx.db.delete(row._id);
+      }
+    }
+
     return null;
   },
 });

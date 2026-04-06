@@ -1,30 +1,47 @@
-import type { EdgeLabel } from "@very-coffee/convex-graph";
+import type {
+  EdgeLabel,
+  EdgeProperties,
+} from "@very-coffee/convex-graph";
 import type { Id } from "../_generated/dataModel.js";
 import type { MutationCtx } from "../_generated/server.js";
-import type { MemoryGraphEdgeDefs, MemoryOntologyNodeLabel } from "../graph.js";
-import { graph } from "../graph.js";
+import {
+  GRAPH_ONTOLOGY_CONTENT_SOURCE_TYPE,
+  graph,
+  type MemoryGraphEdgeDefs,
+  type MemoryOntologyNodeLabel,
+} from "../graph.js";
 import { type ContentSource, upsertSourceMapLink } from "./store.js";
 
 type ML = EdgeLabel<MemoryGraphEdgeDefs>;
 
-type LinkExtra<L extends ML> = Extract<
-  MemoryGraphEdgeDefs[number],
-  { label: L }
->["properties"] extends undefined
-  ? Record<string, never>
-  : { score: number };
-
-/** Structured link from the merged memory to another; aligned with {@link graph} edge defs. */
+/**
+ * Structured link from the merged memory to another: `edge` + `targetMemoryRecordId` plus the
+ * flat property fields for that edge (same names as `graph.config` / `edges.create` `properties`).
+ */
 export type MemoryLinkItem = {
   [L in ML]: {
     edge: L;
     targetMemoryRecordId: Id<"memoryRecords">;
-  } & LinkExtra<L>;
+  } & (EdgeProperties<MemoryGraphEdgeDefs, L> extends undefined
+    ? Record<string, never>
+    : EdgeProperties<MemoryGraphEdgeDefs, L>);
 }[ML];
 
+async function hasAnyGraphNodeForMemory(
+  ctx: MutationCtx,
+  key: Id<"memoryRecords">,
+): Promise<boolean> {
+  const page = await graph.nodes.listByKey(ctx, {
+    key,
+    paginationOpts: { numItems: 1, cursor: null },
+  });
+  return page.page.length > 0;
+}
+
 /**
- * Ensures a graph node exists for this memory (one of Fact | Preference | Procedure | Reference).
- * If no node exists yet, `ontologyNodeLabel` is required to create it.
+ * Ensures a graph node exists for this memory for the given ontology label.
+ * If `ontologyNodeLabel` is set, ensures that label exists (creates if missing).
+ * If omitted, succeeds only when at least one graph node already exists for this memory.
  */
 export async function ensureMemoryGraphNode(
   ctx: MutationCtx,
@@ -32,21 +49,27 @@ export async function ensureMemoryGraphNode(
   ontologyNodeLabel?: MemoryOntologyNodeLabel,
 ): Promise<void> {
   const key = memoryRecordId;
-  const existing = await graph.nodes.get(ctx, { key });
-  if (existing) {
+  if (ontologyNodeLabel !== undefined) {
+    const existing = await graph.nodes.get(ctx, {
+      key,
+      label: ontologyNodeLabel,
+    });
+    if (existing) return;
+    await graph.nodes.create(ctx, {
+      label: ontologyNodeLabel,
+      key,
+    });
     return;
   }
-  if (ontologyNodeLabel === undefined) {
-    throw new Error(
-      "mergeMemory: ontologyNodeLabel is required until a graph node exists for this memory",
-    );
+  if (await hasAnyGraphNodeForMemory(ctx, key)) {
+    return;
   }
-  await graph.nodes.create(ctx, {
-    label: ontologyNodeLabel,
-    key,
-  });
+  throw new Error(
+    "mergeMemory: ontologyNodeLabel is required until a graph node exists for this memory",
+  );
 }
 
+/** Provenance graph row keyed by merge `contentSource` (legacy search / linking). */
 export async function upsertGraphSourceMap(
   ctx: MutationCtx,
   args: {
@@ -59,6 +82,27 @@ export async function upsertGraphSourceMap(
     namespace: args.namespace,
     memoryRecordId: args.memoryRecordId,
     contentSource: args.contentSource,
+    searchBackend: "graph",
+    searchItemId: String(args.memoryRecordId),
+  });
+}
+
+/** Source map row for one ontology label (`contentSource.id` is the ontology label string). */
+export async function upsertGraphOntologySourceMap(
+  ctx: MutationCtx,
+  args: {
+    namespace: string;
+    memoryRecordId: Id<"memoryRecords">;
+    ontologyLabel: MemoryOntologyNodeLabel;
+  },
+): Promise<void> {
+  await upsertSourceMapLink(ctx, {
+    namespace: args.namespace,
+    memoryRecordId: args.memoryRecordId,
+    contentSource: {
+      type: GRAPH_ONTOLOGY_CONTENT_SOURCE_TYPE,
+      id: args.ontologyLabel,
+    },
     searchBackend: "graph",
     searchItemId: String(args.memoryRecordId),
   });
@@ -84,8 +128,7 @@ export async function applyMemoryLinks(
       );
     }
     const targetKey = link.targetMemoryRecordId;
-    const targetNode = await graph.nodes.get(ctx, { key: targetKey });
-    if (!targetNode) {
+    if (!(await hasAnyGraphNodeForMemory(ctx, targetKey))) {
       throw new Error(
         "applyMemoryLinks: target memory has no graph node; merge it with ontologyNodeLabel first",
       );
@@ -105,6 +148,7 @@ export async function applyMemoryLinks(
           label: "RELATES_TO",
           from: fromKey,
           to: targetKey,
+          properties: { relationship: link.relationship },
         });
         break;
       case "REFINES":
@@ -112,6 +156,7 @@ export async function applyMemoryLinks(
           label: "REFINES",
           from: fromKey,
           to: targetKey,
+          properties: { refinement: link.refinement },
         });
         break;
       default: {
@@ -133,6 +178,13 @@ export async function syncMemoryGraphForMerge(
   },
 ): Promise<void> {
   await ensureMemoryGraphNode(ctx, args.memoryRecordId, args.ontologyNodeLabel);
+  if (args.ontologyNodeLabel !== undefined) {
+    await upsertGraphOntologySourceMap(ctx, {
+      namespace: args.namespace,
+      memoryRecordId: args.memoryRecordId,
+      ontologyLabel: args.ontologyNodeLabel,
+    });
+  }
   await upsertGraphSourceMap(ctx, {
     namespace: args.namespace,
     memoryRecordId: args.memoryRecordId,

@@ -70,11 +70,14 @@ type ExtractQueryReturn<F> =
     ? R
     : never;
 
-/** One row from list source map queries (component). */
-export type SourceMapRowForMemory<NAME extends Name = Name> =
-  ExtractQueryReturn<ListSourceMapsForMemory<NAME>> extends (infer E)[]
-    ? E
-    : never;
+/** One row from `listSourceMapsForMemory` (array or paginated `page`). */
+export type SourceMapRowForMemory<_NAME extends Name = Name> = {
+  contentSource: { type: string; id: string };
+  searchBackend: "lexical" | "vector" | "graph";
+  searchItemId: string;
+  fileName?: string;
+  mimeType?: string;
+};
 
 export type MemoryRecordRow<NAME extends Name = Name> = ExtractQueryReturn<
   GetMemoryRecord<NAME>
@@ -89,6 +92,14 @@ export type MemorySourceMapsResolveCtx = Pick<
 type ListArgs<NAME extends Name = Name> = FunctionArgs<
   ListSourceMapsForMemory<NAME>
 >;
+
+/** Omit `paginationOpts` so the component query uses the legacy full `.collect()` path. */
+function sourceMapListArgsFull<NAME extends Name>(
+  args: FunctionArgs<ListSourceMapsForMemory<NAME>>,
+): FunctionArgs<ListSourceMapsForMemory<NAME>> {
+  const { paginationOpts: _, ...rest } = args;
+  return rest as FunctionArgs<ListSourceMapsForMemory<NAME>>;
+}
 
 export type SourceMapSourceConfig<
   NAME extends Name = Name,
@@ -170,13 +181,16 @@ export class MemoryClient<
         const memoryRecord = await this.getMemoryRecord(ctx, args);
         let sourceMaps: SourceMapRowForMemory<NAME>[];
         if (def.remainder) {
-          const full = await this.listSourceMapsForMemory(ctx, args);
+          const full = await this.listSourceMapsForMemory(
+            ctx,
+            sourceMapListArgsFull(args),
+          );
           sourceMaps = full.filter(
             (r) => !indexedNames.has(r.contentSource.type),
           );
         } else {
           sourceMaps = await this.listSourceMapsForMemory(ctx, {
-            ...args,
+            ...sourceMapListArgsFull(args),
             type: def.name,
           });
         }
@@ -251,14 +265,24 @@ export class MemoryClient<
     return null;
   };
 
-  listSourceMapsForMemory = (
+  /**
+   * Returns source map rows as a flat array. When the underlying query returns a paginated
+   * shape, only the first page is returned unless callers pass through `paginationOpts` and
+   * handle the raw query — resolution paths omit `paginationOpts` and expect the full list.
+   */
+  listSourceMapsForMemory = async (
     ctx: RunQueryCtx,
     args: FunctionArgs<ListSourceMapsForMemory<NAME>>,
-  ) =>
-    ctx.runQuery(
+  ): Promise<SourceMapRowForMemory<NAME>[]> => {
+    const result = await ctx.runQuery(
       this.component.public.sourceMaps.listSourceMapsForMemory,
       args,
     );
+    if (Array.isArray(result)) {
+      return result;
+    }
+    return result.page as SourceMapRowForMemory<NAME>[];
+  };
 
   getMemoryRecord = (
     ctx: RunQueryCtx,
@@ -376,7 +400,7 @@ export class MemoryClient<
     );
     const needFull = defs.some((d) => d.remainder);
     const fullList = needFull
-      ? await this.listSourceMapsForMemory(ctx, args)
+      ? await this.listSourceMapsForMemory(ctx, sourceMapListArgsFull(args))
       : undefined;
 
     const slices = await Promise.all(
@@ -391,7 +415,7 @@ export class MemoryClient<
           );
         } else {
           sourceMaps = await this.listSourceMapsForMemory(ctx, {
-            ...args,
+            ...sourceMapListArgsFull(args),
             type: def.name,
           });
         }

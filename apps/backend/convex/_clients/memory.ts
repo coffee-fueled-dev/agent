@@ -3,6 +3,7 @@ import type {
   SourceMapRowForMemory,
 } from "../_components/memory/client/index.js";
 import { MemoryClient } from "../_components/memory/client/index.js";
+import { GRAPH_ONTOLOGY_CONTENT_SOURCE_TYPE } from "../_components/memory/graph.js";
 import { components } from "../_generated/api.js";
 import type { Id } from "../_generated/dataModel.js";
 import { mintFileUrlForNamespace } from "../files/storageAccess.js";
@@ -15,6 +16,8 @@ import type {
 /** Element type per `sourceMaps[].name` — narrows {@link MemoryClient.resolveSourceMapsByName}. */
 export type MemoryClientSourceMapByName = {
   storage: ResolvedStorageMemorySource;
+  /** Ontology graph nodes (`memorySourceMap` rows with `contentSource.type` graphOntology). */
+  graphOntology: ResolvedOtherMemorySource;
   other: ResolvedOtherMemorySource;
 };
 
@@ -47,6 +50,14 @@ async function resolveStorageSourceMaps(
     });
   }
   return sources;
+}
+
+async function resolveGraphOntologySourceMaps(
+  ctx: MemorySourceMapsResolveCtx,
+  args: { namespace: string; memoryRecordId: string },
+  ctxMaps: { sourceMaps: SourceMapRowForMemory[] },
+): Promise<ResolvedOtherMemorySource[]> {
+  return resolveNonStorageSourceMaps(ctx, args, ctxMaps);
 }
 
 async function resolveNonStorageSourceMaps(
@@ -84,6 +95,10 @@ export const memoryClient = new MemoryClient<
 >(components.memory, {
   sourceMaps: [
     { name: "storage", resolve: resolveStorageSourceMaps },
+    {
+      name: GRAPH_ONTOLOGY_CONTENT_SOURCE_TYPE,
+      resolve: resolveGraphOntologySourceMaps,
+    },
     { name: "other", remainder: true, resolve: resolveNonStorageSourceMaps },
   ],
 });

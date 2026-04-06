@@ -43,12 +43,16 @@ export default defineSchema({
     fileName: v.optional(v.string()),
     mimeType: v.optional(v.string()),
   })
-    .index("by_namespace_memoryRecord", ["namespace", "memoryRecord"])
     .index("by_namespace_memory_content_backend", [
       "namespace",
       "memoryRecord",
       "contentSource.type",
       "contentSource.id",
+      "searchBackend",
+    ])
+    .index("by_namespace_memory_search_backend", [
+      "namespace",
+      "memoryRecord",
       "searchBackend",
     ]),
 });

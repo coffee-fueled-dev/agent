@@ -14,14 +14,14 @@ export default defineSchema({
     }),
 
   graph_nodes: defineTable({
-    label: v.string(),
+    label: v.id("graph_labels"),
     key: v.string(),
   })
     .index("by_label_key", ["label", "key"])
     .index("by_key", ["key"]),
 
   graph_edges: defineTable({
-    label: v.string(),
+    label: v.id("graph_labels"),
     from: v.string(),
     to: v.string(),
     directed: v.boolean(),

@@ -8,6 +8,10 @@ import { doc } from "convex-helpers/validators";
 import { mutation, query } from "../_generated/server.js";
 import { canonicalPair } from "../internal/canonical.js";
 import { graphCounters, nodeTotalDegreeKey } from "../internal/counters.js";
+import {
+  getGraphLabelId,
+  getOrCreateGraphLabelId,
+} from "../internal/labels.js";
 import { normalizeLabel } from "../internal/normalize.js";
 import schema from "../schema.js";
 
@@ -26,6 +30,7 @@ export const createEdge = mutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     const normalized = normalizeLabel(args.label);
+    const labelId = await getOrCreateGraphLabelId(ctx, args.label, "edge");
     const isDirected = args.directed !== false;
     const [from, to] = isDirected
       ? [args.from, args.to]
@@ -34,27 +39,13 @@ export const createEdge = mutation({
     const existing = await ctx.db
       .query("graph_edges")
       .withIndex("by_label_from_to", (q) =>
-        q.eq("label", normalized).eq("from", from).eq("to", to),
+        q.eq("label", labelId).eq("from", from).eq("to", to),
       )
       .first();
     if (existing) return null;
 
-    const labelRow = await ctx.db
-      .query("graph_labels")
-      .withIndex("by_type_value", (q) =>
-        q.eq("type", "edge").eq("value", normalized),
-      )
-      .first();
-    if (!labelRow) {
-      await ctx.db.insert("graph_labels", {
-        value: normalized,
-        displayValue: args.label,
-        type: "edge",
-      });
-    }
-
     await ctx.db.insert("graph_edges", {
-      label: normalized,
+      label: labelId,
       from,
       to,
       directed: isDirected,
@@ -83,7 +74,8 @@ export const updateEdge = mutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const normalized = normalizeLabel(args.label);
+    const labelId = await getGraphLabelId(ctx, args.label, "edge");
+    if (!labelId) return null;
     const isDirected = args.directed !== false;
     const [from, to] = isDirected
       ? [args.from, args.to]
@@ -92,7 +84,7 @@ export const updateEdge = mutation({
     const edge = await ctx.db
       .query("graph_edges")
       .withIndex("by_label_from_to", (q) =>
-        q.eq("label", normalized).eq("from", from).eq("to", to),
+        q.eq("label", labelId).eq("from", from).eq("to", to),
       )
       .first();
     if (!edge) return null;
@@ -111,6 +103,8 @@ export const deleteEdge = mutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     const normalized = normalizeLabel(args.label);
+    const labelId = await getGraphLabelId(ctx, args.label, "edge");
+    if (!labelId) return null;
     const isDirected = args.directed !== false;
     const [from, to] = isDirected
       ? [args.from, args.to]
@@ -119,7 +113,7 @@ export const deleteEdge = mutation({
     const edge = await ctx.db
       .query("graph_edges")
       .withIndex("by_label_from_to", (q) =>
-        q.eq("label", normalized).eq("from", from).eq("to", to),
+        q.eq("label", labelId).eq("from", from).eq("to", to),
       )
       .first();
     if (!edge) return null;
@@ -147,7 +141,10 @@ export const queryEdges = query({
   },
   returns: paginationResultValidator(doc(schema, "graph_edges")),
   handler: async (ctx, args) => {
-    const normalized = normalizeLabel(args.label);
+    const labelId = await getGraphLabelId(ctx, args.label, "edge");
+    if (!labelId) {
+      return { page: [], isDone: true, continueCursor: "" };
+    }
     const { from, to, node } = args;
 
     if (node != null) {
@@ -155,13 +152,13 @@ export const queryEdges = query({
         ctx.db
           .query("graph_edges")
           .withIndex("by_label_from_to", (q) =>
-            q.eq("label", normalized).eq("from", node),
+            q.eq("label", labelId).eq("from", node),
           )
           .collect(),
         ctx.db
           .query("graph_edges")
           .withIndex("by_label_to_from", (q) =>
-            q.eq("label", normalized).eq("to", node),
+            q.eq("label", labelId).eq("to", node),
           )
           .collect(),
       ]);
@@ -181,7 +178,7 @@ export const queryEdges = query({
       const edge = await ctx.db
         .query("graph_edges")
         .withIndex("by_label_from_to", (q) =>
-          q.eq("label", normalized).eq("from", from).eq("to", to),
+          q.eq("label", labelId).eq("from", from).eq("to", to),
         )
         .first();
       return {
@@ -194,7 +191,7 @@ export const queryEdges = query({
       return await paginator(ctx.db, schema)
         .query("graph_edges")
         .withIndex("by_label_from_to", (q) =>
-          q.eq("label", normalized).eq("from", from),
+          q.eq("label", labelId).eq("from", from),
         )
         .paginate(args.paginationOpts);
     }
@@ -202,13 +199,13 @@ export const queryEdges = query({
       return await paginator(ctx.db, schema)
         .query("graph_edges")
         .withIndex("by_label_to_from", (q) =>
-          q.eq("label", normalized).eq("to", to),
+          q.eq("label", labelId).eq("to", to),
         )
         .paginate(args.paginationOpts);
     }
     return await paginator(ctx.db, schema)
       .query("graph_edges")
-      .withIndex("by_label_from_to", (q) => q.eq("label", normalized))
+      .withIndex("by_label_from_to", (q) => q.eq("label", labelId))
       .paginate(args.paginationOpts);
   },
 });
@@ -228,21 +225,8 @@ export const createEdgesBatch = mutation({
   returns: v.number(),
   handler: async (ctx, args) => {
     const normalized = normalizeLabel(args.label);
+    const labelId = await getOrCreateGraphLabelId(ctx, args.label, "edge");
     const isDirected = args.directed !== false;
-
-    const labelRow = await ctx.db
-      .query("graph_labels")
-      .withIndex("by_type_value", (q) =>
-        q.eq("type", "edge").eq("value", normalized),
-      )
-      .first();
-    if (!labelRow) {
-      await ctx.db.insert("graph_labels", {
-        value: normalized,
-        displayValue: args.label,
-        type: "edge",
-      });
-    }
 
     const degreeDeltas = new Map<string, number>();
     let created = 0;
@@ -255,13 +239,13 @@ export const createEdgesBatch = mutation({
       const existing = await ctx.db
         .query("graph_edges")
         .withIndex("by_label_from_to", (q) =>
-          q.eq("label", normalized).eq("from", from).eq("to", to),
+          q.eq("label", labelId).eq("from", from).eq("to", to),
         )
         .first();
       if (existing) continue;
 
       await ctx.db.insert("graph_edges", {
-        label: normalized,
+        label: labelId,
         from,
         to,
         directed: isDirected,
@@ -297,19 +281,23 @@ export const deleteEdgesForNode = mutation({
   returns: v.object({ deleted: v.number(), hasMore: v.boolean() }),
   handler: async (ctx, args) => {
     const normalized = normalizeLabel(args.label);
+    const labelId = await getGraphLabelId(ctx, args.label, "edge");
+    if (!labelId) {
+      return { deleted: 0, hasMore: false };
+    }
     const batchLimit = args.limit ?? 50;
 
     const [outgoing, incoming] = await Promise.all([
       ctx.db
         .query("graph_edges")
         .withIndex("by_label_from_to", (q) =>
-          q.eq("label", normalized).eq("from", args.nodeKey),
+          q.eq("label", labelId).eq("from", args.nodeKey),
         )
         .take(batchLimit),
       ctx.db
         .query("graph_edges")
         .withIndex("by_label_to_from", (q) =>
-          q.eq("label", normalized).eq("to", args.nodeKey),
+          q.eq("label", labelId).eq("to", args.nodeKey),
         )
         .take(batchLimit),
     ]);

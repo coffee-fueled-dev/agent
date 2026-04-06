@@ -22,6 +22,10 @@ export function edgeSchema<
   L extends string,
   V extends Validator<any, "required", any>,
 >(label: L, properties: V): EdgeDef<L, V, true>;
+export function edgeSchema<
+  L extends string,
+  V extends Validator<any, "required", any>,
+>(label: L, properties: V, options: { directed: true }): EdgeDef<L, V, true>;
 export function edgeSchema<L extends string>(
   label: L,
   properties: undefined,

@@ -17,6 +17,7 @@ import type {
   TypedGraphLabelDoc,
   TypedGraphNodeAny,
   TypedListLabelsReturn,
+  TypedListNodesByKeyReturn,
   TypedListNodesReturn,
   TypedQueryEdgesReturn,
 } from "./types.js";
@@ -125,6 +126,16 @@ export class GraphClient<
         label: args.label,
         paginationOpts: args.paginationOpts,
       })) as TypedListNodesReturn<N, L>;
+    },
+
+    listByKey: async (
+      ctx: RunQueryCtx,
+      args: { key: NodeKeyAny<N>; paginationOpts: PaginationOptions },
+    ): Promise<TypedListNodesByKeyReturn<N>> => {
+      return (await ctx.runQuery(this.component.public.nodes.listNodesByKey, {
+        key: args.key as string,
+        paginationOpts: args.paginationOpts,
+      })) as TypedListNodesByKeyReturn<N>;
     },
   };
 

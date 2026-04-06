@@ -171,14 +171,40 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         listSourceMapsForMemory: FunctionReference<
           "query",
           "internal",
-          { memoryRecordId: string; namespace: string; type?: string },
-          Array<{
-            contentSource: { id: string; type: string };
-            fileName?: string;
-            mimeType?: string;
-            searchBackend: "lexical" | "vector" | "graph";
-            searchItemId: string;
-          }>,
+          {
+            memoryRecordId: string;
+            namespace: string;
+            paginationOpts?: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
+            searchBackend?: "lexical" | "vector" | "graph";
+            type?: string;
+          },
+          | Array<{
+              contentSource: { id: string; type: string };
+              fileName?: string;
+              mimeType?: string;
+              searchBackend: "lexical" | "vector" | "graph";
+              searchItemId: string;
+            }>
+          | {
+              continueCursor: string;
+              isDone: boolean;
+              page: Array<{
+                contentSource: { id: string; type: string };
+                fileName?: string;
+                mimeType?: string;
+                searchBackend: "lexical" | "vector" | "graph";
+                searchItemId: string;
+              }>;
+              pageStatus?: "SplitRecommended" | "SplitRequired" | null;
+              splitCursor?: string | null;
+            },
           Name
         >;
         registerStorageSourceMetadata: FunctionReference<
@@ -215,8 +241,16 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   score: number;
                   targetMemoryRecordId: string;
                 }
-              | { edge: "RELATES_TO"; targetMemoryRecordId: string }
-              | { edge: "REFINES"; targetMemoryRecordId: string }
+              | {
+                  edge: "RELATES_TO";
+                  relationship: string;
+                  targetMemoryRecordId: string;
+                }
+              | {
+                  edge: "REFINES";
+                  refinement: string;
+                  targetMemoryRecordId: string;
+                }
             >;
             memoryRecordId?: string;
             mimeType?: string;

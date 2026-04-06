@@ -61,23 +61,25 @@ export function mergeMemoryTool() {
         .array(
           z.discriminatedUnion("edge", [
             z.object({
+              edge: z.literal("SIMILAR_TO"),
+              targetMemoryRecordId: z.string(),
+              score: z.number(),
+            }),
+            z.object({
               edge: z.literal("RELATES_TO"),
               targetMemoryRecordId: z.string(),
+              relationship: z.string(),
             }),
             z.object({
               edge: z.literal("REFINES"),
               targetMemoryRecordId: z.string(),
-            }),
-            z.object({
-              edge: z.literal("SIMILAR_TO"),
-              targetMemoryRecordId: z.string(),
-              score: z.number(),
+              refinement: z.string(),
             }),
           ]),
         )
         .optional()
         .describe(
-          "Optional edges to other memories in the same namespace (RELATES_TO, REFINES, or SIMILAR_TO with score).",
+          "Optional edges to other memories: SIMILAR_TO (score), RELATES_TO (relationship), REFINES (refinement).",
         ),
     }).refine(
       (a) =>
@@ -113,20 +115,33 @@ export function mergeMemoryTool() {
               : {}),
             ...(args.memoryLinks !== undefined
               ? {
-                  memoryLinks: args.memoryLinks.map((l) =>
-                    l.edge === "SIMILAR_TO"
-                      ? {
+                  memoryLinks: args.memoryLinks.map((l) => {
+                    const id = l.targetMemoryRecordId as Id<"memoryRecords">;
+                    switch (l.edge) {
+                      case "SIMILAR_TO":
+                        return {
                           edge: l.edge,
-                          targetMemoryRecordId:
-                            l.targetMemoryRecordId as Id<"memoryRecords">,
+                          targetMemoryRecordId: id,
                           score: l.score,
-                        }
-                      : {
+                        };
+                      case "RELATES_TO":
+                        return {
                           edge: l.edge,
-                          targetMemoryRecordId:
-                            l.targetMemoryRecordId as Id<"memoryRecords">,
-                        },
-                  ),
+                          targetMemoryRecordId: id,
+                          relationship: l.relationship,
+                        };
+                      case "REFINES":
+                        return {
+                          edge: l.edge,
+                          targetMemoryRecordId: id,
+                          refinement: l.refinement,
+                        };
+                      default: {
+                        const _never: never = l;
+                        throw new Error(`mergeMemory: unknown edge ${String((_never as { edge: string }).edge)}`);
+                      }
+                    }
+                  }),
                 }
               : {}),
           }),
@@ -148,20 +163,33 @@ export function mergeMemoryTool() {
             : {}),
           ...(args.memoryLinks !== undefined
             ? {
-                memoryLinks: args.memoryLinks.map((l) =>
-                  l.edge === "SIMILAR_TO"
-                    ? {
+                memoryLinks: args.memoryLinks.map((l) => {
+                  const id = l.targetMemoryRecordId as Id<"memoryRecords">;
+                  switch (l.edge) {
+                    case "SIMILAR_TO":
+                      return {
                         edge: l.edge,
-                        targetMemoryRecordId:
-                          l.targetMemoryRecordId as Id<"memoryRecords">,
+                        targetMemoryRecordId: id,
                         score: l.score,
-                      }
-                    : {
+                      };
+                    case "RELATES_TO":
+                      return {
                         edge: l.edge,
-                        targetMemoryRecordId:
-                          l.targetMemoryRecordId as Id<"memoryRecords">,
-                      },
-                ),
+                        targetMemoryRecordId: id,
+                        relationship: l.relationship,
+                      };
+                    case "REFINES":
+                      return {
+                        edge: l.edge,
+                        targetMemoryRecordId: id,
+                        refinement: l.refinement,
+                      };
+                    default: {
+                      const _never: never = l;
+                      throw new Error(`mergeMemory: unknown edge ${String((_never as { edge: string }).edge)}`);
+                    }
+                  }
+                }),
               }
             : {}),
         }),

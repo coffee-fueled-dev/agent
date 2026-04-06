@@ -4,21 +4,27 @@ import { graph } from "../graph.js";
 
 /**
  * Builds a `v.union` of memory merge link shapes from configured graph edges.
- * Edges with `properties` on the graph use top-level fields on the link (e.g. `score` for `SIMILAR_TO`).
+ * Property fields match {@link graph.ts} `edgeSchema` validators (flat on the link object).
  */
 function memoryLinkBranch(def: EdgeDef) {
   const edgeLit = v.literal(def.label);
-  if (def.properties !== undefined) {
-    return v.object({
-      edge: edgeLit,
-      targetMemoryRecordId: v.id("memoryRecords"),
-      score: v.number(),
-    });
-  }
-  return v.object({
+  const base = {
     edge: edgeLit,
     targetMemoryRecordId: v.id("memoryRecords"),
-  });
+  };
+  if (def.properties === undefined) {
+    return v.object(base);
+  }
+  switch (def.label) {
+    case "SIMILAR_TO":
+      return v.object({ ...base, score: v.number() });
+    case "RELATES_TO":
+      return v.object({ ...base, relationship: v.string() });
+    case "REFINES":
+      return v.object({ ...base, refinement: v.string() });
+    default:
+      throw new Error(`memoryLinkBranch: unsupported edge ${def.label}`);
+  }
 }
 
 function memoryLinkItemValidatorFromEdges(edges: readonly EdgeDef[]) {
