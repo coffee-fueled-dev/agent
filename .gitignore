@@ -1,3 +1,5 @@
+generated
+.llm-context
 *.plan.md
 .notes
 .agent_home
