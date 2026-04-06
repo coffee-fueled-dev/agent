@@ -58,6 +58,37 @@ export type AllLabels<
   E extends readonly EdgeDef[],
 > = NodeLabel<N> | EdgeLabel<E>;
 
+/** Args for label registry lookups that match node vs edge label literals. */
+export type GraphLabelArgs<
+  N extends readonly NodeDef[],
+  E extends readonly EdgeDef[],
+> =
+  | { type: "node"; value: NodeLabel<N> }
+  | { type: "edge"; value: EdgeLabel<E> };
+
+export type TypedGraphLabelDoc<
+  N extends readonly NodeDef[],
+  E extends readonly EdgeDef[],
+> = {
+  readonly _creationTime: number;
+  readonly _id: string;
+  readonly displayValue: string;
+} & (
+  | { readonly type: "node"; readonly value: NodeLabel<N> }
+  | { readonly type: "edge"; readonly value: EdgeLabel<E> }
+);
+
+export type ListLabelsReturn = FunctionReturnType<
+  ComponentApi["public"]["labels"]["listLabels"]
+>;
+
+export type TypedListLabelsReturn<
+  N extends readonly NodeDef[],
+  E extends readonly EdgeDef[],
+> = Omit<ListLabelsReturn, "page"> & {
+  page: Array<TypedGraphLabelDoc<N, E>>;
+};
+
 export type EdgePropertiesArg<E extends readonly EdgeDef[], L extends string> =
   Extract<E[number], { label: L }>["properties"] extends Validator<
     infer T,

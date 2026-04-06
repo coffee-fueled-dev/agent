@@ -29,12 +29,15 @@ export const createNode = mutation({
 
     const labelRow = await ctx.db
       .query("graph_labels")
-      .withIndex("by_value", (q) => q.eq("value", normalized))
+      .withIndex("by_type_value", (q) =>
+        q.eq("type", "node").eq("value", normalized),
+      )
       .first();
     if (!labelRow) {
       await ctx.db.insert("graph_labels", {
         value: normalized,
         displayValue: args.label,
+        type: "node",
       });
     }
 

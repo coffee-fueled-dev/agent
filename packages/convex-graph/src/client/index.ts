@@ -1,15 +1,17 @@
 import type { PaginationOptions } from "convex/server";
 import type { ComponentApi } from "../component/_generated/component.js";
 import type {
-  AllLabels,
   EdgeDef,
   EdgeLabel,
   EdgePropertiesArg,
   GraphConfig,
+  GraphLabelArgs,
   NodeDef,
   NodeLabel,
   RunMutationCtx,
   RunQueryCtx,
+  TypedGraphLabelDoc,
+  TypedListLabelsReturn,
   TypedQueryEdgesReturn,
 } from "./types.js";
 
@@ -30,23 +32,52 @@ export class GraphClient<
   ) {}
 
   labels = {
-    upsert: async (ctx: RunMutationCtx, args: { value: AllLabels<N, E> }) => {
+    upsert: async (
+      ctx: RunMutationCtx,
+      args: GraphLabelArgs<N, E>,
+    ): Promise<null> => {
       return await ctx.runMutation(this.component.public.labels.upsertLabel, {
+        type: args.type,
         value: args.value,
       });
     },
 
-    get: async (ctx: RunQueryCtx, args: { value: AllLabels<N, E> }) => {
-      return await ctx.runQuery(this.component.public.labels.getLabel, {
+    get: async (
+      ctx: RunQueryCtx,
+      args: GraphLabelArgs<N, E>,
+    ): Promise<TypedGraphLabelDoc<N, E> | null> => {
+      return (await ctx.runQuery(this.component.public.labels.getLabel, {
+        type: args.type,
         value: args.value,
-      });
+      })) as TypedGraphLabelDoc<N, E> | null;
     },
 
     list: async (
       ctx: RunQueryCtx,
       args: { paginationOpts: PaginationOptions },
-    ) => {
-      return await ctx.runQuery(this.component.public.labels.listLabels, args);
+    ): Promise<TypedListLabelsReturn<N, E>> => {
+      return (await ctx.runQuery(
+        this.component.public.labels.listLabels,
+        args,
+      )) as TypedListLabelsReturn<N, E>;
+    },
+
+    /** Label strings from graph config (not the Convex `graph_labels` table). */
+    staticList: <const T extends "node" | "edge">(
+      type: T,
+    ): T extends "node" ? readonly NodeLabel<N>[] : readonly EdgeLabel<E>[] => {
+      if (type === "node") {
+        return this.config.nodes.map(
+          (n) => n.label,
+        ) as unknown as T extends "node"
+          ? readonly NodeLabel<N>[]
+          : readonly EdgeLabel<E>[];
+      }
+      return this.config.edges.map(
+        (e) => e.label,
+      ) as unknown as T extends "node"
+        ? readonly NodeLabel<N>[]
+        : readonly EdgeLabel<E>[];
     },
   };
 
@@ -203,7 +234,7 @@ export class GraphClient<
   stats = {
     nodeCount: async (
       ctx: RunQueryCtx,
-      args: { label?: AllLabels<N, E> } = {},
+      args: { label?: NodeLabel<N> } = {},
     ) => {
       return await ctx.runQuery(this.component.public.stats.getNodeCount, {
         label: args.label,
@@ -212,7 +243,7 @@ export class GraphClient<
 
     edgeCount: async (
       ctx: RunQueryCtx,
-      args: { label?: AllLabels<N, E> } = {},
+      args: { label?: EdgeLabel<E> } = {},
     ) => {
       return await ctx.runQuery(this.component.public.stats.getEdgeCount, {
         label: args.label,

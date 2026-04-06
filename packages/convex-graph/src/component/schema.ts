@@ -5,9 +5,13 @@ export default defineSchema({
   graph_labels: defineTable({
     value: v.string(),
     displayValue: v.string(),
+    type: v.union(v.literal("node"), v.literal("edge")),
   })
-    .index("by_value", ["value"])
-    .searchIndex("search_displayValue", { searchField: "displayValue" }),
+    .index("by_type_value", ["type", "value"])
+    .searchIndex("search_type_displayValue", {
+      searchField: "displayValue",
+      filterFields: ["type"],
+    }),
 
   graph_nodes: defineTable({
     label: v.string(),

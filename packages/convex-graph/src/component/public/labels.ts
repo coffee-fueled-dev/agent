@@ -10,18 +10,24 @@ import { normalizeLabel } from "../internal/normalize.js";
 import schema from "../schema.js";
 
 export const upsertLabel = mutation({
-  args: { value: v.string() },
+  args: {
+    value: v.string(),
+    type: v.union(v.literal("node"), v.literal("edge")),
+  },
   returns: v.null(),
   handler: async (ctx, args) => {
     const normalized = normalizeLabel(args.value);
     const existing = await ctx.db
       .query("graph_labels")
-      .withIndex("by_value", (q) => q.eq("value", normalized))
+      .withIndex("by_type_value", (q) =>
+        q.eq("type", args.type).eq("value", normalized),
+      )
       .first();
     if (!existing) {
       await ctx.db.insert("graph_labels", {
         value: normalized,
         displayValue: args.value,
+        type: args.type,
       });
     }
     return null;
@@ -29,13 +35,18 @@ export const upsertLabel = mutation({
 });
 
 export const getLabel = query({
-  args: { value: v.string() },
+  args: {
+    value: v.string(),
+    type: v.union(v.literal("node"), v.literal("edge")),
+  },
   returns: v.union(v.null(), doc(schema, "graph_labels")),
   handler: async (ctx, args) => {
     const normalized = normalizeLabel(args.value);
     return await ctx.db
       .query("graph_labels")
-      .withIndex("by_value", (q) => q.eq("value", normalized))
+      .withIndex("by_type_value", (q) =>
+        q.eq("type", args.type).eq("value", normalized),
+      )
       .first();
   },
 });

@@ -115,11 +115,12 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         getLabel: FunctionReference<
           "query",
           "internal",
-          { value: string },
+          { type: "node" | "edge"; value: string },
           null | {
             _creationTime: number;
             _id: string;
             displayValue: string;
+            type: "node" | "edge";
             value: string;
           },
           Name
@@ -144,6 +145,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
               _creationTime: number;
               _id: string;
               displayValue: string;
+              type: "node" | "edge";
               value: string;
             }>;
             pageStatus?: "SplitRecommended" | "SplitRequired" | null;
@@ -154,7 +156,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         upsertLabel: FunctionReference<
           "mutation",
           "internal",
-          { value: string },
+          { type: "node" | "edge"; value: string },
           null,
           Name
         >;
