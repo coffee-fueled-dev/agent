@@ -1,6 +1,6 @@
 import { api } from "@agent/backend/api";
 import type { Id } from "@agent/backend/dataModel";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { useEffect, useState } from "react";
 import { useConvexFileUpload } from "./use-convex-file-upload.js";
 
@@ -19,7 +19,16 @@ export type FileMemoryEmbeddingState = {
  * Uploads a file, starts {@link api.files.processFile}, and polls {@link api.files.getFileProcess}
  * until the memory record is ready for search.
  */
-export function useFileMemoryEmbedding(file: File, namespace: string) {
+export function useFileMemoryEmbedding(
+  file: File,
+  namespace: string,
+  options?: {
+    title?: string;
+    keyPrefix?: string;
+    /** When set (e.g. manual add-memory session), file chunks merge into this record. */
+    memoryRecordId?: string;
+  },
+) {
   const [contentHash, setContentHash] = useState<string | null>(null);
   const [storageId, setStorageId] = useState<Id<"_storage"> | null>(null);
   const [processId, setProcessId] = useState<Id<"fileProcesses"> | null>(null);
@@ -31,11 +40,16 @@ export function useFileMemoryEmbedding(file: File, namespace: string) {
   >("idle");
   const [error, setError] = useState<string | null>(null);
   const { prepareFile, submitForEmbedding } = useConvexFileUpload();
+  const patchMemoryTitle = useMutation(
+    api.memories.manualMemory.patchMemoryTitle,
+  );
   const process = useQuery(
     api.files.store.getFileProcess,
     processId ? { processId } : "skip",
   );
 
+  // `options.title` is read when this effect runs (per file/keyPrefix); later edits sync via patchMemoryTitle.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: title intentionally omitted from deps — see comment
   useEffect(() => {
     const abort = new AbortController();
     setContentHash(null);
@@ -51,21 +65,27 @@ export function useFileMemoryEmbedding(file: File, namespace: string) {
       try {
         setStatus("uploading");
         setEmbeddingPending(true);
-        const prepared = await prepareFile(file, abort.signal);
+        const prepared = await prepareFile(file, abort.signal, {
+          keyPrefix: options?.keyPrefix,
+        });
         if (abort.signal.aborted) return;
         setContentHash(prepared.contentHash);
         setStorageId(prepared.storageId);
         setFileContentResolved(true);
 
+        const title = options?.title?.trim() || prepared.fileName;
         const processResult = await submitForEmbedding(
           {
             namespace,
             key: prepared.key,
-            title: prepared.fileName,
+            title,
             storageId: prepared.storageId,
             mimeType: prepared.mimeType,
             fileName: prepared.fileName,
             contentHash: prepared.contentHash,
+            ...(options?.memoryRecordId
+              ? { memoryRecordId: options.memoryRecordId }
+              : {}),
           },
           abort.signal,
         );
@@ -99,7 +119,24 @@ export function useFileMemoryEmbedding(file: File, namespace: string) {
     return () => {
       abort.abort();
     };
-  }, [file, prepareFile, submitForEmbedding, namespace]);
+  }, [file, prepareFile, submitForEmbedding, namespace, options?.keyPrefix]);
+
+  useEffect(() => {
+    const trimmed = options?.title?.trim();
+    const target = options?.memoryRecordId ?? memoryId;
+    if (!target || !trimmed) return;
+    void patchMemoryTitle({
+      namespace,
+      memoryRecordId: target,
+      title: trimmed,
+    });
+  }, [
+    memoryId,
+    namespace,
+    options?.title,
+    options?.memoryRecordId,
+    patchMemoryTitle,
+  ]);
 
   useEffect(() => {
     if (!processId || !process) return;

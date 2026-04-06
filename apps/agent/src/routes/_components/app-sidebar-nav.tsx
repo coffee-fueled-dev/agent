@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils";
 import { chat, eventsList, Link, memoriesList } from "@/navigation/index.js";
 import EventsRouteIcon from "../events/route-icon.js";
 import MemoriesRouteIcon from "../memories/route-icon.js";
+import { AddMemoryDialog } from "./add-memory-dialog.js";
 
 const PAGE_SIZE = 15;
 
@@ -113,6 +114,7 @@ export function AppSidebarNav({
   forceExpanded?: boolean;
 }) {
   const { isExpanded } = useSidebar();
+  const { accountToken } = usePublicEnv();
   const showText = forceExpanded || isExpanded;
 
   if (!showText) {
@@ -175,16 +177,54 @@ export function AppSidebarNav({
               <span className="truncate">Events</span>
             </Link>
           </SidebarGroupButton>
-          <SidebarGroupButton depth={1} asChild>
-            <Link
-              href={memoriesList()}
-              onBeforeNavigate={onNavigate}
-              className="flex min-w-0 items-center gap-2"
-            >
-              <MemoriesRouteIcon className="size-3.5 shrink-0 opacity-70" />
-              <span className="truncate">Memories</span>
-            </Link>
-          </SidebarGroupButton>
+          {accountToken ? (
+            <AddMemoryDialog namespace={accountToken}>
+              <div className="flex min-w-0 items-center gap-0.5">
+                <SidebarGroupButton
+                  depth={1}
+                  asChild
+                  className="min-w-0 flex-1"
+                >
+                  <Link
+                    href={memoriesList()}
+                    onBeforeNavigate={onNavigate}
+                    className="flex min-w-0 items-center gap-2"
+                  >
+                    <MemoriesRouteIcon className="size-3.5 shrink-0 opacity-70" />
+                    <span className="truncate">Memories</span>
+                  </Link>
+                </SidebarGroupButton>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <AddMemoryDialog.Trigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-7 shrink-0"
+                        aria-label="Add memory"
+                      >
+                        <PlusIcon className="size-3.5" />
+                      </Button>
+                    </AddMemoryDialog.Trigger>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">Add memory</TooltipContent>
+                </Tooltip>
+              </div>
+              <AddMemoryDialog.Content />
+            </AddMemoryDialog>
+          ) : (
+            <SidebarGroupButton depth={1} asChild>
+              <Link
+                href={memoriesList()}
+                onBeforeNavigate={onNavigate}
+                className="flex min-w-0 items-center gap-2"
+              >
+                <MemoriesRouteIcon className="size-3.5 shrink-0 opacity-70" />
+                <span className="truncate">Memories</span>
+              </Link>
+            </SidebarGroupButton>
+          )}
         </SidebarGroupContent>
       </SidebarGroup>
     </div>

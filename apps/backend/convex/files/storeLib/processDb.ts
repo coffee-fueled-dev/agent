@@ -150,6 +150,8 @@ export async function handleStartFileProcess(
     mimeType: string;
     fileName?: string;
     contentHash?: string;
+    /** When set, ingest file chunks into this existing memory (same namespace). */
+    memoryRecordId?: string;
   },
 ) {
   const existing = await findExistingFileProcessForIdempotency(ctx, {
@@ -166,29 +168,54 @@ export async function handleStartFileProcess(
     };
   }
 
-  const { memoryRecordId } = await memoryClient.mergeMemory(ctx, {
-    namespace: args.namespace,
-    key: args.key,
-    content: [],
-    skipCanonicalText: true,
-    contentSource: {
-      type: "storage",
-      id: args.storageId as string,
-    },
-    fileName: args.fileName,
-    mimeType: args.mimeType,
-  });
+  let memoryRecordId: string;
 
-  await memoryClient.registerStorageSourceMetadata(ctx, {
-    namespace: args.namespace,
-    memoryRecordId: memoryRecordId as MemoryRecordId<"memoryRecords">,
-    contentSource: {
-      type: "storage",
-      id: args.storageId as string,
-    },
-    fileName: args.fileName,
-    mimeType: args.mimeType,
-  });
+  if (args.memoryRecordId) {
+    const record = await memoryClient.getMemoryRecord(ctx, {
+      namespace: args.namespace,
+      memoryRecordId: args.memoryRecordId as MemoryRecordId<"memoryRecords">,
+    });
+    if (!record) {
+      throw new Error("startFileProcess: memory record not found for namespace");
+    }
+    memoryRecordId = args.memoryRecordId;
+
+    await memoryClient.registerStorageSourceMetadata(ctx, {
+      namespace: args.namespace,
+      memoryRecordId: args.memoryRecordId as MemoryRecordId<"memoryRecords">,
+      contentSource: {
+        type: "storage",
+        id: args.storageId as string,
+      },
+      fileName: args.fileName,
+      mimeType: args.mimeType,
+    });
+  } else {
+    const mergeResult = await memoryClient.mergeMemory(ctx, {
+      namespace: args.namespace,
+      key: args.key,
+      content: [],
+      skipCanonicalText: true,
+      contentSource: {
+        type: "storage",
+        id: args.storageId as string,
+      },
+      fileName: args.fileName,
+      mimeType: args.mimeType,
+    });
+    memoryRecordId = mergeResult.memoryRecordId as string;
+
+    await memoryClient.registerStorageSourceMetadata(ctx, {
+      namespace: args.namespace,
+      memoryRecordId: mergeResult.memoryRecordId as MemoryRecordId<"memoryRecords">,
+      contentSource: {
+        type: "storage",
+        id: args.storageId as string,
+      },
+      fileName: args.fileName,
+      mimeType: args.mimeType,
+    });
+  }
 
   const processId = await ctx.db.insert("fileProcesses", {
     namespace: args.namespace,
@@ -198,13 +225,13 @@ export async function handleStartFileProcess(
     fileName: args.fileName,
     title: args.title,
     contentHash: args.contentHash,
-    memoryRecordId: memoryRecordId as string,
+    memoryRecordId,
     status: "processing",
   });
 
   return {
     processId,
-    memoryRecordId: memoryRecordId as string,
+    memoryRecordId,
     status: "processing" as const,
     scheduledDispatch: true,
   };

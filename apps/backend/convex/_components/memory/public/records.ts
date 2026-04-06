@@ -1,8 +1,11 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { paginator } from "convex-helpers/server/pagination";
-import { query } from "../_generated/server.js";
+import { mutation, query } from "../_generated/server.js";
+import { graph } from "../graph.js";
+import { memorySearchSourceRef } from "../internal/store.js";
 import schema from "../schema.js";
+import { lexicalSearch, MEMORY_SOURCE_SYSTEM, vectorSearch } from "../search.js";
 
 const leanMemoryRecordValidator = v.object({
   _id: v.id("memoryRecords"),
@@ -67,5 +70,121 @@ export const getMemoryRecord = query({
     const doc = await ctx.db.get(args.memoryRecordId);
     if (!doc || doc.namespace !== args.namespace) return null;
     return { key: doc.key, text: doc.text, title: doc.title };
+  },
+});
+
+export const patchMemoryRecordTitle = mutation({
+  args: {
+    namespace: v.string(),
+    memoryRecordId: v.id("memoryRecords"),
+    title: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const doc = await ctx.db.get(args.memoryRecordId);
+    if (!doc || doc.namespace !== args.namespace) {
+      throw new Error("patchMemoryRecordTitle: not found or namespace mismatch");
+    }
+    const titleTrim = args.title.trim();
+    if (!titleTrim) {
+      return null;
+    }
+    await ctx.db.patch(args.memoryRecordId, { title: titleTrim });
+    return null;
+  },
+});
+
+/** Removes lexical + vector search items for this memory (`sourceRef` = memory id). */
+export const deleteMemorySearchIndexes = mutation({
+  args: {
+    namespace: v.string(),
+    memoryRecordId: v.id("memoryRecords"),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const doc = await ctx.db.get(args.memoryRecordId);
+    if (!doc || doc.namespace !== args.namespace) {
+      return null;
+    }
+    const sourceRef = memorySearchSourceRef(args.memoryRecordId);
+    await lexicalSearch.deleteItem(ctx, {
+      namespace: args.namespace,
+      sourceSystem: MEMORY_SOURCE_SYSTEM,
+      sourceRef,
+    });
+    await vectorSearch.deleteItem(ctx, {
+      namespace: args.namespace,
+      sourceSystem: MEMORY_SOURCE_SYSTEM,
+      sourceRef,
+    });
+    return null;
+  },
+});
+
+export const deleteMemorySourceMapBatch = mutation({
+  args: {
+    namespace: v.string(),
+    memoryRecordId: v.id("memoryRecords"),
+    limit: v.number(),
+  },
+  returns: v.object({
+    deleted: v.number(),
+    hasMore: v.boolean(),
+  }),
+  handler: async (ctx, args) => {
+    const doc = await ctx.db.get(args.memoryRecordId);
+    if (!doc || doc.namespace !== args.namespace) {
+      return { deleted: 0, hasMore: false };
+    }
+    const rows = await ctx.db
+      .query("memorySourceMap")
+      .withIndex("by_namespace_memoryRecord", (q) =>
+        q
+          .eq("namespace", args.namespace)
+          .eq("memoryRecord", args.memoryRecordId),
+      )
+      .take(args.limit);
+    for (const row of rows) {
+      await ctx.db.delete(row._id);
+    }
+    return {
+      deleted: rows.length,
+      hasMore: rows.length === args.limit,
+    };
+  },
+});
+
+export const tryDeleteMemoryGraphNode = mutation({
+  args: {
+    namespace: v.string(),
+    memoryRecordId: v.id("memoryRecords"),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const doc = await ctx.db.get(args.memoryRecordId);
+    if (!doc || doc.namespace !== args.namespace) {
+      return null;
+    }
+    await graph.nodes.delete(ctx, {
+      label: "memoryRecord",
+      key: String(args.memoryRecordId),
+    });
+    return null;
+  },
+});
+
+export const deleteMemoryRecordDocument = mutation({
+  args: {
+    namespace: v.string(),
+    memoryRecordId: v.id("memoryRecords"),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const doc = await ctx.db.get(args.memoryRecordId);
+    if (!doc || doc.namespace !== args.namespace) {
+      return null;
+    }
+    await ctx.db.delete(args.memoryRecordId);
+    return null;
   },
 });

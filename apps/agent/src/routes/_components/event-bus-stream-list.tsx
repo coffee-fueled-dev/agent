@@ -58,7 +58,7 @@ type BusListRow = {
 function EventRowLinkPage({ row }: { row: BusListRow }) {
   const href = eventsDetail(row.busEntry._id);
   return (
-    <Item size="sm" variant="outline" asChild>
+    <Item size="sm" asChild>
       <Link href={href} className="no-underline">
         <ItemHeader className="min-w-0 gap-2">
           <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5">
@@ -130,7 +130,7 @@ function EventBusVirtualizedPage({
       className="h-full min-h-0 flex-1 px-8"
     >
       <div
-        className="relative pr-2"
+        className="relative pr-2 w-full max-w-4xl"
         style={{ height: virtualizer.getTotalSize() }}
       >
         {virtualizer.getVirtualItems().map((vi) => {
@@ -183,7 +183,7 @@ function EventBusVirtualizedSidebar({
   return (
     <FadeOverflow viewportRef={viewportRef} className="min-h-0 flex-1">
       <div
-        className="relative w-full"
+        className="relative w-full max-w-4xl"
         style={{ height: virtualizer.getTotalSize() }}
       >
         {virtualizer.getVirtualItems().map((vi) => {

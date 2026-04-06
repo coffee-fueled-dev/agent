@@ -1,7 +1,7 @@
 import { tool } from "@very-coffee/agent-identity";
+import { memoryClient } from "_clients/memory.js";
 import type { InferUITool, Tool } from "ai";
 import { z } from "zod/v4";
-import { components } from "../../../../_generated/api.js";
 import { requireGoogleApiKey } from "../../../../env/models.js";
 import type { ConvexAgentEnv } from "../../../lib/customFunctions.js";
 import type { ToolRuntimeContext } from "../../../lib/toolkit.js";
@@ -72,7 +72,7 @@ export function mergeMemoryTool() {
           );
         }
         return await withFormattedResults(
-          ctx.env.runMutation(components.memory.public.store.mergeMemory, {
+          memoryClient.mergeMemory(ctx.env, {
             namespace: ctx.env.namespace,
             mode: "append",
             memoryRecordId,
@@ -87,7 +87,7 @@ export function mergeMemoryTool() {
         throw new Error("mergeMemory: key is required when not appending");
       }
       return await withFormattedResults(
-        ctx.env.runMutation(components.memory.public.store.mergeMemory, {
+        memoryClient.mergeMemory(ctx.env, {
           namespace: ctx.env.namespace,
           key,
           content,

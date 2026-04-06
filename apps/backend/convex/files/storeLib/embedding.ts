@@ -82,6 +82,7 @@ export async function handleProcessFile(
     mimeType: string;
     fileName?: string;
     contentHash?: string;
+    memoryRecordId?: string;
   },
 ): Promise<{
   processId: Id<"fileProcesses">;

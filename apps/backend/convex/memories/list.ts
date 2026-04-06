@@ -5,7 +5,7 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { SessionIdArg } from "convex-helpers/server/sessions";
-import { components } from "../_generated/api.js";
+import { memoryClient } from "../_clients/memory.js";
 import { query } from "../_generated/server.js";
 
 export const listMemoryRecordsForSession = query({
@@ -15,12 +15,9 @@ export const listMemoryRecordsForSession = query({
     ...SessionIdArg,
   },
   handler: async (ctx, args) => {
-    return await ctx.runQuery(
-      components.memory.public.records.listMemoryRecordsPaginated,
-      {
-        namespace: args.userId,
-        paginationOpts: args.paginationOpts,
-      },
-    );
+    return await memoryClient.listMemoryRecordsPaginated(ctx, {
+      namespace: args.userId,
+      paginationOpts: args.paginationOpts,
+    });
   },
 });

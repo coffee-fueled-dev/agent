@@ -129,6 +129,7 @@ export const startFileProcess = internalMutation({
     mimeType: v.string(),
     fileName: v.optional(v.string()),
     contentHash: v.optional(v.string()),
+    memoryRecordId: v.optional(v.string()),
   },
   returns: v.object({
     processId: v.id("fileProcesses"),
@@ -162,6 +163,7 @@ export const processFile = action({
     mimeType: v.string(),
     fileName: v.optional(v.string()),
     contentHash: v.optional(v.string()),
+    memoryRecordId: v.optional(v.string()),
   },
   returns: v.object({
     processId: v.id("fileProcesses"),

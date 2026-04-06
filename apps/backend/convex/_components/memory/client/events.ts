@@ -14,6 +14,10 @@ type SearchMemory<NAME extends Name = Name> =
   ComponentApi<NAME>["public"]["search"]["searchMemory"];
 type RegisterStorageSourceMetadata<NAME extends Name = Name> =
   ComponentApi<NAME>["public"]["sourceMaps"]["registerStorageSourceMetadata"];
+type PatchMemoryRecordTitle<NAME extends Name = Name> =
+  ComponentApi<NAME>["public"]["records"]["patchMemoryRecordTitle"];
+type DeleteMemoryRecordDocument<NAME extends Name = Name> =
+  ComponentApi<NAME>["public"]["records"]["deleteMemoryRecordDocument"];
 
 export type MemoryClientEvent<NAME extends Name = Name> =
   | {
@@ -29,6 +33,16 @@ export type MemoryClientEvent<NAME extends Name = Name> =
   | {
       event: "registerStorageSourceMetadata";
       args: FunctionArgs<RegisterStorageSourceMetadata<NAME>>;
+      result: null;
+    }
+  | {
+      event: "patchMemoryRecordTitle";
+      args: FunctionArgs<PatchMemoryRecordTitle<NAME>>;
+      result: null;
+    }
+  | {
+      event: "deleteMemoryRecord";
+      args: FunctionArgs<DeleteMemoryRecordDocument<NAME>>;
       result: null;
     };
 

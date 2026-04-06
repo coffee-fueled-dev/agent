@@ -459,11 +459,12 @@ export const components = componentsGeneric() as unknown as {
         getLabel: FunctionReference<
           "query",
           "internal",
-          { value: string },
+          { type: "node" | "edge"; value: string },
           null | {
             _creationTime: number;
             _id: string;
             displayValue: string;
+            type: "node" | "edge";
             value: string;
           }
         >;
@@ -487,6 +488,7 @@ export const components = componentsGeneric() as unknown as {
               _creationTime: number;
               _id: string;
               displayValue: string;
+              type: "node" | "edge";
               value: string;
             }>;
             pageStatus?: "SplitRecommended" | "SplitRequired" | null;
@@ -496,7 +498,7 @@ export const components = componentsGeneric() as unknown as {
         upsertLabel: FunctionReference<
           "mutation",
           "internal",
-          { value: string },
+          { type: "node" | "edge"; value: string },
           null
         >;
       };

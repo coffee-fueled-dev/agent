@@ -25,6 +25,27 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
   {
     public: {
       records: {
+        deleteMemoryRecordDocument: FunctionReference<
+          "mutation",
+          "internal",
+          { memoryRecordId: string; namespace: string },
+          null,
+          Name
+        >;
+        deleteMemorySearchIndexes: FunctionReference<
+          "mutation",
+          "internal",
+          { memoryRecordId: string; namespace: string },
+          null,
+          Name
+        >;
+        deleteMemorySourceMapBatch: FunctionReference<
+          "mutation",
+          "internal",
+          { limit: number; memoryRecordId: string; namespace: string },
+          { deleted: number; hasMore: boolean },
+          Name
+        >;
         getMemoryRecord: FunctionReference<
           "query",
           "internal",
@@ -59,6 +80,20 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             pageStatus?: "SplitRecommended" | "SplitRequired" | null;
             splitCursor?: string | null;
           },
+          Name
+        >;
+        patchMemoryRecordTitle: FunctionReference<
+          "mutation",
+          "internal",
+          { memoryRecordId: string; namespace: string; title: string },
+          null,
+          Name
+        >;
+        tryDeleteMemoryGraphNode: FunctionReference<
+          "mutation",
+          "internal",
+          { memoryRecordId: string; namespace: string },
+          null,
           Name
         >;
       };

@@ -1,5 +1,6 @@
 import { tool } from "@very-coffee/agent-identity";
-import { components, internal } from "_generated/api.js";
+import { memoryClient } from "_clients/memory.js";
+import { internal } from "_generated/api.js";
 import type { InferUITool, Tool } from "ai";
 import { requireGoogleApiKey } from "env/models.js";
 import type { ResolvedMemoryRecord } from "memories/resolveMemories.js";
@@ -87,18 +88,15 @@ export function searchMemoriesTool() {
             sources: ResolvedMemoryRecord["sources"];
           }>
         > => {
-          const hits = await ctx.env.runAction(
-            components.memory.public.search.searchMemory,
-            {
-              namespace: ctx.env.namespace,
-              query: args.query,
-              limit: args.limit,
-              perArmLimit: args.perArmLimit,
-              k: args.k,
-              googleApiKey,
-              armBias: args.armBias,
-            },
-          );
+          const hits = await memoryClient.searchMemory(ctx.env, {
+            namespace: ctx.env.namespace,
+            query: args.query,
+            limit: args.limit,
+            perArmLimit: args.perArmLimit,
+            k: args.k,
+            googleApiKey,
+            armBias: args.armBias,
+          });
           if (hits.length === 0) return [];
 
           const uniqueIds: string[] = [];

@@ -9,6 +9,7 @@
     "build": "bun run build.ts"
   },
   "dependencies": {
+    "@agent/backend": "workspace:*",
     "@agent/config": "workspace:*",
     "@chenglou/pretext": "^0.0.3",
     "@convex-dev/agent": "^0.3.2",
@@ -22,7 +23,6 @@
     "@react-three/fiber": "^9.5.0",
     "@tanstack/react-form": "^1.28.5",
     "@tanstack/react-virtual": "^3.13.23",
-    "@agent/backend": "workspace:*",
     "ai": "^5.0.82",
     "bun-plugin-tailwind": "^0.1.2",
     "class-variance-authority": "^0.7.1",

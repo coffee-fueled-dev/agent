@@ -45,7 +45,11 @@ export function useConvexFileUpload() {
   );
 
   const prepareFile = useCallback(
-    async (file: File, signal?: AbortSignal): Promise<PreparedConvexFile> => {
+    async (
+      file: File,
+      signal?: AbortSignal,
+      opts?: { keyPrefix?: string },
+    ): Promise<PreparedConvexFile> => {
       const [storageId, contentHash] = await Promise.all([
         uploadFileToStorage(file, signal),
         contentHashFromArrayBuffer(await file.arrayBuffer()),
@@ -60,7 +64,7 @@ export function useConvexFileUpload() {
         fileName: file.name,
         key: buildFileMemoryKey({
           fileName: file.name,
-          prefix: "chat",
+          prefix: opts?.keyPrefix ?? "chat",
           fallback: "file",
         }),
       };
@@ -78,6 +82,8 @@ export function useConvexFileUpload() {
         mimeType: string;
         fileName?: string;
         contentHash?: string;
+        /** Attach file ingest to an existing manual memory row (same namespace). */
+        memoryRecordId?: string;
       },
       signal?: AbortSignal,
     ) => {
@@ -92,6 +98,7 @@ export function useConvexFileUpload() {
         mimeType: args.mimeType,
         fileName: args.fileName,
         contentHash: args.contentHash,
+        ...(args.memoryRecordId ? { memoryRecordId: args.memoryRecordId } : {}),
       });
     },
     [processFile],

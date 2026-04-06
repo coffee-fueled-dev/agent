@@ -1,10 +1,5 @@
-import {
-  AlertCircleIcon,
-  CheckCircle2Icon,
-  LoaderIcon,
-  XIcon,
-} from "lucide-react";
-import { useEffect } from "react";
+import { AlertCircleIcon, CheckCircle2Icon, XIcon } from "lucide-react";
+import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner.js";
 import {
@@ -25,12 +20,21 @@ export function FileEmbeddingRow({
   namespace,
   onRemove,
   onEmbeddingStateChange,
+  memoryTitle,
+  keyPrefix,
+  memoryRecordId,
 }: {
   file: File;
   /** Convex memory namespace (e.g. user or session id). */
   namespace: string;
   onRemove: () => void;
   onEmbeddingStateChange?: (state: FileMemoryEmbeddingState) => void;
+  /** Overrides display title sent to {@link api.files.store.processFile} (default: file name). */
+  memoryTitle?: string;
+  /** Passed to {@link buildFileMemoryKey} (e.g. `"manual"` for add-memory UI). */
+  keyPrefix?: string;
+  /** When set, file ingest attaches to this existing memory record. */
+  memoryRecordId?: string;
 }) {
   const {
     contentHash,
@@ -41,10 +45,17 @@ export function FileEmbeddingRow({
     fileContentResolved,
     status,
     error,
-  } = useFileMemoryEmbedding(file, namespace);
+  } = useFileMemoryEmbedding(file, namespace, {
+    title: memoryTitle,
+    keyPrefix,
+    memoryRecordId,
+  });
+
+  const onEmbeddingStateChangeRef = useRef(onEmbeddingStateChange);
+  onEmbeddingStateChangeRef.current = onEmbeddingStateChange;
 
   useEffect(() => {
-    onEmbeddingStateChange?.({
+    onEmbeddingStateChangeRef.current?.({
       contentHash,
       storageId,
       processId,
@@ -63,7 +74,6 @@ export function FileEmbeddingRow({
     fileContentResolved,
     status,
     error,
-    onEmbeddingStateChange,
   ]);
 
   return (

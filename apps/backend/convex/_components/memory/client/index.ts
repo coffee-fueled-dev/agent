@@ -47,6 +47,24 @@ type ListSourceMapsForMemory<NAME extends Name = Name> =
 type GetMemoryRecord<NAME extends Name = Name> =
   ComponentApi<NAME>["public"]["records"]["getMemoryRecord"];
 
+type ListMemoryRecordsPaginated<NAME extends Name = Name> =
+  ComponentApi<NAME>["public"]["records"]["listMemoryRecordsPaginated"];
+
+type PatchMemoryRecordTitle<NAME extends Name = Name> =
+  ComponentApi<NAME>["public"]["records"]["patchMemoryRecordTitle"];
+
+type DeleteMemorySearchIndexes<NAME extends Name = Name> =
+  ComponentApi<NAME>["public"]["records"]["deleteMemorySearchIndexes"];
+
+type DeleteMemorySourceMapBatch<NAME extends Name = Name> =
+  ComponentApi<NAME>["public"]["records"]["deleteMemorySourceMapBatch"];
+
+type TryDeleteMemoryGraphNode<NAME extends Name = Name> =
+  ComponentApi<NAME>["public"]["records"]["tryDeleteMemoryGraphNode"];
+
+type DeleteMemoryRecordDocument<NAME extends Name = Name> =
+  ComponentApi<NAME>["public"]["records"]["deleteMemoryRecordDocument"];
+
 type ExtractQueryReturn<F> =
   F extends FunctionReference<"query", infer _V, infer _A, infer R, infer _N>
     ? R
@@ -246,6 +264,79 @@ export class MemoryClient<
     ctx: RunQueryCtx,
     args: FunctionArgs<GetMemoryRecord<NAME>>,
   ) => ctx.runQuery(this.component.public.records.getMemoryRecord, args);
+
+  listMemoryRecordsPaginated = (
+    ctx: RunQueryCtx,
+    args: FunctionArgs<ListMemoryRecordsPaginated<NAME>>,
+  ) =>
+    ctx.runQuery(
+      this.component.public.records.listMemoryRecordsPaginated,
+      args,
+    );
+
+  patchMemoryRecordTitle = async (
+    ctx: RunMutationCtx,
+    args: FunctionArgs<PatchMemoryRecordTitle<NAME>>,
+  ) => {
+    await ctx.runMutation(
+      this.component.public.records.patchMemoryRecordTitle,
+      args,
+    );
+    await notifyMemorySubscribers(this._subscribers, ctx, {
+      event: "patchMemoryRecordTitle",
+      args,
+      result: null,
+    });
+    return null;
+  };
+
+  deleteMemorySearchIndexes = async (
+    ctx: RunMutationCtx,
+    args: FunctionArgs<DeleteMemorySearchIndexes<NAME>>,
+  ) => {
+    await ctx.runMutation(
+      this.component.public.records.deleteMemorySearchIndexes,
+      args,
+    );
+    return null;
+  };
+
+  deleteMemorySourceMapBatch = async (
+    ctx: RunMutationCtx,
+    args: FunctionArgs<DeleteMemorySourceMapBatch<NAME>>,
+  ) => {
+    return await ctx.runMutation(
+      this.component.public.records.deleteMemorySourceMapBatch,
+      args,
+    );
+  };
+
+  tryDeleteMemoryGraphNode = async (
+    ctx: RunMutationCtx,
+    args: FunctionArgs<TryDeleteMemoryGraphNode<NAME>>,
+  ) => {
+    await ctx.runMutation(
+      this.component.public.records.tryDeleteMemoryGraphNode,
+      args,
+    );
+    return null;
+  };
+
+  deleteMemoryRecordDocument = async (
+    ctx: RunMutationCtx,
+    args: FunctionArgs<DeleteMemoryRecordDocument<NAME>>,
+  ) => {
+    await ctx.runMutation(
+      this.component.public.records.deleteMemoryRecordDocument,
+      args,
+    );
+    await notifyMemorySubscribers(this._subscribers, ctx, {
+      event: "deleteMemoryRecord",
+      args,
+      result: null,
+    });
+    return null;
+  };
 
   /**
    * Run the resolver registered for `name` only; return type narrows by `TSourceMap[K]`

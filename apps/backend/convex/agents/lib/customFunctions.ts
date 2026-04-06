@@ -34,7 +34,7 @@ export type ToolBuilderContext = Pick<
   AgentIdentityCtx;
 
 export type ConvexAgentEnv = AgentIdentityCtx &
-  Pick<ToolBuilderContext, "runAction" | "runMutation"> & {
+  Pick<ToolBuilderContext, "runQuery" | "runAction" | "runMutation"> & {
     runPolicyQuery: (
       query: FunctionReference<"query", "internal", ToolPolicyArgs, boolean>,
     ) => Promise<boolean>;
@@ -66,6 +66,7 @@ export function createConvexAgentEnv(ctx: ToolBuilderContext): ConvexAgentEnv {
     namespace: ctx.namespace,
     agentId: ctx.agentId,
     agentName: ctx.agentName,
+    runQuery: ctx.runQuery,
     runAction: ctx.runAction,
     runMutation: ctx.runMutation,
     runPolicyQuery: (query) => ctx.runQuery(query, args),
@@ -102,6 +103,7 @@ export function createConvexAgentEnvForQuery(
   };
   return {
     ...identity,
+    runQuery: ctx.runQuery,
     runAction: async () => {
       throw new Error("runAction is not available in query evaluation");
     },
