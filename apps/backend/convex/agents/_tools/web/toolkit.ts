@@ -1,8 +1,6 @@
 import type { Composable, ToolSpec } from "@very-coffee/agent-identity";
 import type { ConvexAgentEnv } from "../../lib/customFunctions.js";
 import { toolkit } from "../../lib/toolkit.js";
-import { automateBrowserTaskTool } from "./automateBrowserTask/tool.js";
-import { queryUrlTool } from "./queryUrl/tool.js";
 import { searchWebTool } from "./searchWeb/tool.js";
 
 export function webToolkit(): Composable<
@@ -10,10 +8,10 @@ export function webToolkit(): Composable<
   Record<string, ToolSpec>,
   ConvexAgentEnv
 > {
-  return toolkit([searchWebTool(), queryUrlTool(), automateBrowserTaskTool()], {
+  return toolkit([searchWebTool()], {
     name: "web",
     instructions: [
-      "Prefer searchWeb for raw search results; use queryUrl for answers grounded with Google Search + optional public URL content (cheaper than automateBrowserTask). Use automateBrowserTask only for real browser interaction. For automateBrowserTask, default effort is low—raise effort only for multi-page or heavy UI tasks.",
+      "Use the internet when you need to find information or perform tasks that require real-world interaction.",
     ],
   });
 }

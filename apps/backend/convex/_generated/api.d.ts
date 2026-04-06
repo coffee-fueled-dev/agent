@@ -32,6 +32,7 @@ import type * as agents__tools_web_queryUrl_tool from "../agents/_tools/web/quer
 import type * as agents__tools_web_searchWeb_internal from "../agents/_tools/web/searchWeb/internal.js";
 import type * as agents__tools_web_searchWeb_tool from "../agents/_tools/web/searchWeb/tool.js";
 import type * as agents__tools_web_toolkit from "../agents/_tools/web/toolkit.js";
+import type * as agents_assistant__instructions_goals from "../agents/assistant/_instructions/goals.js";
 import type * as agents_assistant_createAgent from "../agents/assistant/createAgent.js";
 import type * as agents_human_humanToolkit from "../agents/human/humanToolkit.js";
 import type * as agents_human_humanToolkitToolCall from "../agents/human/humanToolkitToolCall.js";
@@ -115,6 +116,7 @@ declare const fullApi: ApiFromModules<{
   "agents/_tools/web/searchWeb/internal": typeof agents__tools_web_searchWeb_internal;
   "agents/_tools/web/searchWeb/tool": typeof agents__tools_web_searchWeb_tool;
   "agents/_tools/web/toolkit": typeof agents__tools_web_toolkit;
+  "agents/assistant/_instructions/goals": typeof agents_assistant__instructions_goals;
   "agents/assistant/createAgent": typeof agents_assistant_createAgent;
   "agents/human/humanToolkit": typeof agents_human_humanToolkit;
   "agents/human/humanToolkitToolCall": typeof agents_human_humanToolkitToolCall;

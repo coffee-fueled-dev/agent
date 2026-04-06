@@ -6,7 +6,6 @@ import type { ConvexAgentEnv } from "../../agents/lib/customFunctions.js";
 import {
   adaptToHumanToolBuilderContext,
   createConvexAgentEnv,
-  createHumanToolkitContextFromQuery,
 } from "../../agents/lib/customFunctions.js";
 import { resolveEffectiveThreadMessageIdForAction } from "../thread/threadMessageAnchor.js";
 import type { HumanToolCall } from "./humanToolCallWire.js";
@@ -45,18 +44,6 @@ export async function executeHumanToolCallsForTurn(
     namespace: args.namespace,
     threadId: args.threadId,
   });
-  const toolkitCtx = createHumanToolkitContextFromQuery(
-    ctx,
-    {
-      threadId: args.threadId,
-      ...(messageId !== undefined ? { messageId } : {}),
-      sessionId: args.sessionId,
-      namespace: args.namespace,
-    },
-    args.pipelineHooks ? { pipelineHooks: args.pipelineHooks } : undefined,
-  );
-  const { tools } = await humanTools.evaluate(toolkitCtx);
-
   const toolBuilderCtx = adaptToHumanToolBuilderContext(ctx, {
     threadId: args.threadId,
     ...(messageId !== undefined ? { messageId } : {}),
@@ -70,6 +57,11 @@ export async function executeHumanToolCallsForTurn(
     agentId: args.namespace,
     agentName: "User" as const,
   };
+
+  const { tools } = await humanTools.evaluate({
+    ...runtimeBase,
+    ...(args.pipelineHooks ? { pipelineHooks: args.pipelineHooks } : {}),
+  });
 
   const pairs = await Promise.all(
     args.toolCalls.map(async (call) => {

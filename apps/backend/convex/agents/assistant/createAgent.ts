@@ -24,6 +24,7 @@ import {
 import { languageModels } from "../lib/models.js";
 import { toolkit } from "../lib/toolkit.js";
 import { toolSpecsToAgentTools } from "../lib/toolSpecAdapter.js";
+import { guardrails, primaryRole } from "./_instructions/goals.js";
 
 const assistantTools = toolkit(
   [toolLibrary.filesystem, toolLibrary.memory, toolLibrary.web],
@@ -115,7 +116,7 @@ export async function createAssistantAgent(
 
   return new Agent(components.agent, {
     name: agent.name,
-    instructions: "",
+    instructions: [primaryRole, guardrails].join("\n\n"),
     languageModel: languageModels.chat,
     textEmbeddingModel: languageModels.textEmbedding,
     maxSteps: 15,

@@ -16,8 +16,8 @@ function getBashForSandbox(hostRoot: string): Bash {
       fs: rwfs,
       cwd: "/",
       network: undefined,
-      javascript: false,
-      python: false,
+      javascript: true, // TODO: Move to user opt in
+      python: true, // TODO: Move to user opt in
       executionLimits: {
         maxCallDepth: 100,
         maxCommandCount: 10_000,
