@@ -32,7 +32,7 @@ export function useFileMemoryEmbedding(file: File, namespace: string) {
   const [error, setError] = useState<string | null>(null);
   const { prepareFile, submitForEmbedding } = useConvexFileUpload();
   const process = useQuery(
-    api.files.getFileProcess,
+    api.files.store.getFileProcess,
     processId ? { processId } : "skip",
   );
 

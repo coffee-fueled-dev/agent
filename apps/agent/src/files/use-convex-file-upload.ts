@@ -17,8 +17,8 @@ export type PreparedConvexFile = {
  * Uploads to Convex file storage and calls {@link api.files.processFile} for embedding + memory indexing.
  */
 export function useConvexFileUpload() {
-  const generateUploadUrl = useMutation(api.files.generateFileUploadUrl);
-  const processFile = useAction(api.files.processFile);
+  const generateUploadUrl = useMutation(api.files.store.generateFileUploadUrl);
+  const processFile = useAction(api.files.store.processFile);
 
   const uploadFileToStorage = useCallback(
     async (file: File, signal?: AbortSignal): Promise<Id<"_storage">> => {

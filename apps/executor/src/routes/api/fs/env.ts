@@ -13,6 +13,7 @@ export function isLocalAgentEnabled(): boolean {
   return readLocalAgentEnabled(process.env);
 }
 
+/** Must match Convex `SHELL_EXECUTOR_SECRET` (`Authorization: Bearer` on `/api/fs/*`). */
 export function getLocalShellSecret(): string {
   return (
     trim(process.env.SHELL_EXECUTOR_SECRET) ?? "dev-only-local-shell-secret"

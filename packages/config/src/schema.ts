@@ -1,6 +1,11 @@
 import { z } from "zod";
 
-/** Flat map pushed to the Convex dashboard via `convex env set` (dev script). */
+/**
+ * Flat map pushed to the Convex dashboard via `convex env set` (dev script).
+ *
+ * `FILE_EMBEDDING_SECRET`, `SHELL_EXECUTOR_SECRET`, and `BROWSER_EXECUTOR_SECRET` must match
+ * the executor process (`apps/executor`) — same strings Convex sends and the server checks.
+ */
 export const convexDashboardEnvSchema = z.object({
   GOOGLE_GENERATIVE_AI_API_KEY: z.string().min(1),
   OPENAI_API_KEY: z.string().min(1),

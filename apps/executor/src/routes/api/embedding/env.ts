@@ -12,6 +12,7 @@ export function getConvexUrl(): string {
   return url.replace(/\/+$/, "");
 }
 
+/** Must match Convex `FILE_EMBEDDING_SECRET` (`x-binary-embedding-secret` on POST `/api/file-embedding`). */
 export function getFileEmbeddingSecret(): string {
   return (
     trim(process.env.FILE_EMBEDDING_SECRET) ??

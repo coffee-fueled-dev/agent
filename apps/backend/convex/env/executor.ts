@@ -1,6 +1,9 @@
 import { z } from "zod/v4";
 
-/** Field names match tooling URLs/secrets in `convexDashboardEnvSchema` (`@agent/config`). */
+/**
+ * Field names match tooling URLs/secrets in `convexDashboardEnvSchema` (`@agent/config`).
+ * `SHELL_EXECUTOR_SECRET` and `BROWSER_EXECUTOR_SECRET` must match the executor process env vars of the same names.
+ */
 const executorEnvSchema = z.object({
   SHELL_EXECUTOR_API_URL: z.string().optional(),
   BROWSER_EXECUTOR_API_URL: z.string().optional(),
@@ -39,6 +42,7 @@ export function getShellExecutorApiUrl(): string {
   return u;
 }
 
+/** Shared with `apps/executor` `SHELL_EXECUTOR_SECRET` (Authorization bearer to `/api/fs/*`). */
 export function getLocalShellSecret(): string {
   return trim(env.SHELL_EXECUTOR_SECRET) ?? "dev-only-local-shell-secret";
 }
@@ -58,7 +62,7 @@ export function getBrowseExecutorApiUrl(): string {
   return u;
 }
 
-/** Bearer token Convex sends to `POST` browser automation; must match the executor’s `BROWSER_EXECUTOR_SECRET`. */
+/** Bearer token Convex sends to `POST` browser automation; must match the executor's `BROWSER_EXECUTOR_SECRET`. */
 export function getBrowserExecutorSecret(): string {
   const u = trim(env.BROWSER_EXECUTOR_SECRET);
   if (!u) {

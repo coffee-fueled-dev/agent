@@ -1,6 +1,9 @@
 import { z } from "zod/v4";
 
-/** Matches `FILE_EMBEDDING_*` in `convexDashboardEnvSchema` (`@agent/config`). */
+/**
+ * Matches `FILE_EMBEDDING_*` in `convexDashboardEnvSchema` (`@agent/config`).
+ * `FILE_EMBEDDING_SECRET` must match the executor's `FILE_EMBEDDING_SECRET` (header `x-binary-embedding-secret`).
+ */
 const backendFileEnvSchema = z.object({
   FILE_EMBEDDING_API_URL: z.string().optional(),
   FILE_EMBEDDING_SECRET: z.string().optional(),

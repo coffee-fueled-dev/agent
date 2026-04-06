@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import {
   MobileSidebarSheet,
   Sidebar,
@@ -9,6 +9,7 @@ import {
   SidebarProvider,
   useSidebar,
 } from "@/components/layout/sidebar";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import {
   AppLayoutSidebarProvider,
@@ -75,7 +76,26 @@ function AppLayoutFrame({
   segmentTrail?: ReactNode;
   rightSidebar?: ReactNode;
 }) {
-  const { innerSidebarVisible } = useAppLayoutSidebar();
+  const { innerSidebarVisible, setInnerSidebarVisible } = useAppLayoutSidebar();
+  const [rightMobileSheetOpen, setRightMobileSheetOpen] = useState(false);
+
+  useEffect(() => {
+    if (!innerSidebarVisible || !rightSidebar) {
+      setRightMobileSheetOpen(false);
+      return;
+    }
+    const mq = window.matchMedia("(max-width: 767px)");
+    const sync = () => {
+      if (mq.matches) {
+        setRightMobileSheetOpen(true);
+      } else {
+        setRightMobileSheetOpen(false);
+      }
+    };
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, [innerSidebarVisible, rightSidebar]);
 
   return (
     <SidebarProvider>
@@ -107,14 +127,41 @@ function AppLayoutFrame({
           </header>
           <main className="min-h-0">
             {rightSidebar && innerSidebarVisible ? (
-              <div className="flex h-full min-h-0 flex-col gap-2 lg:flex-row">
-                <div className="min-h-0 min-w-0 flex-1">{children}</div>
-                <aside className="flex flex-column justify-start shrink-0 p-6 lg:min-h-0 lg:w-72">
-                  <div className="bg-sidebar fade-mask rounded-xl p-2 overflow-y-auto w-full">
-                    {rightSidebar}
-                  </div>
-                </aside>
-              </div>
+              <>
+                <div className="flex h-full min-h-0 flex-col gap-2 md:flex-row">
+                  <div className="min-h-0 min-w-0 flex-1">{children}</div>
+                  <aside className="hidden shrink-0 flex-col justify-start p-6 md:flex md:min-h-0 md:w-72">
+                    <div className="bg-sidebar fade-mask w-full overflow-y-auto rounded-xl p-2">
+                      {rightSidebar}
+                    </div>
+                  </aside>
+                </div>
+                <Sheet
+                  open={rightMobileSheetOpen}
+                  onOpenChange={(open) => {
+                    setRightMobileSheetOpen(open);
+                    if (
+                      !open &&
+                      typeof window !== "undefined" &&
+                      window.matchMedia("(max-width: 767px)").matches
+                    ) {
+                      setInnerSidebarVisible(false);
+                    }
+                  }}
+                >
+                  <SheetContent
+                    side="right"
+                    className="flex w-[min(100vw,20rem)] flex-col gap-0 p-0 md:hidden"
+                    onCloseAutoFocus={(e) => e.preventDefault()}
+                  >
+                    <div className="bg-sidebar text-sidebar-foreground flex min-h-0 flex-1 flex-col">
+                      <div className="bg-sidebar fade-mask flex min-h-0 flex-1 flex-col overflow-y-auto rounded-xl p-4">
+                        {rightSidebar}
+                      </div>
+                    </div>
+                  </SheetContent>
+                </Sheet>
+              </>
             ) : (
               children
             )}

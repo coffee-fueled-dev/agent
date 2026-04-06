@@ -2,6 +2,7 @@ import { FilePlusIcon } from "lucide-react";
 import {
   createContext,
   type PropsWithChildren,
+  useCallback,
   useContext,
   useMemo,
   useState,
@@ -28,27 +29,36 @@ export function FileDropzoneProvider({
 }>) {
   const [files, setFiles] = useState<File[]>([]);
 
+  const addFiles = useCallback(
+    (incoming: File[]) => {
+      setFiles((current) => {
+        if (limit <= 1) {
+          return incoming.slice(0, 1);
+        }
+        const merged = [...current, ...incoming];
+        return merged.slice(0, limit);
+      });
+    },
+    [limit],
+  );
+
+  const removeFile = useCallback((name: string) => {
+    setFiles((current) => current.filter((file) => file.name !== name));
+  }, []);
+
+  const clearFiles = useCallback(() => {
+    setFiles([]);
+  }, []);
+
   const value = useMemo(
     () => ({
       files,
       limit,
-      addFiles: (incoming: File[]) => {
-        setFiles((current) => {
-          if (limit <= 1) {
-            return incoming.slice(0, 1);
-          }
-          const merged = [...current, ...incoming];
-          return merged.slice(0, limit);
-        });
-      },
-      removeFile: (name: string) => {
-        setFiles((current) => current.filter((file) => file.name !== name));
-      },
-      clearFiles: () => {
-        setFiles([]);
-      },
+      addFiles,
+      removeFile,
+      clearFiles,
     }),
-    [files, limit],
+    [files, limit, addFiles, removeFile, clearFiles],
   );
 
   return (
@@ -64,6 +74,12 @@ export function useFiles() {
   return context;
 }
 
+/**
+ * Full-viewport file drag capture: while `isDragGlobal` is true, an invisible layer
+ * receives drops outside the composer (e.g. over the thread). Interactive UI stays
+ * above it via z-index. Disable this instance when another drop zone should win
+ * (e.g. memory search modal open).
+ */
 export function FileDropzone({
   children,
   className,
@@ -74,7 +90,7 @@ export function FileDropzone({
   disabled?: boolean;
 }) {
   const { addFiles, limit } = useFiles();
-  const { getInputProps, getRootProps, isDragActive } = useDropzone({
+  const { getInputProps, getRootProps, isDragActive, isDragGlobal } = useDropzone({
     multiple: limit > 1,
     maxFiles: limit,
     noClick: true,
@@ -82,20 +98,28 @@ export function FileDropzone({
     onDrop: addFiles,
   });
 
+  const showViewportCapture = !disabled && isDragGlobal;
+
   return (
-    <div {...getRootProps()} className={cn("relative", className)} {...props}>
+    <div {...getRootProps({ className: cn("relative", className) })} {...props}>
       <input {...getInputProps()} />
+      {showViewportCapture ? (
+        <div
+          aria-hidden
+          className="pointer-events-auto fixed inset-0 z-[5]"
+        />
+      ) : null}
+      <div className="relative z-10 min-w-0">{children}</div>
       {isDragActive ? (
         <div
           aria-hidden="true"
-          className="pointer-events-none fixed inset-0 z-[1000] flex items-center justify-center rounded-md bg-muted/50 backdrop-blur-sm"
+          className="pointer-events-none fixed inset-0 z-20 flex items-center justify-center bg-muted/50 backdrop-blur-sm"
         >
           <Skeleton className="flex items-center gap-2 rounded-full p-4">
             <FilePlusIcon size={30} className="text-green-600" />
           </Skeleton>
         </div>
       ) : null}
-      {children}
     </div>
   );
 }

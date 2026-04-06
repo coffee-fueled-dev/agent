@@ -6,6 +6,12 @@ import {
 } from "lucide-react";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner.js";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip.js";
 import { MimeTypeIcon } from "./mime-type-icon.js";
 import {
   type FileMemoryEmbeddingState,
@@ -72,11 +78,14 @@ export function FileEmbeddingRow({
       {status === "completed" ? (
         <CheckCircle2Icon className="size-3.5 shrink-0 text-green-600" />
       ) : status === "failed" ? (
-        <span title={error ?? "Processing failed"}>
-          <AlertCircleIcon className="size-3.5 shrink-0 text-destructive" />
-        </span>
+        <Tooltip>
+          <TooltipTrigger>
+            <AlertCircleIcon className="size-3.5 shrink-0 text-destructive" />
+          </TooltipTrigger>
+          <TooltipContent>{error ?? "Processing failed"}</TooltipContent>
+        </Tooltip>
       ) : embeddingPending ? (
-        <LoaderIcon className="size-3 shrink-0 animate-spin text-muted-foreground" />
+        <Spinner className="size-3 shrink-0 text-muted-foreground" />
       ) : null}
       <Button
         type="button"

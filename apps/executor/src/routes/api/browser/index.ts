@@ -60,6 +60,7 @@ function trim(s: string | undefined): string | undefined {
   return t === "" ? undefined : t;
 }
 
+/** Must match Convex `BROWSER_EXECUTOR_SECRET` (browser route auth). */
 function browserExecutorSecret(): string | undefined {
   return trim(process.env.BROWSER_EXECUTOR_SECRET);
 }

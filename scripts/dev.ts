@@ -7,7 +7,6 @@ import {
   convexEnvSetInDeployment,
   isConvexProjectConfigured,
   runConvexDev,
-  setupConvexProject,
 } from "./convex.ts";
 import { startNgrokStorageTunnel } from "./storageTunnel.ts";
 
@@ -40,29 +39,6 @@ async function shutdownAll() {
   await Promise.all(tunnelCleanups.map((c) => c()));
 }
 
-/** Fresh process loads `.env.local`, runs `convex env set` + `convex dev`, and starts apps. */
-async function reexecDevAfterSetup(monorepoRoot: string): Promise<never> {
-  console.log(
-    "Convex setup complete; restarting dev to apply env and start apps…",
-  );
-  const env = { ...process.env } as Record<string, string | undefined>;
-  delete env[ORCHESTRATOR_CHILD_ENV];
-  const proc = Bun.spawn({
-    cmd: [
-      "bun",
-      "--env-file=.env.local",
-      path.join(monorepoRoot, "scripts/dev.ts"),
-    ],
-    cwd: monorepoRoot,
-    stdin: "inherit",
-    stdout: "inherit",
-    stderr: "inherit",
-    env: env as NodeJS.ProcessEnv,
-  });
-  const code = await proc.exited;
-  process.exit(code ?? 1);
-}
-
 async function main() {
   process.env[ORCHESTRATOR_CHILD_ENV] = "1";
 
@@ -85,11 +61,10 @@ async function main() {
 
   try {
     if (!(await isConvexProjectConfigured(monorepoRoot))) {
-      console.log(
-        "No root Convex local deployment found; running interactive `convex dev --configure --dev-deployment local`…",
+      console.error(
+        "Convex is not configured. Run `bun configure` once from the repo root, then run `bun dev`.",
       );
-      await setupConvexProject({ cwd: monorepoRoot });
-      await reexecDevAfterSetup(monorepoRoot);
+      process.exit(1);
     }
 
     const config = loadMonorepoConfig(process.env);

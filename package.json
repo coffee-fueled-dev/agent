@@ -18,7 +18,7 @@
   },
   "scripts": {
     "dev": "bun --env-file=.env.local scripts/dev.ts",
-    "setup": "bun --env-file=.env.local scripts/setup.ts",
+    "configure": "bun --env-file=.env.local scripts/configure.ts",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "format": "biome format --write ."

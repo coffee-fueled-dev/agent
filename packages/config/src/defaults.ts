@@ -3,7 +3,7 @@ export const DEFAULT_AGENT_LISTEN_HOST = "127.0.0.1";
 export const DEFAULT_AGENT_LISTEN_PORT = 3000;
 
 /** Default HTTP listen (executor tooling server). */
-export const DEFAULT_EXECUTOR_LISTEN_HOST = "0.0.0.0";
+export const DEFAULT_EXECUTOR_LISTEN_HOST = "127.0.0.1";
 export const DEFAULT_EXECUTOR_LISTEN_PORT = 3010;
 
 /** Used when `TOOLING_PUBLIC_ORIGIN` is unset: Convex and scripts reach the executor at this origin. */

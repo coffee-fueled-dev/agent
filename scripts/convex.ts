@@ -10,8 +10,8 @@ import { forwardStream } from "./_lib.ts";
 export const convexEnvSchema = convexDashboardEnvSchema;
 export type { ConvexDashboardEnv };
 
-const CONVEX_DEV_READY_RE =
-  /Provisioned a dev deployment|Convex functions ready!/;
+/** Convex dev prints this when the backend is accepting work (local or cloud). */
+const CONVEX_DEV_READY_RE = /Convex functions ready!/;
 
 async function awaitProcessExitWithSigkillFallback(p: Bun.Subprocess) {
   const t = setTimeout(() => {
@@ -28,58 +28,24 @@ async function awaitProcessExitWithSigkillFallback(p: Bun.Subprocess) {
   }
 }
 
-function parseDotenvLines(content: string): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const line of content.split("\n")) {
-    const t = line.trim();
-    if (!t || t.startsWith("#")) continue;
-    const eq = t.indexOf("=");
-    if (eq === -1) continue;
-    const k = t.slice(0, eq).trim();
-    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(k)) continue;
-    let v = t.slice(eq + 1).trim();
-    if (
-      (v.startsWith('"') && v.endsWith('"')) ||
-      (v.startsWith("'") && v.endsWith("'"))
-    ) {
-      v = v.slice(1, -1);
-    }
-    out[k] = v;
-  }
-  return out;
-}
-
-function applyParsedEnvToProcess(parsed: Record<string, string>) {
-  for (const [k, v] of Object.entries(parsed)) {
-    process.env[k] = v;
-  }
-  const convexUrl = process.env.CONVEX_URL?.trim();
-  if (convexUrl && !process.env.BUN_PUBLIC_CONVEX_URL?.trim()) {
-    process.env.BUN_PUBLIC_CONVEX_URL = convexUrl;
-  }
-}
-
 function quoteEnvValue(v: string): string {
   if (/^[\w@%+/=:.-]+$/.test(v)) return v;
   return `"${v.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }
 
-/** Ensures BUN_PUBLIC_CONVEX_URL and BUN_PUBLIC_ACCOUNT_TOKEN exist in `.env.local` and `process.env`. */
+/**
+ * Ensures BUN_PUBLIC_CONVEX_URL and BUN_PUBLIC_ACCOUNT_TOKEN exist in `.env.local` and `process.env`.
+ * Reads source values from `process.env` (already populated by Bun's `--env-file` at startup).
+ */
 export async function ensurePublicEnvInDotenvLocal(cwd: string): Promise<void> {
   const envPath = path.join(cwd, ".env.local");
   let raw = "";
   if (await Bun.file(envPath).exists()) {
     raw = await Bun.file(envPath).text();
   }
-  const parsed = parseDotenvLines(raw);
-  const convexUrl =
-    process.env.CONVEX_URL?.trim() ||
-    parsed.CONVEX_URL?.trim() ||
-    parsed.BUN_PUBLIC_CONVEX_URL?.trim() ||
-    "";
-  let token =
-    process.env.BUN_PUBLIC_ACCOUNT_TOKEN?.trim() ||
-    parsed.BUN_PUBLIC_ACCOUNT_TOKEN?.trim();
+
+  const convexUrl = process.env.CONVEX_URL || "";
+  let token = process.env.BUN_PUBLIC_ACCOUNT_TOKEN;
   if (!token) token = randomBytes(32).toString("hex");
 
   const lines = raw.split("\n").filter((line) => {
@@ -95,10 +61,8 @@ export async function ensurePublicEnvInDotenvLocal(cwd: string): Promise<void> {
   const out: string[] = [...lines];
   if (convexUrl) {
     process.env.BUN_PUBLIC_CONVEX_URL = convexUrl;
-    // Always emit `BUN_PUBLIC_CONVEX_URL` for the agent app: `bunfig.toml` uses `env = "BUN_PUBLIC_*"` so the
-    // browser bundle only inlines those keys from `.env.local` / `--env-file`. Skipping this line when it
-    // matched `CONVEX_URL` left the bundler with no `BUN_PUBLIC_CONVEX_URL` (Convex WebSocket failed with 1006).
-    // Duplicate URL values may trigger “Can't safely modify .env.local for CONVEX_URL” from the Convex CLI; harmless for dev.
+    // bunfig.toml uses `env = "BUN_PUBLIC_*"` so the browser bundle only inlines
+    // BUN_PUBLIC_ keys from `.env.local`. Without this line the frontend has no Convex URL.
     out.push(`BUN_PUBLIC_CONVEX_URL=${quoteEnvValue(convexUrl)}`);
   }
   out.push(`BUN_PUBLIC_ACCOUNT_TOKEN=${quoteEnvValue(token)}`);
@@ -112,11 +76,10 @@ export async function isConvexProjectConfigured(cwd: string): Promise<boolean> {
 }
 
 /**
- * Interactive Convex project linking with a **local** dev deployment (`--dev-deployment local`).
+ * Interactive Convex project linking (`convex dev --configure`). Used by `bun configure` only.
  *
- * `convex dev --configure` keeps running as a dev server after setup; we stop it once we see
- * the same “ready” line as normal `convex dev` so this function can return (and `bun run dev`
- * can start a fresh orchestrated dev).
+ * Stops the subprocess once "Convex functions ready!" appears so you can run `bun dev` separately.
+ * Does NOT re-parse `.env.local` — `bun dev` will load the updated file at startup.
  */
 export async function setupConvexProject(opts: { cwd: string }): Promise<void> {
   const { cwd } = opts;
@@ -130,7 +93,6 @@ export async function setupConvexProject(opts: { cwd: string }): Promise<void> {
   });
 
   let combined = "";
-  /** Set synchronously when `CONVEX_DEV_READY_RE` matches so `exited` cannot reject in a race. */
   let finished = false;
 
   let resolveSetup!: () => void;
@@ -176,14 +138,6 @@ export async function setupConvexProject(opts: { cwd: string }): Promise<void> {
     }
     try {
       await awaitProcessExitWithSigkillFallback(subprocess);
-      await Bun.sleep(100);
-      const envPath = path.join(cwd, ".env.local");
-      if (await Bun.file(envPath).exists()) {
-        applyParsedEnvToProcess(
-          parseDotenvLines(await Bun.file(envPath).text()),
-        );
-      }
-      await ensurePublicEnvInDotenvLocal(cwd);
       resolveSetup();
     } catch (e) {
       rejectSetup(e);
@@ -211,7 +165,7 @@ export async function setupConvexProject(opts: { cwd: string }): Promise<void> {
       await awaitProcessExitWithSigkillFallback(subprocess);
       rejectSetup(
         new Error(
-          "Timed out waiting for Convex functions ready during setup (expected “Provisioned…” or “Convex functions ready!” in output).",
+          'Timed out waiting for Convex functions ready during configure.',
         ),
       );
     })();
@@ -247,62 +201,21 @@ export async function setupConvexProject(opts: { cwd: string }): Promise<void> {
   await setupDone;
 }
 
-async function mergeEnvFromRootDotenvLocal(cwd: string) {
-  const envPath = path.join(cwd, ".env.local");
-  await Bun.sleep(50);
-  const f = Bun.file(envPath);
-  if (!(await f.exists())) {
-    throw new Error(
-      `Expected ${envPath} after Convex dev reported ready (check convex dev output).`,
-    );
-  }
-  const parsed = parseDotenvLines(await f.text());
-  const url = parsed.CONVEX_URL?.trim() ?? parsed.BUN_PUBLIC_CONVEX_URL?.trim();
-  if (!url) {
-    throw new Error(
-      `Expected CONVEX_URL or BUN_PUBLIC_CONVEX_URL in ${envPath} after Convex dev ready.`,
-    );
-  }
-  applyParsedEnvToProcess(parsed);
-  await ensurePublicEnvInDotenvLocal(cwd);
-  console.log(
-    "Convex dev: merged repo .env.local into this process (agent / executor env).",
-  );
-}
-
 export type ConvexDevRun = {
   subprocess: Bun.Subprocess;
   ready: Promise<void>;
 };
 
-/** Set a single Convex dashboard env var (same spawn env as `runConvexDev`). */
+/** Set a single Convex dashboard env var. Inherits process.env (Bun already loaded .env.local). */
 export async function convexEnvSetInDeployment(opts: {
   cwd: string;
   key: string;
   value: string;
 }): Promise<void> {
   const { cwd, key, value } = opts;
-  let env: Record<string, string | undefined> = { ...process.env };
-
-  const localConfigPath = path.join(cwd, ".convex/local/default/config.json");
-  const localConfigFile = Bun.file(localConfigPath);
-  if (await localConfigFile.exists()) {
-    try {
-      const local = (await localConfigFile.json()) as {
-        deploymentName?: string;
-      };
-      if (typeof local.deploymentName === "string" && local.deploymentName) {
-        env = { ...env, CONVEX_DEPLOYMENT: local.deploymentName };
-      }
-    } catch {
-      // ignore invalid JSON
-    }
-  }
-
   const proc = Bun.spawn({
     cmd: ["bunx", "convex", "env", "set", key, value],
     cwd,
-    env: env as Record<string, string>,
     stdout: "inherit",
     stderr: "inherit",
   });
@@ -317,31 +230,13 @@ export async function runConvexDev(opts: {
   cwd: string;
 }): Promise<ConvexDevRun> {
   const { appEnv, cwd } = opts;
-  const parsed = convexDashboardEnvSchema.parse(appEnv);
+  const dashboardEnv = convexDashboardEnvSchema.parse(appEnv);
 
-  let env: Record<string, string | undefined> = { ...process.env, ...parsed };
-
-  const localConfigPath = path.join(cwd, ".convex/local/default/config.json");
-  const localConfigFile = Bun.file(localConfigPath);
-  if (await localConfigFile.exists()) {
-    try {
-      const local = (await localConfigFile.json()) as {
-        deploymentName?: string;
-      };
-      if (typeof local.deploymentName === "string" && local.deploymentName) {
-        env = { ...env, CONVEX_DEPLOYMENT: local.deploymentName };
-      }
-    } catch {
-      // ignore invalid JSON
-    }
-  }
-
-  for (const [key, value] of Object.entries(parsed)) {
+  for (const [key, value] of Object.entries(dashboardEnv)) {
     if (value === undefined || value === "") continue;
     const proc = Bun.spawn({
       cmd: ["bunx", "convex", "env", "set", key, value],
       cwd,
-      env: env as Record<string, string>,
       stdout: "inherit",
       stderr: "inherit",
     });
@@ -354,13 +249,15 @@ export async function runConvexDev(opts: {
   const subprocess = Bun.spawn({
     cmd: ["bunx", "convex", "dev", "--typecheck-components"],
     cwd,
-    env,
     stdout: "pipe",
     stderr: "pipe",
   });
 
   let combined = "";
-  let readySettled = false;
+  let sawReadyBanner = false;
+
+  type ReadyOutcome = "pending" | "resolved" | "rejected";
+  let readyOutcome: ReadyOutcome = "pending";
 
   let resolveReady!: () => void;
   let rejectReady!: (e: unknown) => void;
@@ -369,48 +266,82 @@ export async function runConvexDev(opts: {
     rejectReady = rej;
   });
 
-  const timeout = setTimeout(() => {
-    if (!readySettled) {
-      rejectReady(
-        new Error(
-          "Timed out waiting for Convex dev (expected “Provisioned…” or “Convex functions ready!” in output).",
-        ),
-      );
-    }
+  let timeoutId: ReturnType<typeof setTimeout>;
+
+  function finalizeFailure(reason: Error) {
+    if (readyOutcome !== "pending") return;
+    readyOutcome = "rejected";
+    clearTimeout(timeoutId);
+    void (async () => {
+      try {
+        subprocess.kill("SIGTERM");
+      } catch {
+        // ignore
+      }
+      await awaitProcessExitWithSigkillFallback(subprocess);
+      rejectReady(reason);
+    })();
+  }
+
+  timeoutId = setTimeout(() => {
+    finalizeFailure(
+      new Error(
+        'Timed out waiting for Convex dev (expected "Convex functions ready!" in output).',
+      ),
+    );
   }, 180_000);
 
-  function tryMergeFromStreamChunk(chunk: string) {
+  function tryReady(chunk: string) {
     combined += chunk;
-    if (readySettled) return;
+    if (sawReadyBanner) return;
     if (!CONVEX_DEV_READY_RE.test(combined)) return;
-    readySettled = true;
-    clearTimeout(timeout);
-    void mergeEnvFromRootDotenvLocal(cwd).then(resolveReady, (e) => {
-      rejectReady(e);
-    });
+    sawReadyBanner = true;
+    clearTimeout(timeoutId);
+    void (async () => {
+      try {
+        if (!process.env.CONVEX_URL) {
+          throw new Error(
+            "Missing CONVEX_URL in process.env after Convex dev ready. Ensure .env.local has CONVEX_URL.",
+          );
+        }
+        if (!process.env.BUN_PUBLIC_CONVEX_URL) {
+          process.env.BUN_PUBLIC_CONVEX_URL = process.env.CONVEX_URL;
+        }
+        await ensurePublicEnvInDotenvLocal(cwd);
+        console.log(
+          "Convex dev ready: ensured BUN_PUBLIC env vars in .env.local.",
+        );
+        if (readyOutcome !== "pending") return;
+        readyOutcome = "resolved";
+        resolveReady();
+      } catch (e) {
+        finalizeFailure(e instanceof Error ? e : new Error(String(e)));
+      }
+    })();
   }
 
   const pump = Promise.all([
-    forwardStream(subprocess.stdout, process.stdout, tryMergeFromStreamChunk),
-    forwardStream(subprocess.stderr, process.stderr, tryMergeFromStreamChunk),
+    forwardStream(subprocess.stdout, process.stdout, tryReady),
+    forwardStream(subprocess.stderr, process.stderr, tryReady),
   ]);
 
   void pump.then(() => {
-    if (!readySettled) {
-      clearTimeout(timeout);
-      rejectReady(
-        new Error(
-          "convex dev exited before reporting ready (no provision / functions ready in output).",
-        ),
-      );
-    }
+    if (readyOutcome !== "pending" || sawReadyBanner) return;
+    finalizeFailure(
+      new Error(
+        'convex dev exited before reporting ready (no "Convex functions ready!" in output).',
+      ),
+    );
   });
 
   void subprocess.exited.then((code) => {
-    if (readySettled) return;
-    clearTimeout(timeout);
-    rejectReady(
-      new Error(`convex dev exited with code ${code} before reporting ready.`),
+    if (readyOutcome !== "pending") return;
+    finalizeFailure(
+      new Error(
+        sawReadyBanner
+          ? `convex dev exited with code ${code} while setting up env after ready.`
+          : `convex dev exited with code ${code} before reporting ready.`,
+      ),
     );
   });
 

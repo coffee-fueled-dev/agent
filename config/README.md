@@ -2,7 +2,10 @@
 
 1. Run `bun install` at the repo root.
 2. Copy [`env.example`](./env.example) to `.env.local` at the **repo root**, set secrets and any overrides.
-3. Run `bun run dev` — the orchestrator (`scripts/dev.ts`) loads [`@agent/config`](../packages/config), validates env once, pushes the Convex dashboard env, and starts the agent and executor with consistent listen addresses and tooling URLs.
+3. **First-time Convex:** run `bun configure` once and complete the interactive `convex dev --configure` flow (project link, local or cloud deployment, etc.).
+4. Run `bun dev` — loads [`@agent/config`](../packages/config), runs the Convex `env set` loop from `.env.local`, starts `convex dev`, then (if configured) the storage ngrok tunnel, agent, and executor. If Convex was never configured, `bun dev` exits and tells you to run `bun configure` first.
+
+**Executor secrets (pairing Convex ↔ executor):** `FILE_EMBEDDING_SECRET`, `SHELL_EXECUTOR_SECRET`, and `BROWSER_EXECUTOR_SECRET` must each be the **same value** in the Convex deployment and in the executor’s environment. Convex includes them when calling `/api/file-embedding`, `/api/fs/*`, and `/api/browser/browse`; the executor validates them. If you set them only on one side, those HTTP calls fail (e.g. 401).
 
 **Storage tunnel (optional):** Set `STORAGE_PUBLIC_TUNNEL_ORIGIN=auto` and `NGROK_AUTHTOKEN` in `.env.local` to start an ngrok edge to your Convex deployment origin after `convex dev` is ready; the orchestrator sets Convex `STORAGE_PUBLIC_TUNNEL_ORIGIN` to the discovered public HTTPS origin so file URLs in LLM messages are reachable. Use a literal URL instead of `auto` to skip ngrok and pin a fixed origin.
 

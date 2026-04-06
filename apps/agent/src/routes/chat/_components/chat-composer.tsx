@@ -68,7 +68,7 @@ function ChatComposerInner() {
   );
 
   const composerBody = (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-2">
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-2 p-2">
       {userId && shareMemoriesAllowed ? <MemorySearchModal /> : null}
       {memoryEntries.length > 0 ? (
         <div className="flex flex-wrap gap-1.5">
@@ -115,6 +115,7 @@ function ChatComposerInner() {
           onChange={(e) => setText(e.currentTarget.value)}
           rows={3}
           className="min-h-[4.5rem] max-h-48"
+          onDragOver={(e) => e.preventDefault()}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();

@@ -254,6 +254,7 @@ export function MemorySearchModal() {
     getRootProps,
     getInputProps,
     open: openFilePicker,
+    isDragGlobal,
   } = useDropzone({
     multiple: false,
     noClick: true,
@@ -264,6 +265,8 @@ export function MemorySearchModal() {
       if (f) setSearchFile(f);
     },
   });
+
+  const showViewportCapture = open && !disabled && isDragGlobal;
 
   const hasInput = query.trim() || searchFile || fileTextSnippet?.trim();
 
@@ -285,9 +288,22 @@ export function MemorySearchModal() {
         },
       }}
     >
-      <Command shouldFilter={false} className="p-1" {...getRootProps()}>
+      <div
+        {...getRootProps({
+          className:
+            "relative flex min-h-0 w-full min-w-0 flex-1 flex-col outline-none",
+        })}
+      >
         <input {...getInputProps()} />
-        <InputGroup className="border-none shadow-none">
+        {showViewportCapture ? (
+          <div
+            aria-hidden
+            className="pointer-events-auto fixed inset-0 z-[60]"
+          />
+        ) : null}
+        <div className="relative z-[70] flex min-h-0 min-w-0 flex-1 flex-col">
+          <Command shouldFilter={false} className="min-h-0 p-1">
+            <InputGroup className="border-none shadow-none">
           <InputGroupAddon>
             <SearchIcon className="size-4 opacity-50" />
           </InputGroupAddon>
@@ -374,7 +390,9 @@ export function MemorySearchModal() {
             )}
           </CommandList>
         ) : null}
-      </Command>
+          </Command>
+        </div>
+      </div>
     </CommandDialog>
   );
 }
