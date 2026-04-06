@@ -1,8 +1,8 @@
 import { tool } from "@very-coffee/agent-identity";
+import { internal } from "_generated/api.js";
+import { assistantActorPolicy } from "agents/_policies/actorPolicies.js";
 import type { InferUITool, Tool } from "ai";
 import { z } from "zod/v4";
-import { internal } from "../../../../_generated/api.js";
-import { assistantActorPolicy } from "../../../_policies/actorPolicies.js";
 import type { ConvexAgentEnv } from "../../../lib/customFunctions.js";
 import type { ToolRuntimeContext } from "../../../lib/toolkit.js";
 import { inputArgs, withFormattedResults } from "../../../lib/toolkit.js";

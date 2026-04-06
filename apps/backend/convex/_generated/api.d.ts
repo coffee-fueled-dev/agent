@@ -511,6 +511,11 @@ export declare const components: {
           "action",
           "internal",
           {
+            armBias?: {
+              lexical?: number;
+              vectorFile?: number;
+              vectorQuery?: number;
+            };
             embedding?: Array<number>;
             googleApiKey?: string;
             k?: number;

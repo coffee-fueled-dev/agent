@@ -14,11 +14,44 @@ declare module "../../registeredToolMap.js" {
   }
 }
 
+const armBiasSchema = z
+  .object({
+    lexical: z
+      .number()
+      .nonnegative()
+      .optional()
+      .describe(
+        `Make this higher when the literal words, identifiers, or rare tokens matter. 
+        Large indexed bodies can score many keyword hits—increase vectorQuery instead 
+        if results feel dominated by verbose or off-topic lexical matches.`,
+      ),
+    vector: z
+      .number()
+      .nonnegative()
+      .optional()
+      .describe(
+        `Make this higher when the general meaning of the query is more important than the literal words. 
+        Boosting this will also help to find short, specific memories when results from the lexical arm may contain frequent
+        matches that are not relevant to the semantic meaning of the query.`,
+      ),
+    file: z
+      .number()
+      .nonnegative()
+      .optional()
+      .describe(
+        "Make this higher when relation to the embedded file is more important than the query text.",
+      ),
+  })
+  .optional()
+  .describe(
+    "Balance the hybrid search arms before reciprocal-rank fusion (RRF). Provide non-negative relative weights; they are normalized to sum to 1 across arms that are eligible for this call (lexical if text search applies; vectorQuery if the query is embedded; vectorFile if a file embedding is used). Omitted keys default to 1 before normalization. Set a weight to 0 to disable that arm entirely (skips its retrieval). Increase lexical when precise term overlap matters; increase vectorQuery when meaning and context matter more than literal word frequency; tune vectorFile when comparing an attached file’s embedding against query-based results.",
+  );
+
 export function searchMemoriesTool() {
   return tool({
     name: "searchMemories" as const,
     description:
-      "Hybrid search over session memory (lexical + vector, RRF-ranked).",
+      "Hybrid search over session memory: full-text (lexical) plus vector similarity, fused with RRF. Use optional armBias to weight keyword vs semantic (and optional file) arms when results are skewed—e.g. favor vectorQuery if large corpora win on raw term hits but a short factual memory is more relevant.",
     inputSchema: inputArgs({
       query: z.string().describe("Natural-language query to search for."),
       limit: z
@@ -34,6 +67,7 @@ export function searchMemoriesTool() {
         .optional()
         .describe("Max candidates per lexical/vector arm before RRF."),
       k: z.number().optional().describe("RRF rank constant (default 60)."),
+      armBias: armBiasSchema,
     }),
     handler: async (ctx: ToolRuntimeContext<ConvexAgentEnv>, args) => {
       void args.goal;
@@ -62,6 +96,7 @@ export function searchMemoriesTool() {
               perArmLimit: args.perArmLimit,
               k: args.k,
               googleApiKey,
+              armBias: args.armBias,
             },
           );
           if (hits.length === 0) return [];

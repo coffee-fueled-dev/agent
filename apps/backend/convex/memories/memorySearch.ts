@@ -23,6 +23,14 @@ export const searchMemories = action({
     /** Server-side embedding for the file vector arm when `fileEmbedding` is omitted. */
     fileTextForEmbedding: v.optional(v.string()),
     limit: v.optional(v.number()),
+    /** Passed through to memory search RRF; see component `searchMemory` / agent tool docs. */
+    armBias: v.optional(
+      v.object({
+        lexical: v.optional(v.number()),
+        vectorQuery: v.optional(v.number()),
+        vectorFile: v.optional(v.number()),
+      }),
+    ),
   },
   returns: v.array(
     v.object({
@@ -69,6 +77,7 @@ export const searchMemories = action({
       limit: args.limit ?? 10,
       perArmLimit: args.limit ?? 10,
       googleApiKey,
+      armBias: args.armBias,
     });
     const out: Array<{
       sourceRef: string;

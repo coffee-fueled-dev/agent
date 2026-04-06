@@ -67,6 +67,11 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           "action",
           "internal",
           {
+            armBias?: {
+              lexical?: number;
+              vectorFile?: number;
+              vectorQuery?: number;
+            };
             embedding?: Array<number>;
             googleApiKey?: string;
             k?: number;

@@ -361,7 +361,7 @@ export const updateThreadTitle = mutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     const thread = await ctx.runQuery(components.agent.threads.getThread, {
-      threadId: args.threadId as never,
+      threadId: args.threadId,
     });
     if (!thread || thread.userId !== args.userId) {
       throw new Error("Thread not found or access denied");

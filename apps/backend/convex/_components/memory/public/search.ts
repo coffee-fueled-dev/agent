@@ -10,6 +10,61 @@ import { action } from "../_generated/server";
 import { createEmbeddingModel } from "../_lib";
 import { lexicalSearch, MEMORY_SOURCE_SYSTEM, vectorSearch } from "../search";
 
+const armBiasValidator = v.optional(
+  v.object({
+    /** Relative weight for full-text (Tantivy/BM25) matches; normalized with other active arms. */
+    lexical: v.optional(v.number()),
+    /** Relative weight for embedding similarity using `query` (and `lexicalQuery` does not affect this arm). */
+    vectorQuery: v.optional(v.number()),
+    /** Relative weight for embedding similarity when a file/hybrid vector arm is used. */
+    vectorFile: v.optional(v.number()),
+  }),
+);
+
+export type ArmBiasInput = {
+  lexical?: number;
+  vectorQuery?: number;
+  vectorFile?: number;
+};
+
+/** Non-negative weights per arm; sums to 1 over arms that are eligible (input allows that arm). */
+export function normalizeArmBiasWeights(
+  bias: ArmBiasInput | undefined,
+  active: {
+    lexical: boolean;
+    vectorQuery: boolean;
+    vectorFile: boolean;
+  },
+): { lexical: number; vectorQuery: number; vectorFile: number } {
+  const raw = (key: keyof ArmBiasInput): number => {
+    if (!active[key]) return 0;
+    const x = bias?.[key];
+    const w = x !== undefined ? x : 1;
+    return Number.isFinite(w) && w >= 0 ? w : 0;
+  };
+  const lex = raw("lexical");
+  const vq = raw("vectorQuery");
+  const vf = raw("vectorFile");
+  const sum = lex + vq + vf;
+  if (sum <= 0) {
+    const n =
+      Number(active.lexical) +
+      Number(active.vectorQuery) +
+      Number(active.vectorFile);
+    const eq = n > 0 ? 1 / n : 0;
+    return {
+      lexical: active.lexical ? eq : 0,
+      vectorQuery: active.vectorQuery ? eq : 0,
+      vectorFile: active.vectorFile ? eq : 0,
+    };
+  }
+  return {
+    lexical: lex / sum,
+    vectorQuery: vq / sum,
+    vectorFile: vf / sum,
+  };
+}
+
 export const searchMemory = action({
   args: {
     namespace: v.string(),
@@ -30,6 +85,13 @@ export const searchMemory = action({
     perArmLimit: v.optional(v.number()),
     /** RRF constant (default 60). */
     k: v.optional(v.number()),
+    /**
+     * Relative importance of each retrieval arm before RRF fusion. Values are non-negative;
+     * normalized to sum to 1 across **eligible** arms only (lexical if `lexicalQuery`/`query` text;
+     * vectorQuery if `query` non-empty for embedding; vectorFile if `embedding` set).
+     * Omitted keys default to 1 before normalization. A normalized weight of 0 skips that arm (no query).
+     */
+    armBias: armBiasValidator,
   },
   returns: v.array(
     v.object({
@@ -63,8 +125,15 @@ export const searchMemory = action({
     const perArm = args.perArmLimit ?? topK;
     const k = args.k ?? 60;
 
+    const eligible = {
+      lexical: lexicalText.length > 0,
+      vectorQuery: embedText.length > 0,
+      vectorFile: Boolean(fileEmb?.length),
+    };
+    const w = normalizeArmBiasWeights(args.armBias ?? undefined, eligible);
+
     const lexicalHits =
-      lexicalText.length > 0
+      eligible.lexical && w.lexical > 0
         ? await lexicalSearch.search(ctx, {
             namespace: args.namespace,
             query: lexicalText,
@@ -74,7 +143,7 @@ export const searchMemory = action({
         : [];
 
     let vectorQueryHits: Awaited<ReturnType<typeof vectorSearch.search>> = [];
-    if (embedText.length > 0) {
+    if (eligible.vectorQuery && w.vectorQuery > 0) {
       if (!args.googleApiKey) {
         throw new Error(
           "searchMemory: googleApiKey is required for the query vector arm (host must pass deployment key).",
@@ -98,7 +167,7 @@ export const searchMemory = action({
     }
 
     let vectorFileHits: Awaited<ReturnType<typeof vectorSearch.search>> = [];
-    if (fileEmb?.length) {
+    if (w.vectorFile > 0 && fileEmb && fileEmb.length > 0) {
       vectorFileHits = await vectorSearch.search(ctx, {
         namespace: args.namespace,
         vector: [...fileEmb],
@@ -107,15 +176,22 @@ export const searchMemory = action({
       });
     }
 
+    const active = {
+      lexical: lexicalHits.length > 0,
+      vectorQuery: vectorQueryHits.length > 0,
+      vectorFile: vectorFileHits.length > 0,
+    };
+
     const arms: RrfArm<string>[] = [];
 
-    if (lexicalHits.length > 0) {
+    if (active.lexical && w.lexical > 0) {
       arms.push({
         armId: "lexical",
         ranked: lexicalHits.map((h) => h.sourceRef),
+        weight: w.lexical,
       });
     }
-    if (vectorQueryHits.length > 0) {
+    if (active.vectorQuery && w.vectorQuery > 0) {
       arms.push(
         adaptArm({
           armId: "vectorQuery",
@@ -125,10 +201,11 @@ export const searchMemory = action({
             h.propertyHits.length === 0
               ? 0
               : Math.max(...h.propertyHits.map((p) => p._score)),
+          weight: w.vectorQuery,
         }),
       );
     }
-    if (vectorFileHits.length > 0) {
+    if (active.vectorFile && w.vectorFile > 0) {
       arms.push(
         adaptArm({
           armId: "vectorFile",
@@ -138,6 +215,7 @@ export const searchMemory = action({
             h.propertyHits.length === 0
               ? 0
               : Math.max(...h.propertyHits.map((p) => p._score)),
+          weight: w.vectorFile,
         }),
       );
     }
